@@ -20,7 +20,7 @@ from .models import Staff, Shift, Attendance
 @api_view(['GET','POST'])
 def staffApi(request):
     if request.method=='GET':
-        staff=Staff.objects.all()
+        staff=Staff.objects.select_related('shift').all()
         serializer=StaffSerializer(staff,many=True)
         return Response(serializer.data)
 
@@ -42,7 +42,7 @@ class staffDetailsView(RetrieveUpdateDestroyAPIView):
 @api_view(['GET','POST'])
 def shiftApi(request):
     if request.method=='GET':
-        shift=Shift.objects.all()
+        shift=Shift.objects.prefetch_related('staff').all()
         serializer=ShiftSerializer(shift,many=True)
         return Response(serializer.data)
 
@@ -105,6 +105,26 @@ def mark_attendance_view(request, shift_id=None):
 
 
 
-class PayrollViewSet(viewsets.ModelViewSet):
-    queryset=Payroll.objects.all().order_by('-generated_at')
+
+@api_view(['GET','POST'])
+def payrollView(request):
+    if request.method=='GET':
+        payroll=Payroll.objects.select_related('staff').all().order_by('-generated_at')
+        serializer=PayrollSerializer(payroll,many=True)
+        return Response(serializer.data)
+
+    if request.method=='POST':
+        # print(request.data)
+        serializer=PayrollSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message':'Payroll added successfully'})
+        print(serializer.errors)
+        return Response(serializer.errors,status=400)
+    
+class PayrollDetailsView(RetrieveUpdateDestroyAPIView):
+    queryset=Payroll.objects.all()
     serializer_class=PayrollSerializer
+    lookup_field='id'
+
+
