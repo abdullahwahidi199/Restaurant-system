@@ -17,7 +17,7 @@ function Navbar() {
                                 }`
                             }
                         >
-                            Home
+                            Dashboard
                         </NavLink>
                     </li>
 
@@ -42,6 +42,26 @@ function Navbar() {
                             }
                         >
                             Staff
+                        </NavLink>
+                    </li><li>
+                        <NavLink
+                            to="/admin/dashboard/shifts"
+                            className={({ isActive }) =>
+                                `block px-4 py-[5px] rounded hover:bg-gray-700 transition ${isActive ? "bg-gray-700 text-white" : "text-gray-300"
+                                }`
+                            }
+                        >
+                            Shifts
+                        </NavLink>
+                    </li><li>
+                        <NavLink
+                            to="/admin/dashboard/menu"
+                            className={({ isActive }) =>
+                                `block px-4 py-[5px] rounded hover:bg-gray-700 transition ${isActive ? "bg-gray-700 text-white" : "text-gray-300"
+                                }`
+                            }
+                        >
+                            Menu
                         </NavLink>
                     </li>
 

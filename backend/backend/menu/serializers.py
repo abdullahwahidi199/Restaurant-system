@@ -34,9 +34,9 @@ class ReveiwSerializer(serializers.ModelSerializer):
         model=Review
         fields=['id','customer','menu_item','comment','rating']
 class MenuItemSerializer(serializers.ModelSerializer):
-    category_name = serializers.ReadOnlyField(source='category.name')
+    
     reviews=ReveiwMiniSerializer(read_only=True,many=True)
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category_name','reviews']
+        fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category','reviews']
 

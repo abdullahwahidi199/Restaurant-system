@@ -103,7 +103,7 @@ export default function Attendance() {
                     <button
                         onClick={() => setSelectedShiftId(shift.id)}
                         key={shift.id}
-                        className={`flex items-center gap-2 px-4 py-2 rounded shadow-md transition-all duration-200 ${selectedShiftId === shift.id ? 'bg-blue-600' : 'bg-gray-200 text-blue-600 border-blue-600'} hover:bg-blue-700 hover:text-white `}
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded shadow-md transition-all duration-200 ${selectedShiftId === shift.id ? 'bg-blue-600' : 'bg-gray-200 text-blue-600 border-blue-600'} hover:bg-blue-700 hover:text-white `}
                     >
                         {shift.shift_type}
                     </button>

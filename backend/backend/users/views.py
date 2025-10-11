@@ -3,11 +3,13 @@ from rest_framework import viewsets
 from .models import Staff,Shift,Payroll
 from .serializers import StaffSerializer,ShiftSerializer,PayrollSerializer
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,parser_classes
 from rest_framework.response import Response
 from rest_framework import status
 from datetime import date
 from .models import Staff, Shift, Attendance
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 # class StaffViewSet(viewsets.ModelViewSet):
 #     queryset = Staff.objects.all()
@@ -18,6 +20,7 @@ from .models import Staff, Shift, Attendance
 #     serializer_class=ShiftSerializer
 
 @api_view(['GET','POST'])
+@parser_classes([MultiPartParser,FormParser])
 def staffApi(request):
     if request.method=='GET':
         staff=Staff.objects.select_related('shift').all()

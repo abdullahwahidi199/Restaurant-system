@@ -20,7 +20,7 @@ def category_list_create(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CategoryRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+class CategoryRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Category.objects.prefetch_related('menu_items').all()
     serializer_class = CategorySerializer
 
@@ -38,9 +38,10 @@ def menu_item_list_create_view(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class MenuItemRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+class MenuItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = MenuItem.objects.prefetch_related('reviews')
     serializer_class = MenuItemSerializer
+
 
 @api_view(['GET',"POST"])
 def review_list_create(request):
@@ -55,6 +56,6 @@ def review_list_create(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ReviewRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+class ReviewRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.select_related('customer', 'menu_item')
     serializer_class = ReveiwSerializer

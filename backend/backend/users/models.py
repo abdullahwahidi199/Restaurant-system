@@ -3,17 +3,14 @@ from django.utils import timezone
 
 
 class Shift(models.Model):
-    shift_type=models.CharField(
-        max_length=20,
-        choices=[("Morning", "Morning"), ("Evening", "Evening"), ("Night", "Night"), ("Custom", "Custom")],
-        default='Custom'
-    )
+    shift_type=models.CharField(max_length=50)
+    
     # staff=models.ForeignKey(Staff,on_delete=models.CASCADE,related_name="shifts")
-    start_time=models.DateTimeField()
-    end_time=models.DateTimeField()
+    start_time=models.TimeField()
+    end_time=models.TimeField()
 
     def __str__(self):
-        return f"{self.staff.name} - {self.start_time} to {self.end_time}"
+        return f"{self.shift_type} - {self.start_time} to {self.end_time}"
     
 class Staff(models.Model):
     ROLE_CHOICES=[
@@ -22,7 +19,7 @@ class Staff(models.Model):
         ('Waiter','Waiter'),
         ('Chef','Chef'),
         ('DeliveryBoy','Delivery Boy'),
-        ('Other','Other')
+        
     ]
     name=models.CharField(max_length=100)
     email=models.EmailField(unique=True)
