@@ -20,6 +20,7 @@ export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
         formData.append("description",description)
         formData.append("price",price)    
         formData.append("category",selectedcategoryid)
+        formData.append("is_available",'True')
         if (image){
             formData.append("image",image)
         }

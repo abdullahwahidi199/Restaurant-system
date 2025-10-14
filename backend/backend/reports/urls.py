@@ -1,6 +1,8 @@
 from django.urls import path
-from . import views
+from .views import DashboardSummaryAPIView,NotificationListView,MarkAsReadView
 
 urlpatterns=[
-    path('test-reports-app/',views.test_view)
+    path('notifications/', NotificationListView.as_view(), name='notification-list'),
+    path('notifications/<int:pk>/read/', MarkAsReadView.as_view(), name='notification-read'),
+    path('dashboard-summary/',DashboardSummaryAPIView.as_view())
 ]

@@ -7,9 +7,11 @@ import AdminDashboard from './component/Admin/adminDashboard';
 import Attendance from './component/Admin/attendance';
 import StaffManagement from './component/Admin/staff/StaffManagement';
 import Shifts from './component/Admin/shift/shifts';
-import Dashboard from './component/Admin/dashboard/Dashboard';
+import Dashboard from './component/Admin/dashboard/DashboardBase';
 import Menu from './component/Admin/MenuManagement/MenuBaseModal';
 import IndividaulItem from './component/Admin/MenuManagement/individualItem';
+import OrderBase from './component/Admin/order/OrderBase';
+import TableBAse from './component/Admin/tablesManagement/TableBAse';
 
 
 
@@ -27,6 +29,8 @@ function App() {
           <Route path="shifts" element={<Shifts/>}/>
           <Route path='menu' element={<Menu/>}/>
           <Route path='menu/item/:id' element={<IndividaulItem/>}/>
+          <Route path="orders" element={<OrderBase/>}/>
+          <Route path='tables' element={<TableBAse/>}/>
         </Route>
         
       </Route>

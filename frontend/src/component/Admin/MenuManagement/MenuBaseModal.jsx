@@ -29,7 +29,7 @@ export default function Menu() {
   };
 
   return (
-    <div className="min-h-screen py-5 px-4 bg-gray-50">
+    <div className="min-h-screen py-5 px-4 bg-gray-100">
       <div className="max-w-6xl mx-auto mb-8">
         <h1 className="text-3xl font-semibold text-gray-800 mb-5">Menu Management</h1>
 

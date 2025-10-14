@@ -1,33 +1,36 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer
 from customers.serializers import CustomerProfileSerializer
-from .models import OrderItem,Order
+from .models import OrderItem,Order,Table
 from customers.models import Customer
 
 class OrderItemSerializer(serializers.ModelSerializer):
     item_name=serializers.ReadOnlyField(source='menu_item.name')
     item_price=serializers.ReadOnlyField(source='menu_item.price')
     subtotal=serializers.SerializerMethodField()
-
+    table_number=serializers.ReadOnlyField(source="table.number")
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'item_name', 'item_price', 'quantity', 'subtotal']
+        fields = ['id', 'menu_item', 'item_name', 'item_price', 'quantity', 'subtotal','table_number']
 
     def get_subtotal(self, obj):
         return obj.get_subtotal()
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, required=True)
-    total=serializers.SerializerMethodField()
-    
+    items = OrderItemSerializer(many=True)
+    total = serializers.SerializerMethodField()
+    order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'name', 'phone', 'address',
-            'order_type', 'status', 'created_at', 'items', 'total'
+            'id', 'customer', 'name', 'phone', 'address', 'note',
+            'order_type', 'order_type_display', 'status', 'status_display',
+            'created_at', 'updated_at', 'items', 'total'
         ]
-        read_only_fields = [ 'created_at', 'total']
+        read_only_fields = ['created_at', 'updated_at', 'total']
 
     def get_total(self, obj):
         return obj.get_total()
@@ -50,3 +53,19 @@ class OrderSerializer(serializers.ModelSerializer):
             OrderItem.objects.create(order=order,**item)
 
         return order
+class OrderMiniSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True)
+    total = serializers.SerializerMethodField()
+    class Meta:
+        model=Order
+        fields=['name','phone','items','total']
+    
+    def get_total(self, obj):
+        return obj.get_total()
+
+
+class TableSerializer(serializers.ModelSerializer):
+    orders=OrderMiniSerializer(many=True,read_only=True)
+    class Meta:
+        model=Table
+        fields=['number','capacity','note','status','orders']

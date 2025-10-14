@@ -6,7 +6,7 @@ from customers.models import Customer
 class MenuItemMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'price','image'] 
+        fields = ['id', 'name', 'price','image','is_available'] 
 
 class CustomerMiniSerializer(serializers.ModelSerializer):
     username=serializers.CharField(source="user.username",read_only=True)

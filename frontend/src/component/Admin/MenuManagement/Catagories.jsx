@@ -40,7 +40,7 @@ export default function CategoriesList({ categories,onCategoryDelete }) {
                         onClick={() => {
                             handleCategoryClick(c.id);
                         }}
-                        className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedCategoryId === c.id
+                        className={`px-5 py-2 cursor-pointer rounded-full text-sm font-medium transition-all ${selectedCategoryId === c.id
                             ? "bg-red-600 text-white shadow-md"
                             : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                             }`}
