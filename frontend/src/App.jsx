@@ -11,7 +11,10 @@ import Dashboard from './component/Admin/dashboard/DashboardBase';
 import Menu from './component/Admin/MenuManagement/MenuBaseModal';
 import IndividaulItem from './component/Admin/MenuManagement/individualItem';
 import OrderBase from './component/Admin/order/OrderBase';
-import TableBAse from './component/Admin/tablesManagement/TableBAse';
+
+import TableBaseModal from './component/Admin/tables/TableBase';
+import HomePage from './component/waiter/HomePage';
+import KitchenHomepage from './component/kitchen/Homepage';
 
 
 
@@ -30,7 +33,15 @@ function App() {
           <Route path='menu' element={<Menu/>}/>
           <Route path='menu/item/:id' element={<IndividaulItem/>}/>
           <Route path="orders" element={<OrderBase/>}/>
-          <Route path='tables' element={<TableBAse/>}/>
+          <Route path='tables' element={<TableBaseModal/>}/>
+        </Route>
+
+        <Route path='waiter'>
+          <Route index element={<HomePage/>}/>
+        </Route>
+
+        <Route path='kitchen'>
+          <Route index element={<KitchenHomepage/>}/>
         </Route>
         
       </Route>

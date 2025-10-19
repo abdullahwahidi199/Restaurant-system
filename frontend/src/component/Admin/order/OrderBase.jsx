@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import OrderStats from "./OrderStats";
 import OrderFilters from "./OrderFilters";
-import OrderTable from "./OrderTables";
+import OrdersTable from "./OrdersTable";
 import OrderDetailsModal from "./OrderDetailsModal";
 
 export default function OrdersPage() {
@@ -19,6 +19,7 @@ export default function OrdersPage() {
     const res = await fetch(`http://127.0.0.1:8000/orders/orders/?${query}`);
     const data = await res.json();
     setOrders(data);
+    console.log(data)
   };
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function OrdersPage() {
 
       <OrderFilters filters={filters} setFilters={setFilters} onSearch={fetchOrders} />
 
-      <OrderTable orders={orders} onView={(order) => setSelectedOrder(order)} />
+      <OrdersTable orders={orders} onView={(order) => setSelectedOrder(order)} />
 
       <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
     </div>

@@ -17,6 +17,7 @@ export default function OrderTable({ orders, onView }) {
             <th className="p-3">Order ID</th>
             <th className="p-3">Customer</th>
             <th className="p-3">Total</th>
+            <th className="p-3">Table #</th>
             <th className="p-3">Status</th>
             <th className="p-3">Date</th>
             <th className="p-3 text-center">Actions</th>
@@ -28,6 +29,7 @@ export default function OrderTable({ orders, onView }) {
               <td className="p-3">#{order.id}</td>
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
+              <td className="p-3">{order.table?order.table.number:'Dine-in/Online order'}</td>
               <td className="p-3">
                 <span
                   className={`px-2 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}

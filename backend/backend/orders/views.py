@@ -4,9 +4,9 @@ from rest_framework import status, generics
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q
-from .models import Order,Table
+from .models import Order,Table,OrderItem
 from .seriailizers import OrderSerializer,TableSerializer
-
+from menu.models import MenuItem
 @api_view(['GET', 'POST'])
 def order_list_create(request):
     if request.method == 'GET':
@@ -32,16 +32,64 @@ def order_list_create(request):
     elif request.method == 'POST':
         serializer = OrderSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
+            try:
+                serializer.save()
+            except ValueError as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
+@api_view(['PATCH'])
+def update_order_status(request,pk):
+    try:
+        order=Order.objects.get(pk=pk)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    new_status=request.data.get('status')
+    validated_statuses=[s[0] for s in Order.STATUS_CHOICES]
+
+    if new_status not in validated_statuses:
+        return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+    order.status=new_status
+    order.save()
+    serializer = OrderSerializer(order)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class OrderRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     queryset = Order.objects.prefetch_related('items__menu_item', 'customer')
     serializer_class = OrderSerializer
+@api_view(["PATCH"])
+def add_items_to_order(request, pk):
+    try:
+        order = Order.objects.get(pk=pk)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    items_data = request.data.get('items', [])
+    new_items = []
+
+    for item in items_data:
+        # now use 'menu_item' instead of 'id'
+        menu_item = MenuItem.objects.get(pk=item['menu_item'])
+        order_item = OrderItem.objects.create(
+            order=order,
+            menu_item=menu_item,
+            quantity=item.get('quantity', 1),
+            is_new=True
+        )
+        new_items.append({
+            "id": order_item.id,
+            "name": menu_item.name,
+            "quantity": order_item.quantity,
+            "is_new": True,
+        })
+
+    return Response({"new_items": new_items}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET',"POST"])
