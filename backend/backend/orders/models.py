@@ -24,13 +24,41 @@ class Order(models.Model):
         ('delivery', 'Delivery'),
     ]
 
+
+    # the statuses vary based on the order type:
+    # 1. if it is dine in, first when the waiter created the order the status will be pending which will be displayed
+    # in the kitchen and then the kitchen marks that in progress and ready, then the waiter carries that order ot the table, and marks the order as served
+    # then this served order will be shown in cashier UI and once he prints the bill the status will become comleted
+
+    #2. if the order is takeaway, once the order is created maybe be a watier or a specific device, the status will be pending and will shown in the kitchen
+    # UI and they will mark it in progress and ready respectively, once ready the waiter takes the order to the cashier and tell the customer to pay the 
+    # bill and get his order, when the cashier prints the bill for him the status will become picked up and once it is confirmed it will be marked completed 
+
+    #3. if it is online order, upon creation the status will be pending and will be shown in the kitchen and the mark it in progress and ready, once ready
+    # the waiter in the kitchen passes the order to the cashier or someone beside him and then he calls for an available dilevey boy and then the 
+    # delivery boy will be given the bill of that order while printing that bill
+    # the status of the order will also be changed to out for delivery and here the the delivey boy must also be saved for that order
+    # # and once he is back after givin the money to the cashier will mark the order as completed
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('in_progress', 'In Progress'),
-        ('ready', 'Ready'),
-        ('served', 'Served'),
-        ('completed', 'Completed'),
-    ]   
+    # Common
+    ('pending', 'Pending'),
+    ('in_progress', 'In Progress'),
+    ('ready', 'Ready'),
+    ('completed', 'Completed'),
+
+    # Dine-in specific
+    ('served', 'Served'),
+    
+
+    # Takeaway specific
+   
+    ('picked_up', 'Picked Up'),
+
+    # Delivery specific
+    ('out_for_delivery', 'Out for Delivery'),
+    ('delivered', 'Delivered'),
+]
+
 
     customer = models.ForeignKey(
         'customers.Customer', on_delete=models.CASCADE,

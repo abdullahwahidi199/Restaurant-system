@@ -67,19 +67,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
     }
   }
 
-  const handleMarkCompleted = async () => {
-    try {
-      const res = await fetch(`http://127.0.0.1:8000/orders/orders/${current_order.id}/update_status/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "completed" })
-      })
-      refetchTables();
-    }
-    catch (err) {
-      console.log(err)
-    }
-  }
+  
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
@@ -219,18 +207,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   </button>
                 )}
 
-                {current_order.status === "served" && (
-                  <button
-                    onClick={() => {
-                      handleMarkCompleted();
-                      onClose();
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition"
-                  >
-
-                    <CheckCircle size={16} /> Mark Completed
-                  </button>
-                )}
+                
               </div>
             </div>
           )}

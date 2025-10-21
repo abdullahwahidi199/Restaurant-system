@@ -55,7 +55,7 @@ export default function NewOrderModal({ table, onClose,refetchTables }) {
     setLoading(true);
 
     const payload = {
-      table: table.number || table.id,
+      table:table.id,
       name: formData.name,
       phone: formData.phone,
       order_type: formData.order_type,
@@ -76,7 +76,7 @@ export default function NewOrderModal({ table, onClose,refetchTables }) {
       onClose();
      
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      console.error(err)
     } finally {
       setLoading(false);
     }

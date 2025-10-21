@@ -15,6 +15,10 @@ import OrderBase from './component/Admin/order/OrderBase';
 import TableBaseModal from './component/Admin/tables/TableBase';
 import HomePage from './component/waiter/HomePage';
 import KitchenHomepage from './component/kitchen/Homepage';
+import CustomerHomepage from './component/Customer/HomePage';
+import CustomerSignUpModal from './component/Customer/CustomerSignupModal';
+import Login from './component/Customer/CustomerLoginModal';
+import Orders from './component/Customer/Orders';
 
 
 
@@ -25,6 +29,13 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path='/' element={<RootLayout />}>
+
+        <Route path='/' >
+          <Route index element={<CustomerHomepage/>}/>
+          <Route path='signup' element={<CustomerSignUpModal/>}/>
+          <Route path='orders' element={<Orders/>}/>
+          <Route path='login' element={<Login/>}/>
+        </Route>
         <Route path='admin/dashboard' element={<AdminDashboard />}>
           <Route index element={<Dashboard />} />
           <Route path='attendance' element={<Attendance />} />

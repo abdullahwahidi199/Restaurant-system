@@ -31,7 +31,12 @@ export default function OrderCard({ order, refresh }) {
   return (
     <div className="bg-white shadow-sm rounded-2xl p-4 border space-y-2">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">Table {order.tableNumber}</h2>
+        {order.order_type==="dine-in" ?
+        <h2 className="text-lg font-semibold">Table {order.table }</h2>
+        : order.order_type==="takeawy"
+        ? <h2 className="text-lg font-semibold">Take away</h2> 
+        : <h2 className="text-lg font-semibold">Online Order</h2>
+      }
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}>
           {order.status.replace("_", " ")}
         </span>

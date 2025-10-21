@@ -11,7 +11,7 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = ['username', 'phone', 'joined_at']
-class UserSignupSerializer(serializers.ModelSerializer):
+class CustomerSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     phone = serializers.CharField(required=True)
 
@@ -29,7 +29,7 @@ class UserSignupSerializer(serializers.ModelSerializer):
         return user
 
 
-class UserLoginSerializer(serializers.Serializer):
+class CustomerLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 

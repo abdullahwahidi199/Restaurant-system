@@ -2,14 +2,86 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
-from .serializers import UserSignupSerializer, UserLoginSerializer,CustomerProfileSerializer
+from .serializers import CustomerLoginSerializer, CustomerSignupSerializer,CustomerProfileSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 from .models import Customer
+
+class CustomerProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            customer = Customer.objects.get(user=request.user)
+        except Customer.DoesNotExist:
+            return Response({'error': 'Customer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CustomerProfileSerializer(customer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class CustomerOrdersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            customer = Customer.objects.get(user=request.user)
+        except Customer.DoesNotExist:
+            return Response({'error': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # You can import and use an OrderSerializer if you have one already
+        orders = customer.orders.all().order_by('-created_at')
+
+        data = [
+            {
+                "id": order.id,
+                "order_type": order.order_type,
+                "status": order.status,
+                "total": order.get_total(),
+                "created_at": order.created_at,
+                "items": [
+                    {
+                        "menu_item": item.menu_item.name,
+                        "quantity": item.quantity,
+                        "subtotal": item.get_subtotal()
+                    }
+                    for item in order.items.all()
+                ]
+            }
+            for order in orders
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+# ✅ 3. Get reviews made by this customer
+class CustomerReviewsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            customer = Customer.objects.get(user=request.user)
+        except Customer.DoesNotExist:
+            return Response({'error': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        reviews = customer.reviews.select_related('menu_item').all().order_by('-created_at')
+
+        data = [
+            {
+                "id": review.id,
+                "menu_item": review.menu_item.name,
+                "rating": review.rating,
+                "comment": review.comment,
+                "created_at": review.created_at
+            }
+            for review in reviews
+        ]
+
+        return Response(data, status=status.HTTP_200_OK)
 
 class SignupView(APIView):
     def post(self, request):
-        serializer = UserSignupSerializer(data=request.data)
+        serializer = CustomerSignupSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
@@ -18,7 +90,7 @@ class SignupView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
+        serializer = CustomerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']

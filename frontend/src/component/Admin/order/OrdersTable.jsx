@@ -1,6 +1,6 @@
 import { Eye, Printer } from "lucide-react";
 
-export default function OrderTable({ orders, onView }) {
+export default function OrdersTable({ orders, onView }) {
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-700",
     in_progress: "bg-blue-100 text-blue-700",

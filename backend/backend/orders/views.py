@@ -10,7 +10,8 @@ from menu.models import MenuItem
 @api_view(['GET', 'POST'])
 def order_list_create(request):
     if request.method == 'GET':
-        orders = Order.objects.prefetch_related('items__menu_item', 'customer').select_related('table').all()
+        orders = Order.objects.prefetch_related('items__menu_item', 'customer').select_related('table').order_by('-created_at')
+
 
         #  Filtering
         status_filter = request.query_params.get('status')

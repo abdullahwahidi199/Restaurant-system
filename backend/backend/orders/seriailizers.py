@@ -53,7 +53,7 @@ class OrderSerializer(serializers.ModelSerializer):
     total = serializers.SerializerMethodField()
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    table=TableMiniSerializer(read_only=True)
+    table = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=False)
 
     class Meta:
         model = Order
