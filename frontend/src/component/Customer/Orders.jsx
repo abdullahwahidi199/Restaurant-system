@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { api } from "../../api/auth";
+import api from "../../api/auth";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -19,17 +19,33 @@ export default function Orders() {
     fetchOrders();
   }, []);
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-500 text-black";
+      case "in_progress":
+        return "bg-blue-500 text-white";
+      case "ready":
+      case "ready_for_pickup":
+        return "bg-green-500 text-white";
+      case "completed":
+        return "bg-gray-500 text-white";
+      default:
+        return "bg-gray-400 text-white";
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-white">
+      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
         Loading your orders...
       </div>
     );
   }
 
   return (
-    <div className="p-8 min-h-screen bg-black text-white">
-      <h2 className="text-3xl font-bold mb-8 text-center text-red-500">
+    <div className="p-6 bg-gray-900 min-h-screen text-white">
+      <h2 className="text-3xl font-bold mb-6 text-center text-red-500">
         Your Orders
       </h2>
 
@@ -40,56 +56,40 @@ export default function Orders() {
           {orders.map((order) => (
             <div
               key={order.id}
-              className="bg-[#111] p-6 rounded-2xl shadow-md hover:shadow-red-500/20 transition"
+              className="bg-gray-800 rounded-xl p-5 hover:bg-gray-700 transition"
             >
-              {/* Header Section */}
-              <div className="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
-                
+              <div className="flex justify-between items-center mb-3">
                 <span
-                  className={`px-3 py-1 text-sm rounded-full capitalize ${
-                    order.status === "pending"
-                      ? "bg-yellow-600"
-                      : order.status === "completed"
-                      ? "bg-green-600"
-                      : "bg-gray-700"
-                  }`}
+                  className={`px-3 py-1 rounded-full text-sm font-semibold capitalize ${getStatusColor(
+                    order.status
+                  )}`}
                 >
-                  {order.status}
+                  {order.status.replace("_", " ")}
                 </span>
+                <p className="text-gray-400 text-sm">
+                  {new Date(order.created_at).toLocaleString()}
+                </p>
               </div>
 
-              {/* Details */}
-              <p className="text-gray-400 text-sm mb-3">
-                <strong>Placed on:</strong>{" "}
-                {new Date(order.created_at).toLocaleString()}
-              </p>
-
-              {/* Items */}
-              <div className="bg-[#1a1a1a] p-4 rounded-xl mb-3">
-                <h4 className="text-lg font-semibold mb-2 text-gray-300">
-                  Items
-                </h4>
+              <div className="mb-3">
                 {order.items.map((item, i) => (
                   <div
                     key={i}
-                    className="flex justify-between text-gray-300 border-b border-gray-800 py-2"
+                    className="flex justify-between py-1 border-b border-gray-700 last:border-b-0"
                   >
                     <div>
-                      <p className="font-medium">{item.menu_item}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-gray-200 font-medium">{item.menu_item}</p>
+                      <p className="text-gray-400 text-sm">
                         Quantity: {item.quantity}
                       </p>
                     </div>
-                    <p className="font-semibold">{item.subtotal} AFN</p>
+                    <p className="text-red-400 font-semibold">{item.subtotal} AFN</p>
                   </div>
                 ))}
               </div>
 
-              {/* Total */}
-              <div className="flex justify-end items-center mt-2">
-                <p className="text-lg font-bold text-red-400">
-                  Total: {order.total} AFN
-                </p>
+              <div className="flex justify-end">
+                <p className="text-red-500 font-bold">Total: {order.total} AFN</p>
               </div>
             </div>
           ))}

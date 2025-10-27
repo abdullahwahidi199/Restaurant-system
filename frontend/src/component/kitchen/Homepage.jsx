@@ -8,7 +8,7 @@ export default function KitchenHomepage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
- 
+  console.log(orders)
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
   const [activeStatusTab, setActiveStatusTab] = useState("pending");
 
@@ -29,7 +29,7 @@ export default function KitchenHomepage() {
     fetchOrders();
   }, []);
 
-  
+
   const allowedStatuses = {
     "dine-in": ["pending", "in_progress", "ready"],
     takeaway: ["pending", "in_progress", "ready"],
@@ -58,6 +58,14 @@ export default function KitchenHomepage() {
     { key: "ready", label: activeTypeTab === "delivery" ? "Ready for Pickup" : "Ready" },
   ];
 
+
+  const hasPending = {
+    "dine-in": orders.some((o) => o.order_type === "dine-in" && o.status === "pending"),
+    takeaway: orders.some((o) => o.order_type === "takeaway" && o.status === "pending"),
+    delivery: orders.some((o) => o.order_type === "delivery" && o.status === "pending"),
+  };
+
+  // console.log(hasPending["delivery"])
   if (loading)
     return <p className="text-center py-6 text-gray-500">Loading orders...</p>;
 
@@ -76,43 +84,50 @@ export default function KitchenHomepage() {
           />
         </div>
 
-        <div className="flex justify-center space-x-4 mb-2">
-          {typeTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTypeTab(tab.key);
-                setActiveStatusTab("all");
-              }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeTypeTab === tab.key
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-white text-gray-700 border hover:bg-gray-100"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+
+          <div className="flex bg-white shadow-sm border border-gray-200 rounded-full overflow-hidden">
+            {typeTabs.map((tab) => (
+              <div key={tab.key} className="relative">
+                {hasPending[tab.key] && (
+                  <span className="absolute top-2 right-2 w-2.5 z-10 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                )}
+
+                <button
+                  onClick={() => {
+                    setActiveTypeTab(tab.key);
+                    setActiveStatusTab("all");
+                  }}
+                  className={`relative px-5 py-2 text-sm font-medium transition-all duration-300 ${activeTypeTab === tab.key
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                >
+                  {tab.label}
+                </button>
+              </div>
+            ))}
+          </div>
+
+
+          <div className="flex bg-white shadow-sm border border-gray-200 rounded-full overflow-hidden">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveStatusTab(tab.key)}
+                className={`px-4 py-2 text-sm font-medium transition-all duration-300 ${activeStatusTab === tab.key
+                  ? "bg-green-600 text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Status Tabs */}
-        <div className="flex justify-center space-x-4 mb-4">
-          {statusTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveStatusTab(tab.key)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                activeStatusTab === tab.key
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-white text-gray-700 border hover:bg-gray-100"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
 
-        {/* Orders Grid */}
         {filteredOrders.length === 0 ? (
           <p className="text-gray-400 italic text-center py-8">
             No {activeTypeTab} orders in {activeStatusTab} status.

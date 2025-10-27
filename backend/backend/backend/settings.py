@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'reports',
     'users',
     'rest_framework',
-    'corsheaders'
+    'corsheaders',
+    'system',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -88,6 +90,15 @@ DATABASES = {
     }
 }
 
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=5),  
+    "ROTATE_REFRESH_TOKENS": True,                  
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

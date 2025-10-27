@@ -19,22 +19,40 @@ import CustomerHomepage from './component/Customer/HomePage';
 import CustomerSignUpModal from './component/Customer/CustomerSignupModal';
 import Login from './component/Customer/CustomerLoginModal';
 import Orders from './component/Customer/Orders';
+import RestaurantSettings from './component/Admin/settings/SettingsBaseModal';
+import { useEffect, useState } from 'react';
+import Infopage from './component/Customer/InfoPage';
+import CustomerProfile from './component/Customer/CustomerProfile';
+import CustomersBaseModal from './component/Admin/Customers/CustomersBaseModal';
 
 
 
 
 
 function App() {
+  const [restaurantInfo,setRestaurantInfo]=useState(null)
+
+  const fetchRestaurantInfo= async ()=>{
+    const response=await fetch('http://127.0.0.1:8000/system/restaurant-info/1/')
+    const data=await response.json()
+    setRestaurantInfo(data)
+  }
+
+  useEffect(()=>{
+    fetchRestaurantInfo()
+  },[])
 
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path='/' element={<RootLayout />}>
 
         <Route path='/' >
-          <Route index element={<CustomerHomepage/>}/>
+          <Route index element={<CustomerHomepage restaurantInfo={restaurantInfo}/>}/>
           <Route path='signup' element={<CustomerSignUpModal/>}/>
+          <Route path='profile' element={<CustomerProfile/>}/>
           <Route path='orders' element={<Orders/>}/>
           <Route path='login' element={<Login/>}/>
+          <Route path='info' element={<Infopage restaurantInfo={restaurantInfo}/>}/>
         </Route>
         <Route path='admin/dashboard' element={<AdminDashboard />}>
           <Route index element={<Dashboard />} />
@@ -45,6 +63,8 @@ function App() {
           <Route path='menu/item/:id' element={<IndividaulItem/>}/>
           <Route path="orders" element={<OrderBase/>}/>
           <Route path='tables' element={<TableBaseModal/>}/>
+          <Route path='customers' element={<CustomersBaseModal/>}/>
+          <Route path='settings' element={<RestaurantSettings/>}/>
         </Route>
 
         <Route path='waiter'>

@@ -4,6 +4,14 @@ export default function ShiftList({ shifts }) {
   if (!shifts.length)
     return <div className="text-center text-gray-500">No shifts available.</div>;
 
+
+  function formatTime(timeStr) {
+  const [hours, minutes, seconds] = timeStr.split(":");
+  const date = new Date();
+  date.setHours(hours, minutes, seconds);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
       {shifts.map((shift) => (
@@ -19,9 +27,8 @@ export default function ShiftList({ shifts }) {
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-5 h-5" />
               <span className="text-sm">
-                {new Date(shift.start_time).toLocaleDateString()} →{" "}
-                {new Date(shift.end_time).toLocaleDateString()}
-              </span>
+  {formatTime(shift.start_time)} → {formatTime(shift.end_time)}
+</span>
             </div>
           </div>
 

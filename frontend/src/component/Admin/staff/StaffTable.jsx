@@ -2,42 +2,59 @@ import React from "react";
 
 const StaffTable = ({ staff, editStaff, deleteStaff }) => {
   return (
-    <div className="overflow-x-auto bg-white dark:bg-gray-900 shadow-xl rounded-2xl border border-gray-100 dark:border-gray-700">
+    <div className="overflow-x-auto bg-white  shadow-xl rounded-2xl border border-gray-100">
       <table className="min-w-full text-sm text-left">
-        {/* Table Head */}
-        <thead className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-700">
+        <thead className="bg-gradient-to-r from-gray-200 to-gray-400  ">
           <tr>
-            <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
               Name
             </th>
-            <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
               Role
             </th>
-            <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
               Email
             </th>
-            <th className="px-6 py-4 text-right font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
+              Phone
+            </th>
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
+              Shift
+            </th>
+            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-6 py-4 text-right font-semibold text-gray-700  uppercase tracking-wider">
               Actions
             </th>
           </tr>
         </thead>
 
         {/* Table Body */}
-        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody className="divide-y divide-gray-200 ">
           {staff.length > 0 ? (
             staff.map((s) => (
               <tr
                 key={s.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+                className="hover:bg-gray-50  transition-colors duration-200"
               >
-                <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-100">
+                <td className="px-6 py-4 font-medium text-gray-800 ">
                   {s.name}
                 </td>
-                <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                  {s.role}
+                <td className="px-6 py-4 text-gray-600 ">
+                  {s.role === "Other" ? s.custom_role:s.role}
                 </td>
-                <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
+                <td className="px-6 py-4 text-gray-600 ">
                   {s.email}
+                </td>
+                <td className="px-6 py-4 text-gray-600 ">
+                  {s.phone}
+                </td>
+                <td className="px-6 py-4 text-gray-600 ">
+                  {s.shift}
+                </td>
+                <td className="px-6 py-4 text-gray-600 ">
+                  {s.status}
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   <button

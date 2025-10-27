@@ -19,6 +19,7 @@ class Staff(models.Model):
         ('Waiter','Waiter'),
         ('Chef','Chef'),
         ('DeliveryBoy','Delivery Boy'),
+        ("Other","Other")
         
     ]
     name=models.CharField(max_length=100)

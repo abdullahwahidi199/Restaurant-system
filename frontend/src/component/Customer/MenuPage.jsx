@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingCart, X, Trash2 } from "lucide-react";
 import MenuDetails from "./MenuDetails";
 import toast, { Toaster } from "react-hot-toast";
+import CheckoutForm from "./CheckoutForm";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState([]);
@@ -16,6 +17,7 @@ export default function MenuPage() {
   const [sortOption, setSortOption] = useState("Default");
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showCheckout,setShowCheckout]=useState(false)
 
   const BASE_URL = "http://127.0.0.1:8000";
 
@@ -49,9 +51,9 @@ export default function MenuPage() {
   useEffect(() => {
     fetchMenuData();
     const storedFavs = JSON.parse(localStorage.getItem("favorites")) || [];
-    const storedOrders = JSON.parse(localStorage.getItem("orders")) || [];
+    // const storedOrders = JSON.parse(localStorage.getItem("orders")) || [];
     setFavorites(storedFavs);
-    setOrders(storedOrders);
+    // setOrders(storedOrders);
   }, []);
 
   useEffect(() => {
@@ -84,42 +86,54 @@ export default function MenuPage() {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return toast.error("Your cart is empty!");
-    const name = prompt("Enter your name:");
-    const phone = prompt("Enter your phone number:");
-    if (!name || !phone) return toast.error("Name and phone are required.");
+ 
+const handleCheckout = () => {
+  if (cart.length === 0) return toast.error("Your cart is empty!");
+  setShowCheckout(true);
+};
 
-    const orderData = {
-      name,
-      phone,
-      order_type: "delivery",
-      items: cart.map((item) => ({
-        menu_item: item.id,
-        quantity: item.qty,
-      })),
-    };
 
-    try {
-      const res = await fetch(`${BASE_URL}/orders/orders/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Order placed successfully!");
-        setOrders((prev) => [...prev, ...cart]);
-        setCart([]);
-        setShowCart(false);
-      } else {
-        toast.error(data.error || "Failed to place order");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error while placing order");
-    }
+const handlePlaceOrder = async (data) => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  console.log(user)
+  const orderData = {
+    customer:user.id,
+    name: data.name,
+    phone: data.phone,
+    address: data.address,
+    order_type: "delivery",
+    items: cart.map((item) => ({
+      menu_item: item.id,
+      quantity: item.qty,
+    })),
   };
+
+  try {
+    const res = await fetch(`${BASE_URL}/orders/orders/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(user?.access ? { Authorization: `Bearer ${user.access}` } : {}),
+      },
+      body: JSON.stringify(orderData),
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      toast.success("Order placed successfully!");
+      setOrders((prev) => [...prev, ...cart]);
+      setCart([]);
+      setShowCart(false);
+      setShowCheckout(false);
+    } else {
+      toast.error(result.error || "Failed to place order");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Error while placing order");
+  }
+};
 
   const filteredItems = menuItems
     .filter((item) => {
@@ -148,7 +162,6 @@ export default function MenuPage() {
     <div className="bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white min-h-screen px-6 py-12 font-sans">
       <Toaster position="bottom-center" />
 
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -166,7 +179,6 @@ export default function MenuPage() {
         </p>
       </motion.div>
 
-      {/* Search & Sort */}
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-10">
         <input
           type="text"
@@ -186,7 +198,7 @@ export default function MenuPage() {
         </select>
       </div>
 
-      {/* Category Tabs */}
+      
       <div className="relative w-full mb-14">
         <div className="flex justify-start gap-10 border-b border-gray-700 pb-2 relative">
           {categories.map((cat) => (
@@ -209,7 +221,6 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Menu Items */}
       {loading ? (
         <p className="text-center text-gray-400">Loading menu...</p>
       ) : (
@@ -230,14 +241,12 @@ export default function MenuPage() {
                 className="relative bg-[#121212] rounded-3xl overflow-hidden p-5 border border-[#1f1f1f] 
                            hover:border-red-500/50 transition-all shadow-md hover:shadow-red-600/30"
               >
-                {/* Unavailable overlay */}
                 {!item.is_available && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-3xl z-20">
                     <p className="text-red-500 font-bold text-lg">Unavailable</p>
                   </div>
                 )}
 
-                {/* Favorite */}
                 <div
                   className="absolute top-4 right-4 cursor-pointer z-30"
                   onClick={() => toggleFavorite(item.id)}
@@ -252,7 +261,6 @@ export default function MenuPage() {
                   />
                 </div>
 
-                {/* Item Image & Name */}
                 <div
                   onClick={() => fetchSelectedItem(item.id)}
                   className="cursor-pointer flex flex-col items-center z-10"
@@ -272,7 +280,6 @@ export default function MenuPage() {
                   </p>
                 </div>
 
-                {/* Add to Cart */}
                 <button
                   onClick={() => addToCart(item)}
                   disabled={!item.is_available}
@@ -294,7 +301,6 @@ export default function MenuPage() {
         </motion.div>
       )}
 
-      {/* Floating Cart Button */}
       <motion.button
         whileHover={{ scale: 1.1 }}
         onClick={() => setShowCart(true)}
@@ -308,7 +314,6 @@ export default function MenuPage() {
         )}
       </motion.button>
 
-      {/* Cart Drawer */}
       <AnimatePresence>
         {showCart && (
           <motion.div
@@ -378,10 +383,18 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
 
-      {/* Menu Details Modal */}
       {selectedItem && (
         <MenuDetails item={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
+      {showCheckout && (
+  <CheckoutForm
+    user={JSON.parse(localStorage.getItem("user"))}
+    onSubmit={handlePlaceOrder}
+    onClose={() => setShowCheckout(false)}
+  />
+)}
+
+
     </div>
   );
 }

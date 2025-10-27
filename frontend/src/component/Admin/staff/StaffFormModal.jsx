@@ -9,86 +9,212 @@ export default function StaffFormModal({
 }) {
   if (!open) return null;
 
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("");
-  const [email, setEmail] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    role: "",
+    email: "",
+    phone: "",
+    hire_date: "",
+    status: "Active",
+    custom_role: "",
+    image: null,
+    shift: "",
+  });
+
   const [error, setError] = useState("");
+  const [shifts, setShifts] = useState([]);
 
   useEffect(() => {
     if (editingStaff) {
-      setName(editingStaff.name || "");
-      setRole(editingStaff.role || "");
-      setEmail(editingStaff.email || "");
+      setFormData({
+        name: editingStaff.name || "",
+        role: editingStaff.role || "",
+        email: editingStaff.email || "",
+        phone: editingStaff.phone || "",
+        hire_date: editingStaff.hire_date || "",
+        status: editingStaff.status || "Active",
+        custom_role: editingStaff.custom_role || "",
+        image: null,
+        shift: editingStaff.shift || "",
+      });
     } else {
-      setName("");
-      setRole("");
-      setEmail("");
+      setFormData({
+        name: "",
+        role: "",
+        email: "",
+        phone: "",
+        hire_date: "",
+        status: "Active",
+        custom_role: "",
+        image: null,
+        shift: "",
+      });
     }
     setError("");
   }, [editingStaff, open]);
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !role.trim() || !email.trim()) {
-      setError("All fields are required.");
+    if (!formData.name || !formData.role || !formData.email || !formData.phone) {
+      setError("Please fill all required fields.");
       return;
     }
-    const staffData = { name: name.trim(), role: role.trim(), email: email.trim() };
-    if (editingStaff) updateStaff({ ...staffData, id: editingStaff.id });
-    else addStaff(staffData);
+
+    const data = new FormData();
+    for (const key in formData) {
+      if (formData[key]) data.append(key, formData[key]);
+    }
+
+    if (editingStaff) await updateStaff(editingStaff.id, data);
+    else await addStaff(data);
     closeModal();
   };
 
+  const getShifts = async () => {
+    const res = await fetch("http://127.0.0.1:8000/users/shift/");
+    const data = await res.json();
+    setShifts(data);
+  };
+
+  useEffect(() => {
+    getShifts();
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md animate-slide-down">
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-          {editingStaff ? "Edit Staff" : "Add Staff"}
-        </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="relative bg-gray-800 rounded-3xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        
+        <div className="flex justify-between items-center border-b border-gray-700 pb-4 mb-6">
+          <h2 className="text-3xl font-bold text-gray-100">
+            {editingStaff ? "Edit Staff Member" : "Add New Staff"}
+          </h2>
+          <button
+            onClick={closeModal}
+            className="text-gray-400 hover:text-gray-200 transition text-2xl"
+          >
+            ✕
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
+        <form onSubmit={handleSubmit} className="space-y-6 text-gray-100">
 
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border text-white border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            required
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="name"
+              placeholder="Full Name *"
+              value={formData.name}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <input
+              name="email"
+              type="email"
+              placeholder="Email Address *"
+              value={formData.email}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <input
+              name="phone"
+              placeholder="Phone Number *"
+              value={formData.phone}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+            <input
+              name="hire_date"
+              type="date"
+              value={formData.hire_date}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
 
-          {error && <div className="text-sm text-red-500">{error}</div>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select
+              name="shift"
+              value={formData.shift}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">Select Shift</option>
+              {shifts.map((shift) => (
+                <option key={shift.id} value={shift.shift_type}>
+                  {shift.shift_type} ({shift.start_time} - {shift.end_time})
+                </option>
+              ))}
+            </select>
 
-          <div className="flex justify-end gap-2 mt-2">
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">Select Role</option>
+              <option value="Admin">Admin</option>
+              <option value="Cashier">Cashier</option>
+              <option value="Waiter">Waiter</option>
+              <option value="Chef">Chef</option>
+              <option value="DeliveryBoy">Delivery Boy</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {formData.role === "Other" && (
+            <input
+              name="custom_role"
+              placeholder="Custom Role"
+              value={formData.custom_role}
+              onChange={handleChange}
+              className="input-field w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Resigned">Resigned</option>
+            </select>
+
+            <input
+              name="image"
+              type="file"
+              accept="image/*"
+              onChange={handleChange}
+              className="input-field px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 outline-none"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div className="flex justify-end gap-4 pt-4">
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              className="px-5 py-2 rounded-full border border-gray-600 text-gray-300 hover:bg-gray-700 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition"
+              className="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg hover:shadow-xl transition"
             >
-              {editingStaff ? "Update" : "Add"}
+              {editingStaff ? "Update Staff" : "Add Staff"}
             </button>
           </div>
         </form>

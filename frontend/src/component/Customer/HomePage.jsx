@@ -1,10 +1,12 @@
 import Header from "./Header";
 import MenuPage from "./MenuPage";
 
-export default function CustomerHomepage(){
+// these restaurant info comes from app.jsx file there it is fetched and sent to wherever needed as props
+export default function CustomerHomepage({restaurantInfo}){
+    
     return(
         <div>
-            <Header/>
+            <Header restaurantInfo={restaurantInfo}/>
             <MenuPage/>
         </div>
     )

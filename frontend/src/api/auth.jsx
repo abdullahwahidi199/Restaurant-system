@@ -1,42 +1,77 @@
-// src/api/auth.js
+// src/api/auth.jsx
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000"; // Django backend base
+const API_URL = "http://127.0.0.1:8000"; // Your Django backend
 
-export const api = axios.create({
+const api = axios.create({
   baseURL: API_URL,
 });
 
-// Add JWT token automatically to requests
-api.interceptors.request.use((config) => {
-  const access = localStorage.getItem("access");
-  if (access) config.headers.Authorization = `Bearer ${access}`;
+export const refreshToken = async () => {
+  const refresh = localStorage.getItem("refresh_token");
+  if (!refresh) return null;
+
+  try {
+    const res = await axios.post(`${API_URL}/customer/token/refresh/`, {
+      refresh,
+    });
+    localStorage.setItem("access_token", res.data.access);
+    return res.data.access;
+  } catch (err) {
+    console.error("Token refresh failed:", err);
+    logoutCustomer(); 
+    return null;
+  }
+};
+
+
+api.interceptors.request.use(async (config) => {
+  let token = localStorage.getItem("access_token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
-// Try to refresh token if access expires
 api.interceptors.response.use(
-  (res) => res,
-  async (err) => {
-    const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
-      original._retry = true;
-      const refresh = localStorage.getItem("refresh");
-      if (refresh) {
-        try {
-          const res = await axios.post(`${API_URL}/api/token/refresh/`, {
-            refresh,
-          });
-          localStorage.setItem("access", res.data.access);
-          original.headers.Authorization = `Bearer ${res.data.access}`;
-          return api(original);
-        } catch {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          localStorage.removeItem("username");
-        }
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const newToken = await refreshToken();
+      if (newToken) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest); 
       }
     }
-    return Promise.reject(err);
+
+    return Promise.reject(error);
   }
 );
+
+
+export const signupCustomer = async (data) => {
+  return await api.post("/customer/signup/", data);
+};
+
+export const loginCustomer = async (data) => {
+  return await api.post("/customer/login/", data);
+};
+
+export const getProfile = async () => {
+  return await api.get("/customer/profile");
+};
+
+export const logoutCustomer = () => {
+  localStorage.removeItem("user")
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  
+};
+
+export default api;

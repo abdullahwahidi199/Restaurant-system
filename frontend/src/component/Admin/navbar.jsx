@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { lazy, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,7 +9,8 @@ import {
   Info,
   Menu as MenuIcon,
   Receipt,Table2,
-  
+  Settings,
+  User,
   X,
 } from "lucide-react";
 
@@ -24,7 +25,9 @@ function Navbar() {
     { to: "/admin/dashboard/shifts", label: "Shifts", icon: <Clock size={18} /> },
     { to: "/admin/dashboard/menu", label: "Menu", icon: <Utensils size={18} /> },
     {to:"/admin/dashboard/orders",label:"Orders",icon:<Receipt size={18}/>},
-    {to:"/admin/dashboard/tables",label:"Tables ",icon:<Table2 size={18}/>}
+    {to:"/admin/dashboard/tables",label:"Tables ",icon:<Table2 size={18}/>},
+    {to:"/admin/dashboard/settings",label:"Settings",icon:<Settings size={18}/>},
+    {to:"/admin/dashboard/customers",label:"Customers",icon:<User size={18}/>}
   ];
 
   return (

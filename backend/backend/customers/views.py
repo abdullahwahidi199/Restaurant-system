@@ -54,7 +54,6 @@ class CustomerOrdersView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# ✅ 3. Get reviews made by this customer
 class CustomerReviewsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -104,3 +103,20 @@ class LoginView(APIView):
                 'access': str(refresh.access_token)
             })
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+# this veiw returns all the customers
+@api_view(['GET'])
+def CustomersView(request):
+    if request.method=="GET":
+        customers=Customer.objects.all().order_by('-joined_at')
+        
+        customers_from=request.query_params.get('from')
+        to=request.query_params.get('to')
+
+        if customers_from and to:
+            customers=customers.filter(joined_at__date__range=[customers_from,to])
+
+        serializer=CustomerProfileSerializer(customers,many=True)
+        return Response(serializer.data)
+    else:
+        return Response("This type of method is not allowed")
