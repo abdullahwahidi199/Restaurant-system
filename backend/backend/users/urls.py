@@ -1,7 +1,8 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import mark_attendance_view,staffApi,staffDetailsView,shiftApi,ShiftDetailsView,payrollView,PayrollDetailsView
+from .views import mark_attendance_view,staffApi,staffDetailsView
+from .views import shiftApi,ShiftDetailsView,payrollView,PayrollDetailsView,DeliveryBoyListView
 
 router = DefaultRouter()
 # router.register(r'staff', StaffViewSet, basename='staff')
@@ -15,6 +16,7 @@ urlpatterns = [
     path('shift/<int:id>/',ShiftDetailsView.as_view()),
     path('attendance/mark/<int:shift_id>/',mark_attendance_view),
     path('payrolls/',payrollView),
+    path('deliveryBoys/',DeliveryBoyListView),
     path('payrolls/<int:id/',PayrollDetailsView.as_view()),
     path('', include(router.urls)),
 ]

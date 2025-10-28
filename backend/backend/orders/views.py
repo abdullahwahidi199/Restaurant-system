@@ -7,6 +7,7 @@ from django.db.models import Q
 from .models import Order,Table,OrderItem
 from .seriailizers import OrderSerializer,TableSerializer
 from menu.models import MenuItem
+from users.models import Staff
 @api_view(['GET', 'POST'])
 def order_list_create(request):
     if request.method == 'GET':
@@ -110,3 +111,49 @@ def table_list_create(request):
 class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Table.objects.prefetch_related('orders')
     serializer_class = TableSerializer
+
+@api_view(["PATCH"])
+def assign_delivery(request, pk):
+    """
+    Assign a delivery boy to an order and mark it as out_for_delivery.
+    """
+    try:
+        order = Order.objects.get(pk=pk)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    delivery_boy_id = request.data.get("delivery_person_id")
+    if not delivery_boy_id:
+        return Response({'error': 'Delivery person name is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        delivery_boy = Staff.objects.get(pk=delivery_boy_id, role='DeliveryBoy')
+    except Staff.DoesNotExist:
+        return Response({'error': 'Delivery person not found or not a DeliveryBoy'}, status=status.HTTP_404_NOT_FOUND)
+    order.delivery_boy = delivery_boy
+    order.status = "out_for_delivery"
+    order.save(update_fields=["delivery_boy", "status", "updated_at"])
+
+    # You could optionally have a DeliveryBoy model instead of storing the name only.
+    
+   
+
+    serializer = OrderSerializer(order)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def cashier_orders(request):
+    # Cashier sees:
+    # - dine-in served
+    # - takeaway ready
+    # - delivery ready
+    orders = Order.objects.filter(
+        Q(order_type='dine-in', status='served') |
+        Q(order_type='takeaway', status='ready') |
+        Q(order_type='delivery', status='ready') |
+        Q(order_type='delivery',status='out_for_delivery') 
+       
+    ).order_by('-created_at')
+
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)

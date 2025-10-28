@@ -23,7 +23,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 @parser_classes([MultiPartParser,FormParser])
 def staffApi(request):
     if request.method=='GET':
-        staff=Staff.objects.select_related('shift').all()
+        staff=Staff.objects.select_related('shift').prefetch_related('deliveries').all()
         serializer=StaffSerializer(staff,many=True)
         return Response(serializer.data)
 
@@ -131,3 +131,9 @@ class PayrollDetailsView(RetrieveUpdateDestroyAPIView):
     lookup_field='id'
 
 
+@api_view(['GET','POST'])
+def DeliveryBoyListView(request):
+    if request.method=='GET':
+        dileveryBoys=Staff.objects.filter(role='DeliveryBoy')
+        serializer=StaffSerializer(dileveryBoys,many=True)
+        return Response(serializer.data)

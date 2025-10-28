@@ -3,6 +3,7 @@ from menu.serializers import MenuItemSerializer
 from customers.serializers import CustomerProfileSerializer
 from .models import OrderItem,Order,Table
 from customers.models import Customer
+from users.models import Staff
 
 class OrderItemSerializer(serializers.ModelSerializer):
     item_name=serializers.ReadOnlyField(source='menu_item.name')
@@ -27,6 +28,10 @@ class OrderMiniSerializer(serializers.ModelSerializer):
     def get_total(self, obj):
         return obj.get_total()
 
+class DeliveryBoyMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Staff
+        fields = ['id', 'name', 'vehicle_number']
 
 class TableSerializer(serializers.ModelSerializer):
     orders=OrderMiniSerializer(many=True,read_only=True)
@@ -54,13 +59,20 @@ class OrderSerializer(serializers.ModelSerializer):
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     table = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=False)
-
+    
+    delivery_boy = serializers.PrimaryKeyRelatedField(
+        queryset=Staff.objects.filter(role='DeliveryBoy'),
+        required=False,
+        allow_null=True
+    )
+    delivery_boy_details = DeliveryBoyMiniSerializer(source='delivery_boy', read_only=True)
+    preparation_time = serializers.ReadOnlyField()
     class Meta:
         model = Order
         fields = [
             'id', 'customer', 'name', 'phone', 'address', 'note',
             'order_type','table', 'order_type_display', 'status', 'status_display',
-            'created_at', 'updated_at', 'items', 'total'
+            'created_at', 'updated_at','delivery_boy','delivery_boy_details', 'items', 'total','preparation_time'
         ]
         read_only_fields = ['created_at', 'updated_at', 'total']
 
@@ -70,6 +82,7 @@ class OrderSerializer(serializers.ModelSerializer):
         if data.get('order_type') == 'dine-in' and not data.get('table'):
             raise serializers.ValidationError("A dine-in order must have a table.")
         return data
+    
 
     
     def create(self,validated_data):

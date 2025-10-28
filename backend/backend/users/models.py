@@ -28,6 +28,7 @@ class Staff(models.Model):
     custom_role=models.CharField(max_length=50,null=True,blank=True)
     shift=models.ForeignKey(Shift,on_delete=models.CASCADE,related_name="staff",null=True,blank=True)
     phone=models.CharField(max_length=15,unique=True)
+    vehicle_number = models.CharField(max_length=20, null=True, blank=True)
     hire_date=models.DateField()
     status = models.CharField(
         max_length=20,

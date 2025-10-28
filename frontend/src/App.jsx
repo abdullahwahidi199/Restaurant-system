@@ -24,6 +24,8 @@ import { useEffect, useState } from 'react';
 import Infopage from './component/Customer/InfoPage';
 import CustomerProfile from './component/Customer/CustomerProfile';
 import CustomersBaseModal from './component/Admin/Customers/CustomersBaseModal';
+import CashierManagement from './component/Cashier/CashierManagment';
+import AnalyticsBaseModal from './component/Admin/Analytics/AnalyticsBaseModal';
 
 
 
@@ -63,6 +65,7 @@ function App() {
           <Route path='menu/item/:id' element={<IndividaulItem/>}/>
           <Route path="orders" element={<OrderBase/>}/>
           <Route path='tables' element={<TableBaseModal/>}/>
+          <Route path='analytics' element={<AnalyticsBaseModal/>}/>
           <Route path='customers' element={<CustomersBaseModal/>}/>
           <Route path='settings' element={<RestaurantSettings/>}/>
         </Route>
@@ -74,6 +77,8 @@ function App() {
         <Route path='kitchen'>
           <Route index element={<KitchenHomepage/>}/>
         </Route>
+
+        <Route path="cashier" element={<CashierManagement />} />
         
       </Route>
 

@@ -1,6 +1,7 @@
 # users/serializers.py
 from rest_framework import serializers
 from .models import Staff,Shift,Attendance,Payroll
+from orders.seriailizers import OrderMiniSerializer
 
 class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,11 +29,13 @@ class PayrollSerializer(serializers.ModelSerializer):
 class StaffSerializer(serializers.ModelSerializer):
     attendances=AttendanceSerializer(many=True,read_only=True)
     payrolls=PayrollSerializer(many=True,read_only=True)
-
+    deliveries=OrderMiniSerializer(many=True,read_only=True)
     shift=serializers.CharField(source='shift.shift_type',read_only=True)
     class Meta:
         model = Staff
-        fields = ['id','name','shift','phone','email','hire_date','role','custom_role','image','status','attendances','payrolls']
+        fields = ['id','name','shift','phone','email'
+                  ,'hire_date','role','custom_role','deliveries',
+                  'image','status','attendances','payrolls','vehicle_number']
         
 
 
