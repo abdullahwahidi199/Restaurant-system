@@ -4,6 +4,7 @@ import { Heart, ShoppingCart, X, Trash2 } from "lucide-react";
 import MenuDetails from "./MenuDetails";
 import toast, { Toaster } from "react-hot-toast";
 import CheckoutForm from "./CheckoutForm";
+import ReviewItemModel from "./ReviewPage";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState([]);
@@ -18,6 +19,10 @@ export default function MenuPage() {
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCheckout,setShowCheckout]=useState(false)
+  const [showReviewModel,setShowReviewModel]=useState(false)
+  const [reviewItemId, setReviewItemId] = useState(null);
+
+  const user=localStorage.getItem("user")
 
   const BASE_URL = "http://127.0.0.1:8000";
 
@@ -74,8 +79,10 @@ export default function MenuPage() {
     setCart((prev) => {
       const exists = prev.find((i) => i.id === item.id);
       if (exists) {
-        toast.error("Item already in cart");
-        return prev;
+        return prev.map((i)=>
+        i.id===item.id ? {...i,qty:i.qty+1}:i
+      )
+      
       }
       toast.success(`${item.name} added to cart 🛒`);
       return [...prev, { ...item, qty: 1 }];
@@ -247,7 +254,15 @@ const handlePlaceOrder = async (data) => {
                   </div>
                 )}
 
-                <div
+                <div className="flex justify-between items-center">
+                  {user && (
+                    <button 
+                      onClick={()=>setReviewItemId(item.id)}
+                      className="text-blue-300 cursor-pointer underline ">Rate</button>
+                  )}
+                  
+                  <div
+                  
                   className="absolute top-4 right-4 cursor-pointer z-30"
                   onClick={() => toggleFavorite(item.id)}
                 >
@@ -259,6 +274,7 @@ const handlePlaceOrder = async (data) => {
                         : "text-gray-400 hover:text-red-500"
                     } transition-colors`}
                   />
+                </div>
                 </div>
 
                 <div
@@ -279,7 +295,8 @@ const handlePlaceOrder = async (data) => {
                     AFN {parseFloat(item.price).toFixed(2)}
                   </p>
                 </div>
-
+                {item.reviews?<p>NO reviews yet!</p>:(<p>dsf</p>)}
+                    
                 <button
                   onClick={() => addToCart(item)}
                   disabled={!item.is_available}
@@ -289,7 +306,7 @@ const handlePlaceOrder = async (data) => {
                       : "bg-gray-600 cursor-not-allowed"
                   }`}
                 >
-                  {item.is_available ? "Add to Cart" : "Unavailable"}
+                  {item.is_available ? cart.find((i)=>i.id=item.id)?"Add more":"Add to Cart" : "Unavailable"}
                 </button>
               </motion.div>
             ))
@@ -393,7 +410,11 @@ const handlePlaceOrder = async (data) => {
     onClose={() => setShowCheckout(false)}
   />
 )}
-
+<div>
+                    {reviewItemId&&(
+                    <ReviewItemModel user={user.id} itemId={reviewItemId} onClose={()=>setReviewItemId(null)}/>
+                  )}
+                  </div>
 
     </div>
   );

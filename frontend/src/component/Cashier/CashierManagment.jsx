@@ -230,7 +230,7 @@ const CashierManagement = () => {
                 Total Orders: <span className="font-medium">{summary.totalOrders}</span>
               </p>
               <p className="text-gray-700 mb-2">
-                Total Revenue: <span className="font-medium">${summary.totalRevenue.toFixed(2)}</span>
+                Total Revenue: <span className="font-medium">{summary.totalRevenue.toFixed(2)} AFN</span>
               </p>
 
               <div className="mt-4">

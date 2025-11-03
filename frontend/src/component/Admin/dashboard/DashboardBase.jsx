@@ -38,6 +38,7 @@ export default function AdminDashboard() {
         const res = await fetch("http://127.0.0.1:8000/reports/dashboard-summary/");
         if (!res.ok) throw new Error("Failed to fetch dashboard data");
         const data = await res.json();
+        console.log(data)
         setSummary(data);
       } catch (err) {
         console.error(err);

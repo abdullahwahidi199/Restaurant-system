@@ -57,7 +57,7 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
 
             <p className="text-sm text-gray-600 mb-2"><strong>Customer:</strong> {order.name || order.customer || "—"}</p>
 
-            <div className="flex justify-between items-center mt-3">
+            <div className="flex flex-col mt-3 gap-2">
                 <p className="font-semibold text-gray-800">Total: {formattedTotal}AFN</p>
                 <div className="flex gap-2">
                     <button

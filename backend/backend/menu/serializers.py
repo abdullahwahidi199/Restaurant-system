@@ -28,8 +28,10 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description','menu_items']
 
 class ReveiwSerializer(serializers.ModelSerializer):
-    customer=CustomerMiniSerializer(read_only=True)
-    menu_item=MenuItemMiniSerializer(read_only=True)
+    # customer = serializers.PrimaryKeyRelatedField(
+    #     queryset=Customer.objects.all()
+    # )
+    # menu_item=MenuItemMiniSerializer(read_only=True)
     class Meta:
         model=Review
         fields=['id','customer','menu_item','comment','rating']

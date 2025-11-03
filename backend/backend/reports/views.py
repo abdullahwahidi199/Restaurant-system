@@ -37,7 +37,16 @@ class DashboardSummaryAPIView(APIView):
         orders_month = Order.objects.filter(created_at__date__gte=month_start)
         revenue_month = sum(order.get_total() for order in orders_month)
 
-        
+        deliveries_today_count = Order.objects.filter(created_at__date=today,  order_type='delivery').count()
+        deliveries_this_month_count=Order.objects.filter(created_at__date__gte=month_start, order_type='delivery').count()
+        deliveries_this_week_count=Order.objects.filter(created_at__date__gte=week_start,order_type='delivery').count()
+
+        # deliveries_today=Order.objects.filter(created_at__date=today)
+        # revenue_of_deliveries_today=Sum(order.get_total() for order in deliveries_today)
+        # deliveries_this_month=Order.objects.filter(created_at__date__gte=month_start,order_type='delivery')
+        # revenue_of_deliveries_this_month=Sum(order.get_total() for order in deliveries_this_month)
+        # deliveries_this_week=Order.objects.filter(created_at__date__gte=week_start,order_type="delivery")
+        # revenue_of_deliveries_week=Sum(order.get_total() for order in deliveries_this_week)
         def get_best_selling_items(start_date):
             return (
                 OrderItem.objects.filter(order__created_at__gte=start_date)
@@ -88,7 +97,7 @@ class DashboardSummaryAPIView(APIView):
             "menu_items": menu_items,
             "attendance_rate": attendance_rate,
             "average_rating": avg_rating,
-            "   total_orders_today": total_orders_today,
+            "total_orders_today": total_orders_today,
             "total_orders_week": total_orders_week,
             "total_orders_month": total_orders_month,
             "revenue_today": revenue_today,
@@ -97,7 +106,16 @@ class DashboardSummaryAPIView(APIView):
             "total_sold_products_month": total_sold_product_month,
             "best_selling_items": data,
             "daily_sales": daily_sales_data,
-        })
+            "deliveries_today_count":deliveries_today_count,
+            "deliveries_this_month_count":deliveries_this_month_count,
+            "deliveries_this_week_count":deliveries_this_week_count,
+            # "deliveries_today":deliveries_today,
+            # "deliveries_this_week":deliveries_this_week,
+            # "deliveries_this_month":deliveries_this_month,
+            # "revenue_of_deliveries_today":revenue_of_deliveries_today,
+            # "revenue_of_deliveries_month":revenue_of_deliveries_this_month,
+            # "revenue_of_deliveries_week":revenue_of_deliveries_week
+                          })
     
 
 from rest_framework.views import APIView

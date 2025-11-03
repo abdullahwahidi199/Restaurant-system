@@ -114,9 +114,7 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(["PATCH"])
 def assign_delivery(request, pk):
-    """
-    Assign a delivery boy to an order and mark it as out_for_delivery.
-    """
+    
     try:
         order = Order.objects.get(pk=pk)
     except Order.DoesNotExist:
@@ -143,10 +141,7 @@ def assign_delivery(request, pk):
 
 @api_view(['GET'])
 def cashier_orders(request):
-    # Cashier sees:
-    # - dine-in served
-    # - takeaway ready
-    # - delivery ready
+  
     orders = Order.objects.filter(
         Q(order_type='dine-in', status='served') |
         Q(order_type='takeaway', status='ready') |
