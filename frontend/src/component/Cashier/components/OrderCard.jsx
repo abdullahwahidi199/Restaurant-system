@@ -1,4 +1,5 @@
 import React from "react";
+import instance from "../../../api/axiosInstance";
 
 const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery }) => {
     const items = order.items || [];
@@ -30,10 +31,8 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
 
     const handleMarkDelivered=async ()=>{
         try{
-            const response=await fetch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
-                method:"PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status:"delivered" }),
+            const response=await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
+                status:"delivered" 
             })
         }
         catch(error){

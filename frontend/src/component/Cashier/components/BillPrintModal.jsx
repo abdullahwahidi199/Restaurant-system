@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import instance from "../../../api/axiosInstance";
 
 const BillPrintModal = ({ order, onClose }) => {
     const printRef = useRef();
@@ -70,10 +71,9 @@ const BillPrintModal = ({ order, onClose }) => {
     const handlePrint = async() => {
         try {
             if (order.order_type==='dine-in' || order.order_type==="takeaway"){
-                const response=await fetch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status:"completed" }),
+                const response=await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
+                
+                 status:"completed" 
             })
             }
             

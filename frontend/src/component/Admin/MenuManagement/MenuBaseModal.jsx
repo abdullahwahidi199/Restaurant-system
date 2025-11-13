@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 
 import AddCategoryModal from "./AddCategoryModal";
 import CategoriesList from "./Catagories";
+import instance from "../../../api/axiosInstance";
 
 export default function Menu() {
   const [categories, setCategories] = useState([]);
@@ -10,12 +11,11 @@ export default function Menu() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/menu/categories/`);
-      if (!response.ok) throw new Error("Could not fetch Categories!");
-      const data = await response.json();
+      const response = await instance.get(`menu/categories/`);
+      const data = response.data;
       setCategories(data);
     } catch (error) {
-      console.log(error);
+      console.log("Could not get categories:",error.response?.data||error.message);
     }
   };
 

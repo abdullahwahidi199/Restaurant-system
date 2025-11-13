@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import TablesDisplay from "./TablesDisplayModal";
 import TableAddModal from "./TableAddModal";
 import { Plus } from "lucide-react";
+import instance from "../../../api/axiosInstance";
 
 export default function TableBaseModal() {
   const [tables, setTables] = useState([]);
@@ -11,11 +12,12 @@ export default function TableBaseModal() {
 
   const fetchTables = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/orders/tables/");
-      if (!res.ok) throw new Error("Failed to fetch tables");
-      const data = await res.json();
+      const res = await instance.get("http://127.0.0.1:8000/orders/tables/");
+      
+      const data = res.data;
       setTables(data);
     } catch (err) {
+      console.error("Failed to fetch tables",err)
       setError(err.message);
     } finally {
       setLoading(false);

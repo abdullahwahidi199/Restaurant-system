@@ -1,6 +1,7 @@
   import { useEffect, useState } from "react";
   import { Clock, CheckCircle, Utensils } from "lucide-react";
   import OrderItem from "./OrderItem";
+import instance from "../../api/axiosInstance";
 
   export default function OrderCard({ order, refresh }) {
     const [updating, setUpdating] = useState(false);
@@ -8,20 +9,19 @@
     const [time,setTime]=useState(0)
     const [running,setRunning]=useState(false)
     const updateOrderStatus = async (newStatus) => {
-      try {
-        setUpdating(true);
-        await fetch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatus }),
-        });
-        refresh();
-      } catch (error) {
-        console.error("Failed to update order:", error);
-      } finally {
-        setUpdating(false);
-      }
-    };
+    try {
+      setUpdating(true);
+      await instance.patch(
+        `/orders/orders/${order.id}/update_status/`,
+        { status: newStatus }
+      );
+      refresh();
+    } catch (error) {
+      console.error("Failed to update order:", error);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
 
     useEffect(() => {

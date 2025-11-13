@@ -4,9 +4,12 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from .models import RestaurantInfo
 from .serializers import ResInfoSerializer
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import AllowAny
 
 
 @api_view(['POST', 'GET'])
+@permission_classes([AllowAny])
 def RestaurantInfoCreateListView(request):
     if request.method == "GET":
         info = RestaurantInfo.objects.all()
@@ -20,7 +23,7 @@ def RestaurantInfoCreateListView(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+@permission_classes([AllowAny])
 class ResInfoRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = RestaurantInfo.objects.all()
     serializer_class = ResInfoSerializer

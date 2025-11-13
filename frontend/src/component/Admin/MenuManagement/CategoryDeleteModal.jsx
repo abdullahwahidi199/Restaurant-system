@@ -1,3 +1,5 @@
+import instance from "../../../api/axiosInstance";
+
 export default function ({
     categoryId,
     onClose,
@@ -8,18 +10,13 @@ export default function ({
     
     const handleDelete = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/menu/categories/${categoryId}/`,{
-                method:"DELETE"
-            })
-            if (!response.ok){
-                throw new Error("Failed to delete the category")
-                
-            }
+            const response = await instance.delete(`/menu/categories/${categoryId}/`)
+            
             onDelete();
             
         }
         catch (error) {
-            console.log(error)
+            console.log("Failed to delete category",error.response?.data||error.message)
         }
 
     }

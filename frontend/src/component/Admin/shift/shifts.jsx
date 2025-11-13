@@ -2,31 +2,30 @@ import { useEffect, useState } from "react"
 import { Plus } from "lucide-react";
 import ShiftList from "./ShiftList";
 import AddShiftModal from "./addShiftModal";
+import { AuthContext } from "../../../api/authforRBC";
+import instance from "../../../api/axiosInstance";
+import AttendanceTable from "./AttendanceTable";
 export default function () {
     const [shifts, setShifts] = useState([])
     const [loading, setLoading] = useState(true)
     const [show_Add_Modal, set_show_add_modal] = useState(false)
+
+    
+    
     const get_shifts = async () => {
-
-        try {
-            const response = await fetch(`http://127.0.0.1:8000/users/shift/`)
-            if (!response.ok) {
-                throw new Error("Could not get shifts")
-            }
-            const data = await response.json()
-            setShifts(data)
-            console.log(data)
-
-        }
-        catch (error) {
-            console.log(error)
-        }
-        finally {
-            setLoading(false)
-        }
-
-
+    setLoading(true);
+    try {
+        const response = await instance.get('/users/shift/');
+        const data = response.data; // axios gives data here
+        setShifts(data);
+        console.log(data);
+    } catch (error) {
+        console.error("Could not get shifts:", error.response?.data || error.message);
+    } finally {
+        setLoading(false);
     }
+};
+
     useEffect(() => {
         get_shifts();
     }, [])
@@ -54,6 +53,8 @@ export default function () {
             ) : (
                 <ShiftList shifts={shifts} />
             )}
+
+            <AttendanceTable/>
 
             {show_Add_Modal && (
                 <AddShiftModal

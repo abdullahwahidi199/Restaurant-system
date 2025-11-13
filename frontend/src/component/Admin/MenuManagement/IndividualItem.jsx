@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ItemDelete from "./ItemDeleteModal";
+import instance from "../../../api/axiosInstance";
 
 export default function IndividualItem() {
   const [item, setItem] = useState(null);
@@ -13,13 +14,13 @@ export default function IndividualItem() {
 
   const fetchItem = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/menu/menu-items/${id}/`);
-      if (!response.ok) throw new Error("Failed to get the Item!");
-      const data = await response.json();
+      const response = await instance.get(`/menu/menu-items/${id}/`);
+      
+      const data = response.data;
       setItem(data);
       setPreview(data.image);
     } catch (error) {
-      setError(error.message);
+      setError("Failed to get item:",error.response?.data||error.message);
     }
   };
 
@@ -51,13 +52,15 @@ export default function IndividualItem() {
     if (item.image instanceof File) formData.append("image", item.image);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/menu/menu-items/${id}/`, {
-        method: "PUT",
-        body: formData,
-      });
+      console.log(formData)
+      const response = await instance.put(`/menu/menu-items/${id}/`, formData, {
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+});
 
-      if (!response.ok) throw new Error("Failed to update item");
-      const updated = await response.json();
+      
+      const updated = response.data;
       setItem(updated);
       alert("Item updated successfully!");
       

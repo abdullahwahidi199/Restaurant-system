@@ -1,3 +1,5 @@
+import instance from "../../../api/axiosInstance";
+
 export default function ItemDelete({
     itemID,
     onDelete,
@@ -7,11 +9,9 @@ export default function ItemDelete({
 }){
 
     const handleDelete=async ()=>{
-        const response=await fetch(`http://127.0.0.1:8000/menu/menu-items/${itemID}/`,{
-            method:"DELETE"
-        })
-        if (!response.ok){
-            console.log("Could not delete this item")
+        const response=await instance.delete(`/menu/menu-items/${itemID}/`)
+        if (response.status!==200||response.status!==201){
+            console.log("Failed to delete the item")
         }
         onDelete();
     }

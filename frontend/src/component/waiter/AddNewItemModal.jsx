@@ -1,19 +1,22 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Loader2 } from "lucide-react";
+import instance from "../../api/axiosInstance";
 
 export default function AddItemToOrderModal({ orderId, onClose, refetchTables }) {
   const [menuItems, setMenuItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error,setError]=useState(null)
 
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/menu/menu-items/");
-        const data = await res.json();
+        const res = await instance.get("/menu/menu-items/");
+        const data = res.data
         setMenuItems(data);
       } catch (err) {
         console.error("Error fetching menu:", err);
+        setError(err.message)
       }
     };
     fetchMenu();
@@ -56,13 +59,12 @@ export default function AddItemToOrderModal({ orderId, onClose, refetchTables })
     };
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/orders/orders/${orderId}/add-items/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await instance.patch(`/orders/orders/${orderId}/add-items/`, 
+        
+        payload
+      );
 
-      if (!res.ok) throw new Error("Failed to add items to order");
+      
       alert("Items added successfully!");
       refetchTables();
       onClose();
@@ -74,11 +76,17 @@ export default function AddItemToOrderModal({ orderId, onClose, refetchTables })
     }
   };
 
+
+  if (error){
+    return(
+      <p>{error}</p>
+    )
+  }
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-start pt-4 z-50 overflow-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[95%] h-[90vh] p-6 flex flex-col md:flex-row gap-6 animate-in fade-in-50 slide-in-from-bottom-10">
         
-        {/* === LEFT SIDE: MENU GRID === */}
+       
         <div className="flex-1 overflow-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-gray-800">Add Items to Order #{orderId}</h2>

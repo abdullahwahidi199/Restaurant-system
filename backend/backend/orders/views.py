@@ -8,10 +8,13 @@ from .models import Order,Table,OrderItem
 from .seriailizers import OrderSerializer,TableSerializer
 from menu.models import MenuItem
 from users.models import Staff
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def order_list_create(request):
     if request.method == 'GET':
-        orders = Order.objects.prefetch_related('items__menu_item', 'customer').select_related('table').order_by('-created_at')
+        orders = Order.objects.prefetch_related('items__menu_item', 'customer','review').select_related('table').order_by('-created_at')
 
 
         #  Filtering

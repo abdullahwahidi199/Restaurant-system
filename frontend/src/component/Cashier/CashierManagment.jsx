@@ -8,6 +8,7 @@ import OrderList from "./components/OrderList";
 // import { deliveryBoys } from "./cashierData";
 import { getOrders, updateOrderStatus, assignDeliveryPerson } from "./cashierApi";
 import toast from "react-hot-toast";
+import instance from "../../api/axiosInstance";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-200 text-yellow-800",
@@ -157,7 +158,7 @@ const CashierManagement = () => {
     });
   }, [orders, filters]);
 
-  // Summary
+ 
   const summary = useMemo(() => {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, o) => {
@@ -194,8 +195,9 @@ const CashierManagement = () => {
   }, []);
 
   const getDeliveryBoys=async()=>{
-    const response=await fetch(`http://127.0.0.1:8000/users/deliveryBoys/`)
-    const data=await response.json()
+    const response=await instance.get(`/users/deliveryBoys/`)
+    const data=response.data
+    console.log(data)
     setDeliveryBoys(data)
   }
 

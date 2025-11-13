@@ -3,6 +3,7 @@ import OrderStats from "./OrderStats";
 import OrderFilters from "./OrderFilters";
 import OrdersTable from "./OrdersTable";
 import OrderDetailsModal from "./OrderDetailsModal";
+import instance from "../../../api/axiosInstance";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -16,8 +17,8 @@ export default function OrdersPage() {
 
   const fetchOrders = async () => {
     let query = new URLSearchParams(filters).toString();
-    const res = await fetch(`http://127.0.0.1:8000/orders/orders/?${query}`);
-    const data = await res.json();
+    const res = await instance.get(`/orders/orders/?${query}`);
+    const data = res.data
     setOrders(data);
     console.log(data)
   };

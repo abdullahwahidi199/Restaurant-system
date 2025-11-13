@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import TablesDisplayModal from "../waiter/TablesDisplayModal";
+import instance from "../../api/axiosInstance";
 
 export default function HomePage() {
     const [tables, setTables] = useState([]);
@@ -10,9 +11,9 @@ export default function HomePage() {
 
     const fetchTables = async () => {
         try {
-            const res = await fetch("http://127.0.0.1:8000/orders/tables/");
-            if (!res.ok) throw new Error("Failed to fetch tables");
-            const data = await res.json();
+            const res = await instance.get("/orders/tables/");
+            
+            const data =res.data;
             setTables(data);
         } catch (err) {
             setError(err.message);
@@ -36,6 +37,11 @@ export default function HomePage() {
        
 
 
+    if (error){
+        return(
+            <p>{error}</p>
+        )
+    }
     return(
         <div>
            

@@ -12,7 +12,8 @@ import {
   Settings,
   User,
   X,
-  BarChart
+  BarChart,
+  Star
   
 } from "lucide-react";
 
@@ -30,7 +31,8 @@ function Navbar() {
     {to:"/admin/dashboard/tables",label:"Tables ",icon:<Table2 size={18}/>},
     {to:"/admin/dashboard/settings",label:"Settings",icon:<Settings size={18}/>},
     {to:"/admin/dashboard/customers",label:"Customers",icon:<User size={18}/>},
-    {to:"/admin/dashboard/analytics",label:"Analytics",icon:<BarChart size={18}/>}
+    {to:"/admin/dashboard/analytics",label:"Analytics",icon:<BarChart size={18}/>},
+    {to:"/admin/dashboard/feedbacks",label:"Feedbacks",icon:<Star size={18}/>}
   ];
 
   return (

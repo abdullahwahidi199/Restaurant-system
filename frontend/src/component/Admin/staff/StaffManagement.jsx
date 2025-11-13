@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import StaffTable from "./StaffTable";
 import StaffFormModal from "./StaffFormModal";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
+import { AuthContext } from "../../../api/authforRBC";
+import instance from "../../../api/axiosInstance";
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -11,17 +13,20 @@ export default function StaffManagement() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const {auth}=useContext(AuthContext)
+  const token = auth?.tokens?.access;
   const BASE_URL = "http://127.0.0.1:8000";
 
-  // 🔹 Fetch all staff
+
   const fetchStaff = async () => {
+   setLoading(true)
     try {
-      const res = await fetch(`${BASE_URL}/users/staff/`);
-      if (!res.ok) throw new Error("Failed to fetch staff");
-      const data = await res.json();
-      setStaff(data);
+      const response=await instance.get('/users/staff/')
+      setStaff(response.data)
+      
+      
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch staff:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -31,54 +36,49 @@ export default function StaffManagement() {
     fetchStaff();
   }, []);
 
-  // 🔹 Add staff
+ 
   const addStaff = async (formData) => {
     try {
-      const res = await fetch(`${BASE_URL}/users/staff/`, {
-        method: "POST",
-        body: formData, // FormData includes image and all other fields
-      });
-      if (!res.ok) throw new Error("Failed to add staff");
-      const newStaff = await res.json();
-      setStaff((prev) => [...prev, newStaff]);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+      const res =await instance.post('/users/staff/',formData)
+      
+      
+      setStaff((prev) => [...prev, res.data]);
 
-  // 🔹 Update staff
-  const updateStaff = async (id, formData) => {
-    try {
-      const res = await fetch(`${BASE_URL}/users/staff/${id}/`, {
-        method: "PUT",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Failed to update staff");
-      const updated = await res.json();
-      setStaff((prev) => prev.map((s) => (s.id === id ? updated : s)));
     } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // 🔹 Delete staff
-  const deleteStaff = async (id) => {
-    try {
-      const res = await fetch(`${BASE_URL}/users/staff/${id}/`, {
-        method: "DELETE",
-      });
-      if (res.ok) setStaff((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      console.error(err);
+      console.error("Could not add staff",err.res?.data||err.message);
     }
   };
 
  
-  const filteredStaff = staff.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.role.toLowerCase().includes(search.toLowerCase())
-  );
+  const updateStaff = async (id, formData) => {
+    try {
+      const res = await instance.put(`/users/staff/${id}/`,formData)
+      
+     
+      setStaff((prev) => prev.map((s) => (s.id === id ? res.data : s)));
+    } catch (err) {
+      console.error("Failed to update staff:", err.res?.data || err.message);
+    }
+  };
+
+
+  const deleteStaff = async (id) => {
+    try {
+      const res = await instance.delete(`/users/staff/${id}/`)
+      setStaff((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error("Failed to delete staff:", err.response?.data || err.message);
+    }
+  };
+
+ 
+  const filteredStaff = staff.filter((s) => {
+  const name = s.name?.toLowerCase() || "";
+  const role = s.role?.toLowerCase() || "";
+  const term = search.toLowerCase();
+  return name.includes(term) || role.includes(term);
+});
+
 
   const openAdd = () => {
     setEditingStaff(null);

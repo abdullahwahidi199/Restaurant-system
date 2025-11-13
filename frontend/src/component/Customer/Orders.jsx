@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from "react";
 import api from "../../api/auth";
+import ReviewItemModel from "./ReviewPage";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reviewOrderId,setReviewOrderID]=useState(null)
 
+  const user=localStorage.getItem('customer')
+  console.log(orders)
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const res = await api.get("/customer/orders/");
         setOrders(res.data);
+        console.log(res.data)
       } catch (err) {
         console.error("Failed to load orders", err);
       } finally {
@@ -87,14 +92,24 @@ export default function Orders() {
                   </div>
                 ))}
               </div>
-
+                <button
+                  onClick={()=>setReviewOrderID(order.id)}
+                >
+                  Rate
+                </button>
               <div className="flex justify-end">
                 <p className="text-red-500 font-bold">Total: {order.total} AFN</p>
               </div>
             </div>
           ))}
         </div>
+       
       )}
+      {reviewOrderId&&(
+                          <ReviewItemModel user={user.id} deliveryId={reviewOrderId} 
+                            onClose={()=>setReviewOrderID(null)}
+                          />
+                        )}
     </div>
   );
 }

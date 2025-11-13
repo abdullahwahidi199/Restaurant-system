@@ -8,6 +8,7 @@ export default function OrdersTable({ orders, onView }) {
     completed: "bg-green-100 text-green-700",
     cancelled: "bg-red-100 text-red-700",
   };
+  console.log(orders)
 
   return (
     <div className="mt-4 overflow-x-auto bg-white rounded-xl shadow">
@@ -29,7 +30,7 @@ export default function OrdersTable({ orders, onView }) {
               <td className="p-3">#{order.id}</td>
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
-              <td className="p-3">{order.table?order.table.number:'Dine-in/Online order'}</td>
+              <td className="p-3">{order.table?order.tableNumber:'Takeaway/Online order'}</td>
               <td className="p-3">
                 <span
                   className={`px-2 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}

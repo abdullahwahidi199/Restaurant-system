@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
 import FilterBar from "./FilterBar"
 import CustomersTable from "./CustomersTable"
+import instance from "../../../api/axiosInstance"
 
 export default function CustomersBaseModal() {
     const [customers, setCustomers] = useState([])
+    const [error,setError]=useState(null)
     const [searchTerm, setSearchTerm] = useState("")  // used for filtering based on name. this filter is handled in the frontnend
     const [dateFilter, setDateFilter] = useState({    // used for filtering based on data, this type of search is handled in the backend
         from: "",
@@ -12,9 +14,15 @@ export default function CustomersBaseModal() {
     const fetchAllCustomers = async () => {
         let query = new URLSearchParams(dateFilter).toString();
 
-        const response = await fetch(`http://127.0.0.1:8000/customer/customers/?${query}`)
-        const data = await response.json()
+        try{
+            const response = await instance.get(`/customer/customers/?${query}`)
+        const data = response.data
         setCustomers(data)
+        console.log(data)
+        }
+        catch(error){
+            setError(error.message)
+        }
     }
     useEffect(() => {
         fetchAllCustomers()
@@ -25,6 +33,11 @@ export default function CustomersBaseModal() {
     );
 
     console.log(customers)
+    if (error){
+        return(
+            <p>{error}</p>
+        )
+    }
     return (
         <div className="p-4 space-y-4">
             <div className="flex items-center justify-between mb-2">

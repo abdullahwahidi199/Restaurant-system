@@ -1,7 +1,7 @@
 // src/api/auth.jsx
 import axios from "axios";
 
-const API_URL = "http://127.0.0.1:8000"; // Your Django backend
+const API_URL = "http://127.0.0.1:8000"; 
 
 const api = axios.create({
   baseURL: API_URL,
@@ -68,7 +68,7 @@ export const getProfile = async () => {
 };
 
 export const logoutCustomer = () => {
-  localStorage.removeItem("user")
+  localStorage.removeItem("customer")
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   

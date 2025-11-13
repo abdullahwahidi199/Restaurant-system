@@ -1,4 +1,4 @@
-import { act, useEffect, useState } from "react";
+import { act, useContext, useEffect, useState } from "react";
 import {
   Users,
   Utensils,
@@ -15,14 +15,20 @@ import MonthOverView from "./MonthOverview";
 import DailySalesChart from "./DailySalesChart";
 import BestSellingItems from "./BestSellingItems";
 import Notifications from "./Notifications";
-
+import { AuthContext } from "../../../api/authforRBC";
+import instance from "../../../api/axiosInstance";
+import DeliveryPerformance from "./DeliveryPerformance";
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const [currentDate, setCurrentDate] = useState("");
+  
+  const [currentDate, setCurrentDate] = useState("authTokens");
 
+  const {auth}=useContext(AuthContext)
+  const token = auth?.tokens?.access;
+  console.log(token)
   useEffect(() => {
     const date = new Date().toLocaleDateString("en-US", {
       weekday: "long",
@@ -35,13 +41,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/reports/dashboard-summary/");
-        if (!res.ok) throw new Error("Failed to fetch dashboard data");
-        const data = await res.json();
-        console.log(data)
-        setSummary(data);
+        
+        const res = await instance.get("/reports/dashboard-summary/");
+        // console.log("Dashboard Data:", res.data);
+        setSummary(res.data);
+        console.log(res.data)
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard fetch error:", err);
         setError("Unable to load dashboard data.");
       } finally {
         setLoading(false);
@@ -64,14 +70,6 @@ export default function AdminDashboard() {
  
 
 
-
-  
-
-  const notifications = [
-    "3 staff absent today",
-    "Shift schedule updated for Sunday",
-    "New item 'Chocolate Lava Cake' added to menu",
-  ];
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -108,6 +106,13 @@ export default function AdminDashboard() {
             <Notifications/>
           </CardContent>
         </Card>
+        <div className="mt-10">
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <DeliveryPerformance data={summary.delivery_boys_performance} />
+        </CardContent>
+      </Card>
+    </div>
       </div>
     </div>
   );

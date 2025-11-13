@@ -1,25 +1,29 @@
 import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Loader2 } from "lucide-react";
+import instance from "../../api/axiosInstance";
 
 export default function NewOrderModal({ table, onClose,refetchTables }) {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [orderItems, setOrderItems] = useState([]);
+  const [error,setError]=useState(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     order_type: "dine-in",
     note: "",
   });
-
+  const user = JSON.parse(localStorage.getItem('user'));
+  console.log(user)
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/menu/menu-items/");
-        const data = await res.json();
+        const res = await instance.get("/menu/menu-items/");
+        const data = res.data
         setMenuItems(data);
       } catch (err) {
         console.error("Error fetching menu:", err);
+
       }
     };
     fetchMenu();
@@ -61,14 +65,13 @@ export default function NewOrderModal({ table, onClose,refetchTables }) {
       order_type: formData.order_type,
       note: formData.note,
       items: orderItems.map((i) => ({ menu_item: i.menu_item.id, quantity: i.quantity })),
+      waiter:user.staff_id
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/orders/orders/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await instance.post("/orders/orders/", 
+        payload
+      );
 
       if (!res.ok) throw new Error("Failed to create order");
       alert(` Order created successfully for Table ${table.number}`);
@@ -81,6 +84,12 @@ export default function NewOrderModal({ table, onClose,refetchTables }) {
       setLoading(false);
     }
   };
+
+  if (error){
+    return(
+      <p>Somethig went wrong</p>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-start pt-4 z-50 overflow-auto">

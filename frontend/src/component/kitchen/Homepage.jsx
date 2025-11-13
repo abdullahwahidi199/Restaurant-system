@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import FilterBar from "./FilterBar";
 import OrderCard from "./OrderCard";
 import MetricsBar from "./MetricsBar";
+import instance from "../../api/axiosInstance";
+import { Users } from "lucide-react";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error,setError]=useState(null)
 
   console.log(orders)
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
@@ -15,11 +18,12 @@ export default function KitchenHomepage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://127.0.0.1:8000/orders/orders/");
-      const data = await res.json();
+      const res = await instance.get("/orders/orders/");
+      const data =res.data
       setOrders(data);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      setError(error.message)
     } finally {
       setLoading(false);
     }
@@ -68,6 +72,11 @@ export default function KitchenHomepage() {
   // console.log(hasPending["delivery"])
   if (loading)
     return <p className="text-center py-6 text-gray-500">Loading orders...</p>;
+  if (error){
+    return(
+      <p>{error}</p>
+    )
+  }
 
   return (
     <div className="p-4 min-h-screen bg-gray-50">

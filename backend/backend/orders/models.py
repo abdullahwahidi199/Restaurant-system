@@ -83,7 +83,7 @@ class Order(models.Model):
     note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    waiter=models.ForeignKey(Staff,on_delete=models.SET_NULL,null=True,blank=True,related_name='orders')
     delivery_boy = models.ForeignKey(
         Staff,
         on_delete=models.SET_NULL,

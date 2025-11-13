@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X,Plus } from "lucide-react";
+import instance from "../../../api/axiosInstance";
 
 export default function TableAddModal({onTableAdded,onClose}){
     const [tableNumber,setTableNumber]=useState('')
@@ -12,18 +13,15 @@ export default function TableAddModal({onTableAdded,onClose}){
     const handleSubmit=async ()=>{
       setLoading(true)
         try{
-            const response=await fetch(`http://127.0.0.1:8000/orders/tables/`,{
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({
+            const response=await instance.post(`http://127.0.0.1:8000/orders/tables/`,{
+               
+               
                     number:tableNumber,
                     capacity:capacity,
                     note:note
-                })
+               
             })
-            if (!response.ok){
-                throw new Error("Could not add new table!")
-            }
+            
         }
         catch(error){
             
@@ -95,7 +93,7 @@ export default function TableAddModal({onTableAdded,onClose}){
           </button>
 
           {error && (
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error.message}</p>
           )}
         </form>
       </motion.div>

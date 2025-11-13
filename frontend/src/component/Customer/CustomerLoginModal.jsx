@@ -23,7 +23,7 @@ const Login = () => {
       localStorage.setItem("refresh_token", res.data.refresh);
 
       const profileRes = await getProfile();
-      localStorage.setItem("user", JSON.stringify(profileRes.data));
+      localStorage.setItem("customer", JSON.stringify(profileRes.data));
 
       
       navigate('/')

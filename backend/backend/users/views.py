@@ -1,7 +1,7 @@
 # users/views.py
 from rest_framework import viewsets
 from .models import Staff,Shift,Payroll
-from .serializers import StaffSerializer,ShiftSerializer,PayrollSerializer
+from .serializers import StaffSerializer,ShiftSerializer,PayrollSerializer,AttendanceSerializer
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.decorators import api_view,parser_classes
 from rest_framework.response import Response
@@ -9,6 +9,11 @@ from rest_framework import status
 from datetime import date
 from .models import Staff, Shift, Attendance
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .permissions import isStaffRole
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
 
 
 # class StaffViewSet(viewsets.ModelViewSet):
@@ -19,22 +24,29 @@ from rest_framework.parsers import MultiPartParser, FormParser
 #     queryset=Shift.objects.all()
 #     serializer_class=ShiftSerializer
 
+
 @api_view(['GET','POST'])
 @parser_classes([MultiPartParser,FormParser])
+@permission_classes([IsAuthenticated, isStaffRole])
 def staffApi(request):
     if request.method=='GET':
         staff=Staff.objects.select_related('shift').prefetch_related('deliveries').all()
         serializer=StaffSerializer(staff,many=True)
         return Response(serializer.data)
 
-    if request.method=='POST':
-        print(request.data)
-        serializer=StaffSerializer(data=request.data)
+    if request.method == 'POST':
+        # ensure requesting user is admin
+        try:
+            if request.user.staff_profile.role != 'Admin':
+                return Response({'detail':'Only admin can add staff.'}, status=403)
+        except:
+            return Response({'detail':'Only staff can add staff.'}, status=403)
+
+        serializer = StaffSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({'message':'Staff added successfully'})
-        print(serializer.errors)
-        return Response(serializer.errors,status=400)
+        return Response(serializer.errors, status=400)
     
 class staffDetailsView(RetrieveUpdateDestroyAPIView):
     queryset=Staff.objects.all()
@@ -43,6 +55,7 @@ class staffDetailsView(RetrieveUpdateDestroyAPIView):
 
 
 @api_view(['GET','POST'])
+
 def shiftApi(request):
     if request.method=='GET':
         shift=Shift.objects.prefetch_related('staff').all()
@@ -137,3 +150,41 @@ def DeliveryBoyListView(request):
         dileveryBoys=Staff.objects.filter(role='DeliveryBoy')
         serializer=StaffSerializer(dileveryBoys,many=True)
         return Response(serializer.data)
+    
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        return super().get_token(user)
+
+        try:
+            staff=user.staff_profile
+            token['role']=staff.role
+            token['staff_id']=staff.id
+        except Staff.DoesNotExist:
+            token['role']='Customer'
+        return token
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+        # include role + staff id in response body as well (handy for frontend)
+        try:
+            staff = user.staff_profile
+            data['role'] = staff.role
+            data['staff_id'] = staff.id
+            data['name'] = staff.name
+        except Staff.DoesNotExist:
+            data['role'] = 'Customer'
+        return data
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+
+
+@api_view(['GET'])
+def recent_month_attendance(request):
+    today=date.today()
+    first_date_of_month=today.replace(day=1)
+
+    attendances=Attendance.objects.filter(date__gte=first_date_of_month).select_related('staff','shift')
+    serializer = AttendanceSerializer(attendances, many=True)
+    return Response(serializer.data)

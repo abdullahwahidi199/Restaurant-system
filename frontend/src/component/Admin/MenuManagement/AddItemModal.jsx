@@ -2,6 +2,7 @@ import { FolderMinusIcon,X } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { useState } from "react"
+import instance from "../../../api/axiosInstance";
 
 export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
     const [name, setName] = useState("");
@@ -25,13 +26,10 @@ export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
             formData.append("image",image)
         }
         try{
-            const response=await fetch(`http://127.0.0.1:8000/menu/menu-items/`,{
-                method:"POST",
-                body:formData
-            })
-            if (!response.ok){
-                throw new Error("Could not add new item!")
-            }
+            const response=await instance.post(`/menu/menu-items/`,
+               formData
+            )
+            
             onClose();
             onItemAdded();
             setName("");
@@ -40,7 +38,7 @@ export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
             setImage(null);
         }
         catch(error){
-            console.log(error)
+            console.log("Could not add new item:",error.response?.data||error.message)
         }
         finally{
             setLoading(false)

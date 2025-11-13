@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import instance from "../../../api/axiosInstance";
 
 export default function StaffFormModal({
   open,
@@ -18,6 +19,8 @@ export default function StaffFormModal({
     status: "Active",
     custom_role: "",
     image: null,
+    username:"",
+    password:"",
     shift: "",
   });
 
@@ -36,6 +39,8 @@ export default function StaffFormModal({
         custom_role: editingStaff.custom_role || "",
         image: null,
         shift: editingStaff.shift || "",
+        username:editingStaff.username||"",
+        password:editingStaff.password||""
       });
     } else {
       setFormData({
@@ -48,6 +53,8 @@ export default function StaffFormModal({
         custom_role: "",
         image: null,
         shift: "",
+        username:"",
+        password:""
       });
     }
     setError("");
@@ -79,8 +86,8 @@ export default function StaffFormModal({
   };
 
   const getShifts = async () => {
-    const res = await fetch("http://127.0.0.1:8000/users/shift/");
-    const data = await res.json();
+    const res = await instance('/users/shift');
+    const data = res.data
     setShifts(data);
   };
 
@@ -146,11 +153,12 @@ export default function StaffFormModal({
               className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
               <option value="">Select Shift</option>
-              {shifts.map((shift) => (
-                <option key={shift.id} value={shift.shift_type}>
+              {shifts.length>0 && (shifts.map((shift) => (
+                <option key={shift.id} value={shift.id}>
                   {shift.shift_type} ({shift.start_time} - {shift.end_time})
                 </option>
-              ))}
+              )))}
+              
             </select>
 
             <select
@@ -163,7 +171,7 @@ export default function StaffFormModal({
               <option value="Admin">Admin</option>
               <option value="Cashier">Cashier</option>
               <option value="Waiter">Waiter</option>
-              <option value="Chef">Chef</option>
+              <option value="Kitchen_manager">Kitchen manager</option>
               <option value="DeliveryBoy">Delivery Boy</option>
               <option value="Other">Other</option>
             </select>
@@ -198,6 +206,29 @@ export default function StaffFormModal({
               onChange={handleChange}
               className="input-field px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 outline-none"
             />
+          </div>
+
+          <div>
+            <p>Create Accout for this staff!</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              type="password"
+              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+             
+           
+
+            <input
+              name="username"
+              type="text"
+              value={formData.username}
+              onChange={handleChange}
+              className="input-field px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 outline-none"
+            />
+          </div>
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}

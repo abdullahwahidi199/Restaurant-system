@@ -3,6 +3,7 @@ import { X, PlusCircle, CheckCircle } from "lucide-react";
 import { useScroll } from "framer-motion";
 import NewOrderModal from "./OrderAddModal";
 import AddNewItemModal from "./AddNewItemModal";
+import instance from "../../api/axiosInstance";
 
 export default function TableActionModal({ table, onClose, refetchTables }) {
   const [newOrderModal, setNewOrderModal] = useState(false)
@@ -21,12 +22,8 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   const markAvailable = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "available" }),
+      const res = await instance.patch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
+        status: "available"
       });
 
       if (res.ok) {
@@ -42,12 +39,9 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
     }
   };
   const markUnAvailable=async ()=>{
-    const res = await fetch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "unavailable" }),
+    const res = await instance.patch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
+        
+        status: "unavailable" 
       });
       onClose();
       refetchTables()
@@ -55,10 +49,8 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   const handleMarkServed = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/orders/orders/${current_order.id}/update_status/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "served" })
+      const res = await instance.patch(`http://127.0.0.1:8000/orders/orders/${current_order.id}/update_status/`, {
+        status: "served"
       })
       refetchTables();
     }
@@ -150,7 +142,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       <p className="text-gray-600 text-sm">📞 {current_order.phone}</p>
                     )}
                     <p className="mt-2 text-gray-700 font-medium">
-                      💰 Total: <span className="text-green-600">${current_order.total}</span>
+                      💰 Total: <span className="text-green-600">{current_order.total} AFN</span>
                     </p>
                   </div>
                   {current_order.items.length > 0 ? (

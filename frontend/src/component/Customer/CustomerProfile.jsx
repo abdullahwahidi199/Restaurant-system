@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 
 export default function CustomerProfile() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("customer"));
   const navigate = useNavigate();
+  // console.log(user)
 
   useEffect(() => {
     if (user) {

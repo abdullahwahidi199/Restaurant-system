@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import axios from "axios";
 import FormInput from "./FormInput";
 import LogoUpload from "./LogoUpload";
+import instance from "../../../api/axiosInstance";
 
-export default function RestaurantForm({ restaurant, API_URL }) {
+export default function RestaurantForm({ restaurant }) {
   const [formData, setFormData] = useState({
     name: restaurant.name || "",
     address: restaurant.address || "",
@@ -38,7 +39,7 @@ export default function RestaurantForm({ restaurant, API_URL }) {
       for (const key in formData) {
         if (formData[key] !== null) data.append(key, formData[key]);
       }
-      const res = await axios.put(API_URL, data, {
+      const res = await instance.put("/system/restaurant-info/1/", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       alert("Restaurant info updated successfully!");

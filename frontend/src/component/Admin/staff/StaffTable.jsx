@@ -1,6 +1,7 @@
 import React from "react";
 
 const StaffTable = ({ staff, editStaff, deleteStaff }) => {
+  console.log(staff)
   return (
     <div className="overflow-x-auto bg-white  shadow-xl rounded-2xl border border-gray-100">
       <table className="min-w-full text-sm text-left">
@@ -30,7 +31,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
           </tr>
         </thead>
 
-        {/* Table Body */}
+       
         <tbody className="divide-y divide-gray-200 ">
           {staff.length > 0 ? (
             staff.map((s) => (
@@ -51,7 +52,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                   {s.phone}
                 </td>
                 <td className="px-6 py-4 text-gray-600 ">
-                  {s.shift}
+                  {s.shift_name||'_'}
                 </td>
                 <td className="px-6 py-4 text-gray-600 ">
                   {s.status}

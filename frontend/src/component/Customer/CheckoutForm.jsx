@@ -5,9 +5,9 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     console.log(user)
   const [formData, setFormData] = useState({
     name: user?.username || "",
-    phone: user.phone,
-    address: user.address,
-    email:user.email
+    phone: user?.phone || "",
+    address: user?.address,
+    email:user?.email
   });
 
   const handleChange = (e) => {
@@ -21,6 +21,8 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
     onSubmit(formData);
   };
+
+  // console.log(user)
 
 return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">

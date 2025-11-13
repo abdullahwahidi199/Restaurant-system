@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 #The Customer model is mainly  for registered users, i.e., customers who have accounts and log in.
 # if not logged in and dont want to sign up, they will be asked name,phone and address while ordering.
 class Customer(models.Model):
-    user=models.OneToOneField(User,on_delete=models.CASCADE,null=True,blank=True)
+    user=models.OneToOneField(User,on_delete=models.SET_NULL,null=True,blank=True)
     phone = models.CharField(max_length=15)
     address=models.TextField(null=True)
     joined_at = models.DateTimeField(auto_now_add=True)

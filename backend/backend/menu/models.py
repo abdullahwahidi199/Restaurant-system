@@ -1,5 +1,7 @@
 from django.db import models
 from customers.models import Customer
+# from orders.models import Order
+
 
 class Category(models.Model):
     
@@ -32,9 +34,13 @@ class MenuItem(models.Model):
 
 class Review(models.Model):
     customer=models.ForeignKey(Customer,on_delete=models.CASCADE,related_name='reviews')
-    menu_item=models.ForeignKey(MenuItem,on_delete=models.CASCADE,related_name='reviews')
+    menu_item=models.ForeignKey(MenuItem,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
+    #every delivery can have reviews
+    delivery = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, related_name='review', null=True, blank=True)
     rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField(blank=True, null=True)
+    response = models.TextField(blank=True, null=True)  
+    responded_at = models.DateTimeField(auto_now_add=True,null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     # def __str__(self):

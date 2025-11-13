@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 // import { CheckCircle, UserCheck, Users, Save } from 'lucide-react';
-
+import { AuthContext } from "../../api/authforRBC"
+import instance from "../../api/axiosInstance"
 export default function Attendance() {
     const [shifts, setShifts] = useState([])
     const [error, setError] = useState(null)
@@ -9,41 +10,35 @@ export default function Attendance() {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
 
+    const {auth}=useContext(AuthContext)
+    const token=auth?.tokens?.access
+
     const [selectedShiftId, setSelectedShiftId] = useState('')
 
     const getShifts = async () => {
         try {
-            const response = await fetch('http://127.0.0.1:8000/users/shift/')
-            if (!response.ok) {
-                throw new Error("Could not fetch the shifts!")
-            }
-            const data = await response.json();
-            console.log(data)
+            const response = await instance.get('/users/shift/')
+            
+            const data = response.data
+            
             setShifts(data)
         }
         catch (error) {
-            console.log(error)
+            console.error("Could not get shifts:", error.response?.data || error.message);
             setError(error)
         }
     }
     const getStaffByShift = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/users/shift/${selectedShiftId}/`)
-            if (!response.ok) {
-                throw new Error(
-                    "could not get staff!"
-                )
-            }
-            const data = await response.json()
-            console.log(data)
-            console.log(shifts)
-            console.log(staff)
+            const response = await instance.get(`/users/shift/${selectedShiftId}/`)
+           
+            const data = response.data
 
             setStaff(data.staff)
 
         }
         catch (error) {
-            console.log(error)
+            console.log("could not get staff!:",error.response?.data||error.message )
             setError(error)
         }
         finally {
@@ -58,33 +53,34 @@ export default function Attendance() {
     }
 
     const handleSave = async () => {
-        const payload = {
-            date: new Date().toISOString().slice(0, 10),
-            attendance: staff.map(s => ({
-                staff_id: s.id,
-                shift_id: selectedShiftId,
-                status: attendance[s.id] || "Present"
-            }))
-        }
+  const payload = {
+    date: new Date().toISOString().slice(0, 10),
+    attendance: staff.map(s => ({
+      staff_id: s.id,
+      shift_id: selectedShiftId,
+      status: attendance[s.id] || "Present"
+    }))
+  };
 
-        try {
-            const response = await fetch(`http://127.0.0.1:8000/users/attendance/mark/${selectedShiftId}/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-            if (response.ok) {
-                setMessage("✅ Attendance saved successfully!")
-            }
-            else {
-                setMessage("❌ Failed to save attendance.");
-            }
+  try {
+    
+    const response = await instance.post(
+      `/users/attendance/mark/${selectedShiftId}/`,
+      payload
+    );
 
-        } catch (error) {
-            setMessage("❌ Failed to save attendance.");
-
-        }
+    
+    if (response.status === 200 || response.status === 201) {
+      setMessage("✅ Attendance saved successfully!");
+    } else {
+      setMessage("❌ Failed to save attendance.");
     }
+  } catch (error) {
+    console.error("Attendance save error:", error);
+    setMessage("❌ Failed to save attendance.");
+  }
+};
+
     useEffect(() => {
         getShifts();
         getStaffByShift();

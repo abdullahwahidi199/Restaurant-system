@@ -59,6 +59,7 @@ class OrderSerializer(serializers.ModelSerializer):
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     table = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=False)
+    tableNumber=serializers.CharField(source="table.number",read_only=True)
     
     delivery_boy = serializers.PrimaryKeyRelatedField(
         queryset=Staff.objects.filter(role='DeliveryBoy'),
@@ -67,12 +68,19 @@ class OrderSerializer(serializers.ModelSerializer):
     )
     delivery_boy_details = DeliveryBoyMiniSerializer(source='delivery_boy', read_only=True)
     preparation_time = serializers.ReadOnlyField()
+    waiter=serializers.PrimaryKeyRelatedField(
+        queryset=Staff.objects.filter(role="Waiter"),
+        required=False,
+        allow_null=True
+    )
+    waiter_name=serializers.CharField(source="waiter.name",read_only=True)
+
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'name', 'phone', 'address', 'note',
-            'order_type','table', 'order_type_display', 'status', 'status_display',
-            'created_at', 'updated_at','delivery_boy','delivery_boy_details', 'items', 'total','preparation_time'
+            'id', 'customer', 'name', 'phone', 'address', 'note','tableNumber',
+            'order_type','table', 'order_type_display', 'status', 'status_display','waiter','waiter_name',
+            'created_at', 'updated_at','delivery_boy','delivery_boy_details', 'items', 'total','preparation_time',
         ]
         read_only_fields = ['created_at', 'updated_at', 'total']
 

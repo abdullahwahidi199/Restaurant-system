@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { AuthContext } from "../../../api/authforRBC";
+import instance from "../../../api/axiosInstance";
 
 export default function AddShiftModal({ onClose, onShiftAdded }) {
   const [shiftType, setShiftType] = useState("");
@@ -8,27 +10,30 @@ export default function AddShiftModal({ onClose, onShiftAdded }) {
   const [endTime, setEndTime] = useState("");
   
   const [loading, setLoading] = useState(false);
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/shift/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response =await instance.post("/users/shift/", {
+        
+        
           shift_type: shiftType,
           start_time: startTime,
           end_time: endTime,
         
-        }),
+        
       });
 
-      if (!response.ok) throw new Error("Failed to add shift");
-      onShiftAdded();
+      if (response.status===200||response.status===201){
+        onShiftAdded()
+      } else{
+        throw new Error("Failed to add shift");
+      }
     } catch (error) {
       console.error(error);
-      alert("Error creating shift!");
+      
     } finally {
       setLoading(false);
     }

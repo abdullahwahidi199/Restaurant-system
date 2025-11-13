@@ -11,6 +11,7 @@ from orders.models import Order,OrderItem
 from menu.serializers import MenuItemSerializer
 
 class DashboardSummaryAPIView(APIView):
+    
     def get(self,request):
         today= timezone.now().date()
         week_start=today-timedelta(days=7)
@@ -92,6 +93,24 @@ class DashboardSummaryAPIView(APIView):
             "best_selling_month": get_best_selling_items(month_start),
         }
         
+                
+        delivery_boys_performance = (
+            Staff.objects.filter(role="DeliveryBoy")
+            .annotate(
+                deliveries_count=Count(
+                    "deliveries",
+                    filter=models.Q(deliveries__created_at__gte=month_start)
+                ),
+                total_revenue=Sum(
+                    F("deliveries__items__quantity") * F("deliveries__items__menu_item__price"),
+                    filter=models.Q(deliveries__created_at__gte=month_start),
+                    output_field=FloatField()
+                ),
+                
+            )
+            .values("id", "name", "image", "deliveries_count", "total_revenue")
+        )
+
         return Response({
             "total_staff": total_staff,
             "menu_items": menu_items,
@@ -109,6 +128,7 @@ class DashboardSummaryAPIView(APIView):
             "deliveries_today_count":deliveries_today_count,
             "deliveries_this_month_count":deliveries_this_month_count,
             "deliveries_this_week_count":deliveries_this_week_count,
+            "delivery_boys_performance": delivery_boys_performance,
             # "deliveries_today":deliveries_today,
             # "deliveries_this_week":deliveries_this_week,
             # "deliveries_this_month":deliveries_this_month,

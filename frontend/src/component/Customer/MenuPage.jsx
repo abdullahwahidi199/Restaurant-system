@@ -22,7 +22,8 @@ export default function MenuPage() {
   const [showReviewModel,setShowReviewModel]=useState(false)
   const [reviewItemId, setReviewItemId] = useState(null);
 
-  const user=localStorage.getItem("user")
+  const user=localStorage.getItem("customer")
+  console.log(user)
 
   const BASE_URL = "http://127.0.0.1:8000";
 
@@ -99,9 +100,8 @@ const handleCheckout = () => {
   setShowCheckout(true);
 };
 
-
 const handlePlaceOrder = async (data) => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("customer"));
   console.log(user)
   const orderData = {
     customer:user.id,
@@ -159,11 +159,13 @@ const handlePlaceOrder = async (data) => {
       return 0;
     });
 
+    console.log(filteredItems)
   const fetchSelectedItem = async (id) => {
     const response = await fetch(`${BASE_URL}/menu/menu-items/${id}/`);
     const data = await response.json();
     setSelectedItem(data);
   };
+  
 
   return (
     <div className="bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white min-h-screen px-6 py-12 font-sans">
@@ -241,75 +243,121 @@ const handlePlaceOrder = async (data) => {
           className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10"
         >
           {filteredItems.length > 0 ? (
-            filteredItems.map((item) => (
-              <motion.div
-                key={item.id}
-                whileHover={{ scale: 1.03 }}
-                className="relative bg-[#121212] rounded-3xl overflow-hidden p-5 border border-[#1f1f1f] 
-                           hover:border-red-500/50 transition-all shadow-md hover:shadow-red-600/30"
-              >
-                {!item.is_available && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-3xl z-20">
-                    <p className="text-red-500 font-bold text-lg">Unavailable</p>
-                  </div>
-                )}
+            filteredItems.map((item) => {
+              const avgRating =
+                item.reviews.length > 0
+                  ? item.reviews.reduce(
+                      (sum, review) => sum + review.rating,
+                      0
+                    ) / item.reviews.length
+                  : 0;
 
-                <div className="flex justify-between items-center">
-                  {user && (
-                    <button 
-                      onClick={()=>setReviewItemId(item.id)}
-                      className="text-blue-300 cursor-pointer underline ">Rate</button>
+              return (
+                <motion.div
+                  key={item.id}
+                  whileHover={{ scale: 1.03 }}
+                  className="relative bg-[#121212] rounded-3xl overflow-hidden p-5 border border-[#1f1f1f] 
+                             hover:border-red-500/50 transition-all shadow-md hover:shadow-red-600/30"
+                >
+                  {!item.is_available && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-3xl z-20">
+                      <p className="text-red-500 font-bold text-lg">
+                        Unavailable
+                      </p>
+                    </div>
                   )}
-                  
-                  <div
-                  
-                  className="absolute top-4 right-4 cursor-pointer z-30"
-                  onClick={() => toggleFavorite(item.id)}
-                >
-                  <Heart
-                    size={22}
-                    className={`${
-                      favorites.includes(item.id)
-                        ? "fill-red-500 text-red-500"
-                        : "text-gray-400 hover:text-red-500"
-                    } transition-colors`}
-                  />
-                </div>
-                </div>
 
-                <div
-                  onClick={() => fetchSelectedItem(item.id)}
-                  className="cursor-pointer flex flex-col items-center z-10"
-                >
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1f1f1f] mb-4 hover:scale-105 transition-transform duration-300">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="flex justify-between items-center">
+                    {user && (
+                      <button
+                        onClick={() => setReviewItemId(item.id)}
+                        className="text-blue-300 cursor-pointer underline"
+                      >
+                        Rate
+                      </button>
+                    )}
+
+                    <div
+                      className="absolute top-4 right-4 cursor-pointer z-30"
+                      onClick={() => toggleFavorite(item.id)}
+                    >
+                      <Heart
+                        size={22}
+                        className={`${
+                          favorites.includes(item.id)
+                            ? "fill-red-500 text-red-500"
+                            : "text-gray-400 hover:text-red-500"
+                        } transition-colors`}
+                      />
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-center">
-                    {item.name}
-                  </h3>
-                  <p className="text-red-500 text-lg font-bold">
-                    AFN {parseFloat(item.price).toFixed(2)}
-                  </p>
-                </div>
-                {item.reviews?<p>NO reviews yet!</p>:(<p>dsf</p>)}
+
+                  <div
+                    onClick={() => fetchSelectedItem(item.id)}
+                    className="cursor-pointer flex flex-col items-center z-10"
+                  >
+                    <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1f1f1f] mb-4 hover:scale-105 transition-transform duration-300">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <h3 className="text-xl font-semibold mb-1 text-center">
+                      {item.name}
+                    </h3>
+
+                    <p className="text-red-500 text-lg font-bold mb-2">
+                      AFN {parseFloat(item.price).toFixed(2)}
+                    </p>
+
                     
-                <button
-                  onClick={() => addToCart(item)}
-                  disabled={!item.is_available}
-                  className={`mt-5 w-full font-semibold py-2 rounded-full transition-all duration-300 ${
-                    item.is_available
-                      ? "bg-red-500 hover:bg-red-600 text-white"
-                      : "bg-gray-600 cursor-not-allowed"
-                  }`}
-                >
-                  {item.is_available ? cart.find((i)=>i.id=item.id)?"Add more":"Add to Cart" : "Unavailable"}
-                </button>
-              </motion.div>
-            ))
+                    <div className="flex items-center justify-center gap-1 mb-3">
+                      {item.reviews.length > 0 ? (
+                        <>
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <span
+                              key={i}
+                              className={`text-yellow-400 text-lg ${
+                                i < Math.round(avgRating)
+                                  ? "opacity-100"
+                                  : "opacity-30"
+                              }`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                          <span className="ml-2 text-gray-400 text-sm">
+                            {avgRating.toFixed(1)} / 5
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-gray-500 text-sm italic">
+                          No reviews yet
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => addToCart(item)}
+                    disabled={!item.is_available}
+                    className={`mt-2 w-full font-semibold py-2 rounded-full transition-all duration-300 ${
+                      item.is_available
+                        ? "bg-red-500 hover:bg-red-600 text-white"
+                        : "bg-gray-600 cursor-not-allowed"
+                    }`}
+                  >
+                    {item.is_available
+                      ? cart.find((i) => i.id === item.id)
+                        ? "Add more"
+                        : "Add to Cart"
+                      : "Unavailable"}
+                  </button>
+                </motion.div>
+              );
+            })
           ) : (
             <p className="text-gray-400 col-span-full text-center mt-10">
               No menu items found.
@@ -317,6 +365,7 @@ const handlePlaceOrder = async (data) => {
           )}
         </motion.div>
       )}
+       
 
       <motion.button
         whileHover={{ scale: 1.1 }}
@@ -405,7 +454,7 @@ const handlePlaceOrder = async (data) => {
       )}
       {showCheckout && (
   <CheckoutForm
-    user={JSON.parse(localStorage.getItem("user"))}
+    user={JSON.parse(localStorage.getItem("customer"))}
     onSubmit={handlePlaceOrder}
     onClose={() => setShowCheckout(false)}
   />

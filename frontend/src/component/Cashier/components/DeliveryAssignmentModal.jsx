@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import instance from "../../../api/axiosInstance";
 
 const DeliveryAssignmentModal = ({ isOpen, onClose, order, deliveryPersons = [], onAssign }) => {
     const [selectedPersonId, setSelectedPersonId] = useState("");
@@ -13,12 +14,8 @@ const DeliveryAssignmentModal = ({ isOpen, onClose, order, deliveryPersons = [],
     if (!selectedPersonId) return;
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/orders/orders/${order.id}/assign-delivery/`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ delivery_person_id: selectedPersonId }),
+        const response = await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/assign-delivery/`, {
+            delivery_person_id: selectedPersonId 
         });
 
         if (!response.ok) {

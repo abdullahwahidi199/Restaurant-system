@@ -3,18 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { X } from "lucide-react";
 
-export default function ReviewItemModel({  itemId, onClose }) {
+export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
-  const user=JSON.parse(localStorage.getItem("user"))
-  console.log(user.id)
-  console.log(itemId)
+  const user=JSON.parse(localStorage.getItem("customer"))
+ 
+  
 
   const BASE_URL = "http://127.0.0.1:8000";
 
   const handleSubmit = async () => {
     if (!rating) return toast.error("Please select a rating!");
+    if (!user) return toast.error("You must sign up before u rate item!")
     setLoading(true);
     try {
       const res = await fetch(`${BASE_URL}/menu/reviews/`, {
@@ -26,6 +27,7 @@ export default function ReviewItemModel({  itemId, onClose }) {
         body: JSON.stringify({
           customer: user.id,
           menu_item: itemId,
+          delivery:deliveryId,
           rating: rating,
           comment: comment,
         }),

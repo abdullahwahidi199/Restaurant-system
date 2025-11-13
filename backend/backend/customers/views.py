@@ -7,6 +7,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from .models import Customer
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
+
 
 class CustomerProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -79,6 +82,7 @@ class CustomerReviewsView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 class SignupView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = CustomerSignupSerializer(data=request.data)
         if serializer.is_valid():
@@ -88,6 +92,7 @@ class SignupView(APIView):
 
 
 class LoginView(APIView):
+    permission_classes=[AllowAny]
     def post(self, request):
         serializer = CustomerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

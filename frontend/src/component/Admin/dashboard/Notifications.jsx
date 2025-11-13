@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Bell, Rewind } from "lucide-react";
+import { AuthContext } from "../../../api/authforRBC";
+import instance from "../../../api/axiosInstance";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
 
+  const {auth}=useContext(AuthContext)
+  const token=auth?.tokens?.access
   const fetchNotifications=async ()=>{
-    const response=await fetch("http://127.0.0.1:8000/reports/notifications/")
-    const data=await response.json()
+    const response=await instance.get("/reports/notifications/")
+    const data=response.data
     setNotifications(data)
   }
   useEffect(() => {
@@ -14,9 +18,7 @@ export default function Notifications() {
   }, []);
 
   const markReadNotification= async (id)=>{
-    const response=await fetch(`http://127.0.0.1:8000/reports/notifications/${id}/read/`,{
-      method:"POST"
-    })
+    const response=await instance.post(`/reports/notifications/${id}/read/`)
     fetchNotifications()
   
   }
@@ -26,7 +28,8 @@ export default function Notifications() {
         <Bell className="w-5 h-5 text-blue-500" /> Notifications
       </h3>
       <ul className="space-y-2">
-        {notifications.map((note) => (
+        {notifications.length>0?(
+          notifications.map((note) => (
           <li key={note.id} className="text-gray-600 border-b flex justify-between pb-2">
             <div>
               <span className="font-medium text-gray-800">{note.type}</span>: {note.message}
@@ -36,7 +39,11 @@ export default function Notifications() {
             </div>
             <button className="text-blue-400 cursor-pointer font-semibold" onClick={()=>markReadNotification(note.id)}>Mark read</button>
           </li>
-        ))}
+        ))
+        ):(
+          <p>No notifications yet!</p>
+        )}
+        
       </ul>
     </>
 
