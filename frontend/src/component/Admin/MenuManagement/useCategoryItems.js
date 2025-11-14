@@ -1,14 +1,15 @@
 // this is a custom hook for fetching and caching category items
 
 import { useQuery } from "@tanstack/react-query";
+import instance from "../../../api/axiosInstance";
 
 export default function useCategoryItems(categoryId){
     return useQuery({
         queryKey:['categoryItems',categoryId],
         queryFn:async ()=>{
-            const res=await fetch(`http://127.0.0.1:8000/menu/categories/${categoryId}/`)
-            if (!res.ok) throw new Error("Failed to fetch category items!")
-            const data=await res.json()
+            const res=await instance.get(`/menu/categories/${categoryId}/`)
+          
+            const data=res.data;
             return data.menu_items
         },
         enabled:!!categoryId, // fetch only when ID is selected

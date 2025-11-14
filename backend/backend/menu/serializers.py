@@ -42,7 +42,7 @@ class ReveiwSerializer(serializers.ModelSerializer):
         fields=['id','customer','menu_item','delivery','comment','rating','response','created_at','responded_at','menu_item_name','customerName']
 
     def update(self, instance, validated_data):
-        # if the response field is being added or changed
+        
         response_text = validated_data.get("response", None)
         if response_text and not instance.responded_at:
             instance.responded_at = timezone.now()

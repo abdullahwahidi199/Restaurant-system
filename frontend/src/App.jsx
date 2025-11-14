@@ -31,13 +31,13 @@ import RequireAuth from './api/ReauireAuth';
 import StaffLogin from './component/StaffLogin';
 import Feedbacks from './component/Admin/Feedbacks/FeedbackBase';
 
-
+const BASE_URL=import.meta.env.VITE_API_URL;
 
 function App() {
   const [restaurantInfo, setRestaurantInfo] = useState(null)
 
   const fetchRestaurantInfo = async () => {
-    const response = await fetch('http://127.0.0.1:8000/system/restaurant-info/1/')
+    const response = await fetch(`${BASE_URL}/system/restaurant-info/1/`)
     const data = await response.json()
     setRestaurantInfo(data)
   }
