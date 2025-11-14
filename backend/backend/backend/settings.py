@@ -73,7 +73,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://your-frontend-domain-if-deployed.com",
+    "https://restaurant-frontend-omatx6ns1-rmss-projects-a596e3ee.vercel.app",
 ]
 TEMPLATES = [
     {

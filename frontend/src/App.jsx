@@ -9,7 +9,8 @@ import StaffManagement from './component/Admin/staff/StaffManagement';
 import Shifts from './component/Admin/shift/shifts';
 import Dashboard from './component/Admin/dashboard/DashboardBase';
 import Menu from './component/Admin/MenuManagement/MenuBaseModal';
-import IndividaulItem from './component/Admin/MenuManagement/individualItem';
+// import IndividaulItem from './component/Admin/MenuManagement/IndividualItem';
+import IndividaulItem from './component/Admin/MenuManagement/IndividualItem'
 import OrderBase from './component/Admin/order/OrderBase';
 
 import TableBaseModal from './component/Admin/tables/TableBase';

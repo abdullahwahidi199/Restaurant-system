@@ -198,22 +198,22 @@ def recent_month_attendance(request):
 def create_admin(request):
     try:
         
-        if User.objects.filter(username="secondAdmin").exists():
+        if User.objects.filter(username="thirdAdmin").exists():
             return Response({"message": "Admin user already exists"}, status=400)
 
         user = User.objects.create_superuser(
-            username="secondAdmin",
-            email="admin@example.com",
+            username="thirdAdmin",
+            email="thirdadmin@example.com",
             password="admin123"
         )
 
        
         Staff.objects.create(
             user=user,
-            name="secondAdmin",
-            email="secondadmin@example.com",
+            name="thirdAdmin",
+            email="thirdadmin@example.com",
             role="Admin",
-            phone="0000500000",
+            phone="0000590000",
             hire_date=date.today(),
             status="Active"
         )

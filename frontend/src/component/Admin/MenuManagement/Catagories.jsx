@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import MenuList from "./menuList";
+
 import { useQueryClient } from "@tanstack/react-query";
 import useCategoryItems from "./useCategoryItems";
 import CategoryDeleteModal from "./CategoryDeleteModal";
+import MenuList from "./MenuList";
 
 export default function CategoriesList({ categories,onCategoryDelete }) {
     const [selectedCategoryId, setSelectedCategoryId] = useState(null);

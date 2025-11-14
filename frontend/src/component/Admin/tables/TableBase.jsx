@@ -12,7 +12,7 @@ export default function TableBaseModal() {
 
   const fetchTables = async () => {
     try {
-      const res = await instance.get("http://127.0.0.1:8000/orders/tables/");
+      const res = await instance.get("/orders/tables/");
       
       const data = res.data;
       setTables(data);
