@@ -24,7 +24,7 @@ export default function MenuPage() {
 
   const user=localStorage.getItem("customer")
   console.log(user)
-
+const parsedUser = JSON.parse(localStorage.getItem("customer"));
 const BASE_URL=import.meta.env.VITE_API_URL;;
 
   const fetchMenuData = async () => {
@@ -104,7 +104,7 @@ const handlePlaceOrder = async (data) => {
   const user = JSON.parse(localStorage.getItem("customer"));
   console.log(user)
   const orderData = {
-    customer:user.id,
+    customer:user?user.id:null,
     name: data.name,
     phone: data.phone,
     address: data.address,
@@ -454,7 +454,7 @@ const handlePlaceOrder = async (data) => {
       )}
       {showCheckout && (
   <CheckoutForm
-    user={JSON.parse(localStorage.getItem("customer"))}
+    user={parsedUser?.id || null}
     onSubmit={handlePlaceOrder}
     onClose={() => setShowCheckout(false)}
   />

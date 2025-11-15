@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [error,setError]=useState(null)
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -25,6 +26,9 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (formData.username.includes(" ")){
+        throw new Error("Firstname cant't contain spaces!")
+      }
       await signupCustomer(formData);
       const res = await loginCustomer({
         username: formData.username,
@@ -36,6 +40,7 @@ const Signup = () => {
       setTimeout(() => navigate("/"), 800);
     } catch (err) {
       console.error(err);
+      setError(err.message)
       toast.error(
         err.response?.data?.username?.[0] ||
           err.response?.data?.email?.[0] ||
@@ -64,6 +69,9 @@ const Signup = () => {
         >
           Create <span className="text-red-500">Account</span>
         </motion.h2>
+        {error && (
+          <p className="text-red-600">{error}</p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <motion.input
