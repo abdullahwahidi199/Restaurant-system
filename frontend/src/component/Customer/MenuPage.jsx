@@ -165,6 +165,24 @@ const handlePlaceOrder = async (data) => {
     const data = await response.json();
     setSelectedItem(data);
   };
+  const increaseQty = (id) => {
+  setCart((prev) =>
+    prev.map((item) =>
+      item.id === id ? { ...item, qty: item.qty + 1 } : item
+    )
+  );
+};
+
+const decreaseQty = (id) => {
+  setCart((prev) =>
+    prev
+      .map((item) =>
+        item.id === id ? { ...item, qty: item.qty - 1 } : item
+      )
+      .filter((item) => item.qty > 0)
+  );
+};
+
   
 
   return (
@@ -410,9 +428,28 @@ const handlePlaceOrder = async (data) => {
                   >
                     <div>
                       <p className="font-semibold text-white">{item.name}</p>
-                      <p className="text-gray-400 text-sm">
-                        {item.qty} × AFN {parseFloat(item.price).toFixed(2)}
-                      </p>
+                      <div className="text-gray-400 text-sm flex items-center gap-3">
+  <button
+    onClick={() => decreaseQty(item.id)}
+    className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
+  >
+    -
+  </button>
+
+  <span>{item.qty}</span>
+
+  <button
+    onClick={() => increaseQty(item.id)}
+    className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
+  >
+    +
+  </button>
+
+  <span className="ml-2">
+    × AFN {parseFloat(item.price).toFixed(2)}
+  </span>
+</div>
+
                     </div>
                     <Trash2
                       onClick={() => removeFromCart(item.id)}
@@ -454,7 +491,7 @@ const handlePlaceOrder = async (data) => {
       )}
       {showCheckout && (
   <CheckoutForm
-    user={parsedUser?.id || null}
+    user={JSON.parse(localStorage.getItem('customer'))}
     onSubmit={handlePlaceOrder}
     onClose={() => setShowCheckout(false)}
   />
