@@ -14,19 +14,15 @@ const DeliveryAssignmentModal = ({ isOpen, onClose, order, deliveryPersons = [],
     if (!selectedPersonId) return;
 
     try {
-        const response = await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/assign-delivery/`, {
+        const response = await instance.patch(`/orders/orders/${order.id}/assign-delivery/`, {
             delivery_person_id: selectedPersonId 
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            alert(err.error || "Failed to assign delivery person");
-            return;
-        }
+    
 
         const updatedOrder = await response.json();
-        onAssign(updatedOrder); // Callback to parent to update UI
-        onClose(); // Close modal
+        onAssign(updatedOrder); 
+        onClose(); 
     } catch (err) {
         console.error(err);
         alert("Something went wrong.");

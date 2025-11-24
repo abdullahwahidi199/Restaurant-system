@@ -87,7 +87,7 @@ export default function Attendance() {
     }, [selectedShiftId])
 
     if (loading) return <div className="flex justify-center items-center h-[300px]"><div
-        class="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
+        className="w-10 h-10 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
     ></div>
     </div>;
     return (

@@ -67,6 +67,7 @@ class OrderSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     delivery_boy_details = DeliveryBoyMiniSerializer(source='delivery_boy', read_only=True)
+    
     preparation_time = serializers.ReadOnlyField()
     waiter=serializers.PrimaryKeyRelatedField(
         queryset=Staff.objects.filter(role="Waiter"),

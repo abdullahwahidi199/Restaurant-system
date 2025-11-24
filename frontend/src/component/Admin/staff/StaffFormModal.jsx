@@ -38,6 +38,7 @@ export default function StaffFormModal({
         status: editingStaff.status || "Active",
         custom_role: editingStaff.custom_role || "",
         image: null,
+        vehicle_number:editingStaff.vehicle_number||"",
         shift: editingStaff.shift || "",
         username:editingStaff.username||"",
         password:editingStaff.password||""
@@ -51,6 +52,7 @@ export default function StaffFormModal({
         hire_date: "",
         status: "Active",
         custom_role: "",
+        vehicle_number:"",
         image: null,
         shift: "",
         username:"",
@@ -175,6 +177,15 @@ export default function StaffFormModal({
               <option value="DeliveryBoy">Delivery Boy</option>
               <option value="Other">Other</option>
             </select>
+
+            {formData.role==="DeliveryBoy"&&
+              <input type='number' placeholder="vehicle number"
+                className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                onChange={handleChange}
+                value={formData.vehicle_number}
+                name='vehicle_number'
+              />
+            }
           </div>
 
           {formData.role === "Other" && (

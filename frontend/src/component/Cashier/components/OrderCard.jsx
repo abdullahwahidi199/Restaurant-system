@@ -10,7 +10,7 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
     const formattedTotal = (subtotal + tax).toFixed(2);
 
     const statusLabel = order.status_display || (order.status ? String(order.status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Pending");
-
+    console.log(order)
     const getStatusColor = (status) => {
         switch (status) {
             case "Pending":
@@ -31,7 +31,7 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
 
     const handleMarkDelivered=async ()=>{
         try{
-            const response=await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
+            const response=await instance.patch(`/orders/orders/${order.id}/update_status/`,{
                 status:"delivered" 
             })
         }
@@ -54,7 +54,13 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
                 <p className="text-sm text-gray-600 mb-1"><strong>Table:</strong> {order.table}</p>
             )}
 
-            <p className="text-sm text-gray-600 mb-2"><strong>Customer:</strong> {order.name || order.customer || "—"}</p>
+            <p className="text-sm text-gray-600 mb-1"><strong>Customer:</strong> {order.name || order.customer || "—"}</p>
+            {order.status==="out_for_delivery"&&(
+                <p className="text-sm text-gray-600 mb-1"><strong>Delivered By :</strong>{order.delivery_boy_details.name}</p>
+            )}
+            {order.status==="out_for_delivery"&&(
+                <p className="text-sm text-gray-600 mb-1"><strong>Vehicle Number :</strong>{order.delivery_boy_details.vehicle_number}</p>
+            )}
 
             <div className="flex flex-col mt-3 gap-2">
                 <p className="font-semibold text-gray-800">Total: {formattedTotal}AFN</p>

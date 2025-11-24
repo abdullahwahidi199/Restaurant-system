@@ -71,7 +71,7 @@ const BillPrintModal = ({ order, onClose }) => {
     const handlePrint = async() => {
         try {
             if (order.order_type==='dine-in' || order.order_type==="takeaway"){
-                const response=await instance.patch(`http://127.0.0.1:8000/orders/orders/${order.id}/update_status/`,{
+                const response=await instance.patch(`/orders/orders/${order.id}/update_status/`,{
                 
                  status:"completed" 
             })

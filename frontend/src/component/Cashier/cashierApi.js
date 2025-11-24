@@ -19,7 +19,7 @@ export const updateOrderStatus = async (orderId, status) => {
 };
 
 export const assignDeliveryPerson = async (orderId, deliveryPerson) => {
-  const res = await instance.patch(`/orders/${orderId}/assign-delivery/`, {
+  const res = await instance.patch(`/orders/orders/${orderId}/assign-delivery/`, {
     delivery_person: deliveryPerson,
   });
   return res.data;

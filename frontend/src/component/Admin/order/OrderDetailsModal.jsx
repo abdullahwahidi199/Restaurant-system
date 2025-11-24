@@ -21,7 +21,7 @@ export default function OrderDetailsModal({ order, onClose }) {
         <p><strong>Status:</strong> {order.status_display}</p>
         <p><strong>Note:</strong> {order.note || "—"}</p>
         {order.waiter&&<p><strong>Placed by:</strong>{order.waiter_name||"_"}</p>}
-        {order.order_type==="delivery"&&<p><strong>Delivered by:</strong>{order.delivery_boy_details.name}({order.delivery_boy_details.vehicle_number})</p>}
+        {order.order_type==="delivery"&&<p><strong>Delivered by:</strong>{order.delivery_boy_details?.name}({order.delivery_boy_details?.vehicle_number})</p>}
 
         <h3 className="mt-4 font-semibold">Items:</h3>
         <ul className="mt-2 border rounded-lg divide-y">

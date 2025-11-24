@@ -13,7 +13,7 @@ export default function TableAddModal({onTableAdded,onClose}){
     const handleSubmit=async ()=>{
       setLoading(true)
         try{
-            const response=await instance.post(`http://127.0.0.1:8000/orders/tables/`,{
+            const response=await instance.post(`/orders/tables/`,{
                
                
                     number:tableNumber,
@@ -80,7 +80,7 @@ export default function TableAddModal({onTableAdded,onClose}){
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
-            required
+            // required
             placeholder="note"
           />
 

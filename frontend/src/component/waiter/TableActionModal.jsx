@@ -22,7 +22,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   const markAvailable = async () => {
     try {
-      const res = await instance.patch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
+      const res = await instance.patch(`/orders/tables/${table.id}/`, {
         status: "available"
       });
 
@@ -39,7 +39,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
     }
   };
   const markUnAvailable=async ()=>{
-    const res = await instance.patch(`http://127.0.0.1:8000/orders/tables/${table.id}/`, {
+    const res = await instance.patch(`/orders/tables/${table.id}/`, {
         
         status: "unavailable" 
       });
@@ -49,7 +49,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   const handleMarkServed = async () => {
     try {
-      const res = await instance.patch(`http://127.0.0.1:8000/orders/orders/${current_order.id}/update_status/`, {
+      const res = await instance.patch(`/orders/orders/${current_order.id}/update_status/`, {
         status: "served"
       })
       refetchTables();

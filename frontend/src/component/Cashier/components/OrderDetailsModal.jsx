@@ -28,6 +28,12 @@ const OrderDetailsModal = ({ order, onClose, onPrintBill, onAssignDelivery, onMa
                     {order.table && <p className="text-gray-600 mb-1"><strong>Table:</strong> {order.table}</p>}
                     <p className="text-gray-600 mb-1"><strong>Phone:</strong> {order.phone || "—"}</p>
                     <p className="text-gray-600 mb-1"><strong>Status:</strong> {statusLabel}</p>
+                    {order.status==="out_for_delivery"&&(
+                    <p className="text-gray-600 mb-1"><strong>Delivered By: </strong> {order.delivery_boy_details.name}</p>
+                    )}
+                    {order.status==="out_for_delivery"&&(
+                    <p className="text-gray-600 mb-1"><strong>Vehicle number: </strong> {order.delivery_boy_details.vehicle_number}</p>
+                    )}
                 </div>
 
                 <div className="border-t pt-3 mb-3">
@@ -68,8 +74,10 @@ const OrderDetailsModal = ({ order, onClose, onPrintBill, onAssignDelivery, onMa
                         <button onClick={() => onPrintBill && onPrintBill(order)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all">Print Bill</button>
                     )}
 
-                    {String(order.order_type || "").toLowerCase().includes("delivery") && (
+                    {order.status!=="out_for_delivery"&&(
+                        String(order.order_type || "").toLowerCase().includes("delivery") && (
                         <button onClick={() => onAssignDelivery && onAssignDelivery(order)} className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all">Assign Delivery</button>
+                    )
                     )}
 
                     {String(order.status || "").toLowerCase() !== "completed" && (

@@ -65,12 +65,12 @@ export default function AddItemToOrderModal({ orderId, onClose, refetchTables })
       );
 
       
-      alert("Items added successfully!");
+      // alert("Items added successfully!");
       refetchTables();
       onClose();
     } catch (err) {
       console.error(err);
-      alert(`Error: ${err.message}`);
+      // alert(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }

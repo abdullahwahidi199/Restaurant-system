@@ -82,13 +82,13 @@ const CashierManagement = () => {
     setSelectedOrder(null);
   }, []);
 
-  // assign delivery — uses assignDeliveryPerson API and replaces order with returned object
+  
   const handleAssignDelivery = useCallback(
     async (orderId, deliveryPersonName) => {
       try {
         const updated = await assignDeliveryPerson(orderId, deliveryPersonName);
         setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-        // if selected order is same, update it too
+      
         setSelectedOrder((prev) => (prev?.id === updated.id ? updated : prev));
         toast.success(`Assigned to ${deliveryPersonName}`);
       } catch (err) {
@@ -99,7 +99,6 @@ const CashierManagement = () => {
     []
   );
 
-  // mark completed — sends backend value 'completed'
   const handleMarkCompleted = useCallback(
     async (orderId) => {
       try {
@@ -129,14 +128,13 @@ const CashierManagement = () => {
     setPrintOpen(false);
   }, []);
 
-  // Filtering - client-side (keeps types/status/date/search UI)
   const filteredOrders = useMemo(() => {
     const q = (filters.search || "").trim().toLowerCase();
     return orders.filter((o) => {
-      // search by id or customer name or phone
+      console.log(o)
       if (q) {
         const idMatch = String(o.id).toLowerCase().includes(q);
-        const name = (o.name || o.customer || o.customer_name || "").toString().toLowerCase();
+        const name = (o.name || o.customer || "").toString().toLowerCase();
         const phone = (o.phone || "").toString().toLowerCase();
         if (!idMatch && !name.includes(q) && !phone.includes(q)) return false;
       }
@@ -268,7 +266,7 @@ const CashierManagement = () => {
         )}
       </div>
 
-      {/* Modals */}
+      
       {isDeliveryModalOpen && selectedOrder && (
         <DeliveryAssignmentModal
           isOpen={isDeliveryModalOpen}
