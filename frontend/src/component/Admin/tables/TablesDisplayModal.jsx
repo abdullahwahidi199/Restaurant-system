@@ -1,7 +1,7 @@
 import { Users, Coffee } from "lucide-react";
 
 export default function TablesDisplay({ tables }) {
-  console.log(tables)
+  // console.log(tables)
   return (
     <>
       {tables.map((table) => (

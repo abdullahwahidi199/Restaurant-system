@@ -43,7 +43,7 @@ const CashierManagement = () => {
   const [loading, setLoading] = useState(false);
   const [deliveryBoys,setDeliveryBoys]=useState([])
 
-  // load orders
+  
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -61,7 +61,6 @@ const CashierManagement = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // Handlers
   const handleOpenDetails = useCallback((order) => {
     setSelectedOrder(order);
     setDetailsOpen(true);
@@ -82,13 +81,13 @@ const CashierManagement = () => {
     setSelectedOrder(null);
   }, []);
 
-  
+  // assign delivery — uses assignDeliveryPerson API and replaces order with returned object
   const handleAssignDelivery = useCallback(
     async (orderId, deliveryPersonName) => {
       try {
         const updated = await assignDeliveryPerson(orderId, deliveryPersonName);
         setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-      
+        // if selected order is same, update it too
         setSelectedOrder((prev) => (prev?.id === updated.id ? updated : prev));
         toast.success(`Assigned to ${deliveryPersonName}`);
       } catch (err) {
@@ -131,10 +130,9 @@ const CashierManagement = () => {
   const filteredOrders = useMemo(() => {
     const q = (filters.search || "").trim().toLowerCase();
     return orders.filter((o) => {
-      console.log(o)
       if (q) {
         const idMatch = String(o.id).toLowerCase().includes(q);
-        const name = (o.name || o.customer || "").toString().toLowerCase();
+        const name = (o.name || o.customer || o.customer_name || "").toString().toLowerCase();
         const phone = (o.phone || "").toString().toLowerCase();
         if (!idMatch && !name.includes(q) && !phone.includes(q)) return false;
       }
@@ -160,9 +158,7 @@ const CashierManagement = () => {
   const summary = useMemo(() => {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, o) => {
-      // prefer serializer total if present
       if (o.total !== undefined && o.total !== null) return sum + parseFloat(o.total || 0);
-      // otherwise compute from items
       const items = o.items || [];
       const orderSum = items.reduce((s, it) => {
         const qty = it.quantity ?? it.qty ?? 0;
@@ -179,7 +175,6 @@ const CashierManagement = () => {
     return { totalOrders, totalRevenue, statusCount };
   }, [orders]);
 
-  // keyboard: close modals on Escape
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -266,14 +261,13 @@ const CashierManagement = () => {
         )}
       </div>
 
-      
       {isDeliveryModalOpen && selectedOrder && (
         <DeliveryAssignmentModal
           isOpen={isDeliveryModalOpen}
           onClose={handleCloseAssignModal}
           order={selectedOrder}
           deliveryPersons={deliveryBoys}
-          onAssign={handleAssignDelivery}
+          onAssign={fetchOrders}
         />
       )}
 

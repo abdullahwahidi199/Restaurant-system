@@ -10,7 +10,7 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
     const formattedTotal = (subtotal + tax).toFixed(2);
 
     const statusLabel = order.status_display || (order.status ? String(order.status).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Pending");
-    console.log(order)
+
     const getStatusColor = (status) => {
         switch (status) {
             case "Pending":
@@ -54,13 +54,7 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
                 <p className="text-sm text-gray-600 mb-1"><strong>Table:</strong> {order.table}</p>
             )}
 
-            <p className="text-sm text-gray-600 mb-1"><strong>Customer:</strong> {order.name || order.customer || "—"}</p>
-            {order.status==="out_for_delivery"&&(
-                <p className="text-sm text-gray-600 mb-1"><strong>Delivered By :</strong>{order.delivery_boy_details.name}</p>
-            )}
-            {order.status==="out_for_delivery"&&(
-                <p className="text-sm text-gray-600 mb-1"><strong>Vehicle Number :</strong>{order.delivery_boy_details.vehicle_number}</p>
-            )}
+            <p className="text-sm text-gray-600 mb-2"><strong>Customer:</strong> {order.name || order.customer || "—"}</p>
 
             <div className="flex flex-col mt-3 gap-2">
                 <p className="font-semibold text-gray-800">Total: {formattedTotal}AFN</p>
@@ -86,7 +80,6 @@ const OrderCard = ({ order = {}, onViewDetails, onPrintBill, onAssignDelivery })
                     
 
                     {String(order.order_type || order.order_type_display || "").toLowerCase().includes("delivery") && order.status!=='out_for_delivery' && (
-                        // show assign when appropriate (cashier will typically receive delivery orders in 'ready' state)
                         <button
                             onClick={() => onAssignDelivery && onAssignDelivery(order)}
                             className="bg-purple-500 hover:bg-purple-600 text-white text-sm px-3 py-1 rounded-lg transition-all"

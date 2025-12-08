@@ -11,7 +11,6 @@ export default function FilterBar({ filter, setFilter, search, setSearch }) {
   return (
     <div className="backdrop-blur-md bg-white/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 shadow-sm p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
       
-      {/* Filter Buttons */}
       <div className="flex flex-wrap justify-center sm:justify-start gap-2">
         {filters.map(({ key, label }) => (
           <button

@@ -72,8 +72,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:3000",
-    "https://restaurant-frontend-782xih3i1-rmss-projects-a596e3ee.vercel.app",
+    # "http://localhost:3000",
+    "https://restaurant-frontend-git-main-rmss-projects-a596e3ee.vercel.app",
     "https://restaurant-frontend-gamma-nine.vercel.app"
 ]
 TEMPLATES = [
