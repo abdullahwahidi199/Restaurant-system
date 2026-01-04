@@ -25,7 +25,7 @@ export default function MenuPage() {
   const user=localStorage.getItem("customer")
   console.log(user)
 const parsedUser = JSON.parse(localStorage.getItem("customer"));
-const BASE_URL=import.meta.env.VITE_API_URL;;
+const BASE_URL="http://127.0.0.1:8000";
 
   const fetchMenuData = async () => {
     setLoading(true);

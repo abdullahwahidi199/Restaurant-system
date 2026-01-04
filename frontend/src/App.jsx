@@ -32,7 +32,7 @@ import RequireAuth from './api/ReauireAuth';
 import StaffLogin from './component/StaffLogin';
 import Feedbacks from './component/Admin/Feedbacks/FeedbackBase';
 
-const BASE_URL=import.meta.env.VITE_API_URL;
+const BASE_URL="http://127.0.0.1:8000";
 
 function App() {
   const [restaurantInfo, setRestaurantInfo] = useState(null)

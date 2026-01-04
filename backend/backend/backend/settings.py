@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'system',
+    'channels',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
@@ -69,7 +70,7 @@ MIDDLEWARE = [
 ]
 ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
-
+ASGI_APPLICATION = "backend.asgi.application"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     # "http://localhost:3000",
@@ -98,9 +99,10 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": dj_database_url.config(
-        default=os.environ.get("postgresql://db_0vhp_user:hqodlfQ1XFaGf5c1R2h2QWOu83E8FZ47@dpg-d4aus1q4d50c73ctnb0g-a.oregon-postgres.render.com/db_0vhp")
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 from datetime import timedelta
@@ -150,6 +152,22 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    }
+}
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    }
+}
 
 
 # Static files (CSS, JavaScript, Images)

@@ -4,6 +4,7 @@ import OrderFilters from "./OrderFilters";
 import OrdersTable from "./OrdersTable";
 import OrderDetailsModal from "./OrderDetailsModal";
 import instance from "../../../api/axiosInstance";
+import useOrdersSocket from "../../../hooks/useOrdersSocket";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -23,6 +24,24 @@ export default function OrdersPage() {
     console.log(data)
   };
 
+  const handleWsMessage = (msg) => {
+    // msg: { type, action, order }
+     console.log("WS message received:", msg);
+    if (!msg || !msg.order) return;
+    const incoming = msg.order;
+    setOrders((prev) => {
+      // if order exists, replace; else add to top
+      const idx = prev.findIndex((o) => o.id === incoming.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = incoming;
+        return copy;
+      } else {
+        return [incoming, ...prev];
+      }
+    });
+  };
+  useOrdersSocket(handleWsMessage);
   useEffect(() => {
     fetchOrders();
   }, []);

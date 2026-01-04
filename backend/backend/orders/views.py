@@ -10,6 +10,10 @@ from menu.models import MenuItem
 from users.models import Staff
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .seriailizers import OrderSerializer
+
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def order_list_create(request):
@@ -61,6 +65,7 @@ def update_order_status(request,pk):
 
     order.status=new_status
     order.save()
+    
     serializer = OrderSerializer(order)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
