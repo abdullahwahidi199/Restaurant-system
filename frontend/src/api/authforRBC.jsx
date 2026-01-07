@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
     const tokens = JSON.parse(localStorage.getItem('authTokens') || 'null');
     const user = JSON.parse(localStorage.getItem('user') || 'null');
+    
     return { tokens, user };
   });
 
@@ -20,10 +21,12 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await axios.post(`${BASE_URL}/users/token/`, { username, password });
     const data = res.data;
+    console.log(data)
     const tokens = { access: data.access, refresh: data.refresh };
-    const user = { role: data.role, staff_id: data.staff_id, name: data.name, username };
+    const user = { role: data.role, staff_id: data.staff_id, name: data.name, username,isDemo:data.is_demo };
     localStorage.setItem('authTokens', JSON.stringify(tokens));
     localStorage.setItem('user', JSON.stringify(user));
+    
     setAuth({ tokens, user });
     return data;
   };

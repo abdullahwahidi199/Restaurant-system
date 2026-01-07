@@ -1,4 +1,6 @@
+import { useContext, useState } from "react";
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function ItemDelete({
     itemID,
@@ -8,7 +10,14 @@ export default function ItemDelete({
     message = "Are you sure you want to delete this item!"
 }){
 
+    const [showRestriction,setShowRestriction]=useState(false)
+    const {auth}=useContext(AuthContext)
+    const isDemo=auth?.user?.isDemo;
     const handleDelete=async ()=>{
+        if (isDemo){
+            setShowRestriction(true);
+            return
+        }
         const response=await instance.delete(`/menu/menu-items/${itemID}/`)
         if (response.status!==200||response.status!==201){
             console.log("Failed to delete the item")
@@ -40,6 +49,9 @@ export default function ItemDelete({
                     </button>
                 </div>
             </div>
+            {showRestriction&&(
+                          <RestrictedToast action="update" onClose={()=>setShowRestriction(false)}/>
+                        )}
         </div>
     );
 }

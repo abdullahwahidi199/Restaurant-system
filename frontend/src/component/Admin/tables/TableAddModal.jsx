@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { motion } from "framer-motion";
 import { X,Plus } from "lucide-react";
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function TableAddModal({onTableAdded,onClose}){
     const [tableNumber,setTableNumber]=useState('')
@@ -9,8 +11,17 @@ export default function TableAddModal({onTableAdded,onClose}){
     const [note,setNote]=useState('')
     const [loading, setLoading] = useState(false);
     const [error,setError]=useState(null)
+    const [showRestriction,setShowRestriction]=useState(false)
 
-    const handleSubmit=async ()=>{
+    const {auth}=useContext(AuthContext)
+    const isDemo=auth?.user?.isDemo;
+
+    const handleSubmit=async (e)=>{
+      e.preventDefault();
+      if (isDemo){
+        setShowRestriction(true)
+        return;
+      }
       setLoading(true)
         try{
             const response=await instance.post(`/orders/tables/`,{
@@ -97,6 +108,9 @@ export default function TableAddModal({onTableAdded,onClose}){
           )}
         </form>
       </motion.div>
+      {showRestriction&&(
+        <RestrictedToast actionType="add" onClose={()=>setShowRestriction(false)}/>
+      )}
     </div>
   );
 }

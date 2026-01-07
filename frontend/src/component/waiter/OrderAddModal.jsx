@@ -73,7 +73,6 @@ export default function NewOrderModal({ table, onClose,refetchTables }) {
         payload
       );
 
-      if (!res.ok) throw new Error("Failed to create order");
       alert(` Order created successfully for Table ${table.number}`);
       refetchTables();
       onClose();

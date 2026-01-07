@@ -1,19 +1,28 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function AddShiftModal({ onClose, onShiftAdded }) {
   const [shiftType, setShiftType] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [showRistiction,setShowRistriction]=useState(false)
   
   const [loading, setLoading] = useState(false);
+  const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
   
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isDemo){
+      setShowRistriction(true)
+      return
+    }
+    
     setLoading(true);
     try {
       const response =await instance.post("/users/shift/", {
@@ -94,6 +103,9 @@ export default function AddShiftModal({ onClose, onShiftAdded }) {
           </button>
         </form>
       </motion.div>
+      {showRistiction&&(
+        <RestrictedToast actionType="add" onClose={()=>setShowRistriction(false)}/>
+      )}
     </div>
   );
 }

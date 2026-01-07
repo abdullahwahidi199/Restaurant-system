@@ -1,8 +1,10 @@
 import { FolderMinusIcon,X } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { useState } from "react"
+import { useContext, useState } from "react"
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
     const [name, setName] = useState("");
@@ -11,9 +13,17 @@ export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
     const [image, setImage] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    const [showRestriction,setShowRestriction]=useState(false)
+    const {auth}=useContext(AuthContext)
+    const isDemo=auth?.user?.isDemo;
 
     const handleAddItem=async (e)=>{
         e.preventDefault()
+
+        if (isDemo){
+          setShowRestriction(true)
+          return
+        }
         setLoading(true)
 
         const formData = new FormData();
@@ -108,6 +118,10 @@ export default function AddItemModal({onClose,onItemAdded,selectedcategoryid}){
           </button>
         </form>
       </motion.div>
+
+      {showRestriction&&(
+        <RestrictedToast action="add" onClose={()=>setShowRestriction(false)}/>
+      )}
     </div>
   );
 }

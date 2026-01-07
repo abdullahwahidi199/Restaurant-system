@@ -1,4 +1,7 @@
+import { useContext,useState } from "react";
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function ({
     categoryId,
@@ -8,7 +11,15 @@ export default function ({
     message = "With deleting this Category its items will also be deleted!"
 }) {
     
+    const [showRestriction,setShowRestriction]=useState(false)
+    const {auth}=useContext(AuthContext)
+    const isDemo=auth?.user?.isDemo;
+
     const handleDelete = async () => {
+        if (isDemo){
+            setShowRestriction(true)
+            return
+        }
         try {
             const response = await instance.delete(`/menu/categories/${categoryId}/`)
             
@@ -45,6 +56,9 @@ export default function ({
                     </button>
                 </div>
             </div>
+            {showRestriction&&(
+                    <RestrictedToast action="add" onClose={()=>setShowRestriction(false)}/>
+                  )}
         </div>
     );
 }

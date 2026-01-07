@@ -31,6 +31,7 @@ import AnalyticsBaseModal from './component/Admin/Analytics/AnalyticsBaseModal';
 import RequireAuth from './api/ReauireAuth';
 import StaffLogin from './component/StaffLogin';
 import Feedbacks from './component/Admin/Feedbacks/FeedbackBase';
+import RistrictionMessage from './component/RistrictionMessage';
 
 const BASE_URL="http://127.0.0.1:8000";
 
@@ -66,6 +67,7 @@ function App() {
             <AdminDashboard />
           </RequireAuth>
         }>
+          
           <Route index element={<Dashboard />} />
           <Route path='attendance' element={<Attendance />} />
           <Route path="staff" element={<StaffManagement />} />

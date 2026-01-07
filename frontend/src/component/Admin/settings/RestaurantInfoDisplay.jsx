@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import axios from "axios";
 import FormInput from "./FormInput";
 import LogoUpload from "./LogoUpload";
 import instance from "../../../api/axiosInstance";
+import RestrictedToast from "../../RistrictedAction";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function RestaurantForm({ restaurant }) {
   const [formData, setFormData] = useState({
@@ -21,6 +23,10 @@ export default function RestaurantForm({ restaurant }) {
   const [previewLogo, setPreviewLogo] = useState(restaurant.logo);
   const [loading, setLoading] = useState(false);
 
+  const [showRestriction,setShowRestriction]=useState(false)
+  
+  const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
@@ -33,6 +39,10 @@ export default function RestaurantForm({ restaurant }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isDemo){
+      setShowRestriction(true);
+      return
+    }
     setLoading(true);
     try {
       const data = new FormData();
@@ -84,6 +94,9 @@ export default function RestaurantForm({ restaurant }) {
       >
         {loading ? "Saving..." : "Save Changes"}
       </button>
+      {showRestriction&&(
+        <RestrictedToast actionType="update" onClose={()=>setShowRestriction(false)}/>
+      )}
     </form>
   );
 }

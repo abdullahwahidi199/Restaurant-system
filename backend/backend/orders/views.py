@@ -109,6 +109,8 @@ def table_list_create(request):
         serializer=TableSerializer(tables,many=True)
         return Response(serializer.data)
     elif request.method=="POST":
+        if request.user.staff_profile.is_demo:
+            return Response({"detail":"Action restricted in demo mode"},status=403)
         serializer=TableSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

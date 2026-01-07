@@ -40,8 +40,10 @@ def staffApi(request):
     if request.method == 'POST':
         # ensure requesting user is admin
         try:
-            if request.user.staff_profile.role != 'Admin':
+            if  request.user.staff_profile.role != 'Admin':
                 return Response({'detail':'Only admin can add staff.'}, status=403)
+            if request.user.staff_profile.is_demo:
+                return Response({'detail':'Action restricted in demo mode.'},status=403)
         except:
             return Response({'detail':'Only staff can add staff.'}, status=403)
 
@@ -56,17 +58,31 @@ class staffDetailsView(RetrieveUpdateDestroyAPIView):
     serializer_class=StaffSerializer
     lookup_field='id'
 
+    def update(self, request, *args, **kwargs):
+        if request.user.staff_profile.is_demo:
+            return Response({'detail': 'Action restricted in demo mode.'}, status=403)
+        return super().update(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        if request.user.staff_profile.is_demo:
+            return Response({'detail': 'Action restricted in demo mode.'}, status=403)
+        return super().destroy(request, *args, **kwargs)
+
 
 @api_view(['GET','POST'])
 
 def shiftApi(request):
+    
     if request.method=='GET':
         shift=Shift.objects.prefetch_related('staff').all()
         serializer=ShiftSerializer(shift,many=True)
         return Response(serializer.data)
 
     if request.method=='POST':
-        print(request.data)
+        
+        if request.user.staff_profile.is_demo:
+            return Response({'detail':'Action restricted in demo mode.'},status=403)
+        
+
         serializer=ShiftSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -83,6 +99,11 @@ class ShiftDetailsView(RetrieveUpdateDestroyAPIView):
 
 @api_view(['POST'])
 def mark_attendance_view(request, shift_id=None):
+    if request.user.staff_profile.is_demo:
+        return Response(
+            {'detail': 'Action restricted in demo mode.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
     attendance_data = request.data.get('attendance', [])
     attendance_date = request.data.get('date', str(date.today()))
 
@@ -170,14 +191,16 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = self.user
-        # include role + staff id in response body as well (handy for frontend)
+        
         try:
             staff = user.staff_profile
             data['role'] = staff.role
             data['staff_id'] = staff.id
             data['name'] = staff.name
+            data['is_demo']=staff.is_demo
         except Staff.DoesNotExist:
             data['role'] = 'Customer'
+            data['is_demo'] = False
         return data
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer

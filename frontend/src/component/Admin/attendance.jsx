@@ -2,6 +2,7 @@ import { useContext, useEffect, useState } from "react"
 // import { CheckCircle, UserCheck, Users, Save } from 'lucide-react';
 import { AuthContext } from "../../api/authforRBC"
 import instance from "../../api/axiosInstance"
+import RestrictedToast from "../RistrictedAction"
 export default function Attendance() {
     const [shifts, setShifts] = useState([])
     const [error, setError] = useState(null)
@@ -9,11 +10,13 @@ export default function Attendance() {
     const [attendance, setAttendance] = useState({})
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
+    const [showRistiction,setShowRistriction]=useState(false)
 
     const {auth}=useContext(AuthContext)
     const token=auth?.tokens?.access
+    const isDemo=auth?.user?.isDemo;
 
-    const [selectedShiftId, setSelectedShiftId] = useState('')
+    const [selectedShiftId, setSelectedShiftId] = useState(1)
 
     const getShifts = async () => {
         try {
@@ -53,6 +56,10 @@ export default function Attendance() {
     }
 
     const handleSave = async () => {
+        if (isDemo){
+            setShowRistriction(true)
+            return
+        }
   const payload = {
     date: new Date().toISOString().slice(0, 10),
     attendance: staff.map(s => ({
@@ -91,6 +98,7 @@ export default function Attendance() {
     ></div>
     </div>;
     return (
+        
         <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
             <h1 className="text-2xl font-bold text-gray-800">Mark Shift Attendace</h1>
 
@@ -150,6 +158,7 @@ export default function Attendance() {
                     <hr />
                 </div>
             )}
+            {showRistiction&& <RestrictedToast onClose={()=>setShowRistriction(false)}/>}
         </div>
     )
 }

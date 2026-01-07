@@ -18,6 +18,7 @@ import Notifications from "./Notifications";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
 import DeliveryPerformance from "./DeliveryPerformance";
+import RistrictionMessage from "../../RistrictionMessage";
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [currentDate, setCurrentDate] = useState("authTokens");
 
   const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
   const token = auth?.tokens?.access;
   console.log(token)
   useEffect(() => {
@@ -81,6 +83,7 @@ export default function AdminDashboard() {
           Here’s an overview of your restaurant today — {currentDate}
         </p>
       </div>
+      {isDemo&&<RistrictionMessage/>}
 
       <TopSectionStats stats={stats}/>
 

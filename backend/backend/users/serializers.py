@@ -52,7 +52,7 @@ class StaffSerializer(serializers.ModelSerializer):
     password=serializers.CharField(write_only=True,required=False,allow_blank=True)
     class Meta:
         model = Staff
-        fields = ['id','name','shift','phone','email','shift_name'
+        fields = ['id','name','shift','is_demo','phone','email','shift_name'
                   ,'hire_date','role','custom_role','deliveries',
                   'image','status','attendances','payrolls','vehicle_number',
                   'username','password']

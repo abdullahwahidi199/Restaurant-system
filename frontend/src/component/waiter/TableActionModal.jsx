@@ -186,7 +186,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   <AddNewItemModal orderId={current_order.id} onClose={() => setAddNewItemDisplay(false)} refetchTables={refetchTables} />
                 )}
                 {/* this button will mark serve the order, meaning the order has been prepared and now the customers are eating */}
-                {current_order.status === "ready" && (
+                {current_order && current_order.status === "ready" && (
                   <button
                     onClick={() => {
                       handleMarkServed();

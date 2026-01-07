@@ -11,7 +11,8 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  console.log(filteredItems)
+ 
+  console.log(categoryItems)
 
   const handleItemAdded = () => {
     setItemAddModal(false);
@@ -68,10 +69,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
                       alt={item.name}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${!item.is_available ? "blur-[1px]" : ""
                         }`}
-                      onError={(e) =>
-                      (e.target.src =
-                        "https://via.placeholder.com/300x200?text=No+Image")
-                      }
+                      
                     />
                   ) : <p>No image</p>}
                 </div>

@@ -20,7 +20,7 @@ const DeliveryAssignmentModal = ({ isOpen, onClose, order, deliveryPersons = [],
 
     
 
-        const updatedOrder = await response.json();
+        const updatedOrder = await response.data;
         onAssign(updatedOrder); 
         onClose(); 
     } catch (err) {

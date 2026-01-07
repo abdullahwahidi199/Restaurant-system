@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ItemDelete from "./ItemDeleteModal";
 import instance from "../../../api/axiosInstance";
+import RestrictedToast from "../../RistrictedAction";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function IndividualItem() {
   const [item, setItem] = useState(null);
@@ -11,6 +13,10 @@ export default function IndividualItem() {
   const [showItemDeleteModal,setShowItemDeleteModal]=useState(false)
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const [showRestriction,setShowRestriction]=useState(false)
+  const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
 
   const fetchItem = async () => {
     try {
@@ -43,6 +49,11 @@ export default function IndividualItem() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (isDemo){
+      setShowRestriction(true)
+      return
+    }
+
     setLoading(true);
     const formData = new FormData();
     formData.append("name", item.name);
@@ -244,6 +255,9 @@ export default function IndividualItem() {
           )}
         </div>
       </div>
+      {showRestriction&&(
+              <RestrictedToast action="update" onClose={()=>setShowRestriction(false)}/>
+            )}
     </div>
   );
 }

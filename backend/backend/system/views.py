@@ -17,6 +17,8 @@ def RestaurantInfoCreateListView(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == "POST":
+        if request.user.staff_profile.is_demo:
+            return Response({"detail":"Action restricted in demo mode!"},status=403)
         serializer = ResInfoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -27,3 +29,11 @@ def RestaurantInfoCreateListView(request):
 class ResInfoRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = RestaurantInfo.objects.all()
     serializer_class = ResInfoSerializer
+    def update(self, request, *args, **kwargs):
+        if request.user.staff_profile.is_demo:
+            return Response({'detail': 'Action restricted in demo mode.'}, status=403)
+        return super().update(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        if request.user.staff_profile.is_demo:
+            return Response({'detail': 'Action restricted in demo mode.'}, status=403)
+        return super().destroy(request, *args, **kwargs)

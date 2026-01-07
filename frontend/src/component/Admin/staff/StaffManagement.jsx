@@ -4,6 +4,7 @@ import StaffFormModal from "./StaffFormModal";
 import ConfirmDeleteModal from "../ConfirmDeleteModal";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -12,8 +13,12 @@ export default function StaffManagement() {
   const [deleteStaffId, setDeleteStaffId] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showRistiction,setShowRistriction]=useState(false)
 
   const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
+ 
+  
   const token = auth?.tokens?.access;
   const BASE_URL = "http://127.0.0.1:8000";
 
@@ -38,6 +43,11 @@ export default function StaffManagement() {
 
  
   const addStaff = async (formData) => {
+    if (isDemo){
+      setShowRistriction(true);
+      return
+    }
+    
     try {
       const res =await instance.post('/users/staff/',formData)
       
@@ -51,6 +61,10 @@ export default function StaffManagement() {
 
  
   const updateStaff = async (id, formData) => {
+    if (isDemo){
+      setShowRistriction(true)
+      return
+    }
     try {
       const res = await instance.put(`/users/staff/${id}/`,formData)
       
@@ -63,6 +77,11 @@ export default function StaffManagement() {
 
 
   const deleteStaff = async (id) => {
+    if (isDemo){
+      setShowRistriction(true)
+      return
+    }
+    
     try {
       const res = await instance.delete(`/users/staff/${id}/`)
       setStaff((prev) => prev.filter((s) => s.id !== id));
@@ -126,16 +145,23 @@ export default function StaffManagement() {
       ) : (
         <StaffTable staff={filteredStaff} editStaff={openEdit} deleteStaff={setDeleteStaffId} />
       )}
-
-      <StaffFormModal
+      {showRistiction?(
+        <RestrictedToast onClose={()=>setShowRistriction(false)}/>
+      ):(
+        <StaffFormModal
         open={formOpen}
         closeModal={closeForm}
         addStaff={addStaff}
         updateStaff={updateStaff}
         editingStaff={editingStaff}
       />
+      )}
+      
 
-      <ConfirmDeleteModal
+      {showRistiction?(
+        <RestrictedToast actionType='delete' onClose={()=>setShowRistriction(false)}/>
+      ):(
+        <ConfirmDeleteModal
         open={deleteStaffId !== null}
         closeModal={() => setDeleteStaffId(null)}
         onDelete={() => {
@@ -143,6 +169,10 @@ export default function StaffManagement() {
           setDeleteStaffId(null);
         }}
       />
+      )}
+        
+      
+      
     </div>
   );
 }

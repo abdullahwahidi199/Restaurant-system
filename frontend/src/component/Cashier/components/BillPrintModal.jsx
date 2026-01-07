@@ -150,7 +150,7 @@ const BillPrintModal = ({ order, onClose }) => {
                     <div className="text-right text-gray-800">
                         <p>Subtotal: AFN{total.toFixed(2)}</p>
                         <p>Tax: AFN{tax.toFixed(2)}</p>
-                        <h3 className="text-lg font-bold mt-1">Total: ${finalTotal}</h3>
+                        <h3 className="text-lg font-bold mt-1">Total: AFN{finalTotal}</h3>
                     </div>
 
                     <p className="text-center text-gray-500 text-xs mt-4">Thank you for dining with us!</p>

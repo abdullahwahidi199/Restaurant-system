@@ -6,7 +6,7 @@ import CategoryDeleteModal from "./CategoryDeleteModal";
 import MenuList from "./MenuList";
 
 export default function CategoriesList({ categories,onCategoryDelete }) {
-    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+    const [selectedCategoryId, setSelectedCategoryId] = useState(1);
     const [showDeleteCategoryModal,setShowDeleteCategoryModal]=useState(false)
 
     const queryClient=useQueryClient();

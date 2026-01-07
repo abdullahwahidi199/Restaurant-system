@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
+import RestrictedToast from "../../RistrictedAction";
 
 export default function AddCategoryModal({ onClose, onCategoryAdded }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [showRestriction,setShowRestriction]=useState(false)
+  const {auth}=useContext(AuthContext)
+  const isDemo=auth?.user?.isDemo;
+
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
+    if(isDemo){
+      setShowRestriction(true);
+      return
+    }
     try {
       const response = await instance.post("/menu/categories/",{
         name,description
@@ -53,6 +63,9 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
           </button>
         </div>
       </form>
+      {showRestriction&&(
+        <RestrictedToast actionType="Add" onClose={()=>setShowRestriction(false)}/>
+      )}
     </div>
   );
 }
