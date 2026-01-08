@@ -2,6 +2,7 @@ import React from "react";
 
 const StaffTable = ({ staff, editStaff, deleteStaff }) => {
   console.log(staff)
+  
   return (
     <div className="overflow-x-auto bg-white  shadow-xl rounded-2xl border border-gray-100">
       <table className="min-w-full text-sm text-left">
@@ -36,11 +37,19 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
           {staff.length > 0 ? (
             staff.map((s) => (
               <tr
-                key={s.id}
-                className="hover:bg-gray-50  transition-colors duration-200"
-              >
+                  key={s.id}
+                  className={`
+                    transition-colors duration-200
+                    ${s.status=="Inactive"
+                      ? "bg-gray-100 opacity-60"
+                      : "hover:bg-gray-50"}
+                  `}
+                >
                 <td className="px-6 py-4 font-medium text-gray-800 ">
-                  {s.name}
+                  <span className={`${s.status=="Inactive"?"line-through text-gray-500" : ""}`}>
+                    {s.name}
+                  </span>
+                  
                 </td>
                 <td className="px-6 py-4 text-gray-600 ">
                   {s.role === "Other" ? s.custom_role:s.role}
@@ -55,7 +64,16 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                   {s.shift_name||'_'}
                 </td>
                 <td className="px-6 py-4 text-gray-600 ">
-                  {s.status}
+                  <span
+                      className={`
+                        px-3 py-1 rounded-full text-xs font-semibold
+                        ${s.status=="Inactive"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-green-100 text-green-700"}
+                      `}
+                    >
+                      {s.status=="Inactive" ? "Inactive" : "Active"}
+                    </span>
                 </td>
                 <td className="px-6 py-4 text-right space-x-2">
                   <button

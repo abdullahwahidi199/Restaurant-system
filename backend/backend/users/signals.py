@@ -42,7 +42,7 @@ def attendance_notification(sender,created,instance,**kwargs):
         return absent_staff.count()
     if created:
         Notification.objects.create(type='attendance',
-                                    message=f"Today's Attendance take | {absent_staff}")
+                                    message=f"Today's Attendance taken")
     else:
         Notification.objects.create(type='attendance',
-                                    message=f"Today's Attendance updated | {absent_staff}")
+                                    message=f"Today's Attendance updated")
