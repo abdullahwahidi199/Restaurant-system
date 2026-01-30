@@ -23,7 +23,7 @@ django_asgi_app = get_asgi_application()
 application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
-        "websocket": AuthMiddlewareStack(  # optional auth middleware
+        "websocket": AuthMiddlewareStack(
             URLRouter(
                 orders.routing.websocket_urlpatterns
             )

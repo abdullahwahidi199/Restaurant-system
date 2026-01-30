@@ -24,16 +24,16 @@ export default function AttendanceTable() {
     fetchAttendance();
   }, []);
 
-  // Generate all dates of the current month
+  
   const getMonthDates = () => {
     const today = new Date();
     const year = today.getFullYear();
     const month = today.getMonth();
-    const lastDay = new Date(year, month + 1, 0).getDate(); // last day of month
+    const lastDay = new Date(year, month + 1, 0).getDate(); 
     const dates = [];
     for (let day = 1; day <= lastDay; day++) {
       const date = new Date(year, month, day);
-      // format as YYYY-MM-DD to match your API data
+      
       const formatted = date.toISOString().split("T")[0];
       dates.push(formatted);
     }

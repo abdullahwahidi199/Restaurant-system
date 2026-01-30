@@ -11,7 +11,7 @@ export default function useOrdersSocket(onMessage, options = {}) {
   useEffect(() => {
     // choose protocol based on current location
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-const url = `${protocol}://127.0.0.1:8000/ws/orders/`;
+    let url = `${protocol}://10.10.10.224:8000/ws/orders/`;
 
     if (tableId) {
       url += `?table=${tableId}`;

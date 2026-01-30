@@ -1,11 +1,35 @@
 import React, { useEffect, useState } from "react";
 import api from "../../api/auth";
 import ReviewItemModel from "./ReviewPage";
+import useOrdersSocket from "../../hooks/useOrdersSocket";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewOrderId,setReviewOrderID]=useState(null)
+
+  useOrdersSocket((data) => {
+  console.log("WS order event:", data);
+
+  setOrders((prev) => {
+    if (data.action === "order_created") {
+      return [data.order, ...prev];
+    }
+
+    if (data.action === "order_updated") {
+      return prev.map((o) =>
+        o.id === data.order.id ? data.order : o
+      );
+    }
+
+    if (data.action === "order_deleted") {
+      return prev.filter((o) => o.id !== data.order.id);
+    }
+
+    return prev;
+  });
+});
+
 
   const user=localStorage.getItem('customer')
   console.log(orders)
