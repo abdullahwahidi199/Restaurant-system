@@ -4,12 +4,15 @@ import ItemDelete from "./ItemDeleteModal";
 import instance from "../../../api/axiosInstance";
 import RestrictedToast from "../../RistrictedAction";
 import { AuthContext } from "../../../api/authforRBC";
+import { useTranslation } from "react-i18next";
 
 export default function IndividualItem() {
   const [item, setItem] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
+  const { t, i18n } = useTranslation();
+const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [showItemDeleteModal,setShowItemDeleteModal]=useState(false)
   const { id } = useParams();
   const navigate = useNavigate();
@@ -73,10 +76,10 @@ export default function IndividualItem() {
       
       const updated = response.data;
       setItem(updated);
-      alert("Item updated successfully!");
+      // alert("Item updated successfully!");
       
-      window.location.reload();
-      navigate('/admin/dashboard/menu')
+      navigate("/admin/dashboard/menu", { replace: true });
+      
     } catch (error) {
       alert(" Failed to update item");
     } finally {
@@ -121,17 +124,22 @@ export default function IndividualItem() {
     <div className="min-h-screen bg-gray-50 flex justify-center items-center p-6">
       <div className="bg-white shadow-sm border border-gray-200 rounded-xl w-full max-w-2xl p-6 space-y-6">
         <div className="flex justify-between items-center border-b pb-3">
-          <h2 className="text-xl font-semibold text-gray-800">Edit Menu Item</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{t("edit_menu_item")}</h2>
           <button
             onClick={()=>setShowItemDeleteModal(true)}
             className="px-4 py-1.5 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg"
           >
-            Delete
+            {t("delete")}
           </button>
         </div>
         {showItemDeleteModal && (
                         <ItemDelete itemID={item.id}  onClose={()=>setShowItemDeleteModal(false)}
-                        onDelete={()=>setShowItemDeleteModal(false)}
+                        onDelete={() => {
+    setShowItemDeleteModal(false);
+    navigate("/admin/dashboard/menu");
+    window.location.reload();
+
+  }}
                         />
                     )}
 
@@ -155,7 +163,7 @@ export default function IndividualItem() {
         <form onSubmit={handleUpdate} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
+              {t("name")}
             </label>
             <input
               type="text"
@@ -168,7 +176,7 @@ export default function IndividualItem() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              {t("description")}
             </label>
             <textarea
               name="description"
@@ -181,7 +189,7 @@ export default function IndividualItem() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price (Afs)
+              {t("price_afs")}
             </label>
             <input
               type="number"
@@ -200,7 +208,7 @@ export default function IndividualItem() {
               onChange={handleChange}
               className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
             />
-            <label className="text-sm text-gray-700">Available</label>
+            <label className="text-sm text-gray-700">{t("available")}</label>
           </div>
 
           <button
@@ -212,12 +220,12 @@ export default function IndividualItem() {
                 : "bg-indigo-500 hover:bg-indigo-600"
             }`}
           >
-            {loading ? "Updating..." : "Update Item"}
+            {loading ? t("updating") : t("update_item")}
           </button>
         </form>
 
         <div className="border-t pt-5">
-          <h3 className="text-lg font-medium text-gray-800 mb-3">Reviews</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-3">{t("reviews")}</h3>
 
           {averageRating ? (
             <div className="flex items-center gap-2 mb-4">
@@ -228,7 +236,7 @@ export default function IndividualItem() {
               </span>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 mb-3">No ratings yet.</p>
+            <p className="text-sm text-gray-500 mb-3">{t("no_reviews")}</p>
           )}
 
           {item.reviews && item.reviews.length > 0 ? (
@@ -251,7 +259,7 @@ export default function IndividualItem() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No reviews yet.</p>
+            <p className="text-sm text-gray-500">{t("no_reviews")}</p>
           )}
         </div>
       </div>

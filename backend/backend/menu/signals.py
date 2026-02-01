@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save,post_delete
+from django.db.models.signals import post_save,post_delete, pre_delete
 from django.dispatch import receiver
 from .models import Category,MenuItem,Review
 from reports.models import Notification 
@@ -27,11 +27,13 @@ def menu_item_created_notification(sender,instance,created,**kwargs):
             message=f"Menu item updated: {instance.name}"
         )
 
-@receiver(post_delete,sender=MenuItem)
-def Menu_item_deleted_notificatino(sender,instance,**kwarts):
+@receiver(pre_delete, sender=MenuItem)  # 👈 IMPORTANT CHANGE
+def menu_item_deleted_notification(sender, instance, **kwargs):
+    category_name = instance.category.name if instance.category else "Unknown"
+
     Notification.objects.create(
         type="menu",
-        message=f"{instance.name} deleted from {instance.category} category"
+        message=f"{instance.name} deleted from {category_name} category"
     )
 
 @receiver(post_save,sender=Review)

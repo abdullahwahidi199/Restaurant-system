@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AttendanceTable() {
   const [attendanceData, setAttendanceData] = useState([]);
@@ -9,6 +10,8 @@ export default function AttendanceTable() {
   const [uniqueDates, setUniqueDates] = useState([]);
   const [filterName, setFilterName] = useState("");
   const [filterShift, setFilterShift] = useState("");
+  const { t, i18n } = useTranslation();
+const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -67,20 +70,20 @@ export default function AttendanceTable() {
   }, [filterName, filterShift]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 mt-8 overflow-x-auto">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800">Monthly Attendance</h2>
+    <div className="bg-white rounded-2xl shadow-lg p-6 mt-8 overflow-x-auto" dir={isRTL ? "rtl" : "ltr"}>
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">{t("monthly_attendance")}</h2>
 
       <div className="flex flex-wrap gap-4 mb-5">
         <input
           type="text"
-          placeholder="Filter by staff name..."
+          placeholder={t("filter_name")}
           value={filterName}
           onChange={(e) => setFilterName(e.target.value)}
           className="border p-2 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
         />
         <input
           type="text"
-          placeholder="Filter by shift..."
+           placeholder={t("filter_shift")}
           value={filterShift}
           onChange={(e) => setFilterShift(e.target.value)}
           className="border p-2 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
@@ -90,7 +93,7 @@ export default function AttendanceTable() {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th className="border px-0 py-0 bg-gray-100 text-left">Staff Name</th>
+            <th className="border px-0 py-0 bg-gray-100 text-left">{t("staff_name")}</th>
             {uniqueDates.map((date) => (
               <th key={date} className="border px-0 py-0 bg-gray-100 text-center">
                 {new Date(date).getDate()}

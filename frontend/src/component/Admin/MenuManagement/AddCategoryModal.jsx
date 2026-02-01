@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import RestrictedToast from "../../RistrictedAction";
+import { useTranslation } from "react-i18next";
 
 export default function AddCategoryModal({ onClose, onCategoryAdded }) {
   const [name, setName] = useState("");
@@ -9,6 +10,8 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
   const [showRestriction,setShowRestriction]=useState(false)
   const {auth}=useContext(AuthContext)
   const isDemo=auth?.user?.isDemo;
+  const { t, i18n } = useTranslation();
+const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
 
   const handleAddCategory = async (e) => {
@@ -32,19 +35,19 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
 
   return (
     <div className="bg-white p-5 rounded-xl  w-80">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">Add Category</h2>
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">{t("add_category")}</h2>
       <form onSubmit={handleAddCategory} className="space-y-4">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          placeholder="Category name"
+          placeholder={t("category_name")}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
         />
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
+          placeholder={t("description")}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
         />
         <div className="flex justify-between items-center mt-2">
@@ -52,14 +55,13 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
             type="submit"
             className="bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg shadow-md transition"
           >
-            Add
+            {t("add")}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
-          >
-            Cancel
+          >{t("cancel")}
           </button>
         </div>
       </form>

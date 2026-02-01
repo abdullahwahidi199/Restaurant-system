@@ -1,13 +1,23 @@
+import { useTranslation } from "react-i18next";
 export default function CustomersTable({ customers }) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto rounded-xl shadow-md border border-gray-200 bg-white mt-4">
         
       <table className="min-w-full text-sm text-left text-gray-700">
         <thead className="bg-gray-100 text-gray-800 uppercase text-xs font-semibold">
           <tr>
-            {["Id", "Username", "Phone", "Address", "Email", "Gender","Joined at"].map((h) => (
+            {[
+              "id",
+              "username",
+              "phone",
+              "address",
+              "email",
+              "gender",
+              "joined_at",
+            ].map((h) => (
               <th key={h} className="px-4 py-3 border-b">
-                {h}
+                {t(h)}
               </th>
             ))}
           </tr>
@@ -23,7 +33,7 @@ export default function CustomersTable({ customers }) {
             >
               <td className="px-4 py-2 border-b">{c.id}</td>
               <td className="px-4 py-2 border-b font-medium text-gray-900">{c.username}</td>
-              <td className="px-4 py-2 border-b">{c.phone}</td>
+              <td className="px-4 py-2 border-b">{c.phone || t("no_data")}</td>
               {c.address ? (<td className="px-4 py-2 border-b">{c.address}</td>):(<tr>N/A</tr>)}
               {c.email ? (<td className="px-4 py-2 border-b">{c.email}</td>):(<tr>N/A</tr>)}
               {c.email ? (<td className="px-4 py-2 border-b">{c.email}</td>):(<tr>N/A</tr>)}

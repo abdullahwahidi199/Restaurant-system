@@ -2,18 +2,21 @@ import { useContext,useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import RestrictedToast from "../../RistrictedAction";
+import { useTranslation } from "react-i18next";
 
 export default function ({
     categoryId,
     onClose,
     onDelete,
-    title = "Confirm Delete",
-    message = "With deleting this Category its items will also be deleted!"
+    title,
+    message 
 }) {
     
     const [showRestriction,setShowRestriction]=useState(false)
     const {auth}=useContext(AuthContext)
     const isDemo=auth?.user?.isDemo;
+    const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
     const handleDelete = async () => {
         if (isDemo){
@@ -36,23 +39,23 @@ export default function ({
             <div className="absolute inset-0 bg-black/40" onClick={onclose} />
             <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm animate-slide-down">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-                    {title}
+                    {title || t("confirm_delete")}
                 </h2>
-                <p className="text-gray-700 dark:text-gray-300 mb-6">{message}</p>
+                <p className="text-gray-700 dark:text-gray-300 mb-6">{message || t("delete_category_warning")}</p>
                 <div className="flex justify-end gap-2">
                     <button
                         type="button"
                         onClick={onClose}
                         className="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                     >
-                        Cancel
+                        {t("cancel")}   
                     </button>
                     <button
                         type="button"
                         onClick={handleDelete}
                         className="px-4 py-2 rounded-full bg-red-500 text-white font-semibold hover:bg-red-600 transition"
                     >
-                        Delete
+                        {t("delete")}
                     </button>
                 </div>
             </div>

@@ -10,11 +10,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import { useTranslation } from "react-i18next";
 export default function DailySalesChart({summary}){
+  const { t } = useTranslation();
     return(
         <div className="lg:col-span-2">
                     <h3 className="text-lg font-semibold mb-4 text-gray-700">
-                      Daily Sales (Last 30 Days)
+                      {t("dashboard.charts.daily_sales")}
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={summary.daily_sales}>
@@ -27,14 +29,14 @@ export default function DailySalesChart({summary}){
                           dataKey="revenue"
                           stroke="#10b981"
                           strokeWidth={2}
-                          name="Revenue"
+                          name={t("dashboard.charts.revenue")}
                         />
                         <Line
                           type="monotone"
                           dataKey="orders"
                           stroke="#3b82f6"
                           strokeWidth={2}
-                          name="Orders"
+                          name={t("dashboard.charts.orders")}
                         />
                       </LineChart>
                     </ResponsiveContainer>

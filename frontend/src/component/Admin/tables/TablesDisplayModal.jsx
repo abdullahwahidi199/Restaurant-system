@@ -1,6 +1,8 @@
 import { Users, Coffee } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function TablesDisplay({ tables }) {
+  const { t } = useTranslation();
   // console.log(tables)
   return (
     <>
@@ -17,7 +19,7 @@ export default function TablesDisplay({ tables }) {
         >
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-xl font-semibold text-gray-800">
-              Table {table.number}
+              {t("table.table")} {table.number}
             </h3>
             <span
               className={`px-2 py-1 text-sm rounded-full font-medium ${
@@ -32,16 +34,16 @@ export default function TablesDisplay({ tables }) {
 
           <div className="flex items-center text-gray-700 mb-2">
             <Users size={16} className="mr-1" />
-            <span>Capacity: {table.capacity}</span>
+            <span>{t("capacity")}: {table.capacity}</span>
           </div>
 
           {table.note && (
-            <div className="text-gray-600 italic mb-2">Note: {table.note}</div>
+            <div className="text-gray-600 italic mb-2">{t("note")}: {table.note}</div>
           )}
 
           {table.current_order  ? (
             <div className="mt-2">
-              <h4 className="font-semibold text-gray-800 mb-1">Current Order:</h4>
+              <h4 className="font-semibold text-gray-800 mb-1">{t("current_order")}:</h4>
               <div className="space-y-2">
                 
                   <div
@@ -55,7 +57,8 @@ export default function TablesDisplay({ tables }) {
                     <div className="flex items-center text-gray-600 mt-1">
                       <Coffee size={16} className="mr-1" />
                       <span>
-                        Items: {table.current_order.items.length} | Total: Afs{table.current_order.total}
+                        {t("items")}: {table.current_order.items.length} |{" "}
+                  {t("total")}: Afs{table.current_order.total}
                       </span>
                     </div>
                   </div>
@@ -63,7 +66,7 @@ export default function TablesDisplay({ tables }) {
               </div>
             </div>
           ) : (
-            <div className="text-gray-500 italic mt-2">No orders yet.</div>
+            <div className="text-gray-500 italic mt-2"> {t("no_orders_yet")}</div>
           )}
         </div>
       ))}

@@ -1,18 +1,22 @@
 import { Search, Filter } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 export default function OrderFilters({ filters, setFilters, onSearch }) {
+  const {t}=useTranslation()
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
+   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   return (
-    <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3">
+    <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex items-center gap-2">
         <Search size={18} />
         <input
           type="text"
           name="search"
-          placeholder="Search by name or phone"
+          placeholder={t("filters.search_placeholder")}
           value={filters.search}
           onChange={handleChange}
           className="border rounded-lg px-3 py-1 focus:outline-none"
@@ -27,17 +31,17 @@ export default function OrderFilters({ filters, setFilters, onSearch }) {
           onChange={handleChange}
           className="border cursor-pointer rounded-lg px-2 py-1"
         >
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="ready">Ready</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="">{t("filters.all_statuses")}</option>
+          <option value="pending">{t("status.pending")}</option>
+          <option value="in_progress">{t("status.in_progress")}</option>
+          <option value="ready">{t("status.ready")}</option>
+          <option value="completed">{t("status.completed")}</option>
+          <option value="cancelled">{t("status.cancelled")}</option>
         </select>
       </div>
 
       <div className="flex gap-2">
-        <label htmlFor="">From:</label>
+        <label>{t("filters.from")}:</label>
         <input
           type="date"
           name="start_date"
@@ -45,7 +49,7 @@ export default function OrderFilters({ filters, setFilters, onSearch }) {
           onChange={handleChange}
           className="border cursor-pointer rounded-lg px-2 py-1"
         />
-        <label htmlFor="">To:</label>
+        <label>{t("filters.to")}:</label>
         <input
           type="date"
           name="end_date"
@@ -59,7 +63,7 @@ export default function OrderFilters({ filters, setFilters, onSearch }) {
         onClick={onSearch}
         className="bg-blue-600 cursor-pointer text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
       >
-        Apply
+        {t("filters.apply")}
       </button>
     </div>
   );

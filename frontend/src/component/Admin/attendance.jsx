@@ -2,8 +2,11 @@ import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../api/authforRBC";
 import instance from "../../api/axiosInstance";
 import RestrictedToast from "../RistrictedAction";
+import { useTranslation } from "react-i18next";
 
 export default function Attendance() {
+    const { t, i18n } = useTranslation();
+    const isRTL = i18n.language !== "en";
     const { auth } = useContext(AuthContext);
     const isDemo = auth?.user?.isDemo;
     const today = new Date().toISOString().slice(0, 10);
@@ -16,7 +19,7 @@ export default function Attendance() {
     const [showRestriction, setShowRestriction] = useState(false);
     const [selectedShiftId, setSelectedShiftId] = useState(null);
 
-    // Fetch all shifts
+    
     const getShifts = async () => {
         try {
             const res = await instance.get("/users/shift/");
@@ -27,7 +30,6 @@ export default function Attendance() {
         }
     };
 
-    // Fetch staff for selected shift and existing attendance
     const getStaffAndAttendance = async () => {
         if (!selectedShiftId) return;
         setLoading(true);
@@ -36,7 +38,7 @@ export default function Attendance() {
             const staffData = resStaff.data.staff || [];
 
             const resAttendance = await instance.get("/users/attendance/recent/");
-            // filter for selected shift and today
+          
             const existingAttendance = resAttendance.data.filter(
                 (a) => a.shift?.id === selectedShiftId && a.date === today
             );
@@ -84,13 +86,13 @@ export default function Attendance() {
         try {
             const res = await instance.post(`/users/attendance/mark/${selectedShiftId}/`, payload);
             if (res.status === 200 || res.status === 201) {
-                setMessage("✅ Attendance saved successfully!");
+                setMessage(t('attendance.saved'));
             } else {
-                setMessage("❌ Failed to save attendance.");
+                setMessage(t('attendance.failed'));
             }
         } catch (err) {
             console.error(err);
-            setMessage("❌ Failed to save attendance.");
+            setMessage(t('attendance.failed'));
         }
     };
 
@@ -99,8 +101,10 @@ export default function Attendance() {
     </div>;
 
     return (
-        <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-            <h1 className="text-2xl font-bold text-gray-800">Mark Shift Attendance</h1>
+        <div  className={`p-6 space-y-8 bg-gray-50 min-h-screen ${
+        isRTL ? "text-right" : "text-left"
+      }`} dir={isRTL ? "rtl" : "ltr"}>
+            <h1 className="text-2xl font-bold text-gray-800">{t("attendance.title")}</h1>
 
             <div className="flex flex-wrap gap-3">
                 {shifts.map((shift) => (
@@ -120,10 +124,10 @@ export default function Attendance() {
                         <table className="min-w-full border border-gray-300 text-sm">
                             <thead className="bg-gray-150">
                                 <tr>
-                                    <th>#</th>
-                                    <th>Name</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
+                                    <th>{t("attendance.table.index")}</th>
+              <th>{t("attendance.table.name")}</th>
+              <th>{t("attendance.table.role")}</th>
+              <th>{t("attendance.table.status")}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -137,9 +141,9 @@ export default function Attendance() {
                                                 value={attendance[s.id] || "Present"}
                                                 onChange={(e) => handleStatusChange(s.id, e.target.value)}
                                             >
-                                                <option value="Present">Present</option>
-                                                <option value="Absent">Absent</option>
-                                                <option value="Leave">Leave</option>
+                                                <option value="Present">{t("attendance.status.present")}</option>
+                    <option value="Absent">{t("attendance.status.absent")}</option>
+                    <option value="Leave">{t("attendance.status.leave")}</option>
                                             </select>
                                         </td>
                                     </tr>
@@ -153,7 +157,7 @@ export default function Attendance() {
                             onClick={handleSave}
                             className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 shadow"
                         >
-                            Save Attendance
+                             {t("attendance.save")}
                         </button>
                         {message && <span className="text-sm text-blue-600">{message}</span>}
                     </div>

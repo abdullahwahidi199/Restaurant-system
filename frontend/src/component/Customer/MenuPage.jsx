@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingCart, X, Trash2 } from "lucide-react";
 import MenuDetails from "./MenuDetails";
@@ -33,18 +33,21 @@ const BASE_URL="http://127.0.0.1:8000";
       const res = await fetch(`${BASE_URL}/menu/categories/`);
       if (!res.ok) throw new Error("Failed to fetch menu data");
       const data = await res.json();
+      console.log(data)
 
       setCategories(["All", ...data.map((cat) => cat.name)]);
 
       const items = data.flatMap((cat) =>
-        cat.menu_items.map((item) => ({
-          ...item,
-          category: cat.name,
-          image: item.image
-            ? `${BASE_URL}${item.image}`
-            : "/images/placeholder.png",
-        }))
-      );
+  cat.menu_items.map((item) => ({
+    ...item,
+    category: cat.name,
+    image: item.image
+      ? item.image.startsWith("http")
+        ? item.image
+        : `${BASE_URL}${item.image}`
+      : "/images/placeholder.png",
+  }))
+);
       setMenuItems(items);
     } catch (err) {
       console.error(err);
@@ -76,19 +79,23 @@ const BASE_URL="http://127.0.0.1:8000";
     );
   };
 
-  const addToCart = (item) => {
-    setCart((prev) => {
-      const exists = prev.find((i) => i.id === item.id);
-      if (exists) {
-        return prev.map((i)=>
-        i.id===item.id ? {...i,qty:i.qty+1}:i
-      )
-      
-      }
-      toast.success(`${item.name} added to cart 🛒`);
-      return [...prev, { ...item, qty: 1 }];
-    });
-  };
+  const toastRef = useRef(false);
+
+const addToCart = (item) => {
+  const exists = cart.find((i) => i.id === item.id);
+
+  if (!exists && !toastRef.current) {
+    toast.success(`${item.name} added to cart 🛒`);
+    toastRef.current = true;
+    setTimeout(() => (toastRef.current = false), 500);
+  }
+
+  setCart((prev) =>
+    exists
+      ? prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
+      : [...prev, { ...item, qty: 1 }]
+  );
+};
 
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((item) => item.id !== id));

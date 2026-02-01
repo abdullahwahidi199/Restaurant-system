@@ -19,10 +19,13 @@ import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
 import DeliveryPerformance from "./DeliveryPerformance";
 import RistrictionMessage from "../../RistrictionMessage";
+import { useTranslation } from "react-i18next";
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   
   
   const [currentDate, setCurrentDate] = useState("authTokens");
@@ -63,10 +66,10 @@ export default function AdminDashboard() {
 
   // Map API data to stats cards
   const stats = [
-    { label: "Total Staff", value: summary.total_staff, icon: <Users className="w-6 h-6 text-blue-500" /> },
-    { label: "Menu Items", value: summary.menu_items, icon: <Utensils className="w-6 h-6 text-orange-500" /> },
-    { label: "Attendance Rate", value: `${summary.attendance_rate}%`, icon: <CalendarCheck className="w-6 h-6 text-purple-500" /> },
-    { label: "Average Rating", value: `${summary.average_rating} ⭐`, icon: <Star className="w-6 h-6 text-yellow-500" /> },
+    { label: t("dashboard.stats.total_staff"), value: summary.total_staff , icon: <Users className="w-6 h-6 text-blue-500" /> },
+    { label: t("dashboard.stats.menu_items"), value: summary.menu_items, icon: <Utensils className="w-6 h-6 text-orange-500" /> },
+    { label: t("dashboard.stats.attendance_rate"), value: `${summary.attendance_rate}%`, icon: <CalendarCheck className="w-6 h-6 text-purple-500" /> },
+    { label: t("dashboard.stats.average_rating"), value: `${summary.average_rating} ⭐` , icon: <Star className="w-6 h-6 text-yellow-500" /> },
   ];
 
  
@@ -74,13 +77,13 @@ export default function AdminDashboard() {
 
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="p-6 bg-gray-100 min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-gray-800">
-          Welcome back, Admin
+          {t("dashboard.welcome")}
         </h1>
         <p className="text-gray-500">
-          Here’s an overview of your restaurant today — {currentDate}
+          {t("dashboard.overview")} — {currentDate}
         </p>
       </div>
       {isDemo&&<RistrictionMessage/>}

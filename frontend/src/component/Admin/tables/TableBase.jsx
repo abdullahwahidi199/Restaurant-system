@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import TablesDisplay from "./TablesDisplayModal";
 import TableAddModal from "./TableAddModal";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 
 export default function TableBaseModal() {
@@ -9,6 +10,9 @@ export default function TableBaseModal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [addTableDisplay, setAddTableDisplay] = useState(false);
+
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   const fetchTables = async () => {
     try {
@@ -31,7 +35,7 @@ export default function TableBaseModal() {
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">Loading tables...</p>
+        <p className="text-gray-500">{t("loading_tables")}</p>
       </div>
     );
 
@@ -43,16 +47,16 @@ export default function TableBaseModal() {
     );
 
   return (
-    <div className="p-6">
+    <div className="p-6"  dir={isRTL ? "rtl" : "ltr"}>
      
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800">Tables</h2>
+      <div className={`flex items-center mb-6 ${isRTL ? "justify-between flex-row-reverse" : "justify-between"}`}>
+        <h2 className="text-2xl font-semibold text-gray-800">{t("tables")}</h2>
         <button
           onClick={() => setAddTableDisplay(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
         >
           <Plus size={18} />
-          Add Table
+           {t("add_table")}
         </button>
       </div>
 

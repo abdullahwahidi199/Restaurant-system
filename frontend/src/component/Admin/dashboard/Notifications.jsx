@@ -2,9 +2,11 @@ import { useContext, useEffect, useState } from "react";
 import { Bell, Rewind } from "lucide-react";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
+import { useTranslation } from "react-i18next";
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
+  const {t}=useTranslation()
 
   const {auth}=useContext(AuthContext)
   const token=auth?.tokens?.access
@@ -25,7 +27,7 @@ export default function Notifications() {
   return (
     <>
       <h3 className="text-lg font-semibold mb-4 text-gray-700 flex items-center gap-2">
-        <Bell className="w-5 h-5 text-blue-500" /> Notifications
+        <Bell className="w-5 h-5 text-blue-500" /> {t("notifications.title")}
       </h3>
       <ul className="space-y-2">
         {notifications.length>0?(
@@ -37,11 +39,11 @@ export default function Notifications() {
                 {new Date(note.created_at).toLocaleString()}
               </div>
             </div>
-            <button className="text-blue-400 cursor-pointer font-semibold" onClick={()=>markReadNotification(note.id)}>Mark read</button>
+            <button className="text-blue-400 cursor-pointer font-semibold" onClick={()=>markReadNotification(note.id)}>{t("notifications.markRead")}</button>
           </li>
         ))
         ):(
-          <p>No notifications yet!</p>
+          <p>{t("notifications.empty")}</p>
         )}
         
       </ul>

@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import AddItemModal from "./AddItemModal";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export default function MenuList({ categoryItems, selectedCategoryid, fetchCategoryAgain, onDeleteCategory }) {
   const [itemAdd_Modal, setItemAddModal] = useState(false);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredItems = categoryItems.filter((item) =>
@@ -25,7 +28,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
         <div className="relative w-full sm:w-1/2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input type="text"
-            placeholder="Search Menu items..."
+            placeholder={t("search_menu_items")}
             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -37,7 +40,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
             onClick={onDeleteCategory}
             className="flex items-center cursor-pointer  gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-sm transition"
           >
-            <Trash2 className="w-4 h-4" /> Delete Category
+            <Trash2 className="w-4 h-4" /> {t("delete_category")}
           </button>
 
           <button
@@ -46,7 +49,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
             }
             className="flex items-center gap-2 cursor-pointer bg-lime-500 hover:bg-lime-600 text-white px-4 py-2 rounded-lg shadow-sm transition"
           >
-            <Plus className="w-4 h-4" /> Add Item
+            <Plus className="w-4 h-4" /> {t("add_item")}
           </button>
         </div>
       </div>
@@ -71,7 +74,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
                         }`}
                       
                     />
-                  ) : <p>No image</p>}
+                  ) : <p>{t("no_image")}</p>}
                 </div>
 
                 <div className="p-4 flex flex-col justify-between">
@@ -87,7 +90,7 @@ export default function MenuList({ categoryItems, selectedCategoryid, fetchCateg
         </div>
       ) : (
         <div className="text-gray-500 text-center py-10">
-          No items found for this category.
+          {t("no_items_category")}
         </div>
       )}
 

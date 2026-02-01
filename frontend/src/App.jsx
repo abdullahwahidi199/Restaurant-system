@@ -31,6 +31,7 @@ import AnalyticsBaseModal from './component/Admin/Analytics/AnalyticsBaseModal';
 import RequireAuth from './api/ReauireAuth';
 import StaffLogin from './component/StaffLogin';
 import Feedbacks from './component/Admin/Feedbacks/FeedbackBase';
+import i18n from './i18n';
 import RistrictionMessage from './component/RistrictionMessage';
 
 const BASE_URL="http://127.0.0.1:8000";
@@ -47,6 +48,7 @@ function App() {
   useEffect(() => {
     fetchRestaurantInfo()
   }, [])
+  ;
 
   const router = createBrowserRouter(
     createRoutesFromElements(

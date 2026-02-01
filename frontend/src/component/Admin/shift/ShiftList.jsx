@@ -1,8 +1,10 @@
 import { Clock, Calendar, Users } from "lucide-react";
-
+import { useTranslation } from "react-i18next";
 export default function ShiftList({ shifts }) {
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   if (!shifts.length)
-    return <div className="text-center text-gray-500">No shifts available.</div>;
+    return <div className="text-center text-gray-500">{t("no_shifts")}</div>;
 
 
   function formatTime(timeStr) {
@@ -22,7 +24,7 @@ export default function ShiftList({ shifts }) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-indigo-600">
               <Clock className="w-5 h-5" />
-              <span className="font-semibold">{shift.shift_type} Shift</span>
+              <span className="font-semibold">{shift.shift_type} {t("shift")}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-5 h-5" />
@@ -36,7 +38,7 @@ export default function ShiftList({ shifts }) {
           <div className="bg-gray-50 rounded-xl p-3 border">
             <div className="flex items-center gap-2 mb-3 text-gray-700">
               <Users className="w-5 h-5 text-indigo-500" />
-              <h3 className="font-semibold text-gray-800">Assigned Staff</h3>
+              <h3 className="font-semibold text-gray-800">{t("assigned_staff")}</h3>
             </div>
             {shift.staff.length > 0 ? (
               <ul className="space-y-3">
@@ -60,7 +62,7 @@ export default function ShiftList({ shifts }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No staff assigned yet.</p>
+              <p className="text-sm text-gray-500">{t("no_staff")}</p>
             )}
           </div>
         </div>

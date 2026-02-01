@@ -5,6 +5,8 @@ import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import RestrictedToast from "../../RistrictedAction";
 
+import { useTranslation } from "react-i18next";
+
 export default function TableAddModal({onTableAdded,onClose}){
     const [tableNumber,setTableNumber]=useState('')
     const [capacity,setCapacity]=useState('')
@@ -12,6 +14,10 @@ export default function TableAddModal({onTableAdded,onClose}){
     const [loading, setLoading] = useState(false);
     const [error,setError]=useState(null)
     const [showRestriction,setShowRestriction]=useState(false)
+
+    const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
+
 
     const {auth}=useContext(AuthContext)
     const isDemo=auth?.user?.isDemo;
@@ -51,6 +57,7 @@ export default function TableAddModal({onTableAdded,onClose}){
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
+        dir={isRTL ? "rtl" : "ltr"}
         className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative"
       >
         <button
@@ -61,7 +68,7 @@ export default function TableAddModal({onTableAdded,onClose}){
         </button>
 
         <h2 className="text-2xl font-semibold mb-6 text-center text-gray-800">
-          Add New Table
+          {t("add_new_table")}
         </h2>
 
         <form onSubmit={handleSubmit}  className="space-y-4">
@@ -73,7 +80,7 @@ export default function TableAddModal({onTableAdded,onClose}){
             onChange={(e) => setTableNumber(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             required
-            placeholder="Number"
+            placeholder={t("table_number")}
           />
             
 
@@ -83,7 +90,7 @@ export default function TableAddModal({onTableAdded,onClose}){
             onChange={(e) => setCapacity(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             required
-            placeholder="Capacity"
+            placeholder={t("capacity")}
           />
 
           <input
@@ -92,7 +99,7 @@ export default function TableAddModal({onTableAdded,onClose}){
             onChange={(e) => setNote(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             // required
-            placeholder="note"
+            placeholder={t("note")}
           />
 
           <button
@@ -100,7 +107,7 @@ export default function TableAddModal({onTableAdded,onClose}){
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition disabled:opacity-50"
           >
-            {loading ? "Adding..." : "Add Table"}
+            {loading ? t("adding") : t("add_table")}
           </button>
 
           {error && (

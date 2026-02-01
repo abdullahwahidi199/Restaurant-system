@@ -1,15 +1,17 @@
 import React from "react";
 import { Card, CardContent } from "../../ui/card";
 import { Star, DollarSign, Truck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function DeliveryPerformance({ data }) {
+  const { t } = useTranslation();
   if (!data || data.length === 0)
-    return <p className="text-gray-500 text-center">No delivery performance data available.</p>;
+    return <p className="text-gray-500 text-center">{t("delivery.noData")}.</p>;
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-700 mb-4">
-        🚚 Delivery Boys Performance (This Month)
+        🚚 {t("delivery.title")}
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -30,15 +32,15 @@ export default function DeliveryPerformance({ data }) {
                 <div className="text-sm text-gray-600 mt-1">
                   <div className="flex items-center gap-1">
                     <Truck className="w-4 h-4 text-blue-500" />
-                    <span>{boy.deliveries_count || 0} Deliveries</span>
+                    <span>{boy.deliveries_count || 0} {boy.deliveries_count} {t("delivery.deliveries")}</span>
                   </div>
 
                   <div className="flex items-center gap-1">
                     <DollarSign className="w-4 h-4 text-green-500" />
                     <span>
                       {boy.total_revenue
-                        ? `Rs ${boy.total_revenue.toLocaleString()}`
-                        : "Rs 0"}
+                        ? ` ${boy.total_revenue.toLocaleString()} AFN`
+                        : "AFN 0"}
                     </span>
                   </div>
 

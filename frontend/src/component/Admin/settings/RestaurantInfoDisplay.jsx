@@ -5,6 +5,7 @@ import LogoUpload from "./LogoUpload";
 import instance from "../../../api/axiosInstance";
 import RestrictedToast from "../../RistrictedAction";
 import { AuthContext } from "../../../api/authforRBC";
+import { useTranslation } from "react-i18next";
 
 export default function RestaurantForm({ restaurant }) {
   const [formData, setFormData] = useState({
@@ -22,7 +23,8 @@ export default function RestaurantForm({ restaurant }) {
   });
   const [previewLogo, setPreviewLogo] = useState(restaurant.logo);
   const [loading, setLoading] = useState(false);
-
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [showRestriction,setShowRestriction]=useState(false)
   
   const {auth}=useContext(AuthContext)
@@ -64,17 +66,17 @@ export default function RestaurantForm({ restaurant }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
       <LogoUpload logo={previewLogo} onChange={handleLogoChange} />
 
-      <FormInput label="Name" name="name" value={formData.name} onChange={handleChange} required />
-      <FormInput label="Address" name="address" value={formData.address} onChange={handleChange} required />
-      <FormInput label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
-      <FormInput label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
-      <FormInput label="Website" name="website" value={formData.website} onChange={handleChange} />
-      <FormInput label="Opening Hours" name="opening_hours" value={formData.opening_hours} onChange={handleChange} />
-      <FormInput label="Facebook" name="facebook" value={formData.facebook} onChange={handleChange} />
-      <FormInput label="Instagram" name="instagram" value={formData.instagram} onChange={handleChange} />
+      <FormInput label={t("name")} name="name" value={formData.name} onChange={handleChange} required />
+      <FormInput label={t("address")} name="address" value={formData.address} onChange={handleChange} required />
+      <FormInput label={t("phone")}  name="phone" value={formData.phone} onChange={handleChange} />
+      <FormInput label={t("email")} name="email" value={formData.email} onChange={handleChange} type="email" />
+      <FormInput label={t("website")} name="website" value={formData.website} onChange={handleChange} />
+      <FormInput label={t("opening_hours")} name="opening_hours" value={formData.opening_hours} onChange={handleChange} />
+      <FormInput label={t("facebook")} name="facebook" value={formData.facebook} onChange={handleChange} />
+      <FormInput label={t("instagram")} name="instagram" value={formData.instagram} onChange={handleChange} />
 
       <div className="flex items-center gap-2">
         <input
@@ -84,7 +86,7 @@ export default function RestaurantForm({ restaurant }) {
           onChange={handleChange}
           className="w-5 h-5"
         />
-        <label className="font-medium">Delivery Available</label>
+        <label className="font-medium">{t("delivery_available")}</label>
       </div>
 
       <button
@@ -92,7 +94,7 @@ export default function RestaurantForm({ restaurant }) {
         disabled={loading}
         className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
       >
-        {loading ? "Saving..." : "Save Changes"}
+        {loading ? t("saving") : t("save_changes")}
       </button>
       {showRestriction&&(
         <RestrictedToast actionType="update" onClose={()=>setShowRestriction(false)}/>

@@ -4,10 +4,13 @@ import { Plus } from "lucide-react";
 import AddCategoryModal from "./AddCategoryModal";
 import CategoriesList from "./Catagories";
 import instance from "../../../api/axiosInstance";
+import { useTranslation } from "react-i18next";
 
 export default function Menu() {
   const [categories, setCategories] = useState([]);
   const [show_Add_Modal, set_show_add_modal] = useState(false);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   const fetchCategories = async () => {
     try {
@@ -29,9 +32,9 @@ export default function Menu() {
   };
 
   return (
-    <div className="min-h-screen py-5 px-4 bg-gray-100">
+    <div className="min-h-screen py-5 px-4 bg-gray-100" dir={isRTL ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto mb-8">
-        <h1 className="text-3xl font-semibold text-gray-800 mb-5">Menu Management</h1>
+        <h1 className="text-3xl font-semibold text-gray-800 mb-5">{t("menu_management")}</h1>
 
         
         <div className="flex items-start gap-4">
@@ -48,7 +51,7 @@ export default function Menu() {
             onClick={() => set_show_add_modal(!show_Add_Modal)}
             className="flex items-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-800 text-white px-5 py-2.5 rounded-xl shadow-md transition"
           >
-            <Plus className="w-5 h-5" /> Add Category
+            <Plus className="w-5 h-5" /> {t("add_category")}
           </button>
         </div>
       </div>

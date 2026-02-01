@@ -1,14 +1,16 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export default function ConfirmDeleteModal({
   open,
   closeModal,
   onDelete,
-  title = "Confirm Delete",
-  message = "Are you sure you want to delete this staff member?",
+  title,
+  message 
 }) {
   if (!open) return null;
-
+const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   
   return (
@@ -16,23 +18,23 @@ export default function ConfirmDeleteModal({
       <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
       <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm animate-slide-down">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-          {title}
+          {title || t("confirm_delete")}
         </h2>
-        <p className="text-gray-700 dark:text-gray-300 mb-6">{message}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-6">{message || t("delete_staff_message")}</p>
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={closeModal}
             className="px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
-            Cancel
+            {t("cancel")}   
           </button>
           <button
             type="button"
             onClick={onDelete}
             className="px-4 py-2 rounded-full bg-red-500 text-white font-semibold hover:bg-red-600 transition"
           >
-            Delete
+            {t("delete")}
           </button>
         </div>
       </div>

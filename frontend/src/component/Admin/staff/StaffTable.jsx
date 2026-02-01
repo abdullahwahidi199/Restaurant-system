@@ -1,33 +1,36 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const StaffTable = ({ staff, editStaff, deleteStaff }) => {
+  const { t,i18n } = useTranslation();
+  const isRTL = i18n.language !== "en";
   console.log(staff)
   
   return (
     <div className="overflow-x-auto bg-white  shadow-xl rounded-2xl border border-gray-100">
-      <table className="min-w-full text-sm text-left">
+      <table className={`min-w-full text-sm ${isRTL ? "text-right" : "text-left"}`}>
         <thead className="bg-gradient-to-r from-gray-200 to-gray-400  ">
           <tr>
             <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Name
+              {t("staff.table.name")}
             </th>
             <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Role
+              {t("staff.table.role")}
             </th>
             <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Email
+              {t("staff.table.email")}
+            </th>
+          <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
+              {t("staff.table.phone")}
             </th>
             <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Phone
+              {t("staff.table.shift")}
             </th>
             <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Shift
+              {t("staff.table.status")}
             </th>
-            <th className="px-6 py-4 font-semibold text-gray-700  uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-4 text-right font-semibold text-gray-700  uppercase tracking-wider">
-              Actions
+            <th  className={`px-6 py-4 text-right font-semibold text-gray-700  uppercase tracking-wider ${isRTL ? "text-left" : "text-right"}`}>
+              {t("staff.table.actions")}
             </th>
           </tr>
         </thead>
@@ -81,14 +84,14 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                     aria-label={`Edit ${s.name}`}
                     className="px-4 py-2 rounded-lg bg-blue-500 text-white font-medium shadow hover:bg-blue-600 active:scale-95 transition"
                   >
-                    ✏️ Edit
+                    ✏️ {t("staff.table.edit")}
                   </button>
                   <button
                     onClick={() => deleteStaff(s.id)}
                     aria-label={`Delete ${s.name}`}
                     className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium shadow hover:bg-red-600 active:scale-95 transition"
                   >
-                    🗑️ Delete
+                    🗑️ {t("staff.table.delete")}
                   </button>
                 </td>
               </tr>
@@ -99,7 +102,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                 colSpan={4}
                 className="text-center px-6 py-8 text-gray-500 dark:text-gray-400 italic"
               >
-                No staff found
+                {t("staff.search.no_staff")}
               </td>
             </tr>
           )}

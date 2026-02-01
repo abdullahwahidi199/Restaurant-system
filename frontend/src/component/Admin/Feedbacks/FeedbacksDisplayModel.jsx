@@ -1,5 +1,6 @@
 import { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 import {
   Star,
@@ -17,6 +18,8 @@ import {
 export default function FeedBacksDisplay({ reviews, refresh }) {
   const [responseText, setResponseText] = useState("");
   const [activeReviewId, setActiveReviewId] = useState(null);
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [loading, setLoading] = useState(false);
   const now=new Date()
   console.log(now)
@@ -41,11 +44,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
   const formatDate = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", });
   };
 
   return (
@@ -94,7 +93,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                     <>
                       <Utensils className="w-4 h-4 text-blue-500 mr-1" />
                       <span>
-                        Menu Item:{" "}
+                        {t("menu_item")}:{" "}
                         <span className="font-semibold text-gray-800">
                           {review.menu_item_name}
                         </span>
@@ -103,12 +102,12 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                   ) : isDeliveryReview ? (
                     <>
                       <Truck className="w-4 h-4 text-green-500 mr-1" />
-                      <span>Delivery Review</span>
+                      <span>{t("delivery_review")}</span>
                     </>
                   ) : (
                     <>
                       <MessageSquare className="w-4 h-4 text-gray-400 mr-1" />
-                      <span>General Review</span>
+                      <span>{t("general_review")}</span>
                     </>
                   )}
                 </div>
@@ -118,7 +117,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                   {review.comment ? (
                     <p className="text-gray-700 leading-relaxed">{review.comment}</p>
                   ) : (
-                    <p className="italic text-gray-400">No comment given.</p>
+                    <p className="italic text-gray-400">{t("no_comment")}</p>
                   )}
                 </div>
 
@@ -127,13 +126,13 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                   <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-sm text-green-800">
                     <div className="flex items-center gap-1 mb-1 font-semibold">
                       <CheckCircle2 className="w-4 h-4" />
-                      Response
+                      {t("response")}
                     </div>
                     <p>{review.response}</p>
 
                     <div className="text-xs flex items-center gap-1 text-gray-400 mt-2">
                       <Clock className="w-3 h-3" />
-                      Responded on {formatDate(review.responded_at)}
+                       {t("responded_on")}{formatDate(review.responded_at)}
                     </div>
                   </div>
                 ) : activeReviewId === review.id ? (
@@ -152,13 +151,13 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                         className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm transition"
                       >
                         <Send className="w-4 h-4" />
-                        {loading ? "Submitting..." : "Submit"}
+                        {loading ? t("submitting") : t("submit")}
                       </button>
                       <button
                         onClick={() => setActiveReviewId(null)}
                         className="text-gray-500 hover:text-red-500 px-3 py-2 text-sm flex items-center gap-1 transition"
                       >
-                        <X className="w-4 h-4" /> Cancel
+                        <X className="w-4 h-4" /> {t("cancel")}
                       </button>
                     </div>
                   </div>
@@ -167,7 +166,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                     onClick={() => setActiveReviewId(review.id)}
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1 mt-1 transition"
                   >
-                    <MessageSquare className="w-4 h-4" /> Respond
+                    <MessageSquare className="w-4 h-4" />  {t("response")}
                   </button>
                 )}
               </div>

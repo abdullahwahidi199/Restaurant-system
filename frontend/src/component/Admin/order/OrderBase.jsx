@@ -5,10 +5,14 @@ import OrdersTable from "./OrdersTable";
 import OrderDetailsModal from "./OrderDetailsModal";
 import instance from "../../../api/axiosInstance";
 import useOrdersSocket from "../../../hooks/useOrdersSocket";
+import { ClipboardList, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const {t}=useTranslation()
   const [filters, setFilters] = useState({
     search: "",
     status: "",
@@ -47,15 +51,34 @@ export default function OrdersPage() {
   }, []);
 
   const stats = [
-    { label: "Total Orders", value: orders.length },
-    { label: "Pending", value: orders.filter(o => o.status === "pending").length },
-    { label: "Completed", value: orders.filter(o => o.status === "completed").length },
-    { label: "Revenue (AFN)", value: orders.reduce((sum, o) => sum + o.total, 0) },
+    {
+      label: t("stats.total_orders"),
+      value: orders.length,
+      icon: <ClipboardList className="w-8 h-8 text-blue-500" />
+    },
+    {
+      label: t("stats.pending"),
+      value: orders.filter(o => o.status === "pending").length,
+      icon: <Clock className="w-8 h-8 text-yellow-500" />
+    },
+    {
+      label: t("stats.completed"),
+      value: orders.filter(o => o.status === "completed").length,
+      icon: <CheckCircle className="w-8 h-8 text-green-500" />
+    },
+    {
+      label: t("stats.revenue"),
+      value: orders.reduce((sum, o) => sum + o.total, 0),
+      icon: <DollarSign className="w-8 h-8 text-purple-500" />
+    }
   ];
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Orders Management</h1>
+    <div
+      className="p-4 space-y-4"
+      dir={i18n.language === "fa" || i18n.language === "ps" ? "rtl" : "ltr"}
+    >
+      <h1 className="text-2xl font-bold">{t("orders_management")}</h1>
 
       <OrderStats stats={stats} />
 

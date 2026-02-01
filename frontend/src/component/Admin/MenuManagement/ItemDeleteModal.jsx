@@ -19,14 +19,15 @@ export default function ItemDelete({
             return
         }
         const response=await instance.delete(`/menu/menu-items/${itemID}/`)
-        if (response.status!==200||response.status!==201){
-            console.log("Failed to delete the item")
-        }
+        if (response.status !== 200 && response.status !== 204) {
+  console.log("Failed to delete the item");
+  return;
+}
         onDelete();
     }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40" onClick={onclose} />
+            <div className="absolute inset-0 bg-black/40" onClick={onClose} />
             <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm animate-slide-down">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
                     {title}

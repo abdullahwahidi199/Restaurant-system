@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import FeedBacksDisplay from "./FeedbacksDisplayModel";
 import { Filter, Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Feedbacks() {
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [filterResponse, setFilterResponse] = useState("all");
   const [filterDate, setFilterDate] = useState({ start: "", end: "" });
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "fa" || i18n.language === "ps"; 
 
   const getAllReviews = async () => {
     try {
@@ -44,16 +47,16 @@ export default function Feedbacks() {
   }, [reviews, filterResponse, filterDate]);
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-semibold text-gray-800">Reviews Management</h2>
+        <h2 className="text-3xl font-semibold text-gray-800">{t("reviews_management")}</h2>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <div className="flex items-center gap-2 text-gray-700 font-medium">
           <Filter className="w-5 h-5 text-blue-500" />
-          Filters
+          {t("filterss")}
         </div>
 
         <select
@@ -61,9 +64,9 @@ export default function Feedbacks() {
           onChange={(e) => setFilterResponse(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-blue-400 outline-none"
         >
-          <option value="all">All</option>
-          <option value="responded">Responded</option>
-          <option value="not_responded">Not Responded</option>
+          <option value="all">{t("all")}</option>
+          <option value="responded">{t("responded")}</option>
+          <option value="not_responded">{t("not_responded")}</option>
         </select>
 
         <div className="flex items-center gap-2">
@@ -74,7 +77,7 @@ export default function Feedbacks() {
             onChange={(e) => setFilterDate({ ...filterDate, start: e.target.value })}
             className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-blue-400 outline-none"
           />
-          <span className="text-gray-500">to</span>
+          <span className="text-gray-500">{t("to")}</span>
           <input
             type="date"
             value={filterDate.end}

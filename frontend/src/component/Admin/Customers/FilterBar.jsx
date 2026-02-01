@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFilter,onSearch}){
 
@@ -7,6 +8,7 @@ export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFi
             {...dateFilter,[e.target.name]:e.target.value}
         )
     }
+    const { t } = useTranslation();
     return(
         <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
@@ -14,7 +16,7 @@ export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFi
         <input
           type="text"
           name="search"
-          placeholder="Search by name"
+          placeholder={t("search_by_name")}
           value={searchTerm}
           onChange={(e)=>setSearchTerm(e.target.value)}
           className="border rounded-lg px-3 py-1 focus:outline-none"
@@ -24,7 +26,7 @@ export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFi
       
 
       <div className="flex gap-2">
-        <label htmlFor="">From:</label>
+         <label>{t("from")}:</label>
         <input
           type="date"
           name="from"
@@ -32,7 +34,7 @@ export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFi
           onChange={handleChange}
           className="border cursor-pointer rounded-lg px-2 py-1"
         />
-        <label htmlFor="">To:</label>
+        <label>{t("to")}:</label>
         <input
           type="date"
           name="to"
@@ -46,7 +48,7 @@ export default function FilterBar({searchTerm,setSearchTerm,dateFilter,setDateFi
         onClick={onSearch}
         className="bg-blue-600 cursor-pointer text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
       >
-        Apply
+        {t("apply")}
       </button>
     </div>
   );
