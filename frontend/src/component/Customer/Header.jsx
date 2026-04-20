@@ -3,11 +3,16 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { logoutCustomer, getProfile } from "../../api/auth";
 import { Menu, X } from "lucide-react"; // burger icons
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Header({ restaurantInfo }) {
   const [username, setUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const isRTL = document.documentElement.dir === "rtl";
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -32,18 +37,23 @@ export default function Header({ restaurantInfo }) {
   };
 
   const navLinks = [
-    { name: "FAQs", path: "/faqs" },
-    { name: "Info", path: "/info" },
-    { name: "My Orders", path: "/orders" },
+    { name: t("nav.faqs"), path: "/faqs" },
+    { name: t("nav.info"), path: "/info" },
+    { name: t("nav.orders"), path: "/orders" },
   ];
 
   return (
-    <header className="w-full bg-gradient-to-r from-black via-[#111] to-[#1a1a1a] px-6 py-4 shadow-md">
-     
+    <header
+      className={`w-full bg-gradient-to-r from-black via-[#111] to-[#1a1a1a] px-6 py-4 shadow-md`}
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       <div className="flex justify-between items-center">
-        
-       
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+        <div
+          className={`flex justify-between items-center ${
+            isRTL ? "flex-row-reverse" : ""
+          }`}
+          onClick={() => navigate("/")}
+        >
           {restaurantInfo && (
             <img
               src={restaurantInfo.logo}
@@ -55,9 +65,9 @@ export default function Header({ restaurantInfo }) {
             {restaurantInfo?.name}
           </h2>
         </div>
+        <LanguageSwitcher />
 
-        
-        <div className="hidden md:flex items-center gap-8">
+        <div className={`hidden md:flex items-center gap-8 `}>
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -69,7 +79,9 @@ export default function Header({ restaurantInfo }) {
           ))}
 
           {username ? (
-            <div className="flex items-center gap-4">
+            <div
+              className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}
+            >
               <div
                 className="bg-red-500 text-white rounded-full w-10 h-10 flex justify-center items-center font-bold uppercase cursor-pointer"
                 onClick={() => navigate("/profile")}
@@ -80,28 +92,28 @@ export default function Header({ restaurantInfo }) {
                 onClick={handleLogout}
                 className="text-gray-400 hover:text-white"
               >
-                Logout
+                {t("auth.logout")}
               </button>
             </div>
           ) : (
-            <>
+            <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
               <Link
                 to="/login"
                 className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition"
               >
-                Login
+                {t("auth.login")}
               </Link>
+
               <Link
                 to="/signup"
                 className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition"
               >
-                Signup
+                {t("auth.signup")}
               </Link>
-            </>
+            </div>
           )}
         </div>
 
-       
         <button
           className="md:hidden text-white"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -110,9 +122,12 @@ export default function Header({ restaurantInfo }) {
         </button>
       </div>
 
-     
       {menuOpen && (
-        <div className="md:hidden mt-4 flex flex-col gap-4 bg-[#111] p-4 rounded-lg animate-fadeIn">
+        <div
+          className={`md:hidden mt-4 flex flex-col gap-4 bg-[#111] p-4 rounded-lg animate-fadeIn ${
+            isRTL ? "items-end text-right" : ""
+          }`}
+        >
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -125,7 +140,7 @@ export default function Header({ restaurantInfo }) {
           ))}
 
           {username ? (
-            <div className="flex flex-col gap-4">
+            <div className={`flex flex-col gap-4 ${isRTL ? "items-end" : ""}`}>
               <div
                 className="bg-red-500 text-white rounded-full w-12 h-12 flex justify-center items-center font-bold uppercase"
                 onClick={() => {
@@ -142,7 +157,7 @@ export default function Header({ restaurantInfo }) {
                 }}
                 className="text-gray-400 hover:text-white"
               >
-                Logout
+                {t("auth.logout")}
               </button>
             </div>
           ) : (
@@ -152,14 +167,14 @@ export default function Header({ restaurantInfo }) {
                 className="px-4 py-2 rounded-full bg-red-500 text-white text-center"
                 onClick={() => setMenuOpen(false)}
               >
-                Login
+                {t("auth.login")}
               </Link>
               <Link
                 to="/signup"
                 className="px-4 py-2 rounded-full bg-gray-700 text-white text-center"
                 onClick={() => setMenuOpen(false)}
               >
-                Signup
+                {t("auth.signup")}
               </Link>
             </div>
           )}

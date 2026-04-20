@@ -6,7 +6,7 @@ import {
   Star,
   DollarSign,
   ShoppingBag,
-  Bell
+  Bell,
 } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 
@@ -15,25 +15,25 @@ import MonthOverView from "./MonthOverview";
 import DailySalesChart from "./DailySalesChart";
 import BestSellingItems from "./BestSellingItems";
 import Notifications from "./Notifications";
+import LowStockItems from "../Inventory/LowStockItems";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
 import DeliveryPerformance from "./DeliveryPerformance";
 import RistrictionMessage from "../../RistrictionMessage";
 import { useTranslation } from "react-i18next";
+
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  
-  
+
   const [currentDate, setCurrentDate] = useState("authTokens");
 
-  const {auth}=useContext(AuthContext)
-  const isDemo=auth?.user?.isDemo;
-  const token = auth?.tokens?.access;
-  console.log(token)
+  const { auth } = useContext(AuthContext);
+  const isDemo = auth?.user?.isDemo;
+
   useEffect(() => {
     const date = new Date().toLocaleDateString("en-US", {
       weekday: "long",
@@ -46,13 +46,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        
         const res = await instance.get("/reports/dashboard-summary/");
-        // console.log("Dashboard Data:", res.data);
         setSummary(res.data);
-        console.log(res.data)
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
         setError("Unable to load dashboard data.");
       } finally {
         setLoading(false);
@@ -61,20 +57,32 @@ export default function AdminDashboard() {
     fetchSummary();
   }, []);
 
-  if (loading) return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+  if (loading)
+    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
 
-  // Map API data to stats cards
   const stats = [
-    { label: t("dashboard.stats.total_staff"), value: summary.total_staff , icon: <Users className="w-6 h-6 text-blue-500" /> },
-    { label: t("dashboard.stats.menu_items"), value: summary.menu_items, icon: <Utensils className="w-6 h-6 text-orange-500" /> },
-    { label: t("dashboard.stats.attendance_rate"), value: `${summary.attendance_rate}%`, icon: <CalendarCheck className="w-6 h-6 text-purple-500" /> },
-    { label: t("dashboard.stats.average_rating"), value: `${summary.average_rating} ⭐` , icon: <Star className="w-6 h-6 text-yellow-500" /> },
+    {
+      label: t("dashboard.stats.total_staff"),
+      value: summary.total_staff,
+      icon: <Users className="w-6 h-6 text-blue-500" />,
+    },
+    {
+      label: t("dashboard.stats.menu_items"),
+      value: summary.menu_items,
+      icon: <Utensils className="w-6 h-6 text-orange-500" />,
+    },
+    {
+      label: t("dashboard.stats.attendance_rate"),
+      value: `${summary.attendance_rate}%`,
+      icon: <CalendarCheck className="w-6 h-6 text-purple-500" />,
+    },
+    {
+      label: t("dashboard.stats.average_rating"),
+      value: `${Number(summary.average_rating).toFixed(1)} ⭐`,
+      icon: <Star className="w-6 h-6 text-yellow-500" />,
+    },
   ];
-
- 
-
-
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen" dir={isRTL ? "rtl" : "ltr"}>
@@ -86,39 +94,43 @@ export default function AdminDashboard() {
           {t("dashboard.overview")} — {currentDate}
         </p>
       </div>
-      {isDemo&&<RistrictionMessage/>}
 
-      <TopSectionStats stats={stats}/>
+      {isDemo && <RistrictionMessage />}
 
+      <TopSectionStats stats={stats} />
+
+      {/* Charts */}
       <Card className="shadow-sm mb-10">
         <CardContent className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-        
-          <MonthOverView summary={summary}/>
-
-          <DailySalesChart summary={summary}/>
+          <MonthOverView summary={summary} />
+          <DailySalesChart summary={summary} />
         </CardContent>
       </Card>
 
+      {/* Best Selling Items (UNCHANGED) */}
+      <Card className="shadow-sm mb-10">
+        <CardContent className="p-4">
+          <BestSellingItems summary={summary} />
+        </CardContent>
+      </Card>
 
+      {/* Alerts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <BestSellingItems summary={summary}/>
+            <Notifications />
           </CardContent>
         </Card>
+        <LowStockItems /> {/* ✅ Added without removing anything */}
+      </div>
 
+      {/* Delivery Performance */}
+      <div className="mt-10">
         <Card className="shadow-sm">
           <CardContent className="p-4">
-            <Notifications/>
+            <DeliveryPerformance data={summary.delivery_boys_performance} />
           </CardContent>
         </Card>
-        <div className="mt-10">
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <DeliveryPerformance data={summary.delivery_boys_performance} />
-        </CardContent>
-      </Card>
-    </div>
       </div>
     </div>
   );

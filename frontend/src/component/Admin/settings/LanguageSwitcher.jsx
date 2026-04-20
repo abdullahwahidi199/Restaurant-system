@@ -3,7 +3,6 @@ import i18n from "i18next";
 function LanguageSwitcher() {
   const handleChange = (e) => {
     i18n.changeLanguage(e.target.value).then(() => {
-      
       window.location.reload();
     });
   };

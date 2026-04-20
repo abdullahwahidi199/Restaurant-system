@@ -1,0 +1,81 @@
+from django.db import models
+from menu.models import MenuItem
+from users.models import Staff
+
+class Ingredient(models.Model):
+    UNIT_CHOICES=[
+        ('kg','Kilogram'),
+        ('g','Gram'),
+        ('l','Liter'),
+        ('ml','Miligram'),
+        ('pcs','Pieces')
+    ]
+
+    name=models.CharField(max_length=100,unique=True)
+    unit=models.CharField(max_length=10,choices=UNIT_CHOICES)
+    quantity_available=models.DecimalField(max_digits=10,decimal_places=3)
+    minimum_threshold=models.DecimalField(max_digits=10,decimal_places=3,default=0)
+    cost_per_unit=models.DecimalField(max_digits=10,decimal_places=2)
+    is_active=models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+    
+class MenuItemIngredient(models.Model):
+    menu_item = models.ForeignKey(
+        MenuItem,
+        on_delete=models.CASCADE,
+        related_name='ingredients'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='menu_items'
+    )
+    quantity_required = models.DecimalField(
+        max_digits=10,
+        decimal_places=3
+    )
+
+    class Meta:
+        unique_together = ('menu_item', 'ingredient')
+
+    def __str__(self):
+        return f"{self.menu_item.name} → {self.ingredient.name}"
+
+
+class StockMovement(models.Model):
+    MOVEMENT_TYPES = [
+        ('purchase', 'Purchase'),
+        ('order', 'Order'),
+        ('adjustment', 'Adjustment'),
+        ('waste', 'Waste'),
+    ]
+
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    change_quantity = models.DecimalField(max_digits=10, decimal_places=3)
+    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
+    related_order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_by = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['movement_type']),
+            models.Index(fields=['ingredient']),
+        ]
+
+    def __str__(self):
+        return f"{self.ingredient.name} ({self.change_quantity})"
+

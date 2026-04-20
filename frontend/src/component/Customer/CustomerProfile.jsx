@@ -3,20 +3,24 @@ import { motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function CustomerProfile() {
   const user = JSON.parse(localStorage.getItem("customer"));
   const navigate = useNavigate();
-  // console.log(user)
+
+  const { t, i18n } = useTranslation();
+
+  const isRTL = i18n.language === "ps" || i18n.language === "fa";
 
   useEffect(() => {
     if (user) {
-      toast.success(`Welcome back, ${user.username}!`, {
+      toast.success(t("profile.welcomeBack", { name: user.username }), {
         duration: 3000,
         position: "top-center",
       });
     } else {
-      toast.error("No user found. Please log in.");
+      toast.error(t("profile.noUser"));
       navigate("/login");
     }
   }, [user, navigate]);
@@ -26,6 +30,7 @@ export default function CustomerProfile() {
   return (
     <motion.div
       className="min-h-screen bg-gradient-to-b from-black via-[#111] to-[#1a1a1a] text-white flex flex-col items-center py-12 px-4"
+      dir={isRTL ? "rtl" : "ltr"}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -53,11 +58,11 @@ export default function CustomerProfile() {
 
         <div className="space-y-4">
           <div className="flex justify-between border-b border-gray-700 pb-2">
-            <span className="text-gray-400">Phone</span>
+            <span className="text-gray-400">{t("profile.phone")}</span>
             <span>{user.phone}</span>
           </div>
           <div className="flex justify-between border-b border-gray-700 pb-2">
-            <span className="text-gray-400">Address</span>
+            <span className="text-gray-400">{t("profile.address")}</span>
             <span>{user.address}</span>
           </div>
         </div>
@@ -67,10 +72,8 @@ export default function CustomerProfile() {
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
         >
-          Customize Profile
+          {t("profile.customize")}
         </motion.button>
-
-        
       </motion.div>
     </motion.div>
   );

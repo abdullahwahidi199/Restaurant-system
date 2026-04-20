@@ -8,7 +8,7 @@ export default function ({
     categoryId,
     onClose,
     onDelete,
-    title,
+    title,  
     message 
 }) {
     

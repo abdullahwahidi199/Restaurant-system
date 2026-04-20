@@ -32,7 +32,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '10.10.10.224',
+    '10.10.10.247',
     'restaurant-backend-baqe.onrender.com',
 ]
 
@@ -52,10 +52,18 @@ INSTALLED_APPS = [
     'reports',
     'users',
     'rest_framework',
+    "channels",
     'corsheaders',
     'system',
+    'otp',
+    'inventory',
     'rest_framework_simplejwt.token_blacklist',
 ]
+
+# ── OTP Configuration ──────────────────────────────────────
+OTP_SMS_BACKEND = 'otp.sms_backends.ConsoleSMSBackend'   # swap to TwilioSMSBackend in prod
+OTP_EXPIRY_MINUTES = 5
+OTP_MAX_ATTEMPTS = 3
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -70,7 +78,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 ROOT_URLCONF = 'backend.urls'
-WSGI_APPLICATION = 'backend.wsgi.application'
+
+ASGI_APPLICATION = "backend.asgi.application"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -96,7 +105,14 @@ TEMPLATES = [
 ]
 
 
-
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 DATABASES = {
     "default": {

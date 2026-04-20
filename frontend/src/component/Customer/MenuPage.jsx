@@ -5,8 +5,10 @@ import MenuDetails from "./MenuDetails";
 import toast, { Toaster } from "react-hot-toast";
 import CheckoutForm from "./CheckoutForm";
 import ReviewItemModel from "./ReviewPage";
+import { useTranslation } from "react-i18next";
 
-export default function MenuPage() {
+export default function MenuPage({ orderingClosed }) {
+  const { t, i18n } = useTranslation();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -15,17 +17,19 @@ export default function MenuPage() {
   const [favorites, setFavorites] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [sortOption, setSortOption] = useState("Default");
+  const [sortOption, setSortOption] = useState(t("menu.sort.default"));
   const [showCart, setShowCart] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showCheckout,setShowCheckout]=useState(false)
-  const [showReviewModel,setShowReviewModel]=useState(false)
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showReviewModel, setShowReviewModel] = useState(false);
   const [reviewItemId, setReviewItemId] = useState(null);
 
-  const user=localStorage.getItem("customer")
-  console.log(user)
-const parsedUser = JSON.parse(localStorage.getItem("customer"));
-const BASE_URL="http://127.0.0.1:8000";
+  const isRTL = i18n.language === "ps" || i18n.language === "fa";
+
+  const user = localStorage.getItem("customer");
+  console.log(user);
+  const parsedUser = JSON.parse(localStorage.getItem("customer"));
+  const BASE_URL = "http://127.0.0.1:8000";
 
   const fetchMenuData = async () => {
     setLoading(true);
@@ -33,25 +37,25 @@ const BASE_URL="http://127.0.0.1:8000";
       const res = await fetch(`${BASE_URL}/menu/categories/`);
       if (!res.ok) throw new Error("Failed to fetch menu data");
       const data = await res.json();
-      console.log(data)
+      console.log(data);
 
       setCategories(["All", ...data.map((cat) => cat.name)]);
 
       const items = data.flatMap((cat) =>
-  cat.menu_items.map((item) => ({
-    ...item,
-    category: cat.name,
-    image: item.image
-      ? item.image.startsWith("http")
-        ? item.image
-        : `${BASE_URL}${item.image}`
-      : "/images/placeholder.png",
-  }))
-);
+        cat.menu_items.map((item) => ({
+          ...item,
+          category: cat.name,
+          image: item.image
+            ? item.image.startsWith("http")
+              ? item.image
+              : `${BASE_URL}${item.image}`
+            : "/images/placeholder.png",
+        })),
+      );
       setMenuItems(items);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load menu data");
+      toast.error(t("menu.messages.load_failed"));
     } finally {
       setLoading(false);
     }
@@ -75,79 +79,79 @@ const BASE_URL="http://127.0.0.1:8000";
 
   const toggleFavorite = (id) => {
     setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id],
     );
   };
 
   const toastRef = useRef(false);
 
-const addToCart = (item) => {
-  const exists = cart.find((i) => i.id === item.id);
+  const addToCart = (item) => {
+    const exists = cart.find((i) => i.id === item.id);
 
-  if (!exists && !toastRef.current) {
-    toast.success(`${item.name} added to cart 🛒`);
-    toastRef.current = true;
-    setTimeout(() => (toastRef.current = false), 500);
-  }
+    if (!exists && !toastRef.current) {
+      toast.success(`${item.name} ${t("menu.messages.added")}`);
+      toastRef.current = true;
+      setTimeout(() => (toastRef.current = false), 500);
+    }
 
-  setCart((prev) =>
-    exists
-      ? prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
-      : [...prev, { ...item, qty: 1 }]
-  );
-};
+    setCart((prev) =>
+      exists
+        ? prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i))
+        : [...prev, { ...item, qty: 1 }],
+    );
+  };
 
   const removeFromCart = (id) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
- 
-const handleCheckout = () => {
-  if (cart.length === 0) return toast.error("Your cart is empty!");
-  setShowCheckout(true);
-};
-
-const handlePlaceOrder = async (data) => {
-  const user = JSON.parse(localStorage.getItem("customer"));
-  console.log(user)
-  const orderData = {
-    customer:user?user.id:null,
-    name: data.name,
-    phone: data.phone,
-    address: data.address,
-    order_type: "delivery",
-    items: cart.map((item) => ({
-      menu_item: item.id,
-      quantity: item.qty,
-    })),
+  const handleCheckout = () => {
+    if (cart.length === 0) return toast.error(t("menu.messages.empty_cart"));
+    setShowCheckout(true);
   };
 
-  try {
-    const res = await fetch(`${BASE_URL}/orders/orders/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(user?.access ? { Authorization: `Bearer ${user.access}` } : {}),
-      },
-      body: JSON.stringify(orderData),
-    });
+  const handlePlaceOrder = async (data) => {
+    const user = JSON.parse(localStorage.getItem("customer"));
+    console.log(user);
+    const orderData = {
+      customer: user ? user.id : null,
+      name: data.name,
+      phone: data.phone,
+      address: data.address,
+      order_type: "delivery",
+      items: cart.map((item) => ({
+        menu_item: item.id,
+        quantity: item.qty,
+      })),
+    };
 
-    const result = await res.json();
+    try {
+      const res = await fetch(`${BASE_URL}/orders/orders/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(user?.access ? { Authorization: `Bearer ${user.access}` } : {}),
+        },
+        body: JSON.stringify(orderData),
+      });
 
-    if (res.ok) {
-      toast.success("Order placed successfully!");
-      setOrders((prev) => [...prev, ...cart]);
-      setCart([]);
-      setShowCart(false);
-      setShowCheckout(false);
-    } else {
-      toast.error(result.error || "Failed to place order");
+      const result = await res.json();
+
+      if (res.ok) {
+        toast.success(t("menu.messages.order_success"));
+        setOrders((prev) => [...prev, ...cart]);
+        setOrders((prev) => [...prev, ...cart]);
+        setCart([]);
+        setShowCart(false);
+        setShowCheckout(false);
+      } else {
+        toast.error(result.error || "Failed to place order");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(result.error || t("menu.messages.order_failed"));
     }
-  } catch (err) {
-    console.error(err);
-    toast.error("Error while placing order");
-  }
-};
+  };
 
   const filteredItems = menuItems
     .filter((item) => {
@@ -159,41 +163,40 @@ const handlePlaceOrder = async (data) => {
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
-      if (sortOption === "Price: Low to High")
+      if (sortOption === t("menu.sort.low_high"))
         return parseFloat(a.price) - parseFloat(b.price);
-      if (sortOption === "Price: High to Low")
+      if (sortOption === t("menu.sort.high_low"))
         return parseFloat(b.price) - parseFloat(a.price);
       return 0;
     });
 
-    console.log(filteredItems)
+  console.log(filteredItems);
   const fetchSelectedItem = async (id) => {
     const response = await fetch(`${BASE_URL}/menu/menu-items/${id}/`);
     const data = await response.json();
     setSelectedItem(data);
   };
   const increaseQty = (id) => {
-  setCart((prev) =>
-    prev.map((item) =>
-      item.id === id ? { ...item, qty: item.qty + 1 } : item
-    )
-  );
-};
+    setCart((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, qty: item.qty + 1 } : item,
+      ),
+    );
+  };
 
-const decreaseQty = (id) => {
-  setCart((prev) =>
-    prev
-      .map((item) =>
-        item.id === id ? { ...item, qty: item.qty - 1 } : item
-      )
-      .filter((item) => item.qty > 0)
-  );
-};
-
-  
+  const decreaseQty = (id) => {
+    setCart((prev) =>
+      prev
+        .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
+        .filter((item) => item.qty > 0),
+    );
+  };
 
   return (
-    <div className="bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white min-h-screen px-6 py-12 font-sans">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white min-h-screen px-6 py-12 font-sans"
+    >
       <Toaster position="bottom-center" />
 
       <motion.div
@@ -203,20 +206,20 @@ const decreaseQty = (id) => {
         className="text-center mb-12"
       >
         <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-4">
-          Delivery of <span className="text-white">fresh</span>{" "}
-          <span className="text-red-500">hot food</span>
+          {t("menu.hero.title_1")}{" "}
+          <span className="text-white">{t("menu.hero.title_2")}</span>{" "}
+          <span className="text-red-500">{t("menu.hero.title_3")}</span>
           <br />
-          within 40 minutes
+          {t("menu.hero.title_4")}
         </h1>
-        <p className="text-gray-400 text-lg">
-          Taste the difference. Made with passion, served with love.
-        </p>
+
+        <p className="text-gray-400 text-lg">{t("menu.hero.subtitle")}</p>
       </motion.div>
 
       <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-10">
         <input
           type="text"
-          placeholder="Search menu..."
+          placeholder={t("menu.search")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full md:w-1/2 bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-full px-5 py-3 focus:ring-2 focus:ring-red-500 focus:outline-none placeholder-gray-400"
@@ -226,13 +229,12 @@ const decreaseQty = (id) => {
           onChange={(e) => setSortOption(e.target.value)}
           className="bg-[#1a1a1a] border border-gray-700 text-gray-100 rounded-full px-5 py-3 focus:ring-2 focus:ring-red-500 focus:outline-none"
         >
-          <option>Default</option>
-          <option>Price: Low to High</option>
-          <option>Price: High to Low</option>
+          <option>{t("menu.sort.default")}</option>
+          <option>{t("menu.sort.low_high")}</option>
+          <option>{t("menu.sort.high_low")}</option>
         </select>
       </div>
 
-      
       <div className="relative w-full mb-14">
         <div className="flex justify-start gap-10 border-b border-gray-700 pb-2 relative">
           {categories.map((cat) => (
@@ -256,7 +258,7 @@ const decreaseQty = (id) => {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-400">Loading menu...</p>
+        <p className="text-center text-gray-400">{t("menu.loading")}</p>
       ) : (
         <motion.div
           initial="hidden"
@@ -273,7 +275,7 @@ const decreaseQty = (id) => {
                 item.reviews.length > 0
                   ? item.reviews.reduce(
                       (sum, review) => sum + review.rating,
-                      0
+                      0,
                     ) / item.reviews.length
                   : 0;
 
@@ -287,7 +289,7 @@ const decreaseQty = (id) => {
                   {!item.is_available && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-3xl z-20">
                       <p className="text-red-500 font-bold text-lg">
-                        Unavailable
+                        {t("menu.unavailable")}
                       </p>
                     </div>
                   )}
@@ -298,12 +300,14 @@ const decreaseQty = (id) => {
                         onClick={() => setReviewItemId(item.id)}
                         className="text-blue-300 cursor-pointer underline"
                       >
-                        Rate
+                        {t("menu.rate")}
                       </button>
                     )}
 
                     <div
-                      className="absolute top-4 right-4 cursor-pointer z-30"
+                      className={`absolute top-4 ${
+                        isRTL ? "left-4" : "right-4"
+                      } cursor-pointer z-30`}
                       onClick={() => toggleFavorite(item.id)}
                     >
                       <Heart
@@ -337,7 +341,6 @@ const decreaseQty = (id) => {
                       AFN {parseFloat(item.price).toFixed(2)}
                     </p>
 
-                    
                     <div className="flex items-center justify-center gap-1 mb-3">
                       {item.reviews.length > 0 ? (
                         <>
@@ -359,7 +362,7 @@ const decreaseQty = (id) => {
                         </>
                       ) : (
                         <p className="text-gray-500 text-sm italic">
-                          No reviews yet
+                          {t("menu.no_reviews")}
                         </p>
                       )}
                     </div>
@@ -367,7 +370,7 @@ const decreaseQty = (id) => {
 
                   <button
                     onClick={() => addToCart(item)}
-                    disabled={!item.is_available}
+                    disabled={!item.is_available || orderingClosed}
                     className={`mt-2 w-full font-semibold py-2 rounded-full transition-all duration-300 ${
                       item.is_available
                         ? "bg-red-500 hover:bg-red-600 text-white"
@@ -376,26 +379,27 @@ const decreaseQty = (id) => {
                   >
                     {item.is_available
                       ? cart.find((i) => i.id === item.id)
-                        ? "Add more"
-                        : "Add to Cart"
-                      : "Unavailable"}
+                        ? t("menu.buttons.add_more")
+                        : t("menu.buttons.add")
+                      : t("menu.unavailable")}
                   </button>
                 </motion.div>
               );
             })
           ) : (
             <p className="text-gray-400 col-span-full text-center mt-10">
-              No menu items found.
+              {t("menu.no_items")}
             </p>
           )}
         </motion.div>
       )}
-       
 
       <motion.button
         whileHover={{ scale: 1.1 }}
         onClick={() => setShowCart(true)}
-        className="fixed bottom-6 right-6 bg-red-500 text-white p-4 rounded-full shadow-lg hover:bg-red-600 transition z-50"
+        className={`fixed bottom-6 ${
+          isRTL ? "left-6" : "right-6"
+        } bg-red-500 text-white p-4 rounded-full shadow-lg z-50`}
       >
         <ShoppingCart size={22} />
         {cart.length > 0 && (
@@ -406,16 +410,20 @@ const decreaseQty = (id) => {
       </motion.button>
 
       <AnimatePresence>
-        {showCart && (
+        {showCart && !orderingClosed && (
           <motion.div
-            initial={{ x: "100%" }}
+            initial={{ x: isRTL ? "-100%" : "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            exit={{ x: isRTL ? "-100%" : "100%" }}
             transition={{ type: "spring", stiffness: 80 }}
-            className="fixed top-0 right-0 w-80 md:w-96 h-full bg-[#111] border-l border-[#222] shadow-2xl p-5 z-50 flex flex-col"
+            className={`fixed top-0 ${
+              isRTL ? "left-0 border-r" : "right-0 border-l"
+            } w-80 md:w-96 h-full bg-[#111] border-[#222] shadow-2xl p-5 z-50 flex flex-col`}
           >
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-2xl font-bold text-white">Your Cart</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {t("menu.cart.title")}
+              </h2>
               <X
                 onClick={() => setShowCart(false)}
                 className="cursor-pointer text-gray-400 hover:text-white"
@@ -425,7 +433,7 @@ const decreaseQty = (id) => {
             <div className="flex-1 overflow-y-auto space-y-4">
               {cart.length === 0 ? (
                 <p className="text-gray-400 text-center mt-20">
-                  Your cart is empty.
+                  {t("menu.cart.empty")}
                 </p>
               ) : (
                 cart.map((item) => (
@@ -435,28 +443,31 @@ const decreaseQty = (id) => {
                   >
                     <div>
                       <p className="font-semibold text-white">{item.name}</p>
-                      <div className="text-gray-400 text-sm flex items-center gap-3">
-  <button
-    onClick={() => decreaseQty(item.id)}
-    className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
-  >
-    -
-  </button>
+                      <div
+                        className={`text-gray-400 text-sm flex items-center gap-3 ${
+                          isRTL ? "flex-row-reverse" : ""
+                        }`}
+                      >
+                        <button
+                          onClick={() => decreaseQty(item.id)}
+                          className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
+                        >
+                          -
+                        </button>
 
-  <span>{item.qty}</span>
+                        <span>{item.qty}</span>
 
-  <button
-    onClick={() => increaseQty(item.id)}
-    className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
-  >
-    +
-  </button>
+                        <button
+                          onClick={() => increaseQty(item.id)}
+                          className="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600"
+                        >
+                          +
+                        </button>
 
-  <span className="ml-2">
-    × AFN {parseFloat(item.price).toFixed(2)}
-  </span>
-</div>
-
+                        <span className="ml-2">
+                          × AFN {parseFloat(item.price).toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                     <Trash2
                       onClick={() => removeFromCart(item.id)}
@@ -470,13 +481,13 @@ const decreaseQty = (id) => {
             {cart.length > 0 && (
               <div className="mt-5 border-t border-gray-700 pt-4">
                 <p className="text-lg font-bold flex justify-between">
-                  Total:
+                  {t("menu.cart.total")}:
                   <span>
                     AFN
                     {cart
                       .reduce(
                         (acc, item) => acc + item.qty * parseFloat(item.price),
-                        0
+                        0,
                       )
                       .toFixed(2)}
                   </span>
@@ -485,7 +496,7 @@ const decreaseQty = (id) => {
                   onClick={handleCheckout}
                   className="mt-4 w-full py-3 rounded-full bg-red-500 hover:bg-red-600 font-bold transition"
                 >
-                  Checkout
+                  {t("menu.cart.checkout")}
                 </button>
               </div>
             )}
@@ -494,21 +505,27 @@ const decreaseQty = (id) => {
       </AnimatePresence>
 
       {selectedItem && (
-        <MenuDetails item={selectedItem} onClose={() => setSelectedItem(null)} />
+        <MenuDetails
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
       {showCheckout && (
-  <CheckoutForm
-    user={JSON.parse(localStorage.getItem('customer'))}
-    onSubmit={handlePlaceOrder}
-    onClose={() => setShowCheckout(false)}
-  />
-)}
-<div>
-                    {reviewItemId&&(
-                    <ReviewItemModel user={user.id} itemId={reviewItemId} onClose={()=>setReviewItemId(null)}/>
-                  )}
-                  </div>
-
+        <CheckoutForm
+          user={JSON.parse(localStorage.getItem("customer"))}
+          onSubmit={handlePlaceOrder}
+          onClose={() => setShowCheckout(false)}
+        />
+      )}
+      <div>
+        {reviewItemId && (
+          <ReviewItemModel
+            user={user.id}
+            itemId={reviewItemId}
+            onClose={() => setReviewItemId(null)}
+          />
+        )}
+      </div>
     </div>
   );
 }

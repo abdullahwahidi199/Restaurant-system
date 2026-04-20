@@ -9,7 +9,7 @@ export default function RestaurantSettings() {
   const [loading, setLoading] = useState(true);
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  
+
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
@@ -24,20 +24,20 @@ export default function RestaurantSettings() {
     fetchRestaurant();
   }, []);
 
-   if (loading) return <p>{t("loading")}</p>;
+  if (loading) return <p>{t("loading")}</p>;
   if (!restaurant) return <p>{t("restaurant_not_found")}</p>;
 
- return (
-  <div
-    className="max-w-4xl mx-auto p-6 bg-white shadow-xl rounded-2xl"
-    dir={isRTL ? "rtl" : "ltr"}
-  >
-    <div className="flex justify-between items-center mb-6">
-      <h1 className="text-2xl font-bold">{t("restaurant_settings")}</h1>
-      <LanguageSwitcher />
-    </div>
+  return (
+    <div
+      className="max-w-4xl mx-auto p-6 bg-white shadow-xl rounded-2xl"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{t("restaurant_settings")}</h1>
+        <LanguageSwitcher />
+      </div>
 
-    <RestaurantForm restaurant={restaurant} />
-  </div>
-);
+      <RestaurantForm restaurant={restaurant} />
+    </div>
+  );
 }

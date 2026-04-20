@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import  Category, MenuItem,Review
 from customers.models import Customer
 from django.utils import timezone
+from inventory.serializers import MenuItemIngredientSerializer
 
 class ReveiwMiniSerializer(serializers.ModelSerializer):
     customer=serializers.CharField(source="customer.user.username",read_only=True)
@@ -50,7 +51,15 @@ class ReveiwSerializer(serializers.ModelSerializer):
 class MenuItemSerializer(serializers.ModelSerializer):
     
     reviews=ReveiwMiniSerializer(read_only=True,many=True)
+    ingredients=MenuItemIngredientSerializer(many=True,read_only=True)
+
+    cost_per_unit = serializers.SerializerMethodField()
+    profit_per_unit = serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category','reviews']
+        fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category','reviews','ingredients','cost_per_unit','profit_per_unit']
 
+    def get_cost_per_unit(self, obj):
+        return obj.get_cost_per_unit()
+    def get_profit_per_unit(self, obj):
+        return obj.get_profit_per_unit()

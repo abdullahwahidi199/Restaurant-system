@@ -44,7 +44,7 @@ class CategoryRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([AllowAny])
 def menu_item_list_create_view(request):
     if request.method=="GET":
-        menu_items=MenuItem.objects.prefetch_related('reviews').select_related('category').all()
+        menu_items=MenuItem.objects.prefetch_related('reviews').prefetch_related('ingredients').select_related('category').all()
         serializer=MenuItemSerializer(menu_items,many=True)
         return Response(serializer.data)
     elif request.method=="POST":

@@ -3,14 +3,17 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 
 export default function OrderFilters({ filters, setFilters, onSearch }) {
-  const {t}=useTranslation()
+  const { t } = useTranslation();
   const handleChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
-   const isRTL = i18n.language === "fa" || i18n.language === "ps";
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   return (
-    <div className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3" dir={isRTL ? "rtl" : "ltr"}>
+    <div
+      className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
       <div className="flex items-center gap-2">
         <Search size={18} />
         <input

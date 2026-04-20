@@ -2,20 +2,25 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
+export default function ReviewItemModel({
+  itemId = "",
+  onClose,
+  deliveryId = "",
+}) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
-  const user=JSON.parse(localStorage.getItem("customer"))
- 
-  
+  const user = JSON.parse(localStorage.getItem("customer"));
 
- const BASE_URL="http://127.0.0.1:8000";
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === "ps" || i18n.language === "fa";
+  const BASE_URL = "http://127.0.0.1:8000";
 
   const handleSubmit = async () => {
-    if (!rating) return toast.error("Please select a rating!");
-    if (!user) return toast.error("You must sign up before u rate item!")
+    if (!rating) return toast.error(t("review.errors.select_rating"));
+    if (!user) return toast.error(t("review.errors.auth_required"));
     setLoading(true);
     try {
       const res = await fetch(`${BASE_URL}/menu/reviews/`, {
@@ -27,7 +32,7 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
         body: JSON.stringify({
           customer: user.id,
           menu_item: itemId,
-          delivery:deliveryId,
+          delivery: deliveryId,
           rating: rating,
           comment: comment,
         }),
@@ -35,16 +40,16 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
 
       const result = await res.json();
       if (res.ok) {
-        toast.success("Review submitted successfully!");
+        toast.success(t("review.success"));
         setRating(0);
         setComment("");
         onClose();
       } else {
-        toast.error(result.error || "Failed to submit review");
+        toast.error(result.error || t("review.errors.submit_failed"));
       }
     } catch (err) {
       console.error(err);
-      toast.error("Error while submitting review");
+      toast.error(t("review.errors.submit_error"));
     } finally {
       setLoading(false);
     }
@@ -59,6 +64,7 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          dir={isRTL ? "rtl" : "ltr"}
         >
           <motion.div
             initial={{ scale: 0.8 }}
@@ -69,9 +75,11 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
           >
             <X
               onClick={onClose}
-              className="absolute top-4 right-4 cursor-pointer text-gray-400 hover:text-red-500"
+              className={`absolute top-4 right-4 cursor-pointer text-gray-400 hover:text-red-500  isRTL ? "left-4" : "right-4"`}
             />
-            <h2 className="text-2xl font-bold mb-4 text-center">Leave a Review</h2>
+            <h2 className="text-2xl font-bold mb-4 text-center">
+              {t("review.title")}
+            </h2>
 
             <div className="mb-4 flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -90,7 +98,7 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Write your comment..."
+              placeholder={t("review.comment_placeholder")}
               className="w-full bg-[#1a1a1a] rounded-lg p-3 text-white placeholder-gray-400 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
               rows={4}
             />
@@ -100,7 +108,7 @@ export default function ReviewItemModel({  itemId='', onClose,deliveryId='' }) {
               disabled={loading}
               className="w-full py-3 bg-red-500 hover:bg-red-600 rounded-full font-bold transition disabled:opacity-50"
             >
-              {loading ? "Submitting..." : "Submit Review"}
+              {loading ? t("review.submitting") : t("review.submit")}
             </button>
           </motion.div>
         </motion.div>

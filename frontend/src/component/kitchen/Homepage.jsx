@@ -3,27 +3,32 @@ import FilterBar from "./FilterBar";
 import OrderCard from "./OrderCard";
 import MetricsBar from "./MetricsBar";
 import instance from "../../api/axiosInstance";
-import { Users } from "lucide-react";
+import useOrdersSocket from "../../hooks/useOrdersSocket";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error,setError]=useState(null)
+  const [error, setError] = useState(null);
 
-  console.log(orders)
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
   const [activeStatusTab, setActiveStatusTab] = useState("pending");
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await instance.get("/orders/orders/");
-      const data =res.data
-      setOrders(data);
+
+      const res = await instance.get("/orders/kitchen-orders/", {
+        params: {
+          order_type: activeTypeTab,
+          status: activeStatusTab,
+          search: search || undefined,
+        },
+      });
+
+      setOrders(res.data);
     } catch (error) {
-      console.error("Error fetching orders:", error);
-      setError(error.message)
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -31,23 +36,40 @@ export default function KitchenHomepage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
-
-
-  const allowedStatuses = {
-    "dine-in": ["pending", "in_progress", "ready"],
-    takeaway: ["pending", "in_progress", "ready"],
-    delivery: ["pending", "in_progress", "ready"],
-  };
+  }, [activeTypeTab, activeStatusTab]);
 
   const filteredOrders = orders.filter((order) => {
+    const query = search.toLowerCase();
+
     return (
-      order.order_type === activeTypeTab &&
-      allowedStatuses[order.order_type].includes(order.status) &&
-      (activeStatusTab === "all" || order.status === activeStatusTab) &&
-      (!search || order.name.toLowerCase().includes(search.toLowerCase()))
+      order.name?.toLowerCase().includes(query) ||
+      order.phone?.toLowerCase().includes(query)
     );
   });
+
+  const handleMessage = (msg) => {
+    if (!msg?.order) return;
+
+    const incoming = msg.order;
+
+    setOrders((prev) => {
+      if (incoming.status === "served") {
+        return prev.filter((o) => o.id !== incoming.id);
+      }
+
+      const idx = prev.findIndex((o) => o.id === incoming.id);
+
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = incoming;
+        return copy;
+      }
+
+      return [incoming, ...prev];
+    });
+  };
+
+  useOrdersSocket(handleMessage);
 
   const typeTabs = [
     { key: "dine-in", label: "🍽️ Dine-In" },
@@ -59,24 +81,13 @@ export default function KitchenHomepage() {
     { key: "all", label: "All" },
     { key: "pending", label: "Pending" },
     { key: "in_progress", label: "In Progress" },
-    { key: "ready", label: activeTypeTab === "delivery" ? "Ready for Pickup" : "Ready" },
+    { key: "ready", label: "Ready" },
   ];
 
-
-  const hasPending = {
-    "dine-in": orders.some((o) => o.order_type === "dine-in" && o.status === "pending"),
-    takeaway: orders.some((o) => o.order_type === "takeaway" && o.status === "pending"),
-    delivery: orders.some((o) => o.order_type === "delivery" && o.status === "pending"),
-  };
-
-  // console.log(hasPending["delivery"])
   if (loading)
     return <p className="text-center py-6 text-gray-500">Loading orders...</p>;
-  if (error){
-    return(
-      <p>{error}</p>
-    )
-  }
+
+  if (error) return <p>{error}</p>;
 
   return (
     <div className="p-4 min-h-screen bg-gray-50">
@@ -89,46 +100,40 @@ export default function KitchenHomepage() {
             placeholder="Search customer or order..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full sm:w-1/2 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full sm:w-1/2 px-4 py-2 rounded-lg border"
           />
         </div>
 
-
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-
-          <div className="flex bg-white shadow-sm border border-gray-200 rounded-full overflow-hidden">
+        <div className="flex justify-between">
+          <div className="flex bg-white shadow-sm rounded-full overflow-hidden">
             {typeTabs.map((tab) => (
-              <div key={tab.key} className="relative">
-                {hasPending[tab.key] && (
-                  <span className="absolute top-2 right-2 w-2.5 z-10 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
-                )}
-
-                <button
-                  onClick={() => {
-                    setActiveTypeTab(tab.key);
-                    setActiveStatusTab("all");
-                  }}
-                  className={`relative px-5 py-2 text-sm font-medium transition-all duration-300 ${activeTypeTab === tab.key
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                >
-                  {tab.label}
-                </button>
-              </div>
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTypeTab(tab.key);
+                  setActiveStatusTab("pending");
+                }}
+                className={`px-5 py-2 ${
+                  activeTypeTab === tab.key
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600"
+                }`}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
 
-
-          <div className="flex bg-white shadow-sm border border-gray-200 rounded-full overflow-hidden">
+          <div className="flex bg-white shadow-sm rounded-full overflow-hidden">
             {statusTabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveStatusTab(tab.key)}
-                className={`px-4 py-2 text-sm font-medium transition-all duration-300 ${activeStatusTab === tab.key
-                  ? "bg-green-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                className={`px-4 py-2 ${
+                  activeStatusTab === tab.key
+                    ? "bg-green-600 text-white"
+                    : "text-gray-600"
+                }`}
               >
                 {tab.label}
               </button>
@@ -136,11 +141,8 @@ export default function KitchenHomepage() {
           </div>
         </div>
 
-
         {filteredOrders.length === 0 ? (
-          <p className="text-gray-400 italic text-center py-8">
-            No {activeTypeTab} orders in {activeStatusTab} status.
-          </p>
+          <p className="text-center text-gray-400">No orders found.</p>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOrders.map((order) => (

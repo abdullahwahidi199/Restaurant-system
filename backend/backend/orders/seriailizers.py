@@ -6,27 +6,35 @@ from customers.models import Customer
 from users.models import Staff
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    item_name=serializers.ReadOnlyField(source='menu_item.name')
-    item_price=serializers.ReadOnlyField(source='menu_item.price')
-    subtotal=serializers.SerializerMethodField()
+    item_name = serializers.ReadOnlyField(source='menu_item.name')
+    item_price = serializers.SerializerMethodField()
+    subtotal = serializers.SerializerMethodField()
     table_number = serializers.ReadOnlyField(source="order.table.number")
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'item_name', 'item_price', 'quantity', 'subtotal','table_number','is_new']
+        fields = [
+            'id', 'menu_item', 'item_name',
+            'item_price', 'quantity',
+            'subtotal', 'table_number', 'is_new'
+        ]
+
+    def get_item_price(self, obj):
+        return str(obj.menu_item.price)  
 
     def get_subtotal(self, obj):
-        return obj.get_subtotal()
+        return str(obj.get_subtotal()) 
 
 class OrderMiniSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     total = serializers.SerializerMethodField()
+
     class Meta:
-        model=Order
-        fields=['name','phone','items','total','id','status']
-    
+        model = Order
+        fields = ['name', 'phone', 'items', 'total', 'id', 'status']
+
     def get_total(self, obj):
-        return obj.get_total()
+        return str(obj.get_total())
 
 class DeliveryBoyMiniSerializer(serializers.ModelSerializer):
     class Meta:
@@ -86,7 +94,7 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at', 'total']
 
     def get_total(self, obj):
-        return obj.get_total()
+        return str(obj.get_total())
     def validate(self, data):
         if data.get('order_type') == 'dine-in' and not data.get('table'):
             raise serializers.ValidationError("A dine-in order must have a table.")
@@ -94,8 +102,8 @@ class OrderSerializer(serializers.ModelSerializer):
     
 
     
-    def create(self,validated_data):
-        items=validated_data.pop('items',[])
+    def create(self, validated_data):
+        items = validated_data.pop('items', [])
         request = self.context.get('request')   
         if request and request.user.is_authenticated:
             try:
@@ -105,10 +113,13 @@ class OrderSerializer(serializers.ModelSerializer):
                 validated_data.setdefault('phone', customer.phone)
             except Customer.DoesNotExist:
                 pass 
-                
-        order=Order.objects.create(**validated_data)
+                    
+        order = Order.objects.create(**validated_data)
 
         for item in items:
-            OrderItem.objects.create(order=order,**item)
+            OrderItem.objects.create(order=order, **item)
+
+        # REFRESH the order instance to include the newly created items
+        # order.refresh_from_db()
 
         return order

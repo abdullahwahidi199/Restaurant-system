@@ -1,7 +1,9 @@
 from django.db import models
 from customers.models import Customer
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 # from orders.models import Order
 
+from decimal import Decimal
 
 class Category(models.Model):
     
@@ -29,6 +31,20 @@ class MenuItem(models.Model):
     def mark_available(self):
         self.is_available = True
         self.save()
+    def get_cost_per_unit(self):
+        return (
+            self.ingredients.aggregate(
+                total=Sum(
+                    ExpressionWrapper(
+                        F("quantity_required") * F("ingredient__cost_per_unit"),
+                        output_field=DecimalField(max_digits=10, decimal_places=2)
+                    )
+                )
+            )["total"] or 0
+        )
+    def get_profit_per_unit(self):
+        cost=self.get_cost_per_unit()
+        return Decimal(self.price) - Decimal(cost)
 
 
 

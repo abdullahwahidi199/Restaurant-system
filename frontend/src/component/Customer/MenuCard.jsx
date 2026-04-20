@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 
 export default function MenuCard({ item, onClick }) {
-    // console.log(item)
+    
     return (
         <motion.div
             onClick={onClick}

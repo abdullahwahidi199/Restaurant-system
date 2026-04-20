@@ -3,6 +3,7 @@ from menu.models import MenuItem
 from users.models import Staff
 from django.utils import timezone
 from datetime import timedelta
+from inventory.services import deduct_stock_for_order
 class Table(models.Model):
     STATUS_CHOICES = [
         ('available', 'Available'),
@@ -33,7 +34,7 @@ class Order(models.Model):
     # then this served order will be shown in cashier UI meaning Cashier will only see orders with served status if the type is dine-in
     # and once he prints the bill the status will become comleted
 
-    #2. if the order is takeaway, once the order is created maybe be a watier or a specific device, the status will be pending and will be shown in the kitchen
+    #2. if the order is takeaway, once the order is created maybe be a cashier or a specific device, the status will be pending and will be shown in the kitchen
     # UI and they will mark it in progress and ready respectively, once ready the waiter takes the order to the cashier and tell the customer to pay the 
     # bill and get his order, when the cashier prints the bill for him the status will become picked up and once it is confirmed it will be marked completed 
     # meaning cashier will only see the orders with ready status if the type is takeaway
@@ -50,7 +51,7 @@ class Order(models.Model):
     ('in_progress', 'In Progress'),
     ('ready', 'Ready'),
     ('completed', 'Completed'),
-
+    ('cancelled', 'Cancelled'),
     # Dine-in specific
     ('served', 'Served'),
     
@@ -71,9 +72,10 @@ class Order(models.Model):
     )
     order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES)
     name = models.CharField(max_length=100)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=15,null=True,blank=True)
     preparation_start = models.DateTimeField(null=True, blank=True)
     preparation_end = models.DateTimeField(null=True, blank=True)
+    stock_deducted = models.BooleanField(default=False)
     address = models.TextField(blank=True)
     table = models.ForeignKey(
         'Table', on_delete=models.SET_NULL,
@@ -112,17 +114,21 @@ class Order(models.Model):
         return None
 
     def save(self, *args, **kwargs):
+ 
+        old_status = None
         if self.pk:
-            old_status=Order.objects.filter(pk=self.pk).values_list('status',flat=True).first()
-            if old_status !=self.status:
-                if self.status == 'in_progress' and not self.preparation_start:
-                    self.preparation_start = timezone.now()
-                elif self.status == 'ready' and not self.preparation_end:
-                    self.preparation_end = timezone.now()
+            old_status = Order.objects.filter(
+                pk=self.pk
+            ).values_list('status', flat=True).first()
 
-    # --- Enforce only one current order per table ---
-        if self.table and self.status != 'completed':
-            # Check if there’s another active order for the same table
+        if old_status != self.status:
+            if self.status == 'in_progress' and not self.preparation_start:
+                self.preparation_start = timezone.now()
+            elif self.status == 'ready' and not self.preparation_end:
+                self.preparation_end = timezone.now()
+
+      
+        if self.table and self.status not in ['completed', 'cancelled']:
             active_orders = Order.objects.filter(
                 table=self.table,
                 status__in=['pending', 'in_progress', 'ready', 'served']
@@ -130,21 +136,32 @@ class Order(models.Model):
 
             if active_orders.exists():
                 raise ValueError(
-                    f"Table {self.table.number} already has an active order (#{active_orders.first().id}). "
-                    "Complete or remove it before creating a new one."
+                    f"Table {self.table.number} already has an active order "
+                    f"(#{active_orders.first().id})."
                 )
 
-            # Table should be occupied if there’s a current order
             self.table.status = 'occupied'
 
-        elif self.table and self.status == 'completed':
-            # When order completes, table becomes available
+        elif self.table and self.status in ['completed', 'cancelled']:
             self.table.status = 'available'
+            print("became available")
 
-        # Save order first, then table status
+        
         super().save(*args, **kwargs)
+
+        
         if self.table:
             self.table.save(update_fields=['status'])
+        
+        if (
+        old_status != self.status
+        and self.status == 'in_progress'
+        and not self.stock_deducted
+    ):
+            deduct_stock_for_order(self)
+            self.stock_deducted = True
+            super().save(update_fields=['stock_deducted'])
+
 
 
 
@@ -153,6 +170,7 @@ class OrderItem(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
+    description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.menu_item.name} x {self.quantity}"

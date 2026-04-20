@@ -1,13 +1,10 @@
 // src/api/auth.jsx
 import axios from "axios";
 
- 
-
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000"
+  baseURL: "http://127.0.0.1:8000",
 });
 const API_URL = "http://127.0.0.1:8000";
-
 
 export const refreshToken = async () => {
   const refresh = localStorage.getItem("refresh_token");
@@ -21,11 +18,10 @@ export const refreshToken = async () => {
     return res.data.access;
   } catch (err) {
     console.error("Token refresh failed:", err);
-    logoutCustomer(); 
+    logoutCustomer();
     return null;
   }
 };
-
 
 api.interceptors.request.use(async (config) => {
   let token = localStorage.getItem("access_token");
@@ -48,14 +44,13 @@ api.interceptors.response.use(
       const newToken = await refreshToken();
       if (newToken) {
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest); 
+        return api(originalRequest);
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
-
 
 export const signupCustomer = async (data) => {
   return await api.post("/customer/signup/", data);
@@ -70,10 +65,9 @@ export const getProfile = async () => {
 };
 
 export const logoutCustomer = () => {
-  localStorage.removeItem("customer")
+  localStorage.removeItem("customer");
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
-  
 };
 
 export default api;

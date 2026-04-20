@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import OrderStats from "./OrderStats";
 import OrderFilters from "./OrderFilters";
 import OrdersTable from "./OrdersTable";
@@ -8,33 +8,47 @@ import useOrdersSocket from "../../../hooks/useOrdersSocket";
 import { ClipboardList, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
+import OrderCancellationToast from "../../OrderCancellationToast";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [count, setCount] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const {t}=useTranslation()
+  const [showCancelToast, setShowCancelToast] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
+  const { t } = useTranslation();
   const [filters, setFilters] = useState({
     search: "",
     status: "",
     start_date: "",
     end_date: "",
   });
+  const role = JSON.parse(localStorage.getItem("user"))?.role;
 
-  const fetchOrders = async () => {
-    let query = new URLSearchParams(filters).toString();
+  const fetchOrders = async (pageNumber = 1) => {
+    let query = new URLSearchParams({
+      ...filters,
+      page: pageNumber,
+    }).toString();
     const res = await instance.get(`/orders/orders/?${query}`);
-    const data = res.data
-    setOrders(data);
-    console.log(data)
+    const data = res.data;
+
+    setOrders(data.results);
+    setCount(data.count);
+    setPage(pageNumber);
+    setTotalPages(Math.ceil(data.count / 10));
   };
 
   const handleWsMessage = (msg) => {
-    // msg: { type, action, order }
-     console.log("WS message received:", msg);
+    console.log("WS message received:", msg);
+
     if (!msg || !msg.order) return;
     const incoming = msg.order;
+
     setOrders((prev) => {
-      // if order exists, replace; else add to top
       const idx = prev.findIndex((o) => o.id === incoming.id);
       if (idx >= 0) {
         const copy = [...prev];
@@ -50,27 +64,36 @@ export default function OrdersPage() {
     fetchOrders();
   }, []);
 
+  const handleCancelClick = (order) => {
+    setOrderToCancel(order);
+    setShowCancelToast(true);
+  };
+  const cancelOrder = async (id) => {
+    await instance.patch(`/orders/${id}/cancel/`);
+    fetchOrders();
+  };
+
   const stats = [
     {
       label: t("stats.total_orders"),
       value: orders.length,
-      icon: <ClipboardList className="w-8 h-8 text-blue-500" />
+      icon: <ClipboardList className="w-8 h-8 text-blue-500" />,
     },
     {
       label: t("stats.pending"),
-      value: orders.filter(o => o.status === "pending").length,
-      icon: <Clock className="w-8 h-8 text-yellow-500" />
+      value: orders.filter((o) => o.status === "pending").length,
+      icon: <Clock className="w-8 h-8 text-yellow-500" />,
     },
     {
       label: t("stats.completed"),
-      value: orders.filter(o => o.status === "completed").length,
-      icon: <CheckCircle className="w-8 h-8 text-green-500" />
+      value: orders.filter((o) => o.status === "completed").length,
+      icon: <CheckCircle className="w-8 h-8 text-green-500" />,
     },
     {
       label: t("stats.revenue"),
-      value: orders.reduce((sum, o) => sum + o.total, 0),
-      icon: <DollarSign className="w-8 h-8 text-purple-500" />
-    }
+      value: orders.reduce((sum, o) => sum + Number(o.total), 0),
+      icon: <DollarSign className="w-8 h-8 text-purple-500" />,
+    },
   ];
 
   return (
@@ -82,11 +105,58 @@ export default function OrdersPage() {
 
       <OrderStats stats={stats} />
 
-      <OrderFilters filters={filters} setFilters={setFilters} onSearch={fetchOrders} />
+      <OrderFilters
+        filters={filters}
+        setFilters={setFilters}
+        onSearch={fetchOrders}
+      />
 
-      <OrdersTable orders={orders} onView={(order) => setSelectedOrder(order)} />
+      <OrdersTable
+        orders={orders}
+        onView={(order) => setSelectedOrder(order)}
+        onCancel={handleCancelClick}
+        role={role}
+      />
 
-      <OrderDetailsModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      <div className="flex justify-center items-center gap-3 mt-4">
+        <button
+          onClick={() => fetchOrders(page - 1)}
+          disabled={page === 1}
+          className="px-4 py-2 border rounded disabled:opacity-40"
+        >
+          Prev
+        </button>
+
+        <span className="font-medium">
+          {page} / {totalPages}
+        </span>
+
+        <button
+          onClick={() => fetchOrders(page + 1)}
+          disabled={page === totalPages}
+          className="px-4 py-2 border rounded disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+
+      <OrderDetailsModal
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+      />
+
+      {showCancelToast && (
+        <OrderCancellationToast
+          orderId={orderToCancel?.id}
+          onClose={() => {
+            setShowCancelToast(false);
+            setOrderToCancel(null);
+          }}
+          onConfirm={async (id) => {
+            await cancelOrder(id);
+          }}
+        />
+      )}
     </div>
   );
 }

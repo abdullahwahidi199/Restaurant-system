@@ -4,10 +4,12 @@ import { useScroll } from "framer-motion";
 import NewOrderModal from "./OrderAddModal";
 import AddNewItemModal from "./AddNewItemModal";
 import instance from "../../api/axiosInstance";
+import { useNavigate } from "react-router-dom";
 
 export default function TableActionModal({ table, onClose, refetchTables }) {
-  const [newOrderModal, setNewOrderModal] = useState(false)
-  const [addNewItemDisplay, setAddNewItemDisplay] = useState(false)
+  const [newOrderModal, setNewOrderModal] = useState(false);
+  const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && onClose();
@@ -18,72 +20,67 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
   if (!table) return null;
 
   const { number, status, capacity, note, current_order } = table;
-  console.log(table)
+  console.log(table);
 
   const markAvailable = async () => {
     try {
       const res = await instance.patch(`/orders/tables/${table.id}/`, {
-        status: "available"
+        status: "available",
       });
 
-      if (res.ok) {
-        // Refresh tables list after successful update
-        onClose()
-        refetchTables();
-        
-      } else {
-        console.error("Failed to mark table unavailable");
-      }
+      onClose();
+      refetchTables();
     } catch (err) {
       console.error("Error:", err);
     }
   };
-  const markUnAvailable=async ()=>{
+  const markUnAvailable = async () => {
     const res = await instance.patch(`/orders/tables/${table.id}/`, {
-        
-        status: "unavailable" 
-      });
-      onClose();
-      refetchTables()
-  }
+      status: "unavailable",
+    });
+    onClose();
+    refetchTables();
+  };
 
   const handleMarkServed = async () => {
     try {
-      const res = await instance.patch(`/orders/orders/${current_order.id}/update_status/`, {
-        status: "served"
-      })
+      const res = await instance.patch(
+        `/orders/orders/${current_order.id}/update_status/`,
+        {
+          status: "served",
+        },
+      );
       refetchTables();
+    } catch (err) {
+      console.log(err);
     }
-    catch (err) {
-      console.log(err)
-    }
-  }
-
-  
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-lg relative animate-in fade-in-50 slide-in-from-bottom-10">
-
         <div className="flex justify-between items-center border-b px-5 py-3">
           <h2 className="text-lg font-semibold">
             Table {number} —{" "}
             <span
-              className={`capitalize ${status === "available"
-                ? "text-green-600"
-                : status === "occupied"
-                  ? "text-orange-600"
-                  : "text-gray-600"
-                }`}
+              className={`capitalize ${
+                status === "available"
+                  ? "text-green-600"
+                  : status === "occupied"
+                    ? "text-orange-600"
+                    : "text-gray-600"
+              }`}
             >
               {status}
             </span>
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <X size={20} />
           </button>
         </div>
-
 
         <div className="p-5 space-y-4">
           <p className="text-gray-700 text-sm">Capacity: {capacity}</p>
@@ -96,36 +93,37 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
               </p>
               <div className="flex justify-between items-center">
                 <button
-                onClick={() => {
-                  setNewOrderModal(true)
-
-                }}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-              >
-                <PlusCircle size={18} /> Start New Order
-              </button>
-              <button
-                onClick={() => {
-                  markUnAvailable(true)
-
-                }}
-                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
-              >
-                Mark unavailable
-              </button>
+                  onClick={() => {
+                    navigate("/waiter/new-order/", {
+                      state: { table },
+                    });
+                    onClose();
+                  }}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                >
+                  <PlusCircle size={18} /> Start New Order
+                </button>
+                <button
+                  onClick={() => {
+                    markUnAvailable(true);
+                  }}
+                  className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+                >
+                  Mark unavailable
+                </button>
               </div>
-              {newOrderModal && (
-                <NewOrderModal table={table} onClose={() => setNewOrderModal(false)} refetchTables={refetchTables} />
-              )}
             </div>
           )}
 
-          {status==="unavailable" && (
+          {status === "unavailable" && (
             <div>
               <p>This table is currently unavailable</p>
               <button
                 className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg mt-5 hover:bg-green-700 transition"
-                 onClick={markAvailable}>Mark Available</button>
+                onClick={markAvailable}
+              >
+                Mark Available
+              </button>
             </div>
           )}
 
@@ -139,10 +137,15 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       👤 {current_order.name}
                     </h2>
                     {current_order.phone && (
-                      <p className="text-gray-600 text-sm">📞 {current_order.phone}</p>
+                      <p className="text-gray-600 text-sm">
+                        📞 {current_order.phone}
+                      </p>
                     )}
                     <p className="mt-2 text-gray-700 font-medium">
-                      💰 Total: <span className="text-green-600">{current_order.total} AFN</span>
+                      💰 Total:{" "}
+                      <span className="text-green-600">
+                        {current_order.total} AFN
+                      </span>
                     </p>
                   </div>
                   {current_order.items.length > 0 ? (
@@ -154,7 +157,10 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                         >
                           <div>
                             <p className="font-medium text-gray-800">
-                              {item.item_name} <span className="text-gray-500">× {item.quantity}</span>
+                              {item.item_name}{" "}
+                              <span className="text-gray-500">
+                                × {item.quantity}
+                              </span>
                             </p>
                           </div>
 
@@ -170,8 +176,6 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                     <p>No active orders</p>
                   )}
                 </div>
-
-
               ) : (
                 <p className="text-gray-500 italic">No current order data.</p>
               )}
@@ -183,7 +187,11 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   Add Item
                 </button>
                 {addNewItemDisplay && (
-                  <AddNewItemModal orderId={current_order.id} onClose={() => setAddNewItemDisplay(false)} refetchTables={refetchTables} />
+                  <AddNewItemModal
+                    orderId={current_order.id}
+                    onClose={() => setAddNewItemDisplay(false)}
+                    refetchTables={refetchTables}
+                  />
                 )}
                 {/* this button will mark serve the order, meaning the order has been prepared and now the customers are eating */}
                 {current_order && current_order.status === "ready" && (
@@ -194,12 +202,9 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                     }}
                     className="flex-1 flex items-center justify-center gap-1 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition"
                   >
-
                     <CheckCircle size={16} /> Mark Served
                   </button>
                 )}
-
-                
               </div>
             </div>
           )}
