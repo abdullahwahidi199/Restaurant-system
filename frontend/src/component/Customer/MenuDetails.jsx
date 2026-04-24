@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 export default function MenuDetails({ item, onClose }) {
   const { t, i18n } = useTranslation();
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
@@ -23,7 +24,7 @@ export default function MenuDetails({ item, onClose }) {
         className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-3xl overflow-hidden max-w-lg w-full shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto"
       >
         <img
-          src={item.image}
+          src={`${BASE_URL}${item.image}`}
           alt={item.name}
           className="w-full h-56 object-cover"
         />

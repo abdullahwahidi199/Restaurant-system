@@ -8,7 +8,7 @@ export default function CustomerHomepage() {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const BASE_URL = "http://127.0.0.1:8000";
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const { slug } = useParams();
 
   useEffect(() => {

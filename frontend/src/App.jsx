@@ -53,7 +53,7 @@ import RequireActiveRestaurant from "./api/RequireActiveRestaurant";
 import SubscriptionInactive from "./SubscriptionInactive";
 import ReservationsMainPage from "./component/Admin/Reservations/ReservationsMainPage";
 
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const router = createBrowserRouter(

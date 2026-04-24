@@ -14,6 +14,7 @@ export default function Header({ restaurantInfo }) {
   const navigate = useNavigate();
   const { slug } = useParams();
   const isRTL = document.documentElement.dir === "rtl";
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -65,7 +66,7 @@ export default function Header({ restaurantInfo }) {
         >
           {restaurantInfo && (
             <img
-              src={restaurantInfo.logo}
+              src={`${BASE_URL}${restaurantInfo.logo}`}
               alt="logo"
               className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-md"
             />

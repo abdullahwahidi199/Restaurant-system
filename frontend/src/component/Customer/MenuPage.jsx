@@ -31,7 +31,7 @@ export default function MenuPage({ orderingClosed }) {
   const user = localStorage.getItem("customer");
   console.log(user);
   const parsedUser = JSON.parse(localStorage.getItem("customer"));
-  const BASE_URL = "http://127.0.0.1:8000";
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const fetchMenuData = async () => {
     setLoading(true);
@@ -141,7 +141,6 @@ export default function MenuPage({ orderingClosed }) {
 
       const result = await res.json();
 
-      
       if (!res.ok) {
         const message =
           result?.non_field_errors?.[0] ||

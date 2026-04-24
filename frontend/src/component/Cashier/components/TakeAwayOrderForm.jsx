@@ -35,7 +35,7 @@ export default function TakeAwayForm() {
     note: "",
   });
 
-  const BASE_URL = "http://127.0.0.1:8000";
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const fetchMenuData = async () => {
     setLoading(true);
@@ -469,7 +469,6 @@ export default function TakeAwayForm() {
               isRTL ? "left-0" : "right-0"
             } w-full sm:w-96 h-full bg-white shadow-2xl z-50 flex flex-col border-l border-gray-100`}
           >
-
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
@@ -511,7 +510,6 @@ export default function TakeAwayForm() {
                     key={item.id}
                     className="bg-gray-50/80 rounded-xl border border-gray-100 p-3 flex gap-3 items-center"
                   >
-      
                     <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                       {item.image ? (
                         <img
@@ -540,7 +538,6 @@ export default function TakeAwayForm() {
                       </p>
                     </div>
 
-         
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleDecrement(item.id)}
@@ -584,7 +581,6 @@ export default function TakeAwayForm() {
 
             {cart.length > 0 && (
               <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 space-y-4">
-          
                 <div className="space-y-3">
                   <div className="relative">
                     <User
@@ -644,7 +640,6 @@ export default function TakeAwayForm() {
                   </span>
                 </div>
 
-              
                 <button
                   onClick={handleSubmitOrder}
                   disabled={submitting}

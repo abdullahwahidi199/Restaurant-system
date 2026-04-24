@@ -2,16 +2,16 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: import.meta.env.VITE_API_URL,
 });
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const refreshToken = async () => {
   const refresh = localStorage.getItem("refresh_token");
   if (!refresh) return null;
 
   try {
-    const res = await axios.post(`${API_URL}/customer/token/refresh/`, {
+    const res = await axios.post(`${API_URL}customer/token/refresh/`, {
       refresh,
     });
     localStorage.setItem("access_token", res.data.access);

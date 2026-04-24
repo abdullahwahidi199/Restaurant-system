@@ -28,7 +28,7 @@ const INITIAL_FORM_DATA = {
 export default function RestaurantForm({ restaurant = {} }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
@@ -38,7 +38,9 @@ export default function RestaurantForm({ restaurant = {} }) {
     logo: null,
   });
 
-  const [previewLogo, setPreviewLogo] = useState(restaurant.logo || null);
+  const [previewLogo, setPreviewLogo] = useState(
+    restaurant.logo ? `${BASE_URL}${restaurant.logo}` : null,
+  );
   const [loading, setLoading] = useState(false);
   const [showRestriction, setShowRestriction] = useState(false);
   const [error, setError] = useState(null);
