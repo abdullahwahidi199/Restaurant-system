@@ -30,6 +30,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '185.197.249.94',
 'localhost',
     '127.0.0.1',
     '10.10.10.247',
@@ -113,9 +114,13 @@ CHANNEL_LAYERS = {
 }
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'rms_db',
+        'USER': 'rms_user',
+        'PASSWORD': 'AbdullahWahidi123',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 from datetime import timedelta
