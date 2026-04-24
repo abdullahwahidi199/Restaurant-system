@@ -1,7 +1,7 @@
 // src/components/login.jsx
 import React, { useState } from "react";
 import { loginCustomer, getProfile } from "../../api/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,8 @@ const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const { slug } = useParams();
+  console.log("Current slug:", slug); // Debugging line to check slug value
   const { t, i18n } = useTranslation();
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
@@ -22,14 +23,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginCustomer(formData);
+      const res = await loginCustomer(slug, formData);
       localStorage.setItem("access_token", res.data.access);
       localStorage.setItem("refresh_token", res.data.refresh);
 
-      const profileRes = await getProfile();
+      const profileRes = await getProfile(slug);
       localStorage.setItem("customer", JSON.stringify(profileRes.data));
 
-      navigate("/");
+      navigate(`/r/${slug}/`);
     } catch (err) {
       setLoading(false);
       setError(t("login.error"));

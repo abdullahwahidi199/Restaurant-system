@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { signupCustomer, loginCustomer } from "../../api/auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,7 @@ const Signup = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const { slug } = useParams();
 
   const validateUsername = (name) => /^[A-Za-z]+$/.test(name);
   const validatePhone = (phone) => /^[0-9]{7,15}$/.test(phone);
@@ -79,9 +80,9 @@ const Signup = () => {
         throw new Error(t("signup.errors.genderRequired"));
       }
 
-      await signupCustomer(formData);
+      await signupCustomer(slug, formData);
 
-      const res = await loginCustomer({
+      const res = await loginCustomer(slug, {
         username: formData.username,
         password: formData.password,
       });

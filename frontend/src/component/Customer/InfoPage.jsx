@@ -1,5 +1,5 @@
 // src/pages/Info.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   MapPin,
   Phone,
@@ -13,12 +13,48 @@ import {
   XCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 
-export default function Info({ restaurantInfo }) {
-  if (!restaurantInfo) return null;
+export default function Info() {
+  const [restaurantInfo, setRestaurantInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
   const { t, i18n } = useTranslation();
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
+  const BASE_URL = "http://127.0.0.1:8000";
+  const { slug } = useParams();
+
+  useEffect(() => {
+    const fetchRestaurantInfo = async () => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}/system/restaurant-info/slug/${slug}/`,
+        );
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            setNotFound(true);
+          }
+          return;
+        }
+
+        const data = await res.json();
+        console.log(data);
+        setRestaurantInfo(data);
+      } catch (error) {
+        console.log(error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurantInfo();
+  }, [slug]);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading...</div>;
+  }
 
   return (
     <div

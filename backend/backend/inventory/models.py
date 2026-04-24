@@ -1,22 +1,40 @@
 from django.db import models
 from menu.models import MenuItem
 from users.models import Staff
+from restaurants.models import Restaurant
 
 class Ingredient(models.Model):
-    UNIT_CHOICES=[
-        ('kg','Kilogram'),
-        ('g','Gram'),
-        ('l','Liter'),
-        ('ml','Miligram'),
-        ('pcs','Pieces')
+    UNIT_CHOICES = [
+        ('kg', 'Kilogram'),
+        ('g', 'Gram'),
+        ('l', 'Liter'),
+        ('ml', 'Milliliter'),
+        ('pcs', 'Pieces')
     ]
 
-    name=models.CharField(max_length=100,unique=True)
-    unit=models.CharField(max_length=10,choices=UNIT_CHOICES)
-    quantity_available=models.DecimalField(max_digits=10,decimal_places=3)
-    minimum_threshold=models.DecimalField(max_digits=10,decimal_places=3,default=0)
-    cost_per_unit=models.DecimalField(max_digits=10,decimal_places=2)
-    is_active=models.BooleanField(default=True)
+    name = models.CharField(max_length=100)
+
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='ingredients',
+        null=True,
+        blank=True
+    )
+
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES)
+    quantity_available = models.DecimalField(max_digits=10, decimal_places=3)
+    minimum_threshold = models.DecimalField(max_digits=10, decimal_places=3, default=0)
+    cost_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['restaurant', 'name'],
+                name='unique_ingredient_per_restaurant'
+            )
+        ]
 
     def __str__(self):
         return self.name
@@ -51,7 +69,7 @@ class StockMovement(models.Model):
         ('adjustment', 'Adjustment'),
         ('waste', 'Waste'),
     ]
-
+    restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='stock_movements', null=True, blank=True)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     change_quantity = models.DecimalField(max_digits=10, decimal_places=3)
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)

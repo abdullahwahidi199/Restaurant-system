@@ -60,7 +60,9 @@ const CashierManagement = () => {
     "out_for_delivery",
     "ready",
   ];
-
+  const handleMarkCompleted = (id) => {
+    setOrders((prev) => prev.filter((order) => order.id !== id));
+  };
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -145,18 +147,6 @@ const CashierManagement = () => {
     [],
   );
 
-  const handleMarkCompleted = useCallback(async (orderId) => {
-    try {
-      const updated = await updateOrderStatus(orderId, "completed");
-      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-      setSelectedOrder((prev) => (prev?.id === updated.id ? updated : prev));
-      toast.success("Order marked as completed");
-    } catch (err) {
-      console.error("markCompleted error:", err);
-      toast.error("Failed to update order status");
-    }
-  }, []);
-
   const handlePrintBill = useCallback((order) => {
     setSelectedOrder(order);
 
@@ -236,7 +226,7 @@ const CashierManagement = () => {
   const getDeliveryBoys = async () => {
     const response = await instance.get(`/users/deliveryBoys/`);
     const data = response.data;
-    console.log(data);
+    console.log("delivere", data);
     setDeliveryBoys(data);
   };
 
@@ -251,10 +241,10 @@ const CashierManagement = () => {
 
           <div className="flex gap-2">
             <button
-              onClick={() => setShowReservation(true)}
+              onClick={() => navigate("/cashier/reservations/")}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition"
             >
-              + Reservation
+              Reservation
             </button>
 
             <button
@@ -280,6 +270,7 @@ const CashierManagement = () => {
                 onViewDetails={handleOpenDetails}
                 onPrintBill={handlePrintBill}
                 onAssignDelivery={handleOpenAssignModal}
+                onMarkCompleted={handleMarkCompleted}
               />
             </div>
 

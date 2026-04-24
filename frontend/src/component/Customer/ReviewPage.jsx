@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 
 export default function ReviewItemModel({
   itemId = "",
@@ -17,13 +18,14 @@ export default function ReviewItemModel({
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
   const BASE_URL = "http://127.0.0.1:8000";
+  const { slug } = useParams();
 
   const handleSubmit = async () => {
     if (!rating) return toast.error(t("review.errors.select_rating"));
     if (!user) return toast.error(t("review.errors.auth_required"));
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/menu/reviews/`, {
+      const res = await fetch(`${BASE_URL}/menu/send-review/${slug}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

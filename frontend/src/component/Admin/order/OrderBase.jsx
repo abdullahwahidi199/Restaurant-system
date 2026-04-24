@@ -29,17 +29,20 @@ export default function OrdersPage() {
   const role = JSON.parse(localStorage.getItem("user"))?.role;
 
   const fetchOrders = async (pageNumber = 1) => {
+    // ensure it's always a number
+    const page = typeof pageNumber === "number" ? pageNumber : 1;
+
     let query = new URLSearchParams({
       ...filters,
-      page: pageNumber,
+      page,
     }).toString();
-    const res = await instance.get(`/orders/orders/?${query}`);
-    const data = res.data;
 
-    setOrders(data.results);
-    setCount(data.count);
-    setPage(pageNumber);
-    setTotalPages(Math.ceil(data.count / 10));
+    const res = await instance.get(`/orders/orders/?${query}`);
+
+    setOrders(res.data.results);
+    setCount(res.data.count);
+    setPage(page);
+    setTotalPages(Math.ceil(res.data.count / 10));
   };
 
   const handleWsMessage = (msg) => {
@@ -88,11 +91,6 @@ export default function OrdersPage() {
       label: t("stats.completed"),
       value: orders.filter((o) => o.status === "completed").length,
       icon: <CheckCircle className="w-8 h-8 text-green-500" />,
-    },
-    {
-      label: t("stats.revenue"),
-      value: orders.reduce((sum, o) => sum + Number(o.total), 0),
-      icon: <DollarSign className="w-8 h-8 text-purple-500" />,
     },
   ];
 

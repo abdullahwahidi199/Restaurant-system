@@ -45,9 +45,25 @@ export default function InventoryReport({ startDate, endDate }) {
     }
   };
 
-  const handleGeneratePDF = () => {
-    const pdfUrl = `http://127.0.0.1:8000/reports/inventory-pdf/?start=${startDate}&end=${endDate}`;
-    window.open(pdfUrl, "_blank");
+  const handleGeneratePDF = async () => {
+    try {
+      const res = await instance.get(
+        `/reports/inventory-pdf/?start=${startDate}&end=${endDate}`,
+        {
+          responseType: "blob",
+        },
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "inventory_report.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+    }
   };
   const getStockMovementsReport = async () => {
     try {

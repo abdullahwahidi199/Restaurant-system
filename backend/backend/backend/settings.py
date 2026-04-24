@@ -30,7 +30,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
+'localhost',
     '127.0.0.1',
     '10.10.10.247',
     'restaurant-backend-baqe.onrender.com',
@@ -55,15 +55,14 @@ INSTALLED_APPS = [
     "channels",
     'corsheaders',
     'system',
+    'restaurants',
+    'expenses',
     'otp',
     'inventory',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
-# ── OTP Configuration ──────────────────────────────────────
-OTP_SMS_BACKEND = 'otp.sms_backends.ConsoleSMSBackend'   # swap to TwilioSMSBackend in prod
-OTP_EXPIRY_MINUTES = 5
-OTP_MAX_ATTEMPTS = 3
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -123,7 +122,7 @@ DATABASES = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  
     "REFRESH_TOKEN_LIFETIME": timedelta(days=5),  
     "ROTATE_REFRESH_TOKENS": True,                  
     "BLACKLIST_AFTER_ROTATION": True,

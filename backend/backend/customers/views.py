@@ -8,32 +8,68 @@ from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from .models import Customer
 from rest_framework.permissions import AllowAny
+from django.shortcuts import get_object_or_404
+from restaurants.models import Restaurant
 from rest_framework.decorators import permission_classes
+from restaurants.permissions import IsRestaurantAdmin,IsCashier,IsKitchenManager,IsSameRestaurant
+from restaurants.models import Restaurant
 
+from django.shortcuts import get_object_or_404
+from restaurants.models import Restaurant
 
+def get_customer_by_slug(request, slug):
+    restaurant = get_object_or_404(Restaurant, slug=slug)
+
+    customer = Customer.objects.filter(
+        user=request.user,
+        restaurant=restaurant
+    ).first()
+
+    return customer
+def get_restaurant_from_user(request):
+    """
+    Helper to safely get the restaurant from the logged-in user's staff profile.
+    """
+    if not request.user.is_authenticated:
+        return None
+    
+    # Check if user is superadmin (they might not have a staff profile)
+    if request.user.is_superuser:
+        # For superadmin, you might allow seeing everything, 
+        # or require a header/param to select restaurant. 
+        # For now, we return None so they see nothing unless logic is added.
+        # Alternatively: return Restaurant.objects.first() 
+        pass
+        
+    if hasattr(request.user, 'staff_profile'):
+        return request.user.staff_profile.restaurant
+    
+    return None
 class CustomerProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        try:
-            customer = Customer.objects.get(user=request.user)
-        except Customer.DoesNotExist:
-            return Response({'error': 'Customer profile not found'}, status=status.HTTP_404_NOT_FOUND)
+    def get(self, request, slug):
+        customer = get_customer_by_slug(request, slug)
+
+        if not customer:
+            return Response(
+                {"error": "Access denied"},
+                status=403
+            )
 
         serializer = CustomerProfileSerializer(customer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
     
 class CustomerOrdersView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        try:
-            customer = Customer.objects.get(user=request.user)
-        except Customer.DoesNotExist:
-            return Response({'error': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+    def get(self, request, slug):
+        customer = get_customer_by_slug(request, slug)
 
-        # You can import and use an OrderSerializer if you have one already
-        orders = customer.orders.all().order_by('-created_at')
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+
+        orders = customer.orders.all().order_by("-created_at")
 
         data = [
             {
@@ -54,7 +90,7 @@ class CustomerOrdersView(APIView):
             for order in orders
         ]
 
-        return Response(data, status=status.HTTP_200_OK)
+        return Response(data)
 
 
 class CustomerReviewsView(APIView):
@@ -83,37 +119,95 @@ class CustomerReviewsView(APIView):
 
 class SignupView(APIView):
     permission_classes = [AllowAny]
-    def post(self, request):
-        serializer = CustomerSignupSerializer(data=request.data)
+
+    def post(self, request, slug):
+        restaurant = get_object_or_404(Restaurant, slug=slug)
+
+        serializer = CustomerSignupSerializer(
+            data=request.data,
+            context={"restaurant": restaurant}
+        )
+
         if serializer.is_valid():
-            user = serializer.save()
-            return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save()
+            return Response(
+                {"message": "User created successfully"},
+                status=201
+            )
+
+        return Response(serializer.errors, status=400)
 
 
 class LoginView(APIView):
-    permission_classes=[AllowAny]
-    def post(self, request):
+    permission_classes = [AllowAny]
+
+    def post(self, request, slug):
+        restaurant = get_object_or_404(Restaurant, slug=slug)
+
         serializer = CustomerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data['username']
-        password = serializer.validated_data['password']
+
+        username = serializer.validated_data["username"]
+        password = serializer.validated_data["password"]
 
         user = authenticate(username=username, password=password)
-        if user:
-            
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token)
-            })
-        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-# this veiw returns all the customers
+        if not user:
+            return Response({"error": "Invalid credentials"}, status=401)
+
+        customer = Customer.objects.filter(
+            user=user,
+            restaurant=restaurant
+        ).first()
+
+        if not customer:
+            return Response(
+                {"error": "This account does not belong to this restaurant"},
+                status=403
+            )
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "customer": {
+                "id": customer.id,
+                "username": user.username,
+                "restaurant": restaurant.name,
+                "slug": restaurant.slug
+            }
+        })
+
+class CustomerReviewsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        customer = get_customer_by_slug(request, slug)
+
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+
+        reviews = customer.reviews.select_related("menu_item").all().order_by("-created_at")
+
+        data = [
+            {
+                "id": review.id,
+                "menu_item": review.menu_item.name,
+                "rating": review.rating,
+                "comment": review.comment,
+                "created_at": review.created_at
+            }
+            for review in reviews
+        ]
+
+        return Response(data)
 @api_view(['GET'])
 def CustomersView(request):
     if request.method=="GET":
-        customers=Customer.objects.all().order_by('-joined_at')
+        staff=request.user.staff_profile
+        restaurant=staff.restaurant
+        customers=Customer.objects.filter(restaurant=restaurant).all().order_by('-joined_at')
         
         customers_from=request.query_params.get('from')
         to=request.query_params.get('to')

@@ -83,7 +83,7 @@ export default function InventoryDashboard() {
         />
         <StatCard
           title="Inventory Value"
-          value={`$${Number(stats.inventory_value).toFixed(2)}`}
+          value={`AFN${Number(stats.inventory_value).toFixed(2)}`}
           icon={<TrendingUp />}
         />
       </div>

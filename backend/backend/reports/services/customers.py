@@ -2,8 +2,8 @@ from customers.models import Customer
 from django.db.models import Count
 class CustomerReportService:
     @staticmethod
-    def overview():
-        customers = Customer.objects.all()
+    def overview(restaurant):
+        customers = Customer.objects.filter(restaurant=restaurant)
 
         top_customers = customers.annotate(
             order_count=Count("orders")

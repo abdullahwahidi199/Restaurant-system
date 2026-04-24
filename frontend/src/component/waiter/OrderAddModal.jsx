@@ -37,6 +37,7 @@ export default function TakeAwayForm() {
     phone: "",
     note: "",
   });
+  console.log(table);
 
   const BASE_URL = "http://127.0.0.1:8000";
 
@@ -73,6 +74,16 @@ export default function TakeAwayForm() {
   useEffect(() => {
     fetchMenuData();
   }, []);
+
+  useEffect(() => {
+    if (table?.current_reservation) {
+      setFormData({
+        name: table.current_reservation.customer_name || "",
+        phone: table.current_reservation.customer_phone || "",
+        note: table.note || "",
+      });
+    }
+  }, [table]);
 
   const allCategories = ["All", ...menuData.map((cat) => cat.name)];
 

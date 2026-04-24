@@ -1,17 +1,18 @@
 // src/components/Header.jsx
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { logoutCustomer, getProfile } from "../../api/auth";
 import { Menu, X } from "lucide-react"; // burger icons
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./LanguageSwitcher";
+import toast from "react-hot-toast";
 
 export default function Header({ restaurantInfo }) {
   const [username, setUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
-
+  const { slug } = useParams();
   const isRTL = document.documentElement.dir === "rtl";
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function Header({ restaurantInfo }) {
       const token = localStorage.getItem("access_token");
       if (token) {
         try {
-          const res = await getProfile();
+          const res = await getProfile(slug);
           setUsername(res.data.username);
         } catch (err) {
           console.error(err);
@@ -30,6 +31,15 @@ export default function Header({ restaurantInfo }) {
     fetchUserProfile();
   }, []);
 
+  const handleOrdersClick = () => {
+    const customer = localStorage.getItem("customer");
+
+    if (customer) {
+      navigate(`/r/${slug}/orders`);
+    } else {
+      toast("🔒 To unlock this feature, please log in.");
+    }
+  };
   const handleLogout = () => {
     logoutCustomer();
     navigate("/");
@@ -37,9 +47,8 @@ export default function Header({ restaurantInfo }) {
   };
 
   const navLinks = [
-    { name: t("nav.faqs"), path: "/faqs" },
-    { name: t("nav.info"), path: "/info" },
-    { name: t("nav.orders"), path: "/orders" },
+    { name: t("nav.faqs"), path: `/r/${slug}/faqs` },
+    { name: t("nav.info"), path: `/r/${slug}/info` },
   ];
 
   return (
@@ -77,6 +86,12 @@ export default function Header({ restaurantInfo }) {
               {link.name}
             </Link>
           ))}
+          <button
+            onClick={handleOrdersClick}
+            className="text-gray-300 hover:text-white font-medium transition-colors"
+          >
+            {t("nav.orders")}
+          </button>
 
           {username ? (
             <div
@@ -98,14 +113,14 @@ export default function Header({ restaurantInfo }) {
           ) : (
             <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
               <Link
-                to="/login"
+                to={`/r/${slug}/login`}
                 className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition"
               >
                 {t("auth.login")}
               </Link>
 
               <Link
-                to="/signup"
+                to={`/r/${slug}/signup`}
                 className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition"
               >
                 {t("auth.signup")}
@@ -138,6 +153,15 @@ export default function Header({ restaurantInfo }) {
               {link.name}
             </Link>
           ))}
+          <button
+            onClick={() => {
+              handleOrdersClick();
+              setMenuOpen(false);
+            }}
+            className="text-gray-300 hover:text-white text-lg text-left"
+          >
+            {t("nav.orders")}
+          </button>
 
           {username ? (
             <div className={`flex flex-col gap-4 ${isRTL ? "items-end" : ""}`}>

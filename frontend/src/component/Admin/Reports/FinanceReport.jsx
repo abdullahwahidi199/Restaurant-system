@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   AlertCircle,
   Download,
+  Receipt, // NEW
 } from "lucide-react";
 import {
   PieChart,
@@ -28,7 +29,7 @@ const formatCurrency = (value) =>
     currency: "AFN",
   }).format(value);
 
-// Colors for the charts
+// Colors for the charts (4 items now)
 const COLORS = ["#6366f1", "#f59e0b", "#ef4444", "#22c55e"];
 
 export default function FinanceReport({ startDate, endDate }) {
@@ -50,10 +51,33 @@ export default function FinanceReport({ startDate, endDate }) {
     }
   };
 
-  const handleGeneratePDF = () => {
-    const pdfUrl = `http://127.0.0.1:8000/reports/finance-pdf/?start=${startDate}&end=${endDate}`;
-    window.open(pdfUrl, "_blank");
+  useEffect(() => {
+    if (startDate && endDate) {
+      getFinanceReport();
+    }
+  }, [startDate, endDate]);
+
+  const handleGeneratePDF = async () => {
+    try {
+      const res = await instance.get(
+        `/reports/finance-pdf/?start=${startDate}&end=${endDate}`,
+        {
+          responseType: "blob",
+        },
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "finance_report.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+    }
   };
+
   useEffect(() => {
     if (startDate && endDate) {
       getFinanceReport();
@@ -73,15 +97,12 @@ export default function FinanceReport({ startDate, endDate }) {
   const { revenue, expenses, gross_profit, net_profit, profit_margin_percent } =
     reportData;
 
-  // Prepare data for Expense Pie Chart
-  // Note: We separate 'stock_purchases' if it's an inventory asset not immediately expensed,
-  // but based on the JSON structure, we will visualize the operational expenses (COGS + Wastage)
-  // vs Stock Purchases if needed.
-  // For this chart, let's show the breakdown of the 'expenses' object provided.
+  // Prepare data for Expense Pie Chart (now includes operational_expenses)
   const expenseChartData = [
     { name: "COGS", value: expenses.cogs },
     { name: "Wastage", value: expenses.wastage },
     { name: "Stock Purchases", value: expenses.stock_purchases },
+    { name: "Operational Expenses", value: expenses.operational_expenses },
   ];
 
   return (
@@ -154,7 +175,7 @@ export default function FinanceReport({ startDate, endDate }) {
             <span>{formatCurrency(revenue)}</span>
           </div>
 
-          {/* Deductions List */}
+          {/* COGS Deduction */}
           <div className="space-y-2 pl-2 border-l-2 border-gray-200 ml-1">
             <div className="flex justify-between items-center text-red-500">
               <div className="flex items-center gap-2">
@@ -165,6 +186,16 @@ export default function FinanceReport({ startDate, endDate }) {
                 - {formatCurrency(expenses.cogs)}
               </span>
             </div>
+          </div>
+
+          {/* Gross Profit */}
+          <div className="flex justify-between items-center text-emerald-600 font-bold pt-2 border-t border-dashed">
+            <span>Gross Profit</span>
+            <span>{formatCurrency(gross_profit)}</span>
+          </div>
+
+          {/* Operating Deductions */}
+          <div className="space-y-2 pl-2 border-l-2 border-gray-200 ml-1 mt-2">
             <div className="flex justify-between items-center text-red-500">
               <div className="flex items-center gap-2">
                 <Trash2 className="w-4 h-4" />
@@ -174,12 +205,21 @@ export default function FinanceReport({ startDate, endDate }) {
                 - {formatCurrency(expenses.wastage)}
               </span>
             </div>
+            <div className="flex justify-between items-center text-red-500">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                <span>Operational Expenses</span>
+              </div>
+              <span className="font-medium">
+                - {formatCurrency(expenses.operational_expenses)}
+              </span>
+            </div>
           </div>
 
-          {/* Gross Profit */}
-          <div className="flex justify-between items-center text-blue-600 font-bold pt-2 border-t border-dashed">
-            <span>Gross Profit</span>
-            <span>{formatCurrency(gross_profit)}</span>
+          {/* Net Profit */}
+          <div className="flex justify-between items-center text-indigo-600 font-bold pt-2 border-t border-dashed">
+            <span>Net Profit</span>
+            <span>{formatCurrency(net_profit)}</span>
           </div>
 
           {/* Note about Stock Purchases */}
@@ -187,9 +227,9 @@ export default function FinanceReport({ startDate, endDate }) {
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <p>
               <strong>Note:</strong> Stock Purchases (
-              {formatCurrency(expenses.stock_purchases)}) are recorded
-              separately and are not deducted from the Gross/Net Profit in this
-              specific calculation logic.
+              {formatCurrency(expenses.stock_purchases)}) are recorded as
+              inventory assets and are excluded from the operational expenses
+              total above.
             </p>
           </div>
         </div>
@@ -263,19 +303,28 @@ export default function FinanceReport({ startDate, endDate }) {
                   {formatCurrency(expenses.wastage)}
                 </td>
               </tr>
-              <tr className="border-b border-gray-50 bg-gray-50">
+              <tr className="border-b border-gray-50">
                 <td className="py-3 flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-purple-500" /> Stock
-                  Purchases (Inventory)
+                  <Receipt className="w-4 h-4 text-red-500" /> Operational
+                  Expenses
                 </td>
                 <td className="py-3 text-right font-medium">
-                  {formatCurrency(expenses.stock_purchases)}
+                  {formatCurrency(expenses.operational_expenses)}
                 </td>
               </tr>
-              <tr className="font-bold text-gray-900 bg-gray-50">
+              <tr className="font-bold text-gray-900 bg-gray-50 border-b border-gray-200">
                 <td className="py-3">Total Operational Expenses</td>
                 <td className="py-3 text-right">
                   {formatCurrency(expenses.total_expenses)}
+                </td>
+              </tr>
+              <tr className="border-b border-gray-50">
+                <td className="py-3 flex items-center gap-2 text-gray-500">
+                  <ShoppingCart className="w-4 h-4 text-purple-500" /> Stock
+                  Purchases (Inventory Asset)
+                </td>
+                <td className="py-3 text-right font-medium text-gray-500">
+                  {formatCurrency(expenses.stock_purchases)}
                 </td>
               </tr>
             </tbody>

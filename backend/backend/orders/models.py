@@ -3,23 +3,122 @@ from menu.models import MenuItem
 from users.models import Staff
 from django.utils import timezone
 from datetime import timedelta
+from restaurants.models import Restaurant
 from inventory.services import deduct_stock_for_order
+import math
+
+from decimal import Decimal
 class Table(models.Model):
     STATUS_CHOICES = [
         ('available', 'Available'),
         ('occupied', 'Occupied'),
         ('unavailable', 'Unavailable'),
     ]
+    restaurant = models.ForeignKey(
+    Restaurant,
+    on_delete=models.CASCADE,
+    related_name="tables",
+    null=True,
+    blank=True
+)
+    
+    
+    price_per_hour = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    allow_free_reservation = models.BooleanField(default=True)
 
-    number = models.PositiveIntegerField(unique=True)
+    name = models.CharField(max_length=50,null=True,blank=True)
     capacity = models.PositiveIntegerField(default=4)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="available")
     note = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Table {self.number} ({self.status})"
+        return f"Table {self.name} ({self.status})"
+
+    @property
+    def current_order(self):
+        return self.orders.filter(
+            status__in=['pending', 'in_progress', 'ready', 'served']
+        ).first()
 
 
+
+class Reservation(models.Model):
+    TYPE_CHOICES = [
+        ('free', 'Free'),
+        ('fee', 'Reservation Fee'),
+        ('prepaid', 'Prepaid'),
+    ]
+
+    STATUS_CHOICES = [
+        ('reserved', 'Reserved'),
+        ('arrived', 'Arrived'),
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+        ('no_show','No Show')
+    ]
+
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='reservations')
+    table = models.ForeignKey(
+    Table,
+    on_delete=models.CASCADE,  
+    related_name='reservations'
+)
+
+    customer_name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=20, blank=True)
+
+    guests = models.PositiveIntegerField(default=1)
+    reservation_date = models.DateField()
+    start_time = models.DateTimeField(null=True, blank=True)
+    duration_minutes = models.PositiveIntegerField(default=60)
+
+    reservation_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='free')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='reserved')
+
+    created_by = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, blank=True,related_name='reservations')
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.customer_name} - {self.table}"
+
+    def is_active_now(self):
+        if not self.start_time:
+            return False
+
+        now = timezone.now()
+        end = self.end_time
+
+        return self.start_time <= now <= end
+
+    def matches_customer(self, name=None, phone=None):
+        if phone and self.phone == phone:
+            return True
+
+        if name and self.customer_name and self.customer_name.lower() == name.lower():
+            return True
+
+        return False
+    @property
+    def end_time(self):
+        if self.start_time and self.duration_minutes:
+            return self.start_time + timedelta(minutes=self.duration_minutes)
+        return None
+    
+    @property
+    def total_price(self):
+        if not self.duration_minutes:
+            return 0
+
+        hours = self.duration_minutes / 60
+
+        # round up to next hour (important for business logic)
+        billed_hours = math.ceil(hours)
+
+        return billed_hours * self.table.price_per_hour
 class Order(models.Model):
     ORDER_TYPE_CHOICES = [
         ('dine-in', 'Dine-In'),
@@ -70,6 +169,20 @@ class Order(models.Model):
         'customers.Customer', on_delete=models.CASCADE,
         related_name='orders', null=True, blank=True
     )
+    restaurant = models.ForeignKey(
+    Restaurant,
+    on_delete=models.CASCADE,
+    related_name="orders",
+    null=True,
+    blank=True
+)
+    reservation = models.ForeignKey(
+    "Reservation",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="orders"
+)
     order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15,null=True,blank=True)
@@ -84,8 +197,24 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    latitude = models.FloatField(null=True, blank=True)
+    
+    longitude = models.FloatField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
-    waiter=models.ForeignKey(Staff,on_delete=models.SET_NULL,null=True,blank=True,related_name='orders')
+    created_by = models.ForeignKey(
+    Staff,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='created_orders'
+)
+    received_by = models.ForeignKey(
+    Staff,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='paid_orders')   
+    paid_at = models.DateTimeField(null=True, blank=True)
     delivery_boy = models.ForeignKey(
         Staff,
         on_delete=models.SET_NULL,
@@ -94,16 +223,44 @@ class Order(models.Model):
         limit_choices_to={'role': 'DeliveryBoy'},
         related_name='deliveries'
     )
+    delivery_fee = models.DecimalField(
+    max_digits=6,
+    decimal_places=2,
+    default=0
+)
     def __str__(self):
         return f"Order #{self.id} - {self.name}"
 
+    
+ 
+
+    from decimal import Decimal
+
     def get_total(self):
-        return sum(item.get_subtotal() for item in self.items.all())
-    @property
-    def current_order(self):
-        return self.orders.filter(
-            status__in=['pending', 'in_progress', 'ready', 'served']
-        ).first()
+        items_total = sum(
+            (item.get_subtotal() for item in self.items.all()),
+            Decimal("0.00")
+        )
+
+        reservation_total = Decimal("0.00")
+
+        if self.reservation:
+            r = self.reservation
+
+            if r.reservation_type == "fee":
+                reservation_total = r.total_price
+
+            elif r.reservation_type == "prepaid":
+                reservation_total = max(
+                    r.total_price - r.paid_amount,
+                    Decimal("0.00")
+                )
+
+        # 🔥 FORCE delivery_fee to Decimal
+        delivery_total = Decimal(str(self.delivery_fee)) if self.order_type == "delivery" else Decimal("0.00")
+
+        return items_total + reservation_total + delivery_total
+        
     
     @property
     def preparation_time(self):
@@ -136,7 +293,7 @@ class Order(models.Model):
 
             if active_orders.exists():
                 raise ValueError(
-                    f"Table {self.table.number} already has an active order "
+                    f"Table {self.table.name} already has an active order "
                     f"(#{active_orders.first().id})."
                 )
 

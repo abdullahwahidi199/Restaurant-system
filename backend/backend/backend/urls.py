@@ -29,6 +29,8 @@ urlpatterns = [
     path('system/',include('system.urls')),
     path('inventory/', include('inventory.urls')),
     path('otp/', include('otp.urls')),
+    path('restaurant/', include('restaurants.urls')),
+    path('expenses/', include('expenses.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

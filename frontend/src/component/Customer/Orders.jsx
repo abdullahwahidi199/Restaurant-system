@@ -5,11 +5,12 @@ import useOrdersSocket from "../../hooks/useOrdersSocket";
 import OrderCancellationToast from "../OrderCancellationToast";
 import { useTranslation } from "react-i18next";
 import { Clock3, Receipt, Star, Trash2, PackageCheck } from "lucide-react";
+import { useParams } from "react-router-dom";
 
 export default function Orders() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
-
+  const { slug } = useParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewOrderId, setReviewOrderID] = useState(null);
@@ -55,7 +56,7 @@ export default function Orders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await api.get("/customer/orders/");
+        const res = await api.get(`/customer/${slug}/orders`);
         setOrders(res.data);
       } catch (err) {
         console.error(err);
@@ -83,7 +84,9 @@ export default function Orders() {
 
   const cancelOrder = async () => {
     try {
-      await api.patch(`/orders/${orderToBeCancelled}/cancel/`);
+      await api.patch(
+        `/orders/online-orders/${slug}/${orderToBeCancelled}/cancel/`,
+      );
 
       setOrders((prev) =>
         prev.map((order) =>

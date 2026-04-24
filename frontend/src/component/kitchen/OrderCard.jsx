@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { Clock, CheckCircle, Utensils } from "lucide-react";
 import OrderItem from "./OrderItem";
 import instance from "../../api/axiosInstance";
+import KitchenBillPrintModal from "./KitchenBillPrintModal";
 
 export default function OrderCard({ order, refresh }) {
   const [updating, setUpdating] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
 
   const [time, setTime] = useState(0);
   const [running, setRunning] = useState(false);
+  console.log(order);
   const updateOrderStatus = async (newStatus) => {
     try {
       setUpdating(true);
@@ -60,8 +63,8 @@ export default function OrderCard({ order, refresh }) {
       <div>
         <div className="flex justify-between items-center">
           {order.order_type === "dine-in" ? (
-            <h2 className="text-lg font-semibold">Table {order.tableNumber}</h2>
-          ) : order.order_type === "takeawy" ? (
+            <h2 className="text-lg font-semibold">Table {order.tableName}</h2>
+          ) : order.order_type === "takeaway" ? (
             <h2 className="text-lg font-semibold">Take away</h2>
           ) : (
             <h2 className="text-lg font-semibold">Online Order</h2>
@@ -114,7 +117,12 @@ export default function OrderCard({ order, refresh }) {
             <Clock size={16} /> Start
           </button>
         )}
-
+        <button
+          onClick={() => setShowPrint(true)}
+          className="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-gray-800"
+        >
+          Print
+        </button>
         {order.status === "in_progress" && (
           <button
             disabled={updating}
@@ -128,6 +136,12 @@ export default function OrderCard({ order, refresh }) {
           </button>
         )}
       </div>
+      {showPrint && (
+        <KitchenBillPrintModal
+          order={order}
+          onClose={() => setShowPrint(false)}
+        />
+      )}
     </div>
   );
 }

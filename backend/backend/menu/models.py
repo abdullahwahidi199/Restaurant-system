@@ -2,11 +2,16 @@ from django.db import models
 from customers.models import Customer
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 # from orders.models import Order
+from restaurants.models import Restaurant
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
+
 
 from decimal import Decimal
 
 class Category(models.Model):
-    
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='categories', null=True, blank=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
@@ -16,6 +21,7 @@ class Category(models.Model):
 class MenuItem(models.Model):
     name=models.CharField(max_length=150)
     description = models.TextField(blank=True, null=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='menu_items', null=True, blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
     is_available = models.BooleanField(default=True)
@@ -23,7 +29,30 @@ class MenuItem(models.Model):
 
     def __str__(self):
         return self.name
-    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.image:
+            img = Image.open(self.image.path)
+
+            # convert for safety
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # resize (VERY important for food images)
+            max_size = (900, 900)
+            img.thumbnail(max_size)
+
+            img_io = BytesIO()
+            img.save(img_io, format='JPEG', quality=70, optimize=True)
+
+            self.image.save(
+                self.image.name,
+                ContentFile(img_io.getvalue()),
+                save=False
+            )
+
+            super().save(update_fields=['image'])
     def mark_unavailable(self):
         self.is_available=False
         self.save()
@@ -31,17 +60,20 @@ class MenuItem(models.Model):
     def mark_available(self):
         self.is_available = True
         self.save()
-    def get_cost_per_unit(self):
-        return (
-            self.ingredients.aggregate(
-                total=Sum(
-                    ExpressionWrapper(
-                        F("quantity_required") * F("ingredient__cost_per_unit"),
-                        output_field=DecimalField(max_digits=10, decimal_places=2)
-                    )
+    def get_cost_per_unit(self, restaurant=None):
+        qs = self.ingredients.all()
+
+        if restaurant:
+            qs = qs.filter(menu_item__restaurant=restaurant)
+
+        return qs.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("quantity_required") * F("ingredient__cost_per_unit"),
+                    output_field=DecimalField(max_digits=10, decimal_places=2)
                 )
-            )["total"] or 0
-        )
+            )
+        )["total"] or 0
     def get_profit_per_unit(self):
         cost=self.get_cost_per_unit()
         return Decimal(self.price) - Decimal(cost)
@@ -52,6 +84,7 @@ class Review(models.Model):
     customer=models.ForeignKey(Customer,on_delete=models.CASCADE,related_name='reviews')
     menu_item=models.ForeignKey(MenuItem,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
     #every delivery can have reviews
+    restaurant=models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
     delivery = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, related_name='review', null=True, blank=True)
     rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField(blank=True, null=True)

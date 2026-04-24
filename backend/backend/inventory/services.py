@@ -22,6 +22,7 @@ def deduct_stock_for_order(order):
             ingredient.save(update_fields=['quantity_available'])
 
             StockMovement.objects.create(
+                restaurant=ingredient.restaurant,
                 ingredient=ingredient,
                 change_quantity=-required_qty,
                 movement_type='order',
@@ -67,6 +68,7 @@ def add_stock(
 
     StockMovement.objects.create(
         ingredient=ingredient,
+        restaurant=ingredient.restaurant,
         change_quantity=quantity,
         movement_type="purchase",
         created_by=created_by
@@ -98,6 +100,7 @@ def deduct_stock_for_order_item(order_item, order):
         ingredient.save(update_fields=['quantity_available'])
 
         StockMovement.objects.create(
+            restaurant=ingredient.restaurant,
             ingredient=ingredient,
             change_quantity=-required_qty,
             movement_type='order',

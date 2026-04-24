@@ -7,22 +7,32 @@ from channels.layers import get_channel_layer
 from .models import Order,OrderItem,Table
 from .seriailizers import OrderSerializer ,TableSerializer
 
-@receiver(post_save,sender=Order)
-def order_created_notification(sender,instance,created,**kwargs):
-    if created:
-        Notification.objects.create(type="order"
-                                    ,message=f"New order placed by {instance.name}")
-        
+from django.db import transaction
+
+@receiver(post_save, sender=Order)
+def order_created_notification(sender, instance, created, **kwargs):
+    if created and instance.restaurant:
+        transaction.on_commit(lambda: Notification.objects.create(
+            restaurant=instance.restaurant,
+            type="order",
+            message=f"New order placed by {instance.name}"
+        ))
 
 channel_layer = get_channel_layer()
 print(channel_layer) 
 
 def broadcast_order(order):
-    # Make sure items are prefetched
+    if not order or not order.restaurant:
+        return
+
     order = Order.objects.prefetch_related('items__menu_item').get(pk=order.pk)
+
     serialized_order = OrderSerializer(order).data
+
+    group_name = f"orders_{order.restaurant.id}"
+
     async_to_sync(channel_layer.group_send)(
-        "orders",
+        group_name,
         {
             "type": "order_message",
             "message": {
@@ -32,22 +42,22 @@ def broadcast_order(order):
         }
     )
 
-
 def broadcast_table(table):
     table=Table.objects.prefetch_related("orders__items__menu_item").get(pk=table.pk)
     serialized=TableSerializer(table).data
 
+    group_name = f"orders_{table.restaurant.id}"
+
     async_to_sync(channel_layer.group_send)(
-        "orders",
+        group_name,
         {
             "type": "table_message",
             "message": {
                 "type": "TABLE_UPDATED",
                 "table": serialized,
             },
-        },
+        }
     )
-
 
 @receiver(post_save, sender=OrderItem)
 def order_item_created(sender, instance, created, **kwargs):

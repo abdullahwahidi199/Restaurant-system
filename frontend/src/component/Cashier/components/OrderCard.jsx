@@ -6,6 +6,7 @@ const OrderCard = ({
   onViewDetails,
   onPrintBill,
   onAssignDelivery,
+  onMarkCompleted,
 }) => {
   const items = order.items || [];
   const getQty = (it) => it.qty ?? it.quantity ?? 0;
@@ -16,7 +17,7 @@ const OrderCard = ({
     0,
   );
   const tax = subtotal * (order.tax ?? 0);
-  const formattedTotal = (subtotal + tax).toFixed(2);
+  const formattedTotal = (Number(order.total) + tax).toFixed(2);
   console.log("OrderCard Rendered with order:", order);
   const statusLabel =
     order.status_display ||
@@ -53,8 +54,22 @@ const OrderCard = ({
           status: "delivered",
         },
       );
+      onMarkCompleted(order.id);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleMarkPaid = async (order) => {
+    try {
+      await instance.patch(`/orders/orders/${order.id}/update_status/`, {
+        status: "completed",
+      });
+      onMarkCompleted(order.id);
+      toast.success("Payment completed");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to mark paid");
     }
   };
   return (
@@ -77,7 +92,7 @@ const OrderCard = ({
 
       {order.table && (
         <p className="text-sm text-gray-600 mb-1">
-          <strong>Table:</strong> {order.tableNumber}
+          <strong>Table:</strong> {order.tableName}
         </p>
       )}
 
@@ -109,7 +124,17 @@ const OrderCard = ({
                 Print
               </button>
             )}
-
+          {order.status !== "completed" &&
+            order.order_type !== "delivery" &&
+            order.status !== "pending" &&
+            order.status !== "in_progress" && (
+              <button
+                onClick={() => handleMarkPaid(order)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1 rounded-lg transition-all"
+              >
+                Mark Paid
+              </button>
+            )}
           {String(order.order_type || order.order_type_display || "")
             .toLowerCase()
             .includes("delivery") &&

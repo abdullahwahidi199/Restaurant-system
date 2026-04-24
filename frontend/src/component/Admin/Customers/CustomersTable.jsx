@@ -14,6 +14,7 @@ export default function CustomersTable({ customers }) {
               "address",
               "email",
               "gender",
+              "Orders",
               "DOB",
               "joined_at",
             ].map((h) => (
@@ -49,6 +50,11 @@ export default function CustomersTable({ customers }) {
               )}
               {c.gender ? (
                 <td className="px-4 py-2 border-b">{c.gender}</td>
+              ) : (
+                <tr>N/A</tr>
+              )}
+              {c.orders_count ? (
+                <td className="px-4 py-2 border-b">{c.orders_count}</td>
               ) : (
                 <tr>N/A</tr>
               )}

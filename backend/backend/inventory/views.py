@@ -16,42 +16,71 @@ from .serializers import (
     MenuItemIngredientSerializer,
     StockMovementSerializer
 )
+from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive
+
+
 
 # INGREDIENT CRUD
 class IngredientListCreateView(generics.ListCreateAPIView):
-    queryset = Ingredient.objects.all()
+
     serializer_class = IngredientSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    def get_queryset(self):
+        return Ingredient.objects.filter(
+            restaurant=self.request.user.staff_profile.restaurant
+        )
+    def perform_create(self, serializer):
+        restaurant = self.request.user.staff_profile.restaurant
+        serializer.save(restaurant=restaurant)
 
 
 class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    def get_queryset(self):
+        return Ingredient.objects.filter(
+            restaurant=self.request.user.staff_profile.restaurant
+        )
 
 
 # MENU ITEM RECIPE
 class MenuItemIngredientListCreateView(generics.ListCreateAPIView):
     queryset = MenuItemIngredient.objects.select_related('menu_item', 'ingredient')
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    def get_queryset(self):
+        restaurant = self.request.user.staff_profile.restaurant
+        return MenuItemIngredient.objects.filter(
+            menu_item__restaurant=restaurant
+        ).select_related('menu_item', 'ingredient')
 
 
 class MenuItemIngredientDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = MenuItemIngredient.objects.all()
+    
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsRestaurantAdmin,IsRestaurantActive,IsSameRestaurant]
+    def get_queryset(self):
+        restaurant = self.request.user.staff_profile.restaurant
+        return MenuItemIngredient.objects.filter(
+            menu_item__restaurant=restaurant
+        )
 
 
 class StockMovementListView(generics.ListAPIView):
     serializer_class = StockMovementSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
     pagination_class=StockMovementPagination
 
 
     def get_queryset(self):
-        qs=(
-            StockMovement.objects.select_related('ingredient')
+        user = self.request.user
+        restaurant = user.staff_profile.restaurant
+
+        qs = (
+            StockMovement.objects
+            .select_related('ingredient')
+            .filter(restaurant=restaurant)   # 🔥 IMPORTANT FIX
             .filter(movement_type__in=['purchase','waste','adjustment'])
             .order_by('-created_at')
         )
@@ -79,9 +108,12 @@ class StockMovementListView(generics.ListAPIView):
 
 # LOW STOCK
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
 def low_stock_items(request):
+    restaurant = request.user.staff_profile.restaurant
+
     items = Ingredient.objects.filter(
+        restaurant=restaurant,
         quantity_available__lte=F('minimum_threshold')
     )
     serializer = IngredientSerializer(items, many=True)
@@ -96,7 +128,7 @@ from .services import add_stock
 from decimal import Decimal
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
 def add_stock_view(request):
     print("DATA RECEIVED:", request.data)
     ingredient_id = request.data.get('ingredient')
@@ -114,8 +146,8 @@ def add_stock_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    ingredient = Ingredient.objects.get(id=ingredient_id)
-
+    ingredient = Ingredient.objects.get(id=ingredient_id,restaurant=request.user.staff_profile.restaurant)
+    restaurant=request.user.staff_profile.restaurant
     add_stock(
         ingredient=ingredient,
         quantity=quantity,
@@ -130,7 +162,7 @@ def add_stock_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
 def adjust_stock_view(request):
     ingredient_id = request.data.get('ingredient')
     quantity = Decimal(request.data.get('quantity'))
@@ -138,8 +170,8 @@ def adjust_stock_view(request):
 
     if not ingredient_id or not quantity or not movement_type:
         return Response({'detail': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    ingredient = Ingredient.objects.get(id=ingredient_id)
+    restaurant = request.user.staff_profile.restaurant
+    ingredient = Ingredient.objects.get(id=ingredient_id,restaurant=restaurant)
 
     if ingredient.quantity_available + quantity < 0:
         return Response(
@@ -157,6 +189,7 @@ def adjust_stock_view(request):
     StockMovement.objects.create(
         ingredient=ingredient,
         change_quantity=quantity,
+        restaurant=ingredient.restaurant,
         movement_type=movement_type,
         created_by=getattr(request.user, 'staff_profile', None)
     )
@@ -168,10 +201,11 @@ def adjust_stock_view(request):
     return Response({'detail': 'Stock adjusted successfully'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
 
 def inventory_dashboard_summary(request):
-    ingredients=Ingredient.objects.filter(is_active=True)
+    restaurant = request.user.staff_profile.restaurant
+    ingredients=Ingredient.objects.filter(is_active=True, restaurant=restaurant)
     inventory_value = ingredients.aggregate(
     total=Coalesce(
         Sum(
@@ -184,16 +218,18 @@ def inventory_dashboard_summary(request):
         output_field=DecimalField(max_digits=12, decimal_places=2)
     )
 )["total"]
-    low_stock=Ingredient.objects.filter(
-        quantity_available__lte=F('minimum_threshold')
-    ).count()
+    low_stock = Ingredient.objects.filter(
+    restaurant=restaurant,
+    quantity_available__lte=F('minimum_threshold')
+).count()
 
-    out_of_stock=Ingredient.objects.filter(quantity_available=0).count()
+    out_of_stock=Ingredient.objects.filter(quantity_available=0, restaurant=restaurant).count()
 
 
     since = now() - timedelta(days=30)
     top_consumed_ingredients=(
         StockMovement.objects.filter(
+            restaurant=restaurant,
             created_at__gte=since,
             movement_type='order',
             change_quantity__lt=0
@@ -206,6 +242,7 @@ def inventory_dashboard_summary(request):
     high_waste_ingredients=(
         StockMovement.objects
         .filter(
+            restaurant=restaurant,
             created_at__gte=since,
             movement_type='waste'
         )

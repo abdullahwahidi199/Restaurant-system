@@ -42,6 +42,7 @@ class ReveiwSerializer(serializers.ModelSerializer):
         model=Review
         fields=['id','customer','menu_item','delivery','comment','rating','response','created_at','responded_at','menu_item_name','customerName']
 
+    
     def update(self, instance, validated_data):
         
         response_text = validated_data.get("response", None)

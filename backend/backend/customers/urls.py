@@ -1,16 +1,13 @@
 from django.urls import path
-from .views import SignupView, LoginView,CustomerProfileView,CustomerOrdersView, CustomerReviewsView,CustomersView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import *
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
-    path("profile",CustomerProfileView.as_view()),
-    path('signup/', SignupView.as_view(), name='signup'),
-    path('login/', LoginView.as_view(), name='login'),
-    path('orders/', CustomerOrdersView.as_view(), name='customer-orders'),
-    path('reviews/', CustomerReviewsView.as_view(), name='customer-reviews'),
-
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-   
-    path('customers/',CustomersView)
+    path("<slug:slug>/signup/", SignupView.as_view()),
+    path("<slug:slug>/login/", LoginView.as_view()),
+    path("<slug:slug>/profile/", CustomerProfileView.as_view()),
+    path("<slug:slug>/orders/", CustomerOrdersView.as_view()),
+    path("<slug:slug>/reviews/", CustomerReviewsView.as_view()),
+    path("customer/token/refresh/", TokenRefreshView.as_view()),
+    path("customers/", CustomersView),
 ]

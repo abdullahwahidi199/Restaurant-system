@@ -12,6 +12,7 @@ export default function HomePage() {
     try {
       const res = await instance.get("/orders/tables/");
       setTables(res.data);
+      console.log(res.data);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -19,7 +19,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   if (!table) return null;
 
-  const { number, status, capacity, note, current_order } = table;
+  const { name, status, capacity, note, current_order } = table;
   console.log(table);
 
   const markAvailable = async () => {
@@ -61,7 +61,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-lg relative animate-in fade-in-50 slide-in-from-bottom-10">
         <div className="flex justify-between items-center border-b px-5 py-3">
           <h2 className="text-lg font-semibold">
-            Table {number} —{" "}
+            Table {name} —{" "}
             <span
               className={`capitalize ${
                 status === "available"

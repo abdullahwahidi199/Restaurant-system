@@ -15,6 +15,7 @@ import {
   X,
   BarChart,
   Star,
+  Wallet,
   Package,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -59,6 +60,16 @@ function Navbar() {
       to: "/admin/dashboard/tables",
       label: t("nav.tables"),
       icon: <Table2 size={18} />,
+    },
+    {
+      to: "/admin/dashboard/expenses",
+      label: t("nav.expenses"),
+      icon: <Wallet size={18} />,
+    },
+    {
+      to: "/admin/dashboard/reservations",
+      label: "Reservations",
+      icon: <Wallet size={18} />,
     },
     {
       to: "/admin/dashboard/reports",

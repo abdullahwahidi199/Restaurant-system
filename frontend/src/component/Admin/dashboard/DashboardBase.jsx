@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [currentDate, setCurrentDate] = useState("authTokens");
 
   const { auth } = useContext(AuthContext);
+  console.log(auth);
   const isDemo = auth?.user?.isDemo;
 
   useEffect(() => {
@@ -122,15 +123,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         <LowStockItems /> {/* ✅ Added without removing anything */}
-      </div>
-
-      {/* Delivery Performance */}
-      <div className="mt-10">
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <DeliveryPerformance data={summary.delivery_boys_performance} />
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

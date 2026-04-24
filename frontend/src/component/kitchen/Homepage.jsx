@@ -12,7 +12,7 @@ export default function KitchenHomepage() {
   const [error, setError] = useState(null);
 
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
-  const [activeStatusTab, setActiveStatusTab] = useState("pending");
+  const [activeStatusTab, setActiveStatusTab] = useState("all");
 
   const fetchOrders = async () => {
     try {

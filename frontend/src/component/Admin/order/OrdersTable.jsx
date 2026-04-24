@@ -33,6 +33,9 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
             <th>{t("table.total")}</th>
             <th>{t("table.table")}</th>
             <th>{t("table.status")}</th>
+            <th>Created by</th>
+            <th>Recieved by</th>
+
             <th>{t("table.date")}</th>
             <th className="text-center">{t("table.actions")}</th>
           </tr>
@@ -41,11 +44,11 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
         <tbody>
           {orders.map((order) => (
             <tr key={order.id} className="border-b hover:bg-gray-50">
-              <td className="p-3">#{order.id}</td>
+              <td className="p-3">{order.id}</td>
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
               <td className="p-3">
-                {order.table ? order.tableNumber : t("table.takeaway")}
+                {order.table ? order.tableName : t("table.takeaway")}
               </td>
               <td className="p-3">
                 <span
@@ -54,6 +57,12 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
                   {order.status_display}
                 </span>
               </td>
+              <td className="p-3">{order.created_by_name}</td>
+              {order.received_by_name ? (
+                <p>{order.received_by_name}</p>
+              ) : (
+                <p>Not paid yet</p>
+              )}
               <td className="p-3">
                 {new Date(order.created_at).toLocaleDateString()}
               </td>

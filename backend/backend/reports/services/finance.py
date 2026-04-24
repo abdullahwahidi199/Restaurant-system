@@ -9,16 +9,17 @@ from decimal import Decimal
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 from datetime import datetime, time, timedelta
-from decimal import Decimal
 
-from orders.models import OrderItem
+from orders.models import OrderItem,Order
 from inventory.models import StockMovement
 from users.models import Payroll
+
+# Update this import to match your actual app name
+from expenses.models import Expenses
 
 
 class FinanceReportService:
 
-    
     @staticmethod
     def _parse_range(start, end):
         today = timezone.now().date()
@@ -31,44 +32,40 @@ class FinanceReportService:
 
         return start_dt, end_dt
 
-    
     @staticmethod
-    def profit_loss(start, end):
+    def profit_loss(start, end, restaurant):
         start_dt, end_dt = FinanceReportService._parse_range(start, end)
-
         money_field = DecimalField(max_digits=14, decimal_places=2)
 
+        # -------- Revenue --------
         items = OrderItem.objects.filter(
-            order__created_at__range=(start_dt, end_dt)
-        ).exclude(
-            order__status="cancelled"
+            order__created_at__range=(start_dt, end_dt),
+            order__restaurant=restaurant
+        ).exclude(order__status="cancelled")
+
+        orders = (
+            Order.objects.filter(
+                restaurant=restaurant,
+                created_at__range=(start_dt, end_dt)
+            )
+            .exclude(status="cancelled")
+            .select_related("reservation")
+            .prefetch_related("items__menu_item")
         )
 
-        
-        revenue = items.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("quantity") * F("menu_item__price"),
-                    output_field=money_field
-                )
-            )
-        )["total"] or Decimal("0")
+        revenue = Decimal("0")
 
-        # ==================================================
-        # COGS
-        # quantity * stored cost_per_unit
-        # NOTE:
-        # This assumes menu_item has field: cost_per_unit
-        # If you only have get_cost_per_unit() method,
-        # convert it into a DB field for true optimization.
-        # ==================================================
+        for o in orders:
+            revenue += Decimal(o.get_total())
+
+        # -------- COGS --------
         cogs = Decimal("0")
-
         for item in items.select_related("menu_item"):
             cogs += Decimal(item.quantity) * Decimal(item.menu_item.get_cost_per_unit())
 
-        
+        # -------- Stock purchases --------
         purchases = StockMovement.objects.filter(
+            restaurant=restaurant,
             created_at__range=(start_dt, end_dt),
             movement_type="purchase"
         ).aggregate(
@@ -80,8 +77,9 @@ class FinanceReportService:
             )
         )["total"] or Decimal("0")
 
-        #wastage
+        # -------- Wastage --------
         wastage = StockMovement.objects.filter(
+            restaurant=restaurant,
             created_at__range=(start_dt, end_dt),
             movement_type="waste"
         ).aggregate(
@@ -92,14 +90,18 @@ class FinanceReportService:
                 )
             )
         )["total"] or Decimal("0")
-
         wastage = abs(wastage)
 
-      
-        
-        # profits
-       
-        total_expenses = cogs + wastage
+        # -------- Operational Expenses (NEW) --------
+        operational_expenses = Expenses.objects.filter(
+            restaurant=restaurant,
+            date__range=(start_dt.date(), end_dt.date())
+        ).aggregate(
+            total=Sum("amount", output_field=money_field)
+        )["total"] or Decimal("0")
+
+        # -------- Totals --------
+        total_expenses = cogs + wastage + operational_expenses
         gross_profit = revenue - cogs
         net_profit = revenue - total_expenses
 
@@ -108,8 +110,6 @@ class FinanceReportService:
             if revenue > 0 else Decimal("0")
         )
 
-        
-        
         return {
             "range": {
                 "start": start_dt.strftime("%Y-%m-%d"),
@@ -118,9 +118,9 @@ class FinanceReportService:
             "revenue": float(round(revenue, 2)),
             "expenses": {
                 "cogs": float(round(cogs, 2)),
-                
                 "wastage": float(round(wastage, 2)),
                 "stock_purchases": float(round(purchases, 2)),
+                "operational_expenses": float(round(operational_expenses, 2)),
                 "total_expenses": float(round(total_expenses, 2)),
             },
             "gross_profit": float(round(gross_profit, 2)),

@@ -29,8 +29,8 @@ class InventoryReportService:
     # Stock Status (Enhanced)
     # -------------------------
     @staticmethod
-    def stock_status():
-        ingredients = Ingredient.objects.all()
+    def stock_status(restaurant):
+        ingredients = Ingredient.objects.filter(restaurant=restaurant).all()
         active_ingredients = ingredients.filter(is_active=True)
         inactive_count = ingredients.filter(is_active=False).count()
 
@@ -83,8 +83,8 @@ class InventoryReportService:
     # Full Inventory
     # -------------------------
     @staticmethod
-    def full_inventory():
-        ingredients = Ingredient.objects.all().order_by("name")
+    def full_inventory(restaurant):
+        ingredients = Ingredient.objects.filter(restaurant=restaurant).all().order_by("name")
         result = []
         for i in ingredients:
             available = float(i.quantity_available or 0)
@@ -120,10 +120,11 @@ class InventoryReportService:
     # Movement Report (Enhanced)
     # -------------------------
     @staticmethod
-    def movement_report(start, end):
+    def movement_report(start, end, restaurant):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         movements = StockMovement.objects.filter(
-    created_at__range=[start_dt, end_dt]
+    created_at__range=[start_dt, end_dt],
+    restaurant=restaurant
 ).exclude(movement_type="order")
         # By Type with quantity totals
         by_type = list(
@@ -137,13 +138,13 @@ class InventoryReportService:
 
         # Total purchase cost (purchases only)
         purchases_cost = Decimal("0.00")
-        for m in movements.filter(movement_type="purchase").select_related("ingredient"):
+        for m in movements.filter(restaurant=restaurant,movement_type="purchase").select_related("ingredient"):
             purchases_cost += (m.change_quantity or 0) * (m.ingredient.cost_per_unit or 0)
 
         # Total waste cost
         waste_cost = Decimal("0.00")
         waste_qty = Decimal("0.00")
-        for m in movements.filter(movement_type="waste").select_related("ingredient"):
+        for m in movements.filter(restaurant=restaurant,movement_type="waste").select_related("ingredient"):
             qty = abs(m.change_quantity or 0)
             waste_qty += qty
             waste_cost += qty * (m.ingredient.cost_per_unit or 0)
@@ -171,10 +172,10 @@ class InventoryReportService:
     # Recent Movements
     # -------------------------
     @staticmethod
-    def recent_movements(start, end, limit=25):
+    def recent_movements(start, end, limit=25, restaurant=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         movements = (
-            StockMovement.objects.filter(created_at__range=[start_dt, end_dt])
+            StockMovement.objects.filter(restaurant=restaurant, created_at__range=[start_dt, end_dt])
             .select_related("ingredient", "created_by", "related_order")
             .order_by("-created_at")[:limit]
         )
@@ -195,12 +196,13 @@ class InventoryReportService:
     # Top Moving Ingredients
     # -------------------------
     @staticmethod
-    def top_moving_ingredients(start, end, limit=10):
+    def top_moving_ingredients(start, end, limit=10,restaurant=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
             StockMovement.objects.filter(
-    created_at__range=[start_dt, end_dt]
-).exclude(movement_type="order")
+                restaurant=restaurant,
+                created_at__range=[start_dt, end_dt]
+            ).exclude(movement_type="order")
             .values(
                 name=F("ingredient__name"),
                 unit=F("ingredient__unit"),
@@ -216,10 +218,11 @@ class InventoryReportService:
     # Top Wasted Ingredients
     # -------------------------
     @staticmethod
-    def top_wasted_ingredients(start, end, limit=10):
+    def top_wasted_ingredients(start, end, limit=10, restaurant=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         wastes = (
             StockMovement.objects.filter(
+                restaurant=restaurant,
                 created_at__range=[start_dt, end_dt],
                 movement_type="waste",
             )
@@ -252,10 +255,11 @@ class InventoryReportService:
     # Daily Movement Trend
     # -------------------------
     @staticmethod
-    def daily_movements(start, end):
+    def daily_movements(start, end, restaurant):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
             StockMovement.objects.filter(
+                restaurant=restaurant,
     created_at__range=[start_dt, end_dt]
 ).exclude(movement_type="order")
             .annotate(date=TruncDate("created_at"))
@@ -271,10 +275,11 @@ class InventoryReportService:
     # Top Staff by Movements
     # -------------------------
     @staticmethod
-    def top_staff_movements(start, end, limit=10):
+    def top_staff_movements(start, end, limit=10,restaurant=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
             StockMovement.objects.filter(
+                restaurant=restaurant,
                 created_at__range=[start_dt, end_dt],
                 created_by__isnull=False,
             )
@@ -290,10 +295,11 @@ class InventoryReportService:
     # Menu Item Ingredient Usage
     # -------------------------
     @staticmethod
-    def menu_item_ingredient_usage(limit=15):
+    def menu_item_ingredient_usage(limit=15, restaurant=None):
         """Which menu items use the most ingredients (recipe complexity)."""
         return list(
             MenuItemIngredient.objects.values(
+                restaurant=restaurant,
                 menu_item_name=F("menu_item__name")
             )
             .annotate(
@@ -307,11 +313,12 @@ class InventoryReportService:
     # Most Used Ingredients in Recipes
     # -------------------------
     @staticmethod
-    def most_used_in_recipes(limit=10):
+    def most_used_in_recipes(limit=10, restaurant=None):
         return list(
             MenuItemIngredient.objects.values(
                 ingredient_name=F("ingredient__name"),
                 unit=F("ingredient__unit"),
+                restaurant=restaurant
             )
             .annotate(
                 used_in_items=Count("menu_item", distinct=True),

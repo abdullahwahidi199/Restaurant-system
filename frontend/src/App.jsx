@@ -42,46 +42,49 @@ import InventoryDashboard from "./component/Admin/Inventory/InventoryDashboard";
 import TakeAwayForm from "./component/Cashier/components/TakeAwayOrderForm";
 import OrderAddModal from "./component/waiter/OrderAddModal";
 import ReportsMainPage from "./component/Admin/Reports/ReportsMainPage";
+import SuperAdminMain from "./superAdmin/SuperAdminMain";
+import SystemLanding from "./SystemLanding";
+import ExpensesMain from "./component/Admin/Expenses/ExpensesMain";
+import ExpenseHistory from "./component/Admin/Expenses/expensesHistory";
+import IndividualExpense from "./component/Admin/Expenses/IndividualExpense";
+import AddReservation from "./component/Cashier/components/AddReservation";
+import ReservationsList from "./component/Cashier/components/ReservationsList";
+import RequireActiveRestaurant from "./api/RequireActiveRestaurant";
+import SubscriptionInactive from "./SubscriptionInactive";
+import ReservationsMainPage from "./component/Admin/Reservations/ReservationsMainPage";
 
 const BASE_URL = "http://127.0.0.1:8000";
 
 function App() {
-  const [restaurantInfo, setRestaurantInfo] = useState(null);
-
-  const fetchRestaurantInfo = async () => {
-    const response = await fetch(`${BASE_URL}/system/restaurant-info/1/`);
-    const data = await response.json();
-    setRestaurantInfo(data);
-  };
-
-  useEffect(() => {
-    fetchRestaurantInfo();
-  }, []);
-
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<RootLayout />}>
-        <Route path="/">
-          <Route
-            index
-            element={<CustomerHomepage restaurantInfo={restaurantInfo} />}
-          />
+        <Route path="r" element={<SystemLanding />} />
+        <Route path="r/:slug">
+          <Route index element={<CustomerHomepage />} />
           <Route path="signup" element={<CustomerSignUpModal />} />
           <Route path="profile" element={<CustomerProfile />} />
           <Route path="orders" element={<Orders />} />
           <Route path="login" element={<Login />} />
-          <Route
-            path="info"
-            element={<Infopage restaurantInfo={restaurantInfo} />}
-          />
+          <Route path="info" element={<Infopage />} />
         </Route>
 
         <Route path="staff-login" element={<StaffLogin />} />
         <Route
+          path="super-admin"
+          element={
+            <RequireAuth allowedRoles={["SuperAdmin"]}>
+              <SuperAdminMain />
+            </RequireAuth>
+          }
+        ></Route>
+        <Route
           path="admin/dashboard"
           element={
             <RequireAuth allowedRoles={["Admin"]}>
-              <AdminDashboard />
+              <RequireActiveRestaurant>
+                <AdminDashboard />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
         >
@@ -93,7 +96,11 @@ function App() {
           <Route path="menu/item/:id" element={<IndividaulItem />} />
           <Route path="orders" element={<OrderBase />} />
           <Route path="tables" element={<TableBaseModal />} />
+          <Route path="expenses" element={<ExpensesMain />} />
+          <Route path="expenses/history" element={<ExpenseHistory />} />
+          <Route path="expenses/history/:id" element={<IndividualExpense />} />
           <Route path="reports" element={<ReportsMainPage />} />
+          <Route path="reservations" element={<ReservationsMainPage />} />
           <Route path="inventory" element={<InventoryDashboard />} />
           <Route path="customers" element={<CustomersBaseModal />} />
           <Route path="feedbacks" element={<Feedbacks />} />
@@ -104,7 +111,9 @@ function App() {
           path="waiter"
           element={
             <RequireAuth allowedRoles={["Waiter"]}>
-              <HomePage />
+              <RequireActiveRestaurant>
+                <HomePage />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
         />
@@ -112,7 +121,9 @@ function App() {
           path="waiter/new-order"
           element={
             <RequireAuth allowedRoles={["Waiter"]}>
-              <OrderAddModal />
+              <RequireActiveRestaurant>
+                <OrderAddModal />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
         />
@@ -121,7 +132,9 @@ function App() {
           path="kitchen"
           element={
             <RequireAuth allowedRoles={["Kitchen_manager"]}>
-              <KitchenHomepage />
+              <RequireActiveRestaurant>
+                <KitchenHomepage />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
         ></Route>
@@ -130,7 +143,9 @@ function App() {
           path="cashier"
           element={
             <RequireAuth allowedRoles={["Cashier"]}>
-              <CashierManagement />
+              <RequireActiveRestaurant>
+                <CashierManagement />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
         />
@@ -138,9 +153,25 @@ function App() {
           path="cashier/takeaway"
           element={
             <RequireAuth allowedRoles={["Cashier"]}>
-              <TakeAwayForm />
+              <RequireActiveRestaurant>
+                <TakeAwayForm />
+              </RequireActiveRestaurant>
             </RequireAuth>
           }
+        />
+        <Route
+          path="cashier/reservations"
+          element={
+            <RequireAuth allowedRoles={["Cashier"]}>
+              <RequireActiveRestaurant>
+                <ReservationsList />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="subscription-inactive"
+          element={<SubscriptionInactive />}
         />
       </Route>,
     ),

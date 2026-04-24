@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-// import i18n from "../../../i18n";
+import i18n from "../../../i18n";
 export default function OrderDetailsModal({ order, onClose }) {
   const { t } = useTranslation();
   if (!order) return null;
@@ -29,11 +29,19 @@ export default function OrderDetailsModal({ order, onClose }) {
           <strong>{t("modal.phone")}:</strong> {order.phone}
         </p>
         <p>
-          <strong>{t("modal.address")}:</strong> {order.address || "—"}
+          <strong>Location:</strong>{" "}
+          {order.latitude && order.longitude
+            ? `${order.latitude}, ${order.longitude}`
+            : "—"}
         </p>
         <p>
           <strong>{t("modal.order_type")}:</strong> {order.order_type_display}
         </p>
+        {order.order_type === "delivery" && (
+          <p>
+            <strong>Delivery Fee:</strong> {order.delivery_fee} AFN
+          </p>
+        )}
         <p>
           <strong>{t("modal.status")}:</strong> {order.status_display}
         </p>

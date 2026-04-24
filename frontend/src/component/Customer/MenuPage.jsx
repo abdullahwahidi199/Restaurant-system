@@ -6,8 +6,10 @@ import toast, { Toaster } from "react-hot-toast";
 import CheckoutForm from "./CheckoutForm";
 import ReviewItemModel from "./ReviewPage";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 
 export default function MenuPage({ orderingClosed }) {
+  const { slug } = useParams();
   const { t, i18n } = useTranslation();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -34,7 +36,7 @@ export default function MenuPage({ orderingClosed }) {
   const fetchMenuData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/menu/categories/`);
+      const res = await fetch(`${BASE_URL}/menu/public/${slug}/categories/`);
       if (!res.ok) throw new Error("Failed to fetch menu data");
       const data = await res.json();
       console.log(data);
@@ -112,7 +114,7 @@ export default function MenuPage({ orderingClosed }) {
 
   const handlePlaceOrder = async (data) => {
     const user = JSON.parse(localStorage.getItem("customer"));
-    console.log(user);
+
     const orderData = {
       customer: user ? user.id : null,
       name: data.name,
@@ -123,10 +125,12 @@ export default function MenuPage({ orderingClosed }) {
         menu_item: item.id,
         quantity: item.qty,
       })),
+      longitude: data.longitude,
+      latitude: data.latitude,
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/orders/orders/`, {
+      const res = await fetch(`${BASE_URL}/orders/online-orders/${slug}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,19 +141,26 @@ export default function MenuPage({ orderingClosed }) {
 
       const result = await res.json();
 
-      if (res.ok) {
-        toast.success(t("menu.messages.order_success"));
-        setOrders((prev) => [...prev, ...cart]);
-        setOrders((prev) => [...prev, ...cart]);
-        setCart([]);
-        setShowCart(false);
-        setShowCheckout(false);
-      } else {
-        toast.error(result.error || "Failed to place order");
+      
+      if (!res.ok) {
+        const message =
+          result?.non_field_errors?.[0] ||
+          result?.error ||
+          Object.values(result)[0]?.[0] ||
+          "Order failed";
+
+        toast.error(message);
+        return;
       }
+
+      toast.success(t("menu.messages.order_success"));
+      setOrders((prev) => [...prev, ...cart]);
+      setCart([]);
+      setShowCart(false);
+      setShowCheckout(false);
     } catch (err) {
       console.error(err);
-      toast.error(result.error || t("menu.messages.order_failed"));
+      toast.error("Network error. Please try again.");
     }
   };
 
@@ -172,7 +183,9 @@ export default function MenuPage({ orderingClosed }) {
 
   console.log(filteredItems);
   const fetchSelectedItem = async (id) => {
-    const response = await fetch(`${BASE_URL}/menu/menu-items/${id}/`);
+    const response = await fetch(
+      `${BASE_URL}/menu/public/${slug}/menu-items/${id}/`,
+    );
     const data = await response.json();
     setSelectedItem(data);
   };

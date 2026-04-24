@@ -34,9 +34,25 @@ export default function OrdersReport({ startDate, endDate }) {
     }
   };
 
-  const handleGeneratePDF = () => {
-    const pdfUrl = `http://127.0.0.1:8000/reports/orders-pdf/?start=${startDate}&end=${endDate}`;
-    window.open(pdfUrl, "_blank");
+  const handleGeneratePDF = async () => {
+    try {
+      const res = await instance.get(
+        `/reports/orders-pdf/?start=${startDate}&end=${endDate}`,
+        {
+          responseType: "blob",
+        },
+      );
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "orders_report.pdf");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -134,6 +150,28 @@ export default function OrdersReport({ startDate, endDate }) {
             icon={<XCircle className="text-red-600" size={20} />}
             subtext="Orders"
             color="bg-red-50"
+          />
+        </div>
+
+        {/* NEW: Revenue Breakdown Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            title="Food Revenue"
+            value={formatCurrency(data.totals.food_revenue)}
+            icon={<Utensils className="text-orange-600" size={20} />}
+            color="bg-orange-50"
+          />
+          <MetricCard
+            title="Delivery Revenue"
+            value={formatCurrency(data.totals.delivery_revenue)}
+            icon={<Truck className="text-blue-600" size={20} />}
+            color="bg-blue-50"
+          />
+          <MetricCard
+            title="Reservation Revenue"
+            value={formatCurrency(data.totals.reservation_revenue)}
+            icon={<Users className="text-purple-600" size={20} />}
+            color="bg-purple-50"
           />
         </div>
 

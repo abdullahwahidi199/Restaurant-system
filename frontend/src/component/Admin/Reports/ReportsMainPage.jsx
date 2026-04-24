@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import OrdersReport from "./OrdersReport";
 import FinanceReport from "./FinanceReport";
 import InventoryReport from "./InventoryReport";
+import StaffReport from "./StaffReport";
 
 const REPORT_OPTIONS = [
   { value: "orders", label: "Orders Report" },
@@ -96,7 +97,7 @@ export default function ReportsMainPage() {
         )}
         {/* Staff Performance */}
         {reportType === "staff_performance" && (
-          <div>Staff Performance Report coming soon...</div>
+          <StaffReport startDate={startDate} endDate={endDate} />
         )}
         {/* Customers
         {reportType === "customers" && (

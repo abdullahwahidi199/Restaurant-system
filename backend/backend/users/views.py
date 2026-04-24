@@ -11,13 +11,13 @@ from .models import Staff, Shift, Attendance
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .permissions import isStaffRole
+from .permissions import HasStaffRole
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from rest_framework.permissions import AllowAny
-
+from restaurants.permissions import IsSameRestaurant,IsRestaurantActive,IsRestaurantAdmin,IsCashier
 
 # class StaffViewSet(viewsets.ModelViewSet):
 #     queryset = Staff.objects.all()
@@ -30,10 +30,12 @@ from rest_framework.permissions import AllowAny
 
 @api_view(['GET','POST'])
 @parser_classes([MultiPartParser,FormParser])
-@permission_classes([IsAuthenticated, isStaffRole])
+@permission_classes([IsAuthenticated,IsSameRestaurant,IsRestaurantActive,IsRestaurantAdmin])
 def staffApi(request):
+    staff=request.user.staff_profile
+    restaurant=staff.restaurant
     if request.method=='GET':
-        staff=Staff.objects.select_related('shift').prefetch_related('deliveries').all()
+        staff=Staff.objects.filter(restaurant=restaurant).select_related('shift').prefetch_related('deliveries').all()
         serializer=StaffSerializer(staff,many=True)
         return Response(serializer.data)
 
@@ -49,15 +51,18 @@ def staffApi(request):
 
         serializer = StaffSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(restaurant=restaurant)
             return Response({'message':'Staff added successfully'})
         return Response(serializer.errors, status=400)
     
 class staffDetailsView(RetrieveUpdateDestroyAPIView):
+    permission_classes=[IsAuthenticated,IsSameRestaurant,IsRestaurantActive,IsRestaurantAdmin]
     queryset=Staff.objects.all()
     serializer_class=StaffSerializer
     lookup_field='id'
 
+    def get_queryset(self):
+        return super().get_queryset().filter(restaurant=self.request.user.staff_profile.restaurant)
     def update(self, request, *args, **kwargs):
         if request.user.staff_profile.is_demo:
             return Response({'detail': 'Action restricted in demo mode.'}, status=403)
@@ -69,11 +74,11 @@ class staffDetailsView(RetrieveUpdateDestroyAPIView):
 
 
 @api_view(['GET','POST'])
-
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsRestaurantAdmin])
 def shiftApi(request):
-    
+    restaurant = request.user.staff_profile.restaurant
     if request.method=='GET':
-        shift=Shift.objects.prefetch_related('staff').all()
+        shift=Shift.objects.filter(restaurant=restaurant).prefetch_related('staff').all()
         serializer=ShiftSerializer(shift,many=True)
         return Response(serializer.data)
 
@@ -85,20 +90,24 @@ def shiftApi(request):
 
         serializer=ShiftSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(restaurant=restaurant)
             return Response({'message':'Shift added successfully'})
         print(serializer.errors)
         return Response(serializer.errors,status=400)
-    
 class ShiftDetailsView(RetrieveUpdateDestroyAPIView):
-    queryset=Shift.objects.all()
-    serializer_class=ShiftSerializer
-    lookup_field='id'
+    serializer_class = ShiftSerializer
+    lookup_field = 'id'
+    permission_classes = [IsAuthenticated, IsSameRestaurant, IsRestaurantAdmin]
 
+    def get_queryset(self):
+        restaurant = self.request.user.staff_profile.restaurant
+        return Shift.objects.filter(restaurant=restaurant)
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsRestaurantAdmin])
 def mark_attendance_view(request, shift_id=None):
+    restaurant = request.user.staff_profile.restaurant
     if request.user.staff_profile.is_demo:
         return Response(
             {'detail': 'Action restricted in demo mode.'},
@@ -115,14 +124,17 @@ def mark_attendance_view(request, shift_id=None):
         status_value = record.get('status', 'Present')
 
         try:
-            staff = Staff.objects.get(id=staff_id)
+            staff = Staff.objects.get(
+            id=staff_id,
+            restaurant=restaurant
+        )
         except Staff.DoesNotExist:
             continue
 
         shift = None
         if shift_id:
             try:
-                shift = Shift.objects.get(id=shift_id)
+                shift = Shift.objects.get(id=shift_id, restaurant=restaurant)
             except Shift.DoesNotExist:
                 shift = None
         else:
@@ -138,7 +150,10 @@ def mark_attendance_view(request, shift_id=None):
             staff=staff,
             shift=shift,
             date=attendance_date,
-            defaults={'status': status_value}
+            defaults={
+        'status': status_value,
+        'restaurant': restaurant   # 🔥 ADD THIS
+    }
         )
 
     return Response({'message': 'Attendance marked successfully!'})
@@ -147,9 +162,14 @@ def mark_attendance_view(request, shift_id=None):
 
 
 @api_view(['GET','POST'])
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsRestaurantAdmin])
 def payrollView(request):
     if request.method=='GET':
-        payroll=Payroll.objects.select_related('staff').all().order_by('-generated_at')
+        restaurant = request.user.staff_profile.restaurant
+
+        payroll = Payroll.objects.select_related('staff').filter(
+            staff__restaurant=restaurant
+        ).order_by('-generated_at')
         serializer=PayrollSerializer(payroll,many=True)
         return Response(serializer.data)
 
@@ -166,12 +186,21 @@ class PayrollDetailsView(RetrieveUpdateDestroyAPIView):
     queryset=Payroll.objects.all()
     serializer_class=PayrollSerializer
     lookup_field='id'
+    permission_classes=[IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsRestaurantAdmin]
+    def get_queryset(self):
+        return super().get_queryset().filter(staff__restaurant=self.request.user.staff_profile.restaurant)
 
 
 @api_view(['GET','POST'])
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsRestaurantAdmin|IsCashier])
 def DeliveryBoyListView(request):
     if request.method=='GET':
-        dileveryBoys=Staff.objects.filter(role='DeliveryBoy')
+        restaurant = request.user.staff_profile.restaurant
+
+        dileveryBoys = Staff.objects.filter(
+            role='DeliveryBoy',
+            restaurant=restaurant
+        )
         serializer=StaffSerializer(dileveryBoys,many=True)
         return Response(serializer.data)
     
@@ -211,7 +240,7 @@ def recent_month_attendance(request):
     today=date.today()
     first_date_of_month=today.replace(day=1)
 
-    attendances=Attendance.objects.filter(date__gte=first_date_of_month).select_related('staff','shift')
+    attendances=Attendance.objects.filter(date__gte=first_date_of_month,restaurant=request.user.staff_profile.restaurant).select_related('staff','shift')
     serializer = AttendanceSerializer(attendances, many=True)
     return Response(serializer.data)
 

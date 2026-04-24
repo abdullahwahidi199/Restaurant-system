@@ -1,8 +1,53 @@
+import { useEffect, useState } from "react";
 import Header from "./Header";
 import MenuPage from "./MenuPage";
+import { useParams } from "react-router-dom";
+import RestaurantNotFound from "../../RestaurantNotFoundPage";
 
-export default function CustomerHomepage({ restaurantInfo }) {
+export default function CustomerHomepage() {
+  const [restaurantInfo, setRestaurantInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const BASE_URL = "http://127.0.0.1:8000";
+  const { slug } = useParams();
+
+  useEffect(() => {
+    const fetchRestaurantInfo = async () => {
+      try {
+        const res = await fetch(
+          `${BASE_URL}/system/restaurant-info/slug/${slug}/`,
+        );
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            setNotFound(true);
+          }
+          return;
+        }
+
+        const data = await res.json();
+        console.log(data);
+        setRestaurantInfo(data);
+      } catch (error) {
+        console.log(error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurantInfo();
+  }, [slug]);
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading...</div>;
+  }
+
+  if (notFound) {
+    return <RestaurantNotFound />;
+  }
   const orderingClosed = !restaurantInfo?.delivery_available;
+
   return (
     <div>
       <Header restaurantInfo={restaurantInfo} />

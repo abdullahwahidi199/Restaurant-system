@@ -52,16 +52,17 @@ api.interceptors.response.use(
   },
 );
 
-export const signupCustomer = async (data) => {
-  return await api.post("/customer/signup/", data);
+export const signupCustomer = async (slug, data) => {
+  return await api.post(`/customer/${slug}/signup/`, data);
 };
 
-export const loginCustomer = async (data) => {
-  return await api.post("/customer/login/", data);
+export const loginCustomer = async (slug, data) => {
+  return await api.post(`/customer/${slug}/login/`, data);
 };
 
-export const getProfile = async () => {
-  return await api.get("/customer/profile");
+export const getProfile = async (slug) => {
+  console.log("Fetching profile for slug:", slug);
+  return await api.get(`/customer/${slug}/profile/`);
 };
 
 export const logoutCustomer = () => {

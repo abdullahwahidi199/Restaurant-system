@@ -37,10 +37,9 @@ class OrderReportService:
     def summary(start, end, restaurant=None):
         start_dt, end_dt = OrderReportService._parse_range(start, end)
 
-        orders = Order.objects.filter(created_at__range=[start_dt, end_dt])
+        orders = Order.objects.filter(restaurant=restaurant, created_at__range=[start_dt, end_dt])
 
-        if restaurant:
-            orders = orders.filter(waiter__restaurant=restaurant)
+        
 
         # ----- Basic counts -----
         total_orders = orders.count()
@@ -49,8 +48,27 @@ class OrderReportService:
 
         # ----- Revenue (only from non-cancelled orders) -----
         billable_orders = orders.exclude(status='cancelled')
-        total_revenue = sum(o.get_total() for o in billable_orders)
-        lost_revenue = sum(o.get_total() for o in cancelled_orders)
+        
+        total_revenue = sum(
+            float(o.get_total()) for o in billable_orders
+        )
+        
+        lost_revenue = sum(
+            float(o.get_total()) for o in cancelled_orders
+        )
+
+        service_revenue = sum(
+            float(o.delivery_fee or 0) for o in billable_orders
+        )
+
+        reservation_revenue = sum(
+            float(
+                (o.reservation.total_price - o.reservation.paid_amount)
+                if o.reservation and o.reservation.reservation_type != "free"
+                else 0
+            )
+            for o in billable_orders if o.reservation
+        )
 
         avg_order_value = (
             round(total_revenue / billable_orders.count(), 2)
@@ -80,6 +98,7 @@ class OrderReportService:
 
         top_items = (
             OrderItem.objects.filter(
+                order__restaurant=restaurant,
                 order__created_at__range=(start_dt, end_dt),
                 order__status__in=["completed", "served", "ready"]
             )
@@ -154,19 +173,19 @@ class OrderReportService:
 
         # ----- Waiter performance -----
         waiter_performance = (
-            orders.exclude(waiter__isnull=True)
-            .values(waiter_name=F("waiter__name"))
-            .annotate(
-                orders_handled=Count("id"),
-                revenue=Sum(
-                    ExpressionWrapper(
-                        F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField()
-                    )
-                )
+    orders.exclude(received_by__isnull=True)
+    .values(waiter_name=F("received_by__name"))
+    .annotate(
+        orders_handled=Count("id"),
+        revenue=Sum(
+            ExpressionWrapper(
+                F("items__quantity") * F("items__menu_item__price"),
+                output_field=DecimalField()
             )
-            .order_by("-orders_handled")[:10]
         )
+    )
+    .order_by("-orders_handled")[:10]
+)
         # ----- Delivery boy performance -----
         delivery_performance = (
             orders.filter(order_type="delivery")
@@ -193,6 +212,10 @@ class OrderReportService:
                 "total_orders": total_orders,
                 "completed_orders": completed_orders.count(),
                 "cancelled_orders": cancelled_orders.count(),
+                "food_revenue": round(total_revenue - service_revenue - reservation_revenue, 2),
+                "delivery_revenue": round(service_revenue, 2),
+                "reservation_revenue": round(reservation_revenue, 2),
+
                 "total_revenue": round(total_revenue, 2),
                 "lost_revenue": round(lost_revenue, 2),
                 "average_order_value": avg_order_value,

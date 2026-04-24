@@ -13,8 +13,9 @@ export default function RestaurantSettings() {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const res = await instance.get("/system/restaurant-info/1/");
+        const res = await instance.get("/restaurant/restaurant/");
         setRestaurant(res.data);
+        console.log(res.data);
       } catch (error) {
         console.error("Failed to fetch restaurant info", error);
       } finally {

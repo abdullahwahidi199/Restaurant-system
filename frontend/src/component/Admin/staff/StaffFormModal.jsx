@@ -9,9 +9,8 @@ export default function StaffFormModal({
   updateStaff,
   editingStaff,
 }) {
-  const { t,i18n } = useTranslation();
-const isRTL = i18n.language !== "en";
-  
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.language !== "en";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -22,8 +21,8 @@ const isRTL = i18n.language !== "en";
     status: "Active",
     custom_role: "",
     image: null,
-    username:"",
-    password:"",
+    username: "",
+    password: "",
     shift: "",
   });
 
@@ -41,10 +40,10 @@ const isRTL = i18n.language !== "en";
         status: editingStaff.status || "Active",
         custom_role: editingStaff.custom_role || "",
         image: null,
-        vehicle_number:editingStaff.vehicle_number||"",
+        vehicle_number: editingStaff.vehicle_number || "",
         shift: editingStaff.shift || "",
-        username:editingStaff.username||"",
-        password:editingStaff.password||""
+        username: editingStaff.username || "",
+        password: editingStaff.password || "",
       });
     } else {
       setFormData({
@@ -55,11 +54,11 @@ const isRTL = i18n.language !== "en";
         hire_date: "",
         status: "Active",
         custom_role: "",
-        vehicle_number:"",
+        vehicle_number: "",
         image: null,
         shift: "",
-        username:"",
-        password:""
+        username: "",
+        password: "",
       });
     }
     setError("");
@@ -75,7 +74,12 @@ const isRTL = i18n.language !== "en";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.role || !formData.email || !formData.phone) {
+    if (
+      !formData.name ||
+      !formData.role ||
+      !formData.email ||
+      !formData.phone
+    ) {
       setError(t("staff.errors.required"));
       return;
     }
@@ -91,8 +95,8 @@ const isRTL = i18n.language !== "en";
   };
 
   const getShifts = async () => {
-    const res = await instance('/users/shift');
-    const data = res.data
+    const res = await instance("/users/shift");
+    const data = res.data;
     setShifts(data);
   };
 
@@ -102,12 +106,13 @@ const isRTL = i18n.language !== "en";
   if (!open) return null;
 
   return (
-    <div dir={isRTL ? "rtl" : "ltr"}
-     className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in  ${
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in  ${
         isRTL ? "text-right" : "text-left"
-      }` }>
+      }`}
+    >
       <div className="relative bg-gray-800 rounded-3xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        
         <div className="flex justify-between items-center border-b border-gray-700 pb-4 mb-6">
           <h2 className="text-3xl font-bold text-gray-100">
             {editingStaff ? t("staff.edit") : t("staff.add")}
@@ -121,11 +126,10 @@ const isRTL = i18n.language !== "en";
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 text-gray-100">
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               name="name"
-               placeholder={t("staff.form.full_name")}
+              placeholder={t("staff.form.full_name")}
               value={formData.name}
               onChange={handleChange}
               className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -161,13 +165,13 @@ const isRTL = i18n.language !== "en";
               onChange={handleChange}
               className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
-             <option value="">{t("staff.form.select_shift")}</option>
-              {shifts.length>0 && (shifts.map((shift) => (
-                <option key={shift.id} value={shift.id}>
-                  {shift.shift_type} ({shift.start_time} - {shift.end_time})
-                </option>
-              )))}
-              
+              <option value="">{t("staff.form.select_shift")}</option>
+              {shifts.length > 0 &&
+                shifts.map((shift) => (
+                  <option key={shift.id} value={shift.id}>
+                    {shift.shift_type} ({shift.start_time} - {shift.end_time})
+                  </option>
+                ))}
             </select>
 
             <select
@@ -177,22 +181,24 @@ const isRTL = i18n.language !== "en";
               className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
               <option value="">{t("staff.form.select_role")}</option>
-            <option value="Admin">{t("staff.roles.admin")}</option>
-            <option value="Cashier">{t("staff.roles.cashier")}</option>
-            <option value="Waiter">{t("staff.roles.waiter")}</option>
-            <option value="DeliveryBoy">{t("staff.roles.delivery")}</option>
-            <option value="Other">{t("staff.roles.other")}</option>
+              <option value="Admin">{t("staff.roles.admin")}</option>
+              <option value="Kitchen_manager">Kitchen manager</option>
+              <option value="Cashier">{t("staff.roles.cashier")}</option>
+              <option value="Waiter">{t("staff.roles.waiter")}</option>
+              <option value="DeliveryBoy">{t("staff.roles.delivery")}</option>
+              <option value="Other">{t("staff.roles.other")}</option>
             </select>
 
-            {formData.role==="DeliveryBoy"&&
-              <input type='number' placeholder={t("staff.vehicle")}
+            {formData.role === "DeliveryBoy" && (
+              <input
+                type="number"
+                placeholder={t("staff.vehicle")}
                 className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                 onChange={handleChange}
                 value={formData.vehicle_number}
-                name='vehicle_number'
-                
+                name="vehicle_number"
               />
-            }
+            )}
           </div>
 
           {formData.role === "Other" && (
@@ -204,7 +210,6 @@ const isRTL = i18n.language !== "en";
               className="input-field w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           )}
-
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <select
@@ -230,27 +235,23 @@ const isRTL = i18n.language !== "en";
           <div>
             <p>{t("staff.form.create_account")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-             
-           
-
-            <input
-              name="username"
-              type="text"
-              value={formData.username}
-              placeholder={t('staff.form.username')}
-              onChange={handleChange}
-              className="input-field px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 outline-none"
-            />
-            <input
-              name="password"
-              value={formData.password}
-              placeholder={t("staff.form.password")}
-              onChange={handleChange}
-              type="password"
-              className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
-            />
-          </div>
+              <input
+                name="username"
+                type="text"
+                value={formData.username}
+                placeholder={t("staff.form.username")}
+                onChange={handleChange}
+                className="input-field px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 outline-none"
+              />
+              <input
+                name="password"
+                value={formData.password}
+                placeholder={t("staff.form.password")}
+                onChange={handleChange}
+                type="password"
+                className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
