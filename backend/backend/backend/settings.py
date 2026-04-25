@@ -84,6 +84,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     # "http://localhost:3000",
     "http://10.10.10.224:5173",
+    "http://185.197.249.94",
     "http://127.0.0.1:5173",
     "https://restaurant-frontend-git-main-rmss-projects-a596e3ee.vercel.app",
     "https://restaurant-frontend-gamma-nine.vercel.app"

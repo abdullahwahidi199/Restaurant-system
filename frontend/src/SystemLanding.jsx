@@ -10,7 +10,7 @@ export default function SystemLanding() {
     e.preventDefault();
     const trimmedSlug = slug.trim().toLowerCase();
     if (trimmedSlug) {
-      navigate(`/r/${trimmedSlug}`);
+      navigate(`r/${trimmedSlug}`);
     }
   };
 
@@ -61,7 +61,7 @@ export default function SystemLanding() {
                 </label>
                 <div className="relative group">
                   <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium font-mono">
-                    /r/
+                    /
                   </div>
                   <input
                     type="text"
@@ -88,7 +88,7 @@ export default function SystemLanding() {
           <p className="text-xs text-gray-500">
             Example:{" "}
             <span className="font-mono bg-white px-2 py-1 rounded border">
-              /r/afiatadmin
+              /afiatadmin
             </span>
           </p>
         </div>

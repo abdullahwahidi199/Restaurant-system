@@ -59,8 +59,8 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<RootLayout />}>
-        <Route path="r" element={<SystemLanding />} />
-        <Route path="r/:slug">
+        <Route index element={<SystemLanding />} />
+        <Route path=":slug">
           <Route index element={<CustomerHomepage />} />
           <Route path="signup" element={<CustomerSignUpModal />} />
           <Route path="profile" element={<CustomerProfile />} />
