@@ -10,7 +10,7 @@ export default function SystemLanding() {
     e.preventDefault();
     const trimmedSlug = slug.trim().toLowerCase();
     if (trimmedSlug) {
-      navigate(`r/${trimmedSlug}`);
+      navigate(`/${trimmedSlug}`);
     }
   };
 

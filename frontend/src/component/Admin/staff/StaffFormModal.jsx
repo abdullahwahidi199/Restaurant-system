@@ -95,9 +95,25 @@ export default function StaffFormModal({
   };
 
   const getShifts = async () => {
-    const res = await instance("/users/shift");
-    const data = res.data;
-    setShifts(data);
+    try {
+      const res = await instance("/users/shift");
+
+      const data = res.data;
+
+      // 👇 normalize response into array
+      const shiftArray = Array.isArray(data)
+        ? data
+        : Array.isArray(data.results)
+          ? data.results
+          : Array.isArray(data.data)
+            ? data.data
+            : [];
+
+      setShifts(shiftArray);
+    } catch (error) {
+      console.error("Failed to load shifts:", error);
+      setShifts([]); // prevent crash
+    }
   };
 
   useEffect(() => {
@@ -166,7 +182,7 @@ export default function StaffFormModal({
               className="input-field px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
               <option value="">{t("staff.form.select_shift")}</option>
-              {shifts.length > 0 &&
+              {Array.isArray(shifts) &&
                 shifts.map((shift) => (
                   <option key={shift.id} value={shift.id}>
                     {shift.shift_type} ({shift.start_time} - {shift.end_time})

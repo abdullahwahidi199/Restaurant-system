@@ -91,7 +91,7 @@ export default function RestaurantForm({ restaurant = {} }) {
       });
 
       alert("✅ Restaurant information updated successfully!"); // Replace with toast later
-      setPreviewLogo(res.data.logo);
+      setPreviewLogo(`${BASE_URL}${res.data.logo}`);
       setFormData((prev) => ({ ...prev, logo: null }));
     } catch (err) {
       console.error(err);

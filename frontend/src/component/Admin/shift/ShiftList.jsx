@@ -4,6 +4,7 @@ import instance from "../../../api/axiosInstance";
 export default function ShiftList({ shifts, onShiftDelete }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
+  const BASE_URL = import.meta.env.VITE_API_URL;
   if (!shifts.length)
     return <div className="text-center text-gray-500">{t("no_shifts")}</div>;
 
@@ -55,7 +56,7 @@ export default function ShiftList({ shifts, onShiftDelete }) {
                     className="flex items-center gap-3 bg-white p-2 rounded-lg shadow-sm"
                   >
                     <img
-                      src={`http://127.0.0.1:8000${member.image}`}
+                      src={`${BASE_URL}${member.image}`}
                       alt={member.name}
                       className="w-10 h-10 rounded-full object-cover border"
                     />

@@ -11,7 +11,7 @@ export default function IndividualItem() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
@@ -28,7 +28,7 @@ export default function IndividualItem() {
     setItem(res.data);
     console.log(res.data);
     setIngredients(res.data.ingredients || []);
-    setPreview(res.data.image);
+    setPreview(res.data.image ? `${BASE_URL}${res.data.image}` : null);
   };
 
   const fetchIngredients = async () => {
