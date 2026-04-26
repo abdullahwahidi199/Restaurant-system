@@ -59,9 +59,9 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
               </td>
               <td className="p-3">{order.created_by_name}</td>
               {order.received_by_name ? (
-                <p>{order.received_by_name}</p>
+                <td>{order.received_by_name}</td>
               ) : (
-                <p>Not paid yet</p>
+                <td>Not paid yet</td>
               )}
               <td className="p-3">
                 {new Date(order.created_at).toLocaleDateString()}

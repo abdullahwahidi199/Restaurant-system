@@ -103,3 +103,17 @@ class RestaurantSerializer(serializers.ModelSerializer):
         )
 
         return restaurant
+    
+    def update(self, instance, validated_data):
+        # 🔥 Remove admin fields if present (don't update them)
+        validated_data.pop('admin_name', None)
+        validated_data.pop('admin_email', None)
+        validated_data.pop('admin_phone', None)
+        validated_data.pop('admin_password', None)
+
+        # Update restaurant fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()  # This will auto-update slug based on name
+        return instance

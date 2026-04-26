@@ -15,7 +15,6 @@ export default function RestaurantSettings() {
       try {
         const res = await instance.get("/restaurant/restaurant/");
         setRestaurant(res.data);
-        console.log(res.data);
       } catch (error) {
         console.error("Failed to fetch restaurant info", error);
       } finally {

@@ -95,6 +95,7 @@ export default function TableBaseModal() {
         <TableAddModal
           onClose={() => setAddTableDisplay(false)}
           onTableAdded={() => {
+            setAddTableDisplay(false);
             fetchTables();
           }}
         />

@@ -208,7 +208,7 @@ export default function TakeAwayForm() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                {t("menu.title") || "Takeaway Order"}
+                "Takeaway Order"
               </h1>
               <p className="text-xs text-gray-500">
                 Create a new takeaway order

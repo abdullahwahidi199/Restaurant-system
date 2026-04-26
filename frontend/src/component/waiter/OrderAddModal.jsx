@@ -222,11 +222,9 @@ export default function TakeAwayForm() {
               <ShoppingBag size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {t("menu.title") || "Takeaway Order"}
-              </h1>
+              <h1 className="text-xl font-bold text-gray-900">Dine-in order</h1>
               <p className="text-xs text-gray-500">
-                Create a new takeaway order
+                Create a new dine in order
               </p>
             </div>
           </div>

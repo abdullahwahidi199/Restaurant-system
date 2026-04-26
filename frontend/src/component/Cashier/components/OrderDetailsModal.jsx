@@ -18,9 +18,7 @@ const OrderDetailsModal = ({
   console.log(order);
 
   //   const finalTotal = (subtotal + reservation_fee).toFixed(2);
-  const finalTotal =
-    Number(order.reservation_payment?.remaining || 0) +
-    Number(order.total || 0);
+  const finalTotal = Number(order.total || 0);
 
   const statusLabel =
     order.status_display ||
@@ -142,27 +140,6 @@ const OrderDetailsModal = ({
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all"
             >
               Print Bill
-            </button>
-          )}
-
-          {order.status !== "out_for_delivery" &&
-            String(order.order_type || "")
-              .toLowerCase()
-              .includes("delivery") && (
-              <button
-                onClick={() => onAssignDelivery && onAssignDelivery(order)}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg transition-all"
-              >
-                Assign Delivery
-              </button>
-            )}
-
-          {String(order.status || "").toLowerCase() !== "completed" && (
-            <button
-              onClick={() => onMarkCompleted && onMarkCompleted(order.id)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all"
-            >
-              Mark Completed
             </button>
           )}
 

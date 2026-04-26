@@ -142,10 +142,6 @@ function Navbar() {
                 </NavLink>
               </li>
             ))}
-            <li className="flex items-center gap-3 px-5 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg cursor-pointer transition">
-              <Info size={18} />
-              <span>{t("nav.about")}</span>
-            </li>
           </ul>
         </div>
       )}

@@ -36,7 +36,7 @@ export default function Header({ restaurantInfo }) {
     const customer = localStorage.getItem("customer");
 
     if (customer) {
-      navigate(`/r/${slug}/orders`);
+      navigate(`/${slug}/orders`);
     } else {
       toast("🔒 To unlock this feature, please log in.");
     }
@@ -48,8 +48,8 @@ export default function Header({ restaurantInfo }) {
   };
 
   const navLinks = [
-    { name: t("nav.faqs"), path: `/r/${slug}/faqs` },
-    { name: t("nav.info"), path: `/r/${slug}/info` },
+    { name: t("nav.faqs"), path: `/${slug}/faqs` },
+    { name: t("nav.info"), path: `/${slug}/info` },
   ];
 
   return (
@@ -114,14 +114,14 @@ export default function Header({ restaurantInfo }) {
           ) : (
             <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
               <Link
-                to={`/r/${slug}/login`}
+                to={`/${slug}/login`}
                 className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition"
               >
                 {t("auth.login")}
               </Link>
 
               <Link
-                to={`/r/${slug}/signup`}
+                to={`/${slug}/signup`}
                 className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition"
               >
                 {t("auth.signup")}

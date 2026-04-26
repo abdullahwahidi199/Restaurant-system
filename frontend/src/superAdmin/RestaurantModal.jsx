@@ -74,10 +74,13 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
     data.append("is_active", formData.is_active);
 
     // Admin fields 🔥
-    data.append("admin_name", formData.admin_name);
-    data.append("admin_email", formData.admin_email);
-    data.append("admin_phone", formData.admin_phone);
-    data.append("admin_password", formData.admin_password);
+    // Only send admin fields when creating
+    if (!editData) {
+      data.append("admin_name", formData.admin_name);
+      data.append("admin_email", formData.admin_email);
+      data.append("admin_phone", formData.admin_phone);
+      data.append("admin_password", formData.admin_password);
+    }
 
     // Logo
     if (logo) {
@@ -184,7 +187,6 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
               value={formData.admin_name}
               onChange={handleChange}
               className="w-full border p-2 rounded mb-2"
-              required
             />
 
             <input
@@ -194,7 +196,6 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
               value={formData.admin_email}
               onChange={handleChange}
               className="w-full border p-2 rounded mb-2"
-              required
             />
 
             <input
