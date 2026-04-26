@@ -124,6 +124,10 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+RATELIMIT_IP_META_KEY = "HTTP_X_REAL_IP"
+
+
 from datetime import timedelta
 
 SIMPLE_JWT = {
