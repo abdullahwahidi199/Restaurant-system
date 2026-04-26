@@ -1,4 +1,5 @@
 from django.db import models
+from restaurants.models import Restaurant
 
 # Create your models here.
 class RestaurantInfo(models.Model):
@@ -10,6 +11,7 @@ class RestaurantInfo(models.Model):
     website = models.URLField(blank=True, null=True)
     opening_hours = models.CharField(max_length=100, blank=True, null=True)
     opening_hours = models.CharField(max_length=100, blank=True, null=True)
+    restaurant = models.OneToOneField(Restaurant, on_delete=models.CASCADE,null=True,blank=True)
     facebook = models.URLField(blank=True, null=True)
     instagram = models.URLField(blank=True, null=True)
     x = models.URLField(blank=True, null=True)

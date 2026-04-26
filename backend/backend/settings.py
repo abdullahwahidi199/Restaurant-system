@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import dj_database_url
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,11 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False") == "True"
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    'localhost',
+    '185.197.249.94',
+'localhost',
     '127.0.0.1',
+    '10.10.10.247',
     'restaurant-backend-baqe.onrender.com',
 ]
 
@@ -50,10 +53,17 @@ INSTALLED_APPS = [
     'reports',
     'users',
     'rest_framework',
+    "channels",
     'corsheaders',
     'system',
+    'restaurants',
+    'expenses',
+    'otp',
+    'inventory',
     'rest_framework_simplejwt.token_blacklist',
 ]
+
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -61,19 +71,22 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 ROOT_URLCONF = 'backend.urls'
-WSGI_APPLICATION = 'backend.wsgi.application'
+
+ASGI_APPLICATION = "backend.asgi.application"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:3000",
-    "https://restaurant-frontend-a7jqre97m-rmss-projects-a596e3ee.vercel.app",
+    # "http://localhost:3000",
+    "http://10.10.10.224:5173",
+    "http://185.197.249.94",
+    "http://127.0.0.1:5173",
+    "https://restaurant-frontend-git-main-rmss-projects-a596e3ee.vercel.app",
     "https://restaurant-frontend-gamma-nine.vercel.app"
 ]
 TEMPLATES = [
@@ -92,21 +105,29 @@ TEMPLATES = [
 ]
 
 
-
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.environ.get("postgresql://mydb_2vig_user:cM8z9IPje38p4dDpIjS9SKJG0x262FEe@dpg-d5d83tqli9vc73dd3lug-a.oregon-postgres.render.com/mydb_2vig")
-    )
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
 }
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'rms_db',
+        'USER': 'rms_user',
+        'PASSWORD': 'AbdullahWahidi123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),  
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  
     "REFRESH_TOKEN_LIFETIME": timedelta(days=5),  
     "ROTATE_REFRESH_TOKENS": True,                  
     "BLACKLIST_AFTER_ROTATION": True,
@@ -165,3 +186,11 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://your-domain.com"
+]

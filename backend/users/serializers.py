@@ -3,7 +3,8 @@ from rest_framework import serializers
 from .models import Staff,Shift,Attendance,Payroll
 from orders.seriailizers import OrderMiniSerializer
 from django.contrib.auth.models import User
-
+from orders.models import Reservation
+from orders.seriailizers import ReservationSerializer,ReservationMiniSerializer
 
 
 class StaffMiniSerializer(serializers.ModelSerializer):
@@ -44,18 +45,21 @@ class StaffSerializer(serializers.ModelSerializer):
     shift = serializers.PrimaryKeyRelatedField(
     queryset=Shift.objects.all(), 
     required=False
-)
+)   
+    created_orders=OrderMiniSerializer(many=True,read_only=True)
     shift_name=serializers.CharField(source="shift.shift_type",read_only=True)
     # shift_info=ShiftSerializer(many=True,read_only=True)
-    
+    reservations = ReservationMiniSerializer(many=True,read_only=True)
     username=serializers.CharField(write_only=True,required=False,allow_blank=True)
     password=serializers.CharField(write_only=True,required=False,allow_blank=True)
     class Meta:
         model = Staff
-        fields = ['id','name','shift','phone','email','shift_name'
-                  ,'hire_date','role','custom_role','deliveries',
+        fields = ['id','name','shift','is_demo','phone','email','shift_name'
+                  ,'hire_date','role','custom_role','deliveries','created_orders','reservations',
                   'image','status','attendances','payrolls','vehicle_number',
                   'username','password']
+    
+    
     def create(self,validated_data):
         username = validated_data.pop('username', None)
         password = validated_data.pop('password', None)

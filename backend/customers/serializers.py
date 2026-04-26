@@ -7,10 +7,17 @@ from django.contrib.auth import authenticate
 class CustomerProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
+    orders_count = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Customer
-        fields = ['username','email','id', 'phone', 'joined_at','address','date_of_birth','gender']
+        fields = ['username','email','id', 'phone', 'joined_at','address','date_of_birth','gender','orders_count']
+    
+    def get_orders_count(self, obj):
+        return obj.orders.count()
+
+   
 class CustomerSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     # phone = serializers.CharField(required=True)
@@ -28,6 +35,9 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         fields = ['username', 'password','email','phone', 'address', 'date_of_birth', 'gender']
 
     def create(self, validated_data):
+
+        restaurant = self.context["restaurant"]
+
         phone=validated_data.pop('phone')
         address=validated_data.pop('address')
         date_of_birth=validated_data.pop('date_of_birth')
@@ -45,6 +55,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
             user=user,
             phone=phone,
             address=address,
+            restaurant=restaurant,
             date_of_birth=date_of_birth,
             gender=gender
         )

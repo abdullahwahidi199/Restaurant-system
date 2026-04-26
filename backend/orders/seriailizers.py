@@ -1,32 +1,42 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer
 from customers.serializers import CustomerProfileSerializer
-from .models import OrderItem,Order,Table
+from .models import OrderItem,Order,Table,Reservation
 from customers.models import Customer
 from users.models import Staff
-
+from django.utils import timezone
+from decimal import Decimal
+from .utils.distance import calculate_distance_km,calculate_delivery_fee
 class OrderItemSerializer(serializers.ModelSerializer):
-    item_name=serializers.ReadOnlyField(source='menu_item.name')
-    item_price=serializers.ReadOnlyField(source='menu_item.price')
-    subtotal=serializers.SerializerMethodField()
-    table_number = serializers.ReadOnlyField(source="order.table.number")
+    item_name = serializers.ReadOnlyField(source='menu_item.name')
+    item_price = serializers.SerializerMethodField()
+    subtotal = serializers.SerializerMethodField()
+    table_name = serializers.ReadOnlyField(source="order.table.name")
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'item_name', 'item_price', 'quantity', 'subtotal','table_number','is_new']
+        fields = [
+            'id', 'menu_item', 'item_name',
+            'item_price', 'quantity',
+            'subtotal', 'table_name', 'is_new'
+        ]
+
+    def get_item_price(self, obj):
+        return str(obj.menu_item.price)  
 
     def get_subtotal(self, obj):
-        return obj.get_subtotal()
+        return str(obj.get_subtotal()) 
 
 class OrderMiniSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     total = serializers.SerializerMethodField()
+
     class Meta:
-        model=Order
-        fields=['name','phone','items','total','id','status']
-    
+        model = Order
+        fields = ['name', 'phone', 'items', 'total', 'id', 'status','created_at']
+
     def get_total(self, obj):
-        return obj.get_total()
+        return str(obj.get_total())
 
 class DeliveryBoyMiniSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,18 +44,246 @@ class DeliveryBoyMiniSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'vehicle_number']
 
 class TableSerializer(serializers.ModelSerializer):
-    orders=OrderMiniSerializer(many=True,read_only=True)
+    orders = serializers.SerializerMethodField()
     current_order=serializers.SerializerMethodField()
+    current_reservation = serializers.SerializerMethodField()
+    upcoming_reservation=serializers.SerializerMethodField()
     class Meta:
         model=Table
-        fields=['id','number','capacity','note','status','orders','current_order']
-    def get_current_order(self,obj):
-        current = obj.orders.filter(
-            status__in=['pending', 'in_progress', 'ready', 'served']
-        ).first()
-        if current:
-                return OrderMiniSerializer(current).data
+        fields=['id','name','capacity','note','status','orders','current_order',"price_per_hour",
+            "allow_free_reservation",
+            "current_reservation",
+            "upcoming_reservation",
+
+]   
+    def get_current_order(self, obj):
+        order = obj.current_order
+        if order:
+            return OrderMiniSerializer(order).data
         return None
+    def get_orders(self, obj):
+        request = self.context.get("request")
+        restaurant = getattr(request, "restaurant", None)
+
+        orders = obj.orders.filter(
+            restaurant=restaurant
+        ) if restaurant else obj.orders.none()
+
+        return OrderMiniSerializer(orders, many=True).data
+    
+
+    def get_current_reservation(self, obj):
+        now = timezone.now()
+
+        reservation = obj.reservations.filter(
+            status="arrived"
+        ).order_by("-start_time").first()
+
+        # If already marked arrived → ALWAYS current
+        if reservation:
+            return {
+                "id": reservation.id,
+                "customer_name": reservation.customer_name,
+                "customer_phone": reservation.phone,
+                "time": reservation.start_time,
+                "duration":reservation.duration_minutes,
+            }
+
+        # fallback: active time window (auto-detected)
+        reservation = obj.reservations.filter(
+            status="reserved",
+            start_time__lte=now
+        ).order_by("-start_time")
+
+        for r in reservation:
+            if r.end_time and now <= r.end_time:
+                return {
+                    "id": r.id,
+                    "customer_name": r.customer_name,
+                    "customer_phone": r.phone,
+                    "time": r.start_time,
+                    "duration":r.duration_minutes
+                }
+
+        return None
+    def get_upcoming_reservation(self, obj):
+        now = timezone.now()
+
+        reservation = obj.reservations.filter(
+            status="reserved",
+            start_time__gt=now
+        ).order_by("start_time").first()
+
+        if reservation:
+            return {
+                "customer_name": reservation.customer_name,
+                "time": reservation.start_time,
+                "time": reservation.start_time,
+                "duration":reservation.duration_minutes
+            }
+
+        return None
+        
+
+from rest_framework import serializers
+from .models import Reservation, Table
+from django.utils import timezone
+from datetime import timedelta
+from math import ceil
+
+class ReservationMiniSerializer(serializers.ModelSerializer):
+    table_name = serializers.ReadOnlyField(source="table.name")
+    total_price = serializers.ReadOnlyField()
+    end_time = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Reservation
+        fields = [
+            "id", "table", "table_name", "customer_name",
+            "guests", "reservation_date", "start_time", "duration_minutes","end_time",
+ "amount", "paid_amount",
+            "total_price", 
+           "created_at",
+        ]
+        read_only_fields = ["amount", "created_at", "end_time", "total_price"]
+    def get_end_time(self, obj):
+        return obj.end_time
+
+    def get_total_price(self, obj):
+        return obj.total_price
+
+class ReservationSerializer(serializers.ModelSerializer):
+    table_name = serializers.ReadOnlyField(source="table.name")
+    created_by_name = serializers.ReadOnlyField(source="created_by.name")
+    end_time = serializers.SerializerMethodField()
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reservation
+        fields = [
+            "id", "table", "table_name", "customer_name", "phone",
+            "guests", "reservation_date", "start_time", "duration_minutes",
+            "end_time", "reservation_type", "amount", "paid_amount",
+            "total_price", "status", "created_by", "created_by_name",
+            "notes", "created_at",
+        ]
+        read_only_fields = ["amount", "created_at", "end_time", "total_price"]
+
+    def get_end_time(self, obj):
+        return obj.end_time
+
+    def get_total_price(self, obj):
+        return obj.total_price
+
+    # ─── VALIDATION ───────────────────────────────────────────
+    def validate(self, data):
+        # Resolve values (support both create & update)
+        table = data.get("table") or getattr(self.instance, "table", None)
+        start_time = data.get("start_time") or getattr(self.instance, "start_time", None)
+        reservation_date = data.get("reservation_date")
+        duration_minutes = data.get("duration_minutes") or getattr(self.instance, "duration_minutes", 0)
+        reservation_type = data.get("reservation_type") or getattr(self.instance, "reservation_type", None)
+        guests = data.get("guests", 1)
+
+        errors = {}
+
+        # ── 1. Auto-derive reservation_date from start_time ──
+        if start_time and not reservation_date:
+            data["reservation_date"] = start_time.date()
+            reservation_date = data["reservation_date"]
+
+        # ── 2. Date consistency ──
+        if start_time and reservation_date:
+            if start_time.date() != reservation_date:
+                errors["start_time"] = (
+                    "Start time date must match reservation date."
+                )
+
+        # ── 3. Prevent past reservations ──
+        now = timezone.now()
+        if start_time and start_time < now and not self.instance:
+            errors["start_time"] = "Cannot create a reservation in the past."
+
+        # ── 4. Duration minimum ──
+        if duration_minutes and duration_minutes < 30:
+            errors["duration_minutes"] = "Duration must be at least 30 minutes."
+
+        # ── 5. Capacity check ──
+        if table and guests > table.capacity:
+            errors["guests"] = (
+                f"Table \"{table.name}\" only seats {table.capacity} guests. "
+                f"Please reduce guests or choose a larger table."
+            )
+
+        # ── 6. Free reservation rule ──
+        if reservation_type == "free" and table and not table.allow_free_reservation:
+            errors["reservation_type"] = (
+                f"Table \"{table.name}\" does not allow free reservations. "
+                f"Rate: {table.price_per_hour}/hr."
+            )
+
+        # Raise collected errors before overlap check
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        # ── 7. Overlap check with detailed conflict info ──
+        end_time = None
+        if start_time and duration_minutes:
+            end_time = start_time + timedelta(minutes=duration_minutes)
+
+        if table and reservation_date and start_time and end_time:
+            qs = Reservation.objects.filter(
+                table=table,
+                reservation_date=reservation_date,
+                status__in=["reserved", "arrived"],
+            )
+
+            if self.instance:
+                qs = qs.exclude(id=self.instance.id)
+
+            for r in qs:
+                r_end = r.end_time
+                if r.start_time and r_end:
+                    if r.start_time < end_time and r_end > start_time:
+                        conflict_start = timezone.localtime(r.start_time).strftime("%I:%M %p")
+                        conflict_end = timezone.localtime(r_end).strftime("%I:%M %p")
+                        raise serializers.ValidationError({
+                            "start_time": (
+                                f"⚠ Time conflict! Table \"{table.name}\" is already booked by "
+                                f"\"{r.customer_name}\" from {conflict_start} to {conflict_end}. "
+                                f"Please choose a different time slot."
+                            )
+                        })
+
+        return data
+
+    # ─── CREATE ────────────────────────────────────────────────
+    def create(self, validated_data):
+        table = validated_data["table"]
+        reservation_type = validated_data["reservation_type"]
+        duration = validated_data.get("duration_minutes", 0)
+
+        hours = duration / 60
+        billed_hours = ceil(hours)
+        total = billed_hours * float(table.price_per_hour)
+
+        validated_data["amount"] = 0 if reservation_type == "free" else total
+
+        return super().create(validated_data)
+
+    # ─── UPDATE ────────────────────────────────────────────────
+    def update(self, instance, validated_data):
+        table = validated_data.get("table", instance.table)
+        reservation_type = validated_data.get("reservation_type", instance.reservation_type)
+        duration = validated_data.get("duration_minutes", instance.duration_minutes)
+
+        hours = duration / 60
+        billed_hours = ceil(hours)
+        total = billed_hours * float(table.price_per_hour)
+
+        validated_data["amount"] = 0 if reservation_type == "free" else total
+
+        return super().update(instance, validated_data)
 
 class TableMiniSerializer(serializers.ModelSerializer):
     
@@ -59,7 +297,7 @@ class OrderSerializer(serializers.ModelSerializer):
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     table = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=False)
-    tableNumber=serializers.CharField(source="table.number",read_only=True)
+    tableName = serializers.CharField(source="table.name", read_only=True)
     
     delivery_boy = serializers.PrimaryKeyRelatedField(
         queryset=Staff.objects.filter(role='DeliveryBoy'),
@@ -67,36 +305,132 @@ class OrderSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     delivery_boy_details = DeliveryBoyMiniSerializer(source='delivery_boy', read_only=True)
-    
+    reservation_payment = serializers.SerializerMethodField()
     preparation_time = serializers.ReadOnlyField()
-    waiter=serializers.PrimaryKeyRelatedField(
-        queryset=Staff.objects.filter(role="Waiter"),
-        required=False,
-        allow_null=True
-    )
-    waiter_name=serializers.CharField(source="waiter.name",read_only=True)
+    created_by_name = serializers.CharField(source='created_by.user.get_full_name', read_only=True)
+    received_by_name = serializers.CharField(source='received_by.user.get_full_name', read_only=True)
+
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'name', 'phone', 'address', 'note','tableNumber',
-            'order_type','table', 'order_type_display', 'status', 'status_display','waiter','waiter_name',
-            'created_at', 'updated_at','delivery_boy','delivery_boy_details', 'items', 'total','preparation_time',
+            'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment',
+            'order_type','table', 'order_type_display', 'status', 'status_display',
+            'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
         read_only_fields = ['created_at', 'updated_at', 'total']
 
-    def get_total(self, obj):
-        return obj.get_total()
     def validate(self, data):
+        # DINE-IN validation
         if data.get('order_type') == 'dine-in' and not data.get('table'):
             raise serializers.ValidationError("A dine-in order must have a table.")
+
+        restaurant = self.context.get("restaurant")
+        items = data.get("items", [])
+        order_type = data.get("order_type")
+
+        total = 0
+
+        for item in items:
+            menu_item = item.get("menu_item")
+            quantity = item.get("quantity", 1)
+
+            if not menu_item:
+                raise serializers.ValidationError("Menu item is required")
+
+            total += menu_item.price * quantity
+        # MIN ORDER check
+        if order_type == "delivery" and restaurant:
+            if total < restaurant.min_order_amount:
+                raise serializers.ValidationError(
+                    f"Minimum order is {restaurant.min_order_amount} for delivery orders."
+                )
+
+        # DELIVERY LOCATION check
+        if order_type == "delivery":
+            request = self.context.get("request")
+            if not request:
+                return data
+
+            customer_lat = data.get("latitude")
+            customer_lng = data.get("longitude")
+
+            if not restaurant or not restaurant.latitude or not restaurant.longitude:
+                raise serializers.ValidationError("Restaurant location not set")
+
+            if not customer_lat or not customer_lng:
+                raise serializers.ValidationError("Customer location is required for delivery")
+
+            distance = calculate_distance_km(
+                restaurant.latitude,
+                restaurant.longitude,
+                float(customer_lat),
+                float(customer_lng)
+            )
+
+            delivery_fee = calculate_delivery_fee(restaurant, distance)
+
+            # store temporarily for use in create()
+            self.context["delivery_fee"] = delivery_fee
+            self.context["distance"] = distance
+
+            if distance > restaurant.delivery_radius_km:
+                raise serializers.ValidationError(
+                    f"Delivery not available in your area ({distance:.2f} km too far)"
+                )
+
         return data
+
+    def get_reservation_payment(self, obj):
+        res = obj.reservation
+        if not res:
+            return None
+
+        total = float(res.total_price or 0)
+        paid = float(res.paid_amount or 0)
+        remaining = total - paid
+
+        return {
+            "reservation_type": res.reservation_type,
+            "total": total,
+            "paid": paid,
+            "remaining": remaining,
+            "is_fully_paid": remaining <= 0,
+        }
+    def get_reservation_fee(self, obj):
+        res = obj.reservation
+        if not res:
+            return 0
+
+        total = res.total_price or 0
+        paid = res.paid_amount or 0  
+
+        # FREE reservation
+        if res.reservation_type == "free":
+            return 0
+
+        # PREPAID reservation
+        if res.reservation_type == "prepaid":
+            return float(total) - float(paid)
+
+        # FEE reservation
+        if res.reservation_type == "fee":
+            return float(total)
+
+        return 0
+    def get_total(self, obj):
+        return str(obj.get_total())
+    
     
 
     
-    def create(self,validated_data):
-        items=validated_data.pop('items',[])
-        request = self.context.get('request')   
+    from django.db.models import Q
+
+    def create(self, validated_data):
+        items = validated_data.pop('items', [])
+        request = self.context.get('request')
+
+        # attach customer
         if request and request.user.is_authenticated:
             try:
                 customer = request.user.customer
@@ -104,11 +438,46 @@ class OrderSerializer(serializers.ModelSerializer):
                 validated_data.setdefault('name', customer.user.username)
                 validated_data.setdefault('phone', customer.phone)
             except Customer.DoesNotExist:
-                pass 
-                
-        order=Order.objects.create(**validated_data)
+                pass
+
+        table = validated_data.get("table")
+        order_phone = validated_data.get("phone")
+        order_name = validated_data.get("name")
+
+        reservation = None
+
+        if table:
+            now = timezone.now()
+
+            # ✅ ONLY valid time window
+            possible_reservation = Reservation.objects.filter(
+                table=table,
+                status__in=["reserved", "arrived"],
+                start_time__lte=now,
+            ).order_by("-start_time")
+
+            for r in possible_reservation:
+                if r.end_time and now <= r.end_time and r.matches_customer(order_name, order_phone):
+                    reservation = r
+                    break
+
+            # ✅ mark arrived ONLY when matched
+            if reservation and reservation.status == "reserved":
+                reservation.status = "arrived"
+                reservation.save(update_fields=["status"])
+        delivery_fee = 0
+
+        if validated_data.get("order_type") == "delivery":
+            delivery_fee = self.context.get("delivery_fee", 0)
+
+        validated_data["delivery_fee"] = delivery_fee
+        validated_data["reservation"] = reservation
+
+        order = Order.objects.create(**validated_data)
 
         for item in items:
-            OrderItem.objects.create(order=order,**item)
+            OrderItem.objects.create(order=order, **item)
 
         return order
+    
+
