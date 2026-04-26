@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import order_list_create, OrderRetrieveDestroyView,add_items_to_order,table_list_create,TableRetrieveUpdateDestroyView,update_order_status,cashier_reservations,mark_reservation_arrived,mark_reservation_no_show
-from .views import assign_delivery,cashier_orders,cancel_order,kitchen_orders,create_online_order,cancel_online_order,reservation_list_create,ReservationRetrieveUpdateDestroyView,cancel_reservation
+from .views import assign_delivery,cashier_orders,cancel_order,kitchen_orders,create_online_order,cancel_online_order,reservation_list_create,ReservationRetrieveUpdateDestroyView,cancel_reservation,handle_order_bill_print
 
 urlpatterns = [
     path('orders/', order_list_create, name='order-list-create'),
@@ -13,6 +13,7 @@ urlpatterns = [
     path('orders/<int:pk>/assign-delivery/', assign_delivery, name='assign_delivery'),
     path('cashier/orders/', cashier_orders),
     path('<int:pk>/cancel/',cancel_order),
+    path('print/<int:pk/',handle_order_bill_print),
 
     path('online-orders/<slug:slug>/', create_online_order, name='create_online_order'),
     path('online-orders/<slug:slug>/<int:pk>/cancel/', cancel_online_order, name='cancel_online_order'),

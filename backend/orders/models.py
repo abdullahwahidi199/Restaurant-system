@@ -201,6 +201,7 @@ class Order(models.Model):
     
     longitude = models.FloatField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_printed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
     Staff,
     on_delete=models.SET_NULL,

@@ -315,7 +315,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment',
-            'order_type','table', 'order_type_display', 'status', 'status_display',
+            'order_type','table', 'order_type_display', 'status', 'status_display','is_printed',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
         read_only_fields = ['created_at', 'updated_at', 'total']

@@ -24,7 +24,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
 
     phone = serializers.CharField(required=True)
-    address = serializers.CharField(required=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
     date_of_birth = serializers.DateField(required=True)
     gender = serializers.ChoiceField(
         choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
@@ -44,7 +44,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         gender=validated_data.pop('gender')
 
         password = validated_data.pop('password')
-        email = validated_data.pop('email')
+        email = validated_data.pop('email', "")
         username = validated_data['username']
 
         user=User.objects.create(username=username,email=email)
