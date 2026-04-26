@@ -3,7 +3,7 @@ from django.db.models.functions import TruncDate, TruncHour
 from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta, time
 from django.utils import timezone
-
+from django.db.models import DurationField
 from orders.models import Order, OrderItem
 from django.db.models import (
     Sum, Count, F, FloatField, Q, ExpressionWrapper, DecimalField, Avg
@@ -121,15 +121,15 @@ class OrderReportService:
         ).annotate(
             prep_time=ExpressionWrapper(
                 F("preparation_end") - F("preparation_start"),
-                output_field=FloatField()
+                output_field=DurationField()
             )
         )
 
-        avg_prep_minutes = prep.aggregate(
+        avg_prep = prep.aggregate(
             avg=Avg("prep_time")
-        )["avg"] or 0
+        )["avg"]
 
-        avg_prep_minutes = round(avg_prep_minutes / 60, 2)
+        avg_prep_minutes = round(avg_prep.total_seconds() / 60, 2) if avg_prep else 0
         daily = (
             orders.exclude(status='cancelled')
             .annotate(date=TruncDate("created_at"))
