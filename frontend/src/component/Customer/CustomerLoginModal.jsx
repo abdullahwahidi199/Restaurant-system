@@ -30,7 +30,7 @@ const Login = () => {
       const profileRes = await getProfile(slug);
       localStorage.setItem("customer", JSON.stringify(profileRes.data));
 
-      navigate(`/r/${slug}/`);
+      navigate(`/${slug}/`);
     } catch (err) {
       setLoading(false);
       setError(t("login.error"));

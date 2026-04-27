@@ -28,7 +28,7 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
       <table className="w-full rtl:text-right ltr:text-left">
         <thead className="bg-gray-100 text-gray-700">
           <tr>
-            <th>{t("table.order_id")}</th>
+            <th>{t("table.order_number")}</th>
             <th>{t("table.customer")}</th>
             <th>{t("table.total")}</th>
             <th>{t("table.table")}</th>
@@ -44,7 +44,7 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
         <tbody>
           {orders.map((order) => (
             <tr key={order.id} className="border-b hover:bg-gray-50">
-              <td className="p-3">{order.id}</td>
+              <td className="p-3">{order.order_number}</td>
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
               <td className="p-3">

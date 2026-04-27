@@ -16,6 +16,7 @@ const OrderCard = ({
     (sum, it) => sum + getQty(it) * getPrice(it),
     0,
   );
+  const isPrinted = order.is_printed;
   const tax = subtotal * (order.tax ?? 0);
   const formattedTotal = (Number(order.total) + tax).toFixed(2);
   console.log("OrderCard Rendered with order:", order);
@@ -75,7 +76,9 @@ const OrderCard = ({
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-all">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold text-lg">{order.id || "—"}</h3>
+        <h3 className="font-semibold text-lg">
+          Order #{order.order_number || "—"}
+        </h3>
         <span
           className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(statusLabel)}`}
         >
@@ -113,24 +116,28 @@ const OrderCard = ({
             View
           </button>
 
-          {order.status !== "out_for_delivery" &&
-            order.status !== "in_progress" &&
-            order.status !== "pending" && (
-              <button
-                onClick={() => onPrintBill && onPrintBill(order)}
-                className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
-                aria-label={`Print bill for ${order.id}`}
-              >
-                Print
-              </button>
-            )}
+          {order.status !== "in_progress" && order.status !== "pending" && (
+            <button
+              onClick={() => onPrintBill && onPrintBill(order)}
+              className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+              aria-label={`Print bill for ${order.id}`}
+            >
+              Print
+            </button>
+          )}
           {order.status !== "completed" &&
             order.order_type !== "delivery" &&
             order.status !== "pending" &&
             order.status !== "in_progress" && (
               <button
+                disabled={!isPrinted}
                 onClick={() => handleMarkPaid(order)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-1 rounded-lg transition-all"
+                className={`text-white text-sm px-3 py-1 rounded-lg transition-all 
+    ${
+      isPrinted
+        ? "bg-emerald-600 hover:bg-emerald-700"
+        : "bg-gray-300 cursor-not-allowed"
+    }`}
               >
                 Mark Paid
               </button>
@@ -151,8 +158,14 @@ const OrderCard = ({
           {order.order_type == "delivery" &&
             order.status == "out_for_delivery" && (
               <button
+                disabled={!isPrinted}
                 onClick={handleMarkDelivered}
-                className="bg-purple-500 hover:bg-purple-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+                className={`text-white text-sm px-3 py-1 rounded-lg transition-all 
+    ${
+      isPrinted
+        ? "bg-purple-500 hover:bg-purple-600"
+        : "bg-gray-400 cursor-not-allowed"
+    }`}
               >
                 Confirm Cash
               </button>

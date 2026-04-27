@@ -28,7 +28,7 @@ export default function IndividualItem() {
     setItem(res.data);
     console.log(res.data);
     setIngredients(res.data.ingredients || []);
-    setPreview(res.data.image ? `${BASE_URL}${res.data.image}` : null);
+    setPreview(res.data.image ? `${res.data.image}` : null);
   };
 
   const fetchIngredients = async () => {

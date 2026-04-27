@@ -15,7 +15,7 @@ export default function OrderDetailsModal({ order, onClose }) {
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg  font-semibold">
-            {t("table.order_id")} #{order.id}
+            {t("table.order_number")} {order.order_number}
           </h2>
           <button onClick={onClose} className="cursor-pointer">
             <X />

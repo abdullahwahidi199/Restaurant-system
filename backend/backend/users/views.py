@@ -204,33 +204,35 @@ def DeliveryBoyListView(request):
         serializer=StaffSerializer(dileveryBoys,many=True)
         return Response(serializer.data)
     
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        return super().get_token(user)
-
+        token = super().get_token(user)
         try:
-            staff=user.staff_profile
-            token['role']=staff.role
-            token['staff_id']=staff.id
+            staff = user.staff_profile
+            token['role'] = staff.role
+            token['staff_id'] = staff.id
+            token['restaurant_id'] = staff.restaurant.id if staff.restaurant else None
         except Staff.DoesNotExist:
-            token['role']='Customer'
+            token['role'] = 'Customer'
         return token
+
     def validate(self, attrs):
         data = super().validate(attrs)
         user = self.user
-        
         try:
             staff = user.staff_profile
             data['role'] = staff.role
             data['staff_id'] = staff.id
             data['name'] = staff.name
-            data['is_demo']=staff.is_demo
+            data['is_demo'] = staff.is_demo
+            data['restaurant_id'] = staff.restaurant.id if staff.restaurant else None
         except Staff.DoesNotExist:
             data['role'] = 'Customer'
             data['is_demo'] = False
+            data['restaurant_id'] = None
         return data
+
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
@@ -280,3 +282,5 @@ def create_admin(request):
 def debug_users(request):
     users = User.objects.values("id", "username", "is_active", "is_superuser", "is_staff",'password')
     return Response(list(users))
+
+

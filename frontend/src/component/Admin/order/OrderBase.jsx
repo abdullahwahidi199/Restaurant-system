@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import OrderStats from "./OrderStats";
 import OrderFilters from "./OrderFilters";
 import OrdersTable from "./OrdersTable";
@@ -45,7 +45,7 @@ export default function OrdersPage() {
     setTotalPages(Math.ceil(res.data.count / 10));
   };
 
-  const handleWsMessage = (msg) => {
+  const handleWsMessage = useCallback((msg) => {
     console.log("WS message received:", msg);
 
     if (!msg || !msg.order) return;
@@ -61,7 +61,7 @@ export default function OrdersPage() {
         return [incoming, ...prev];
       }
     });
-  };
+  }, []);
   useOrdersSocket(handleWsMessage);
   useEffect(() => {
     fetchOrders();

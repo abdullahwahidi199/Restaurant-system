@@ -71,7 +71,7 @@ export default function MenuList({
                 >
                   {item.image ? (
                     <img
-                      src={`${BASE_URL}${item.image}`}
+                      src={`${item.image}`}
                       alt={item.name}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
                         !item.is_available ? "blur-[1px]" : ""

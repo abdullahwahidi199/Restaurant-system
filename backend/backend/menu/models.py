@@ -32,27 +32,33 @@ class MenuItem(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        if self.image:
+        if not self.image:
+            return
+
+        try:
             img = Image.open(self.image.path)
 
-            # convert for safety
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
 
-            # resize (VERY important for food images)
-            max_size = (900, 900)
-            img.thumbnail(max_size)
+            img.thumbnail((900, 900))
 
             img_io = BytesIO()
-            img.save(img_io, format='JPEG', quality=70, optimize=True)
+            img.save(img_io, format="JPEG", quality=70, optimize=True)
+
+            # IMPORTANT: prevent recursive filename issues
+            name = self.image.name.split("/")[-1]
 
             self.image.save(
-                self.image.name,
+                name,
                 ContentFile(img_io.getvalue()),
                 save=False
             )
 
-            super().save(update_fields=['image'])
+            super().save(update_fields=["image"])
+
+        except Exception as e:
+            print("Image processing error:", e)
     def mark_unavailable(self):
         self.is_available=False
         self.save()

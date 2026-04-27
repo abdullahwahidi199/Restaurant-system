@@ -6,7 +6,7 @@ from datetime import timedelta
 from restaurants.models import Restaurant
 from inventory.services import deduct_stock_for_order
 import math
-
+from django.db.models import Max
 from decimal import Decimal
 class Table(models.Model):
     STATUS_CHOICES = [
@@ -164,7 +164,8 @@ class Order(models.Model):
     ('delivered', 'Delivered'),
 ]
 
-
+    order_number=models.PositiveIntegerField(null=True,
+    blank=True)
     customer = models.ForeignKey(
         'customers.Customer', on_delete=models.CASCADE,
         related_name='orders', null=True, blank=True
@@ -201,6 +202,7 @@ class Order(models.Model):
     
     longitude = models.FloatField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_printed = models.BooleanField(default=False)
     created_by = models.ForeignKey(
     Staff,
     on_delete=models.SET_NULL,
@@ -231,6 +233,13 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.id} - {self.name}"
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['restaurant', 'order_number'],
+                name='unique_order_number_per_restaurant'
+            )
+        ]
     
  
 
@@ -271,13 +280,22 @@ class Order(models.Model):
         return None
 
     def save(self, *args, **kwargs):
- 
+        
+
         old_status = None
         if self.pk:
             old_status = Order.objects.filter(
                 pk=self.pk
             ).values_list('status', flat=True).first()
 
+        if not self.order_number and self.restaurant:
+            last_order = Order.objects.filter(
+                restaurant=self.restaurant
+            ).aggregate(
+                Max('order_number')
+            )['order_number__max']
+
+            self.order_number = (last_order or 0) + 1
         if old_status != self.status:
             if self.status == 'in_progress' and not self.preparation_start:
                 self.preparation_start = timezone.now()
@@ -299,9 +317,9 @@ class Order(models.Model):
 
             self.table.status = 'occupied'
 
+        
         elif self.table and self.status in ['completed', 'cancelled']:
             self.table.status = 'available'
-            print("became available")
 
         
         super().save(*args, **kwargs)

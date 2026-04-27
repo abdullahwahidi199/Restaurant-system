@@ -44,7 +44,7 @@ const OrderDetailsModal = ({
         </button>
 
         <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">
-          {order.id} Details
+          order #{order.order_number}
         </h2>
 
         <div className="mb-4">

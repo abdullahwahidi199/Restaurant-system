@@ -65,7 +65,7 @@ const BillPrintModal = ({ order, onClose }) => {
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111">
         <h2 style="text-align:center;margin:0 0 10px">Restaurant Bill</h2>
-        <p style="margin:0 0 6px"><strong>Order ID:</strong> ${escapeHtml(String(order.id))}</p>
+        <p style="margin:0 0 6px"><strong>Order #</strong> ${escapeHtml(String(order.order_number))}</p>
         <p style="margin:0 0 6px"><strong>Customer:</strong> ${customerDisplay}</p>
         <p style="margin:0 0 12px"><strong>Date:</strong> ${escapeHtml(new Date(order.created_at || order.createdAt || Date.now()).toLocaleString())}</p>
         
@@ -121,6 +121,13 @@ const BillPrintModal = ({ order, onClose }) => {
 
   const handlePrint = async () => {
     try {
+      const markAsPrinted = async () => {
+        try {
+          await instance.post(`/orders/print/${order.id}/`);
+        } catch (err) {
+          console.error("Failed to mark as printed", err);
+        }
+      };
       const printWindow = window.open("", "_blank", "width=600,height=700");
       if (!printWindow) {
         alert("Pop-up blocked. Please allow pop-ups to print.");
@@ -132,7 +139,7 @@ const BillPrintModal = ({ order, onClose }) => {
         <html>
           <head>
             <meta charset="utf-8" />
-            <title>Bill - ${escapeHtml(String(order.id))}</title>
+            <title>Bill - ${escapeHtml(String(order.order_number))}</title>
             <style>
               @media print { body { -webkit-print-color-adjust: exact; } }
               body { margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; }
@@ -144,8 +151,11 @@ const BillPrintModal = ({ order, onClose }) => {
       printWindow.document.write(html);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => {
+      setTimeout(async () => {
         printWindow.print();
+
+        // mark as printed after print action
+        await markAsPrinted();
       }, 200);
     } catch (err) {
       console.error("Print error:", err);
@@ -181,7 +191,7 @@ const BillPrintModal = ({ order, onClose }) => {
             Restaurant Bill
           </h2>
           <p className="text-sm text-gray-600 mb-1">
-            <strong>Order ID:</strong> {order.id}
+            <strong>Order #</strong> {order.order_number}
           </p>
           <p className="text-sm text-gray-600 mb-1">
             <strong>Customer:</strong>{" "}

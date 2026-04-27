@@ -3,14 +3,27 @@ import json
 
 class OrdersConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.group_name = "orders"
+        print("🔥 CONNECT HIT")
 
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
+        try:
+            print("SCOPE:", self.scope)
 
-        await self.accept()
+            self.restaurant_id = self.scope["url_route"]["kwargs"]["restaurant_id"]
+            print("Restaurant ID:", self.restaurant_id)
+
+            self.group_name = f"orders_{self.restaurant_id}"
+
+            await self.channel_layer.group_add(
+                self.group_name,
+                self.channel_name
+            )
+
+            await self.accept()
+            print("✅ WS ACCEPTED")
+
+        except Exception as e:
+            print("❌ WS ERROR:", e)
+            await self.close()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(

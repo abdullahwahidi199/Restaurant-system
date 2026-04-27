@@ -24,7 +24,7 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Kitchen Order #${order.id}</title>
+          <title>Kitchen Order #${order.order_number}</title>
           <style>
             body { font-family: Arial; padding: 20px; }
             h2 { text-align: center; }
@@ -37,7 +37,7 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
         <body>
           <h2>Kitchen Order</h2>
           
-          <p><strong>Order ID:</strong> ${order.id}</p>
+          <p><strong>Order number:</strong> ${order.order_number}</p>
           ${order.order_type === "dine-in" ? `<p><strong>Table:</strong> ${tableName}</p>` : ""}
           ${order.order_type ? `<p><strong>Type:</strong> ${order.order_type}</p>` : ""}
           <p><strong>Created By:</strong> ${createdBy}</p>
@@ -82,7 +82,7 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
       <div className="bg-white p-5 rounded-xl w-[350px]">
         <h2 className="text-lg font-bold mb-3">Print Kitchen Order</h2>
 
-        <p className="text-sm">Order #{order.id}</p>
+        <p className="text-sm">Order #{order.order_number}</p>
         <p className="text-sm">Table: {order.tableName || "N/A"}</p>
         <p className="text-sm">Items: {(order.items || []).length}</p>
 

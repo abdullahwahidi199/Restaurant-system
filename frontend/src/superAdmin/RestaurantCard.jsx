@@ -11,7 +11,7 @@ export default function RestaurantCard({
   const { subscription } = restaurant;
   console.log(subscription);
   console.log(restaurant);
-
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const endSubscription = async (restaurantId) => {
     try {
       await instance.post(`restaurant/disable-subscription/${restaurantId}/`);
@@ -27,7 +27,7 @@ export default function RestaurantCard({
           <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
             {restaurant.logo ? (
               <img
-                src={restaurant.logo}
+                src={`${BASE_URL}${restaurant.logo}`}
                 alt="logo"
                 className="w-full h-full object-cover"
               />

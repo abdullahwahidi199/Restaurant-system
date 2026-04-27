@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
       name: data.name,
       username,
       isDemo: data.is_demo,
+      restaurant_id: data.restaurant_id,
     };
     localStorage.setItem("authTokens", JSON.stringify(tokens));
     localStorage.setItem("user", JSON.stringify(user));

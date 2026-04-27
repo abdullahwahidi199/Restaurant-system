@@ -503,6 +503,32 @@ def cashier_orders(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsRestaurantActive, IsCashier | IsRestaurantAdmin])
+def handle_order_bill_print(request, pk):
+    restaurant = get_restaurant_from_user(request)
+    if not restaurant:
+        return Response({"error": "Restaurant not found"}, status=403)
+
+    # get order using pk (NOT query_params)
+    order = get_object_or_404(Order, id=pk, restaurant=restaurant)
+
+    # prevent double printing (recommended)
+    if order.is_printed:
+        return Response({"error": "Bill already printed"}, status=400)
+
+    # mark as printed
+    order.is_printed = True
+    order.save(update_fields=["is_printed"])
+    
+
+    return Response({
+        "message": "Bill printed successfully",
+        "order_id": order.id,
+        "is_printed": order.is_printed,
+        "status": order.status,
+    })
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,IsRestaurantActive, IsCashier | IsRestaurantAdmin])
 def cashier_reservations(request):

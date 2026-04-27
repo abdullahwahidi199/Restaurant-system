@@ -56,10 +56,6 @@ const Signup = () => {
         throw new Error(t("signup.errors.usernameInvalid"));
       }
 
-      if (!validateEmail(formData.email)) {
-        throw new Error(t("signup.errors.emailInvalid"));
-      }
-
       if (formData.password.length < 6) {
         throw new Error(t("signup.errors.passwordShort"));
       }
@@ -147,7 +143,6 @@ const Signup = () => {
             value={formData.email}
             onChange={handleChange}
             className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
-            required
           />
 
           <div className="relative">
