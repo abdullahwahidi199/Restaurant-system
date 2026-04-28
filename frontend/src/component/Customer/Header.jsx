@@ -169,7 +169,7 @@ export default function Header({ restaurantInfo }) {
               <div
                 className="bg-red-500 text-white rounded-full w-12 h-12 flex justify-center items-center font-bold uppercase"
                 onClick={() => {
-                  navigate("/profile");
+                  navigate(`/${slug}/profile`);
                   setMenuOpen(false);
                 }}
               >
@@ -188,14 +188,14 @@ export default function Header({ restaurantInfo }) {
           ) : (
             <div className="flex flex-col gap-3">
               <Link
-                to="/login"
+                to={`/${slug}/login`}
                 className="px-4 py-2 rounded-full bg-red-500 text-white text-center"
                 onClick={() => setMenuOpen(false)}
               >
                 {t("auth.login")}
               </Link>
               <Link
-                to="/signup"
+                to={`/${slug}/signup`}
                 className="px-4 py-2 rounded-full bg-gray-700 text-white text-center"
                 onClick={() => setMenuOpen(false)}
               >

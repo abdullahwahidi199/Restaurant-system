@@ -1,8 +1,10 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useContext } from "react";
 import instance from "../../../api/axiosInstance";
+import { AuthContext } from "../../../api/authforRBC";
 
 const BillPrintModal = ({ order, onClose }) => {
   const printRef = useRef();
+  const { restaurantDetails } = useContext(AuthContext);
 
   if (!order) return null;
 
@@ -51,6 +53,24 @@ const BillPrintModal = ({ order, onClose }) => {
       order.name || order.customer || order.phone || "",
     );
 
+    const restaurantLogoHtml = restaurantDetails?.logo
+      ? `<div style="text-align:center;margin-bottom:12px"><img src="${escapeHtml(restaurantDetails.logo)}" alt="Restaurant Logo" style="max-width:80px;height:auto;"></div>`
+      : "";
+
+    const restaurantNameHtml = restaurantDetails?.name
+      ? `<h1 style="text-align:center;margin:0 0 6px;font-size:24px">${escapeHtml(restaurantDetails.name)}</h1>`
+      : "";
+
+    const restaurantContactHtml =
+      restaurantDetails?.phone || restaurantDetails?.address
+        ? `
+      <div style="text-align:center;margin-bottom:12px;border-bottom:1px dashed #ccc;padding-bottom:8px">
+        ${restaurantDetails?.phone ? `<p style="margin:0 0 4px;font-size:12px"><strong>Phone:</strong> ${escapeHtml(restaurantDetails.phone)}</p>` : ""}
+        ${restaurantDetails?.address ? `<p style="margin:0;font-size:12px"><strong>Address:</strong> ${escapeHtml(restaurantDetails.address)}</p>` : ""}
+      </div>
+    `
+        : "";
+
     const reservationHtml = hasReservation
       ? `
       <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #ccc">
@@ -64,9 +84,19 @@ const BillPrintModal = ({ order, onClose }) => {
 
     return `
       <div style="font-family:Arial,Helvetica,sans-serif;padding:20px;color:#111">
-        <h2 style="text-align:center;margin:0 0 10px">Restaurant Bill</h2>
+        ${restaurantLogoHtml}
+        ${restaurantNameHtml}
+        ${restaurantContactHtml}
+        
+        <h2 style="text-align:center;margin:0 0 10px">Bill</h2>
         <p style="margin:0 0 6px"><strong>Order #</strong> ${escapeHtml(String(order.order_number))}</p>
         <p style="margin:0 0 6px"><strong>Customer:</strong> ${customerDisplay}</p>
+        ${
+          order.table
+            ? `<p style="margin:0 0 6px"><strong>Table:</strong> ${order.tableName}</p>`
+            : `<p style="margin:0 0 6px"><strong>Type:</strong> ${order.order_type}</p>`
+        }
+
         <p style="margin:0 0 12px"><strong>Date:</strong> ${escapeHtml(new Date(order.created_at || order.createdAt || Date.now()).toLocaleString())}</p>
         
         <table style="width:100%;border-collapse:collapse;text-align:left;margin-bottom:12px">
@@ -98,7 +128,7 @@ const BillPrintModal = ({ order, onClose }) => {
           }
         </div>
         
-        <p style="text-align:center;color:#666;font-size:12px;margin-top:12px">Thank you!</p>
+        <p style="text-align:center;color:#666;font-size:12px;margin-top:12px">Thank you for your business!</p>
       </div>
     `;
   };
@@ -187,8 +217,42 @@ const BillPrintModal = ({ order, onClose }) => {
         </button>
 
         <div ref={printRef}>
+          {/* Restaurant Logo */}
+          {restaurantDetails?.logo && (
+            <div className="text-center mb-3">
+              <img
+                src={restaurantDetails.logo}
+                alt="Restaurant Logo"
+                className="max-w-20 h-auto mx-auto"
+              />
+            </div>
+          )}
+
+          {/* Restaurant Name */}
+          {restaurantDetails?.name && (
+            <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
+              {restaurantDetails.name}
+            </h1>
+          )}
+
+          {/* Restaurant Contact Info */}
+          {(restaurantDetails?.phone || restaurantDetails?.address) && (
+            <div className="text-center mb-3 pb-3 border-b border-dashed border-gray-300">
+              {restaurantDetails?.phone && (
+                <p className="text-xs text-gray-600 mb-1">
+                  <strong>Phone:</strong> {restaurantDetails.phone}
+                </p>
+              )}
+              {restaurantDetails?.address && (
+                <p className="text-xs text-gray-600">
+                  <strong>Address:</strong> {restaurantDetails.address}
+                </p>
+              )}
+            </div>
+          )}
+
           <h2 className="text-xl font-bold mb-2 text-center text-gray-800">
-            Restaurant Bill
+            Bill
           </h2>
           <p className="text-sm text-gray-600 mb-1">
             <strong>Order #</strong> {order.order_number}
@@ -197,6 +261,15 @@ const BillPrintModal = ({ order, onClose }) => {
             <strong>Customer:</strong>{" "}
             {order.name || order.customer || order.phone}
           </p>
+          {order.table ? (
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>Table:</strong> {order.tableName}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>Type:</strong> {order.order_type}
+            </p>
+          )}
           <p className="text-sm text-gray-600 mb-3">
             <strong>Date:</strong>{" "}
             {new Date(
@@ -237,7 +310,7 @@ const BillPrintModal = ({ order, onClose }) => {
             </h3>
 
             {hasReservation && (
-              <div className="mt-3 pt-3 border-t">
+              <div className="mt-3 pt-3 border-t border-dashed">
                 <p>Reservation: AFN {reservationTotal.toFixed(2)}</p>
                 <p>Pre-paid: AFN {reservationPaid.toFixed(2)}</p>
                 <p>Remaining: AFN {reservationRemaining.toFixed(2)}</p>
@@ -248,7 +321,9 @@ const BillPrintModal = ({ order, onClose }) => {
             )}
           </div>
 
-          <p className="text-center text-gray-500 text-xs mt-4">Thank you!</p>
+          <p className="text-center text-gray-500 text-xs mt-4">
+            Thank you for your business!
+          </p>
         </div>
 
         <div className="flex justify-end gap-3 mt-6">

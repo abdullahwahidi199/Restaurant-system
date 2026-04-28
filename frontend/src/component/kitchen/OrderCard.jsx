@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Clock, CheckCircle, Utensils } from "lucide-react";
 import OrderItem from "./OrderItem";
 import instance from "../../api/axiosInstance";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
+import { AuthContext } from "../../api/authforRBC";
 
 export default function OrderCard({ order, refresh }) {
   const [updating, setUpdating] = useState(false);
@@ -10,7 +11,6 @@ export default function OrderCard({ order, refresh }) {
 
   const [time, setTime] = useState(0);
   const [running, setRunning] = useState(false);
-  console.log(order);
   const updateOrderStatus = async (newStatus) => {
     try {
       setUpdating(true);
@@ -100,13 +100,13 @@ export default function OrderCard({ order, refresh }) {
         ))}
       </div>
 
-      {order.status === "in_progress" && (
+      {/* {order.status === "in_progress" && (
         <div className="text-center my-4">
           <span className="text-4xl font-mono font-bold text-blue-600">
             {formatTime(time)}
           </span>
         </div>
-      )}
+      )} */}
       <div className="flex justify-end gap-2 pt-3">
         {order.status === "pending" && (
           <button

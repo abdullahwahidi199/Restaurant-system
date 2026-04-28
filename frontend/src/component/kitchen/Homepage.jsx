@@ -1,15 +1,20 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import FilterBar from "./FilterBar";
 import OrderCard from "./OrderCard";
 import MetricsBar from "./MetricsBar";
 import instance from "../../api/axiosInstance";
 import useOrdersSocket from "../../hooks/useOrdersSocket";
+import { AuthContext } from "../../api/authforRBC";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [resName, setResName] = useState(null);
+  const [resLogo, setResLogo] = useState(null);
+  const [resAdd, setResAdd] = useState(null);
+  const [resPhone, setResPhone] = useState(null);
 
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
   const [activeStatusTab, setActiveStatusTab] = useState("all");

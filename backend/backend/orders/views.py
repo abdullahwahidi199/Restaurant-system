@@ -513,9 +513,7 @@ def handle_order_bill_print(request, pk):
     # get order using pk (NOT query_params)
     order = get_object_or_404(Order, id=pk, restaurant=restaurant)
 
-    # prevent double printing (recommended)
-    if order.is_printed:
-        return Response({"error": "Bill already printed"}, status=400)
+    
 
     # mark as printed
     order.is_printed = True

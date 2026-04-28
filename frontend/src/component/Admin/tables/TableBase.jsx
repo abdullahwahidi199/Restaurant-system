@@ -34,6 +34,19 @@ export default function TableBaseModal() {
     fetchTables();
   }, []);
 
+  const handleOrder = (order) => {
+    setTables((prev) =>
+      prev.map((table) =>
+        table.id === order.table
+          ? {
+              ...table,
+              status: "occupied",
+            }
+          : table,
+      ),
+    );
+  };
+
   const handleSocketMessage = (msg) => {
     if (!msg) return;
 

@@ -3,6 +3,7 @@ import { AuthContext } from "../api/authforRBC";
 
 export default function useOrdersSocket(onMessage) {
   const { auth } = useContext(AuthContext);
+
   const restaurantId = auth?.user?.restaurant_id;
 
   const socketRef = useRef(null);
@@ -13,6 +14,7 @@ export default function useOrdersSocket(onMessage) {
     const socket = new WebSocket(
       `ws://185.197.249.94/ws/orders/${restaurantId}/`,
     );
+
     socketRef.current = socket;
 
     socket.onopen = () => console.log("CONNECTED");

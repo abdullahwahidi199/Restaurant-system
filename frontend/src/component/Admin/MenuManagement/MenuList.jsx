@@ -59,7 +59,7 @@ export default function MenuList({
       {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredItems.map((item) => (
-            <Link to={`/admin/dashboard/menu/item/${item.id}`}>
+            <Link to={`/admin/dashboard/menu/item/${item.id}`} key={item.id}>
               <div
                 key={item.id}
                 className="bg-white rounded-xl cursor-pointer shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden group"
@@ -71,7 +71,7 @@ export default function MenuList({
                 >
                   {item.image ? (
                     <img
-                      src={`${item.image}`}
+                      src={item.image}
                       alt={item.name}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
                         !item.is_available ? "blur-[1px]" : ""

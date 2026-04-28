@@ -1,10 +1,11 @@
 import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
+import { useContext } from "react";
+import instance from "./axiosInstance";
 
 export const AuthContext = createContext();
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-console.log("BASE_URL =", BASE_URL);
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
     const tokens = JSON.parse(localStorage.getItem("authTokens") || "null");
@@ -13,6 +14,12 @@ export function AuthProvider({ children }) {
     return { tokens, user };
   });
 
+  const [restaurantDetails, setRestaurantDetails] = useState({
+    name: "",
+    logo: "",
+    address: "",
+    phone: "",
+  });
   useEffect(() => {}, []);
 
   const login = async (username, password) => {
@@ -21,7 +28,6 @@ export function AuthProvider({ children }) {
       password,
     });
     const data = res.data;
-    console.log(data);
     const tokens = { access: data.access, refresh: data.refresh };
     const user = {
       role: data.role,
@@ -49,8 +55,28 @@ export function AuthProvider({ children }) {
     setAuth((prev) => ({ ...prev, tokens }));
   };
 
+  useEffect(() => {
+    const getRestDetails = async () => {
+      try {
+        const res = await instance.get("/restaurant/me/");
+        const r = res.data;
+        setRestaurantDetails({
+          name: res.data.name,
+          logo: res.data.logo,
+          phone: res.data.phone,
+          address: res.data.address,
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    getRestDetails();
+  }, []);
   return (
-    <AuthContext.Provider value={{ auth, login, logout, updateTokens }}>
+    <AuthContext.Provider
+      value={{ auth, login, logout, updateTokens, restaurantDetails }}
+    >
       {children}
     </AuthContext.Provider>
   );

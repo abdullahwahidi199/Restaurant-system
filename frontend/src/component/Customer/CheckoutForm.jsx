@@ -93,7 +93,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation not supported in this browser");
+      toast.error(t("location.notSupported"));
       return;
     }
     setLocationLoading(true);
@@ -111,10 +111,10 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
       },
       (err) => {
         setLocationLoading(false);
-        if (err.code === 1) toast.error("Permission denied for location");
-        else if (err.code === 2) toast.error("Location unavailable");
-        else if (err.code === 3) toast.error("Location request timed out");
-        else toast.error("Failed to get location");
+        if (err.code === 1) toast.error(t("location.permissionDenied"));
+        else if (err.code === 2) toast.error(t("location.unavailable"));
+        else if (err.code === 3) toast.error(t("location.timeout"));
+        else toast.error(t("location.failed"));
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
@@ -123,7 +123,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
   const openMapSelector = () => {
     const url = `https://www.google.com/maps/@34.5,69.2,12z`;
     window.open(url, "_blank");
-    toast("Select location → copy share link → paste it below", {
+    toast(t("location.selectPrompt"), {
       icon: "🗺️",
       duration: 4000,
     });
@@ -155,7 +155,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     const coords = parseCoordinates(mapInput);
     if (coords) {
       setLocation(coords);
-      toast.success("Location set successfully");
+      toast.success(t("location.detected"));
     } else {
       toast.error("Invalid location format");
     }
@@ -165,7 +165,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     if (loading) return;
     if (!validate()) return;
     if (!location.lat || !location.lng) {
-      toast.error("Please select your delivery location");
+      toast.error(t("location.failed"));
       return;
     }
     try {
@@ -221,7 +221,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   {t("checkout.title")}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Fill in your delivery details
+                  {t("checkout.description")}
                 </p>
               </div>
             </div>
@@ -341,12 +341,12 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                Delivery Location
+                {t("location.deliveryLocation")}
               </label>
               {location.lat && location.lng && (
                 <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                   <CheckCircle2 className="w-3 h-3" />
-                  Set
+                  {t("location.set")}
                 </span>
               )}
             </div>
@@ -366,7 +366,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 ) : (
                   <MapPin className="w-4 h-4" />
                 )}
-                <span>{locationLoading ? "Detecting..." : "Current"}</span>
+                <span>{locationLoading ? `{t("location.detecting")}` : `{t("location.current")}`}</span>
               </button>
 
               <button
@@ -377,7 +377,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   text-emerald-400 text-sm font-medium transition-all duration-200"
               >
                 <Map className="w-4 h-4" />
-                <span>Select Map</span>
+                <span>{t("location.selectMap")}</span>
               </button>
             </div>
 
@@ -392,7 +392,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={mapInput}
                 onChange={(e) => setMapInput(e.target.value)}
                 onBlur={handleMapInputBlur}
-                placeholder="Paste Google Maps link or lat,lng"
+                placeholder={t("location.pasteHint")}
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
                   placeholder-gray-500 outline-none transition-all duration-200 text-sm
                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
@@ -426,7 +426,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Placing Order...</span>
+                <span>{t("order.placeing")}</span>
               </>
             ) : (
               <>

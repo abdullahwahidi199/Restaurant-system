@@ -7,3 +7,4 @@ websocket_urlpatterns = [
     path("ws/test/", TestConsumer.as_asgi()),
     
 ]
+ 
