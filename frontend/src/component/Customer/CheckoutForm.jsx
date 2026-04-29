@@ -93,7 +93,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error(t("location.notSupported"));
+      toast.error(t("checkout.location.notSupported"));
       return;
     }
     setLocationLoading(true);
@@ -111,10 +111,12 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
       },
       (err) => {
         setLocationLoading(false);
-        if (err.code === 1) toast.error(t("location.permissionDenied"));
-        else if (err.code === 2) toast.error(t("location.unavailable"));
-        else if (err.code === 3) toast.error(t("location.timeout"));
-        else toast.error(t("location.failed"));
+        if (err.code === 1)
+          toast.error(t("checkout.location.permissionDenied"));
+        else if (err.code === 2)
+          toast.error(t("checkout.location.unavailable"));
+        else if (err.code === 3) toast.error(t("checkout.location.timeout"));
+        else toast.error(t("checkout.location.failed"));
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
@@ -155,7 +157,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     const coords = parseCoordinates(mapInput);
     if (coords) {
       setLocation(coords);
-      toast.success(t("location.detected"));
+      toast.success(t("checkout.location.detected"));
     } else {
       toast.error("Invalid location format");
     }
@@ -341,7 +343,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                {t("location.deliveryLocation")}
+                {t("checkout.location.deliveryLocation")}
               </label>
               {location.lat && location.lng && (
                 <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -366,7 +368,13 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 ) : (
                   <MapPin className="w-4 h-4" />
                 )}
-                <span>{locationLoading ? `{t("location.detecting")}` : `{t("location.current")}`}</span>
+                <span>
+                  <span>
+                    {locationLoading
+                      ? t("checkout.location.detecting")
+                      : t("checkout.location.current")}
+                  </span>
+                </span>
               </button>
 
               <button
@@ -377,7 +385,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   text-emerald-400 text-sm font-medium transition-all duration-200"
               >
                 <Map className="w-4 h-4" />
-                <span>{t("location.selectMap")}</span>
+                <span>{t("checkout.location.selectMap")}</span>
               </button>
             </div>
 
@@ -392,7 +400,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={mapInput}
                 onChange={(e) => setMapInput(e.target.value)}
                 onBlur={handleMapInputBlur}
-                placeholder={t("location.pasteHint")}
+                placeholder={t("checkout.location.pasteHint")}
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
                   placeholder-gray-500 outline-none transition-all duration-200 text-sm
                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
