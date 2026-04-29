@@ -129,7 +129,7 @@ def my_restaurant(request):
     return Response({
         "id": restaurant.id,
         "name": restaurant.name,
-        "logo": request.build_absolute_uri(restaurant.logo.url) if restaurant.logo else None,
+        "logo": restaurant.logo.url if restaurant.logo else None,
         "is_active": restaurant.is_active,
         "address":restaurant.address,
         "phone":restaurant.phone,

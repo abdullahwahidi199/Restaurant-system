@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    if (!auth?.tokens?.access) return;
     const getRestDetails = async () => {
       try {
         const res = await instance.get("/restaurant/me/");
@@ -72,7 +73,7 @@ export function AuthProvider({ children }) {
     };
 
     getRestDetails();
-  }, []);
+  }, [auth?.tokens?.access]);
   return (
     <AuthContext.Provider
       value={{ auth, login, logout, updateTokens, restaurantDetails }}

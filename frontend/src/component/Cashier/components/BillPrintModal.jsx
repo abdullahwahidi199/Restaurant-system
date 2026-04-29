@@ -5,6 +5,9 @@ import { AuthContext } from "../../../api/authforRBC";
 const BillPrintModal = ({ order, onClose }) => {
   const printRef = useRef();
   const { restaurantDetails } = useContext(AuthContext);
+  console.log(restaurantDetails);
+  const BASE_URL = import.meta.env.VITE_API_URL;
+  const logo = `${BASE_URL}${restaurantDetails.logo}`;
 
   if (!order) return null;
 
@@ -54,7 +57,7 @@ const BillPrintModal = ({ order, onClose }) => {
     );
 
     const restaurantLogoHtml = restaurantDetails?.logo
-      ? `<div style="text-align:center;margin-bottom:12px"><img src="${escapeHtml(restaurantDetails.logo)}" alt="Restaurant Logo" style="max-width:80px;height:auto;"></div>`
+      ? `<div style="text-align:center;margin-bottom:12px"><img src="${escapeHtml(logo)}" alt="Restaurant Logo" style="max-width:80px;height:auto;"></div>`
       : "";
 
     const restaurantNameHtml = restaurantDetails?.name
@@ -221,7 +224,7 @@ const BillPrintModal = ({ order, onClose }) => {
           {restaurantDetails?.logo && (
             <div className="text-center mb-3">
               <img
-                src={restaurantDetails.logo}
+                src={logo}
                 alt="Restaurant Logo"
                 className="max-w-20 h-auto mx-auto"
               />

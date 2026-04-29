@@ -117,6 +117,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
           toast.error(t("checkout.location.unavailable"));
         else if (err.code === 3) toast.error(t("checkout.location.timeout"));
         else toast.error(t("checkout.location.failed"));
+        g;
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
