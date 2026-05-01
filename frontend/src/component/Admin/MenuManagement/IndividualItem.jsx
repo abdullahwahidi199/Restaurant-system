@@ -28,7 +28,7 @@ export default function IndividualItem() {
     setItem(res.data);
     console.log(res.data);
     setIngredients(res.data.ingredients || []);
-    setPreview(res.data.image ? `${res.data.image}` : null);
+    setPreview(res.data.image ? `${BASE_URL}${res.data.image}` : null);
   };
 
   const fetchIngredients = async () => {
@@ -184,11 +184,11 @@ export default function IndividualItem() {
           />
           <div className="border p-3 rounded bg-gray-100">
             <p>
-              <b>Total Cost:</b> {item.cost_per_unit}
+              <b>Total Cost:</b> {item.cost_per_unit.toFixed(2)}
             </p>
 
             <p className="text-green-600">
-              <b>Profit:</b> {item.profit_per_unit}
+              <b>Profit:</b> {item.profit_per_unit.toFixed(2)}
             </p>
           </div>
 

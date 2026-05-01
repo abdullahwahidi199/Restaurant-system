@@ -20,13 +20,11 @@ export default function AddItemModal({
   const [loading, setLoading] = useState(false);
   const [showRestriction, setShowRestriction] = useState(false);
 
-  
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState(null);
 
-  
   const [ingredients, setIngredients] = useState([]);
   const [recipe, setRecipe] = useState([
     { ingredient: "", quantity_required: "" },
@@ -66,7 +64,6 @@ export default function AddItemModal({
     setLoading(true);
 
     try {
-      
       const formData = new FormData();
       formData.append("name", name);
       formData.append("description", description);
@@ -75,14 +72,10 @@ export default function AddItemModal({
       formData.append("is_available", "True");
       if (image) formData.append("image", image);
 
-      const itemRes = await instance.post(
-        "/menu/menu-items/",
-        formData
-      );
+      const itemRes = await instance.post("/menu/menu-items/", formData);
 
       const menuItemId = itemRes.data.id;
 
-      
       for (const r of recipe) {
         if (!r.ingredient || !r.quantity_required) continue;
 
@@ -103,11 +96,11 @@ export default function AddItemModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed  inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative"
+        className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative max-h-[90vh] overflow-y-auto"
       >
         <button
           onClick={onClose}

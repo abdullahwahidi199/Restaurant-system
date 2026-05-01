@@ -593,19 +593,38 @@ def staff_pdf_report(request):
     story.append(_make_table(del_table, col_widths=[5 * cm, 3 * cm, 3 * cm, 5 * cm]))
 
     # ── Cashier Performance ─────────────────────────────────────────────────
-    _section_title(story, styles, "Cashier / Reservation Performance")
+    _section_title(story, styles, "Cashier Performance (Payments Overview)")
+
     cashiers = data.get("cashier_performance", [])
-    cash_table = [["Cashier", "Reservations", "Total Amount", "Paid Amount"]]
+
+    cash_table = [[
+        "Cashier",
+        "Reservations",
+        "Reservation Paid",
+        "Orders Paid",
+        "Order Revenue",
+        "Total Cash"
+    ]]
+
     for c in cashiers:
         cash_table.append([
             _safe(c.get("staff_name")),
             _safe(c.get("reservations_created", 0)),
-            _money(c.get("total_amount", 0)),
-            _money(c.get("total_paid", 0)),
+            _money(c.get("reservation_total_paid", 0)),
+            _safe(c.get("orders_paid", 0)),
+            _money(c.get("order_revenue", 0)),
+            _money(c.get("total_cash_handled", 0)),  # 🔥 main field
         ])
+
     if len(cash_table) == 1:
-        cash_table.append(["—", "0", _money(0), _money(0)])
-    story.append(_make_table(cash_table, col_widths=[5 * cm, 3 * cm, 4 * cm, 4 * cm]))
+        cash_table.append(["—", "0", _money(0), "0", _money(0), _money(0)])
+
+    story.append(
+        _make_table(
+            cash_table,
+            col_widths=[3.5 * cm, 2.5 * cm, 3 * cm, 2.5 * cm, 3 * cm, 3.5 * cm],
+        )
+    )
 
     # ── Payroll Summary ─────────────────────────────────────────────────────
     _section_title(story, styles, "Payroll Summary")

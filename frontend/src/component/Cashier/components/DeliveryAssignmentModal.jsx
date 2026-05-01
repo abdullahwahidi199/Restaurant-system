@@ -19,27 +19,20 @@ const DeliveryAssignmentModal = ({
   const handleAssign = async () => {
     if (!selectedPersonId) return;
 
-    try {
-      const response = await instance.patch(
-        `/orders/orders/${order.id}/assign-delivery/`,
-        {
-          delivery_person_id: selectedPersonId,
-        },
-      );
+    const selectedPerson = deliveryPersons.find(
+      (p) => p.id == selectedPersonId,
+    );
 
-      const updatedOrder = response.data;
+    if (!selectedPerson || !selectedPerson.phone) {
+      alert("Delivery person has no phone number");
+      return;
+    }
 
-      // 🔥 FIND selected delivery person
-      const selectedPerson = deliveryPersons.find(
-        (p) => p.id == selectedPersonId,
-      );
+    const phone = selectedPerson.phone.replace("+", "");
 
-      if (selectedPerson && selectedPerson.phone) {
-        const phone = selectedPerson.phone.replace("+", "");
+    const mapLink = `https://www.google.com/maps?q=${order.latitude},${order.longitude}`;
 
-        const mapLink = `https://www.google.com/maps?q=${order.latitude},${order.longitude}`;
-
-        const message = `
+    const message = `
 New Delivery Order 🚚
 
 Order ID: ${order.id}
@@ -49,19 +42,34 @@ Address: ${order.address}
 
 📍 Location:
 ${mapLink}
-      `;
+  `;
 
-        const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-        // 🚀 Open WhatsApp
-        window.open(whatsappURL, "_blank");
-      }
+    // 👉 Step 1: Open WhatsApp
+    window.open(whatsappURL, "_blank");
 
-      onAssign(updatedOrder);
+    // 👉 Step 2: Ask user confirmation
+    const confirmed = window.confirm(
+      "Did you send the WhatsApp message to the delivery person?",
+    );
+
+    if (!confirmed) return;
+
+    // 👉 Step 3: NOW assign
+    try {
+      const response = await instance.patch(
+        `/orders/orders/${order.id}/assign-delivery/`,
+        {
+          delivery_person_id: selectedPersonId,
+        },
+      );
+
+      onAssign(response.data);
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
+      alert("Assignment failed.");
     }
   };
 

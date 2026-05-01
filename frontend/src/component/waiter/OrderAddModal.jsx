@@ -214,7 +214,6 @@ export default function TakeAwayForm() {
     <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-gray-50">
       <Toaster position="bottom-center" />
 
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -243,7 +242,6 @@ export default function TakeAwayForm() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search */}
         <div className="mb-6">
           <div className="relative max-w-md">
             <Search
@@ -268,7 +266,6 @@ export default function TakeAwayForm() {
           </div>
         </div>
 
-        {/* Category Pills */}
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allCategories.map((cat) => {
             const catData = menuData.find((c) => c.name === cat);
@@ -307,7 +304,6 @@ export default function TakeAwayForm() {
           })}
         </div>
 
-        {/* Menu Items Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="animate-spin text-emerald-500" size={32} />
@@ -364,7 +360,6 @@ export default function TakeAwayForm() {
                           item.is_available && handleIncrement(item)
                         }
                       >
-                        {/* Selected badge */}
                         {isSelected && (
                           <div className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-md">
                             <Check
@@ -375,7 +370,6 @@ export default function TakeAwayForm() {
                           </div>
                         )}
 
-                        {/* Image */}
                         <div className="relative h-36 bg-gray-100 overflow-hidden">
                           {item.image ? (
                             <img
@@ -397,7 +391,6 @@ export default function TakeAwayForm() {
                             />
                           </div>
 
-                          {/* Availability overlay */}
                           {!item.is_available && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                               <span className="text-xs font-semibold text-white bg-red-500/90 px-2.5 py-1 rounded-lg">
@@ -407,7 +400,6 @@ export default function TakeAwayForm() {
                           )}
                         </div>
 
-                        {/* Info */}
                         <div className="p-4">
                           <h3 className="text-sm font-semibold text-gray-800 truncate leading-tight">
                             {item.name}
@@ -428,7 +420,7 @@ export default function TakeAwayForm() {
                                   }}
                                   className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                                 >
-                                  <Minus size={13} className="text-gray-600" />
+                                  <Minus size={18} className="text-gray-600" />
                                 </button>
                                 <span className="w-7 text-center text-sm font-bold text-gray-800">
                                   {qty}
@@ -440,7 +432,7 @@ export default function TakeAwayForm() {
                                   }}
                                   className="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center transition-colors"
                                 >
-                                  <Plus size={13} className="text-white" />
+                                  <Plus size={18} className="text-white" />
                                 </button>
                               </div>
                             ) : (
@@ -471,7 +463,6 @@ export default function TakeAwayForm() {
         )}
       </div>
 
-      {/* Cart Drawer */}
       <AnimatePresence>
         {showCart && (
           <motion.div
@@ -483,7 +474,6 @@ export default function TakeAwayForm() {
               isRTL ? "left-0" : "right-0"
             } w-full sm:w-96 h-full bg-white shadow-2xl z-50 flex flex-col border-l border-gray-100`}
           >
-            {/* Cart Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">
@@ -503,7 +493,6 @@ export default function TakeAwayForm() {
               </button>
             </div>
 
-            {/* Cart Items */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
@@ -525,7 +514,6 @@ export default function TakeAwayForm() {
                     key={item.id}
                     className="bg-gray-50/80 rounded-xl border border-gray-100 p-3 flex gap-3 items-center"
                   >
-                    {/* Thumbnail */}
                     <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
                       {item.image ? (
                         <img
@@ -544,8 +532,6 @@ export default function TakeAwayForm() {
                         <UtensilsCrossed size={16} className="text-gray-300" />
                       </div>
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {item.name}
@@ -555,7 +541,6 @@ export default function TakeAwayForm() {
                       </p>
                     </div>
 
-                    {/* Quantity Control */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleDecrement(item.id)}
@@ -582,8 +567,6 @@ export default function TakeAwayForm() {
                         <Plus size={12} className="text-emerald-600" />
                       </button>
                     </div>
-
-                    {/* Remove */}
                     <button
                       onClick={() => handleRemoveFromCart(item.id)}
                       className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0 group/del"
@@ -598,7 +581,6 @@ export default function TakeAwayForm() {
               )}
             </div>
 
-            {/* Customer Form & Total */}
             {cart.length > 0 && (
               <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 space-y-4">
                 {/* Form */}

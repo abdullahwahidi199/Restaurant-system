@@ -156,14 +156,20 @@ export default function ReservationDetails({ reservation, onClose }) {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500 mb-1">Paid Amount</p>
+                <p className="text-sm text-slate-500 mb-1">Pre-paid Amount</p>
                 <p className="text-2xl font-bold text-emerald-600">
                   AFN{reservation.paid_amount}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500 mb-1">Balance Due</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-sm text-slate-500 mb-1">
+                  {reservation.status !== "completed"
+                    ? "Balance Due"
+                    : "Post-paid"}
+                </p>
+                <p
+                  className={`text-2xl font-bold ${reservation.status !== "completed" ? "text-red-600" : "text-blue-600"}`}
+                >
                   AFN
                   {(reservation.total_price - reservation.paid_amount)?.toFixed(
                     2,

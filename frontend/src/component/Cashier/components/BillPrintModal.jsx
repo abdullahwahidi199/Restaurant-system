@@ -131,7 +131,9 @@ const BillPrintModal = ({ order, onClose }) => {
           }
         </div>
         
-        <p style="text-align:center;color:#666;font-size:12px;margin-top:12px">Thank you for your business!</p>
+        <p style="text-align:center;color:#666;font-size:12px;margin-top:12px">
+Thank you for dining with us!
+</p>
       </div>
     `;
   };

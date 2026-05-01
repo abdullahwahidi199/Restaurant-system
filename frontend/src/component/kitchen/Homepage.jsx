@@ -8,6 +8,7 @@ import { AuthContext } from "../../api/authforRBC";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,7 +39,19 @@ export default function KitchenHomepage() {
       setLoading(false);
     }
   };
-
+  const fetchPendingOrders = async () => {
+    try {
+      const res = await instance.get("/orders/kitchen-orders/", {
+        params: { status: "pending" },
+      });
+      setPendingOrders(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  useEffect(() => {
+    fetchPendingOrders();
+  }, []);
   useEffect(() => {
     fetchOrders();
   }, [activeTypeTab, activeStatusTab]);
@@ -57,8 +70,27 @@ export default function KitchenHomepage() {
 
     const incoming = msg.order;
 
+    // update current tab orders (your existing logic)
     setOrders((prev) => {
       if (incoming.status === "served") {
+        return prev.filter((o) => o.id !== incoming.id);
+      }
+
+      const idx = prev.findIndex((o) => o.id === incoming.id);
+
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = incoming;
+        return copy;
+      }
+
+      return [incoming, ...prev];
+    });
+
+    // 🔥 ALSO update pendingOrders
+    setPendingOrders((prev) => {
+      // remove if no longer pending
+      if (incoming.status !== "pending") {
         return prev.filter((o) => o.id !== incoming.id);
       }
 
@@ -89,6 +121,9 @@ export default function KitchenHomepage() {
     { key: "ready", label: "Ready" },
   ];
 
+  const hasPendingOrders = (type) => {
+    return pendingOrders.some((order) => order.order_type === type);
+  };
   if (loading)
     return <p className="text-center py-6 text-gray-500">Loading orders...</p>;
 
@@ -111,22 +146,30 @@ export default function KitchenHomepage() {
 
         <div className="flex justify-between">
           <div className="flex bg-white shadow-sm rounded-full overflow-hidden">
-            {typeTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  setActiveTypeTab(tab.key);
-                  setActiveStatusTab("pending");
-                }}
-                className={`px-5 py-2 ${
-                  activeTypeTab === tab.key
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {typeTabs.map((tab) => {
+              const showDot = hasPendingOrders(tab.key);
+
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setActiveTypeTab(tab.key);
+                    setActiveStatusTab("pending");
+                  }}
+                  className={`relative px-5 py-2 ${
+                    activeTypeTab === tab.key
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {tab.label}
+
+                  {showDot && (
+                    <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex bg-white shadow-sm rounded-full overflow-hidden">

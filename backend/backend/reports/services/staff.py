@@ -164,30 +164,30 @@ class StaffReportService:
             for row in (
                 orders_qs
                 .filter(
-                    order_type__in=["dine-in", "takeaway"],
-                    received_by__isnull=False,
-                    received_by__role="Waiter",
-                )
-                .values(
-                    staff_id=F("received_by__id"),
-                )
-                .annotate(
-                    orders_handled=Count("id", distinct=True),
-                    completed_orders=Count(
-                        "id",
-                        filter=Q(status="completed"),
-                        distinct=True,
-                    ),
-                    revenue=Coalesce(
-                        Sum(
-                            ExpressionWrapper(
-                                F("items__quantity") * F("items__menu_item__price"),
-                                output_field=StaffReportService.MONEY_FIELD,
-                            )
-                        ),
-                        Value(0, output_field=StaffReportService.MONEY_FIELD),
-                    ),
-                )
+    order_type__in=["dine-in"],
+    created_by__isnull=False,
+    created_by__role="Waiter",
+)
+.values(
+    staff_id=F("created_by__id"),
+)
+.annotate(
+    orders_handled=Count("id", distinct=True),
+    completed_orders=Count(
+        "id",
+        filter=Q(status="completed"),
+        distinct=True,
+    ),
+    revenue=Coalesce(
+        Sum(
+            ExpressionWrapper(
+                F("items__quantity") * F("items__menu_item__price"),
+                output_field=StaffReportService.MONEY_FIELD,
+            )
+        ),
+        Value(0, output_field=StaffReportService.MONEY_FIELD),
+    ),
+)
             )
         }
 
@@ -298,24 +298,62 @@ class StaffReportService:
             )
         }
 
+        order_cashier_stats = {
+        row["staff_id"]: row
+        for row in (
+            orders_qs
+            .filter(
+                received_by__isnull=False,
+                received_by__role="Cashier",
+                status="completed",  # only paid orders
+            )
+            .values(
+                staff_id=F("received_by__id"),
+            )
+            .annotate(
+                orders_paid=Count("id", distinct=True),
+                order_revenue=Coalesce(
+                    Sum(
+                        ExpressionWrapper(
+                            F("items__quantity") * F("items__menu_item__price"),
+                            output_field=StaffReportService.MONEY_FIELD,
+                        )
+                    ),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
+            )
+        )
+    }
+
         cashier_performance = [
-            {
-                "staff_id": cashier["id"],
-                "staff_name": cashier["name"],
-                "reservations_created": cashier_stats.get(cashier["id"], {}).get("reservations_created", 0),
-                "total_amount": StaffReportService._money(
-                    cashier_stats.get(cashier["id"], {}).get("total_amount", 0)
-                ),
-                "total_paid": StaffReportService._money(
-                    cashier_stats.get(cashier["id"], {}).get("total_paid", 0)
-                ),
-            }
-            for cashier in cashiers
-        ]
+        {
+            "staff_id": cashier["id"],
+            "staff_name": cashier["name"],
+
+            # Reservations
+            "reservations_created": cashier_stats.get(cashier["id"], {}).get("reservations_created", 0),
+            "reservation_total_paid": StaffReportService._money(
+                cashier_stats.get(cashier["id"], {}).get("total_paid", 0)
+            ),
+
+            # Orders 
+            "orders_paid": order_cashier_stats.get(cashier["id"], {}).get("orders_paid", 0),
+            "order_revenue": StaffReportService._money(
+                order_cashier_stats.get(cashier["id"], {}).get("order_revenue", 0)
+            ),
+
+            
+            "total_cash_handled": StaffReportService._money(
+                cashier_stats.get(cashier["id"], {}).get("total_paid", 0)
+                + order_cashier_stats.get(cashier["id"], {}).get("order_revenue", 0)
+            ),
+        }
+        for cashier in cashiers
+    ]
 
         cashier_performance.sort(
-            key=lambda x: (-x["reservations_created"], -x["total_amount"], x["staff_name"].lower())
-        )
+    key=lambda x: (-x["total_cash_handled"], -x["orders_paid"], x["staff_name"].lower())
+)
 
         # ── Top performers across all tracked roles ─────────────────────────
         combined_top_performers = []
@@ -345,14 +383,14 @@ class StaffReportService:
                 )
 
         for row in cashier_performance:
-            if row["reservations_created"] > 0 or row["total_amount"] > 0:
+            if row["orders_paid"] > 0 or float(row["total_cash_handled"]) > 0:
                 combined_top_performers.append(
                     {
                         "staff_id": row["staff_id"],
                         "staff_name": row["staff_name"],
                         "role": "Cashier",
-                        "orders": row["reservations_created"],
-                        "revenue": row["total_amount"],
+                        "orders": row["orders_paid"],  # better KPI than reservations
+                        "revenue": row["total_cash_handled"],  # REAL money handled
                     }
                 )
 

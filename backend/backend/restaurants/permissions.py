@@ -2,25 +2,29 @@ from rest_framework.permissions import BasePermission
 
 
 class IsSameRestaurant(BasePermission):
-    """
-    Object-level permission:
-    Super admin can access everything.
-    Staff can only access objects belonging to their restaurant.
-    """
-
     def has_object_permission(self, request, view, obj):
-        # Super admin has full access
+        # Super admin
         if request.user.is_superuser:
             return True
 
-        # User must have staff profile
         if not hasattr(request.user, "staff_profile"):
             return False
 
         user_restaurant = request.user.staff_profile.restaurant
 
-        # Check object has restaurant field
-        return hasattr(obj, "restaurant") and obj.restaurant == user_restaurant
+        # ✅ Direct restaurant field
+        if hasattr(obj, "restaurant"):
+            return obj.restaurant == user_restaurant
+
+        # ✅ For MenuItemIngredient (via menu_item)
+        if hasattr(obj, "menu_item"):
+            return obj.menu_item.restaurant == user_restaurant
+
+        # ✅ Fallback for ingredient relation
+        if hasattr(obj, "ingredient"):
+            return obj.ingredient.restaurant == user_restaurant
+
+        return False
 
 
 class IsSuperAdmin(BasePermission):

@@ -40,7 +40,7 @@ const formatValue = (key, value) => {
 
   if (typeof value === "number") {
     if (
-      /(amount|salary|paid|cost|revenue|price|wage|bonus|deduction|total|payroll)/i.test(
+      /(amount|salary|cost|revenue|price|wage|bonus|deduction|total|payroll)/i.test(
         key,
       )
     ) {
@@ -542,24 +542,36 @@ export default function StaffReport({ startDate, endDate }) {
 
             <SectionCard
               title="Cashier Performance"
-              subtitle="Reservations, billed amount, and payments"
+              subtitle="Reservations, paid orders, and total cash handled"
             >
               <DataTable
                 columns={[
                   { key: "staff_id", label: "Staff ID" },
                   { key: "staff_name", label: "Staff Name" },
+
                   {
                     key: "reservations_created",
-                    label: "Reservations Created",
+                    label: "Reservations",
                   },
                   {
-                    key: "total_amount",
-                    label: "Total Amount",
+                    key: "reservation_total_paid",
+                    label: "Reservation Paid",
                     render: (value) => formatCurrency(value),
                   },
+
                   {
-                    key: "total_paid",
-                    label: "Total Paid",
+                    key: "orders_paid",
+                    label: "Orders Paid",
+                  },
+                  {
+                    key: "order_revenue",
+                    label: "Order Revenue",
+                    render: (value) => formatCurrency(value),
+                  },
+
+                  {
+                    key: "total_cash_handled",
+                    label: "Total Cash Handled",
                     render: (value) => formatCurrency(value),
                   },
                 ]}
