@@ -120,8 +120,18 @@ def disable_subscription(request, restaurant_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_restaurant(request):
-    if not hasattr(request.user, "staff_profile"):
-        return Response({"restaurant": None})
+    # 🚫 Superuser should not access this endpoint
+    if request.user.is_superuser:
+        return Response(
+            {"detail": "Superuser does not have a restaurant."},
+            status=403
+        )
+
+    if not hasattr(request.user, "staff_profile") or not request.user.staff_profile.restaurant:
+        return Response(
+            {"detail": "No restaurant assigned to this user."},
+            status=404
+        )
 
     restaurant = request.user.staff_profile.restaurant
     subscription = getattr(restaurant, "subscription", None)
@@ -131,8 +141,8 @@ def my_restaurant(request):
         "name": restaurant.name,
         "logo": restaurant.logo.url if restaurant.logo else None,
         "is_active": restaurant.is_active,
-        "address":restaurant.address,
-        "phone":restaurant.phone,
+        "address": restaurant.address,
+        "phone": restaurant.phone,
         "subscription": {
             "is_active": subscription.is_active if subscription else False,
             "is_valid": subscription.is_valid if subscription else False,

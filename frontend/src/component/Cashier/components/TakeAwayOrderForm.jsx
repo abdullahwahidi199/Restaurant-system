@@ -230,7 +230,7 @@ export default function TakeAwayForm() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search */}
+        
         <div className="mb-6">
           <div className="relative max-w-md">
             <Search
@@ -255,7 +255,7 @@ export default function TakeAwayForm() {
           </div>
         </div>
 
-        {/* Category Pills */}
+       
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allCategories.map((cat) => {
             const catData = menuData.find((c) => c.name === cat);
@@ -294,7 +294,6 @@ export default function TakeAwayForm() {
           })}
         </div>
 
-        {/* Menu Items Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="animate-spin text-emerald-500" size={32} />
@@ -351,7 +350,7 @@ export default function TakeAwayForm() {
                           item.is_available && handleIncrement(item)
                         }
                       >
-                        {/* Selected badge */}
+                       
                         {isSelected && (
                           <div className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-md">
                             <Check

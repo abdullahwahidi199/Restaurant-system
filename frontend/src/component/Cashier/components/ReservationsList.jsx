@@ -61,7 +61,6 @@ export default function ReservationsList() {
     }).format(new Date(isoString));
   };
 
-  // Check if reservation is past end_time + 1 hour and still reserved → eligible for No Show
   const isOverdueForNoShow = (reservation) => {
     if (!reservation.end_time || reservation.status !== "reserved")
       return false;

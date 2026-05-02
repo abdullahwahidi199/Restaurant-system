@@ -600,9 +600,9 @@ def staff_pdf_report(request):
     cash_table = [[
         "Cashier",
         "Reservations",
-        "Reservation Paid",
+        # "Reservation Paid",
         "Orders Paid",
-        "Order Revenue",
+        # "Order Revenue",
         "Total Cash"
     ]]
 
@@ -610,9 +610,9 @@ def staff_pdf_report(request):
         cash_table.append([
             _safe(c.get("staff_name")),
             _safe(c.get("reservations_created", 0)),
-            _money(c.get("reservation_total_paid", 0)),
+            # _money(c.get("reservation_total_paid", 0)),
             _safe(c.get("orders_paid", 0)),
-            _money(c.get("order_revenue", 0)),
+            # _money(c.get("order_revenue", 0)),
             _money(c.get("total_cash_handled", 0)),  # 🔥 main field
         ])
 

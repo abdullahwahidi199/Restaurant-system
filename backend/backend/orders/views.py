@@ -108,7 +108,7 @@ def order_list_create(request):
 
                 serializer.save(
                     restaurant=restaurant,
-                    created_by=staff   # 👈 THIS IS THE KEY PART
+                    created_by=staff  
                 )
             except ValueError as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -124,11 +124,11 @@ def reservation_list_create(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    # ---------------- GET ----------------
+
     if request.method == "GET":
         reservations = Reservation.objects.filter(
             restaurant=restaurant
-        ).select_related("table", "created_by").order_by("start_time")
+        ).select_related("table", "created_by").order_by("-start_time", "id")
 
         status_filter = request.query_params.get("status")
         if status_filter:

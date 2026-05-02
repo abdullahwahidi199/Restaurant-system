@@ -57,15 +57,20 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!auth?.tokens?.access) return;
+
+    // 🚫 Skip for super admin
+    if (auth?.user?.role === "super_admin") return;
+
     const getRestDetails = async () => {
       try {
         const res = await instance.get("/restaurant/me/");
         const r = res.data;
+
         setRestaurantDetails({
-          name: res.data.name,
-          logo: res.data.logo,
-          phone: res.data.phone,
-          address: res.data.address,
+          name: r.name,
+          logo: r.logo,
+          phone: r.phone,
+          address: r.address,
         });
       } catch (err) {
         console.log(err);
@@ -73,7 +78,7 @@ export function AuthProvider({ children }) {
     };
 
     getRestDetails();
-  }, [auth?.tokens?.access]);
+  }, [auth?.tokens?.access, auth?.user?.role]);
   return (
     <AuthContext.Provider
       value={{ auth, login, logout, updateTokens, restaurantDetails }}

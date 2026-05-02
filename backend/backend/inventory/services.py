@@ -31,7 +31,9 @@ def deduct_stock_for_order(order):
             )
 
 
-        update_menu_item_availability(order_item.menu_item)
+        for recipe in recipe_items:
+            for rel in recipe.ingredient.menu_items.select_related('menu_item'):
+                update_menu_item_availability(rel.menu_item)
 from django.db import transaction
 from decimal import Decimal
 from .models import StockMovement
@@ -107,4 +109,6 @@ def deduct_stock_for_order_item(order_item, order):
             related_order=order
         )
 
-    update_menu_item_availability(order_item.menu_item)
+    for recipe in recipe_items:
+        for rel in recipe.ingredient.menu_items.select_related('menu_item'):
+            update_menu_item_availability(rel.menu_item)

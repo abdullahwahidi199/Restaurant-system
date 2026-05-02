@@ -48,24 +48,42 @@ class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 class MenuItemIngredientListCreateView(generics.ListCreateAPIView):
     queryset = MenuItemIngredient.objects.select_related('menu_item', 'ingredient')
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
         return MenuItemIngredient.objects.filter(
             menu_item__restaurant=restaurant
         ).select_related('menu_item', 'ingredient')
 
+    def perform_create(self, serializer):
+        instance = serializer.save()
+
+        # 🔥 update availability after adding ingredient
+        update_menu_item_availability(instance.menu_item)
+
 
 class MenuItemIngredientDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [IsRestaurantAdmin,IsRestaurantActive,IsSameRestaurant]
+    permission_classes = [IsRestaurantAdmin, IsRestaurantActive, IsSameRestaurant]
+
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
         return MenuItemIngredient.objects.filter(
             menu_item__restaurant=restaurant
         )
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        # 🔥 update availability after change
+        update_menu_item_availability(instance.menu_item)
+    def perform_destroy(self, instance):
+        menu_item = instance.menu_item
+        instance.delete()
+
+        # 🔥 update availability after removal
+        update_menu_item_availability(menu_item)
 
 class StockMovementListView(generics.ListAPIView):
     serializer_class = StockMovementSerializer
@@ -185,7 +203,8 @@ def adjust_stock_view(request):
         )
     ingredient.quantity_available += quantity
     ingredient.save(update_fields=['quantity_available'])
-
+    for recipe in ingredient.menu_items.select_related('menu_item'):
+        update_menu_item_availability(recipe.menu_item)
     StockMovement.objects.create(
         ingredient=ingredient,
         change_quantity=quantity,

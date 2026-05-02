@@ -75,21 +75,22 @@ class TableSerializer(serializers.ModelSerializer):
     def get_current_reservation(self, obj):
         now = timezone.now()
 
+        # 1️⃣ Check ARRIVED reservations (but validate time)
         reservation = obj.reservations.filter(
             status="arrived"
-        ).order_by("-start_time").first()
+        ).order_by("-start_time")
 
-        # If already marked arrived → ALWAYS current
-        if reservation:
-            return {
-                "id": reservation.id,
-                "customer_name": reservation.customer_name,
-                "customer_phone": reservation.phone,
-                "time": reservation.start_time,
-                "duration":reservation.duration_minutes,
-            }
+        for r in reservation:
+            if r.end_time and now <= r.end_time:
+                return {
+                    "id": r.id,
+                    "customer_name": r.customer_name,
+                    "customer_phone": r.phone,
+                    "time": r.start_time,
+                    "duration": r.duration_minutes,
+                }
 
-        # fallback: active time window (auto-detected)
+        # 2️⃣ Check RESERVED (auto-active)
         reservation = obj.reservations.filter(
             status="reserved",
             start_time__lte=now
@@ -102,7 +103,7 @@ class TableSerializer(serializers.ModelSerializer):
                     "customer_name": r.customer_name,
                     "customer_phone": r.phone,
                     "time": r.start_time,
-                    "duration":r.duration_minutes
+                    "duration": r.duration_minutes
                 }
 
         return None

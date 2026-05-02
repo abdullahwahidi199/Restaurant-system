@@ -553,20 +553,15 @@ export default function StaffReport({ startDate, endDate }) {
                     key: "reservations_created",
                     label: "Reservations",
                   },
-                  {
-                    key: "reservation_total_paid",
-                    label: "Reservation Paid",
-                    render: (value) => formatCurrency(value),
-                  },
+                  // {
+                  //   key: "reservation_total_paid",
+                  //   label: "Reservation Paid",
+                  //   render: (value) => formatCurrency(value),
+                  // },
 
                   {
                     key: "orders_paid",
                     label: "Orders Paid",
-                  },
-                  {
-                    key: "order_revenue",
-                    label: "Order Revenue",
-                    render: (value) => formatCurrency(value),
                   },
 
                   {

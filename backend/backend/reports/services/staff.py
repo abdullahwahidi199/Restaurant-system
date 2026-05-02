@@ -298,32 +298,56 @@ class StaffReportService:
             )
         }
 
+        from django.db.models import Case, When
+
         order_cashier_stats = {
-        row["staff_id"]: row
-        for row in (
-            orders_qs
-            .filter(
-                received_by__isnull=False,
-                received_by__role="Cashier",
-                status="completed",  # only paid orders
-            )
-            .values(
-                staff_id=F("received_by__id"),
-            )
-            .annotate(
-                orders_paid=Count("id", distinct=True),
-                order_revenue=Coalesce(
-                    Sum(
-                        ExpressionWrapper(
-                            F("items__quantity") * F("items__menu_item__price"),
-                            output_field=StaffReportService.MONEY_FIELD,
-                        )
-                    ),
-                    Value(0, output_field=StaffReportService.MONEY_FIELD),
-                ),
-            )
+            row["staff_id"]: row
+            for row in (
+                orders_qs
+                .filter(
+                    received_by__isnull=False,
+                    received_by__role="Cashier",
+                    status="completed",
+                )
+                .values(
+                    staff_id=F("received_by__id"),
+                )
+                .annotate(
+                    orders_paid=Count("id", distinct=True),
+
+                    order_revenue=Coalesce(
+                        Sum(
+                            ExpressionWrapper(
+    (
+        (F("items__quantity") * F("items__menu_item__price"))
+        +
+        Case(
+            When(
+                reservation__reservation_type="prepaid",
+                then=F("reservation__amount") - F("reservation__paid_amount"),
+            ),
+            When(
+                reservation__reservation_type="fee",
+                then=F("reservation__amount"),
+            ),
+            default=Value(0),
+            output_field=StaffReportService.MONEY_FIELD,
         )
-    }
+        +
+        Case(
+            When(order_type="delivery", then=F("delivery_fee")),
+            default=Value(0),
+            output_field=StaffReportService.MONEY_FIELD,
+        )
+    ),
+    output_field=StaffReportService.MONEY_FIELD,
+)
+                        ),
+                        Value(0, output_field=StaffReportService.MONEY_FIELD),
+                    ),
+                )
+            )
+        }
 
         cashier_performance = [
         {
@@ -340,7 +364,7 @@ class StaffReportService:
             "orders_paid": order_cashier_stats.get(cashier["id"], {}).get("orders_paid", 0),
             "order_revenue": StaffReportService._money(
                 order_cashier_stats.get(cashier["id"], {}).get("order_revenue", 0)
-            ),
+            ),  
 
             
             "total_cash_handled": StaffReportService._money(

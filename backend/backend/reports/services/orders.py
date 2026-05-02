@@ -61,13 +61,15 @@ class OrderReportService:
             float(o.delivery_fee or 0) for o in billable_orders
         )
 
+        reservations = {
+            o.reservation.id: o.reservation
+            for o in billable_orders
+            if o.reservation and o.reservation.reservation_type != "free"
+        }.values()
+
         reservation_revenue = sum(
-            float(
-                (o.reservation.total_price - o.reservation.paid_amount)
-                if o.reservation and o.reservation.reservation_type != "free"
-                else 0
-            )
-            for o in billable_orders if o.reservation
+            float(r.total_price)
+            for r in reservations
         )
 
         avg_order_value = (
