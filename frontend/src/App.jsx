@@ -52,6 +52,8 @@ import ReservationsList from "./component/Cashier/components/ReservationsList";
 import RequireActiveRestaurant from "./api/RequireActiveRestaurant";
 import SubscriptionInactive from "./SubscriptionInactive";
 import ReservationsMainPage from "./component/Admin/Reservations/ReservationsMainPage";
+import PublicMenu from "./component/PublicMenu/PublicMenu";
+import MenuItemDetails from "./component/PublicMenu/MenuItemDetails";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -169,6 +171,8 @@ function App() {
             </RequireAuth>
           }
         />
+        <Route path="/menu/:slug" element={<PublicMenu />} />
+        <Route path="/menu/:slug/item/:id" element={<MenuItemDetails />} />
         <Route
           path="subscription-inactive"
           element={<SubscriptionInactive />}

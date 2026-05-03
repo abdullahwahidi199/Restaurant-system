@@ -36,6 +36,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
     admin_password = serializers.CharField(write_only=True, required=False)
 
     subscription = SubscriptionSerializer(read_only=True)
+    qr_code = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Restaurant
@@ -47,7 +48,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'phone',
             'address',
             'logo',
-
+            'qr_code',
             'is_active',
 
             # extra fields

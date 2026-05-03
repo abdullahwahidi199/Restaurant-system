@@ -613,7 +613,7 @@ def staff_pdf_report(request):
             # _money(c.get("reservation_total_paid", 0)),
             _safe(c.get("orders_paid", 0)),
             # _money(c.get("order_revenue", 0)),
-            _money(c.get("total_cash_handled", 0)),  # 🔥 main field
+            _money(c.get("total_cash_handled", 0)),  
         ])
 
     if len(cash_table) == 1:
@@ -657,7 +657,6 @@ def staff_pdf_report(request):
         )
     )
 
-    # ── Top Performers ──────────────────────────────────────────────────────
     _section_title(story, styles, "Top Performers (by Revenue)")
     performers = data.get("top_performers", [])
     perf_table = [["Staff", "Role", "Orders", "Revenue"]]

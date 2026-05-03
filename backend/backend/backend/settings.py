@@ -126,7 +126,7 @@ DATABASES = {
 
 RATELIMIT_IP_META_KEY = "HTTP_X_REAL_IP"
 
-
+BASE_URL = "http://185.197.249.94"
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',

@@ -32,6 +32,10 @@ export default function RestaurantForm({ restaurant = {} }) {
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
+  const [qrCode, setQrCode] = useState(
+    restaurant.qr_code ? `${BASE_URL}${restaurant.qr_code}` : null,
+  );
+
   const [formData, setFormData] = useState({
     ...INITIAL_FORM_DATA,
     ...restaurant,
@@ -102,6 +106,21 @@ export default function RestaurantForm({ restaurant = {} }) {
     }
   };
 
+  const downloadQR = async () => {
+    const response = await fetch(qrCode);
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "restaurant-qr.png";
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
   return (
     <form
       onSubmit={handleSubmit}
@@ -270,6 +289,27 @@ export default function RestaurantForm({ restaurant = {} }) {
             placeholder="https://x.com/..."
           />
         </div>
+
+        {qrCode && (
+          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col items-center gap-4">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Restaurant QR Code
+            </h2>
+
+            <img
+              src={qrCode}
+              alt="QR Code"
+              className="w-48 h-48 object-contain border rounded-xl p-2"
+            />
+
+            <a
+              onClick={downloadQR}
+              className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition"
+            >
+              Download QR Code
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

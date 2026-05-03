@@ -1,6 +1,10 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+import qrcode
+from io import BytesIO
+from django.core.files import File
+
 
 
 class Restaurant(models.Model):
@@ -46,6 +50,7 @@ class Restaurant(models.Model):
     instagram = models.URLField(blank=True, null=True)
     x = models.URLField(blank=True, null=True)
     delivery_available = models.BooleanField(default=True)
+    qr_code = models.ImageField(upload_to='qr_codes/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -63,6 +68,20 @@ class Restaurant(models.Model):
         self.slug = slug
 
         super().save(*args, **kwargs)
+        from django.conf import settings
+        qr_url = f"{settings.BASE_URL}/menu/{self.slug}"
+        print("QR URL:", qr_url)
+
+        qr = qrcode.make(qr_url)
+
+        buffer = BytesIO()
+        qr.save(buffer, format='PNG')
+
+        file_name = f"{self.slug}_qr.png"
+
+        self.qr_code.save(file_name, File(buffer), save=False)
+
+        
 
     def __str__(self):
         return self.name
