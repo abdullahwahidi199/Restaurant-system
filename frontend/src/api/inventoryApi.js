@@ -1,7 +1,13 @@
 import instance from "./axiosInstance";
 
-export const getIngredientsPages = (url) => {
-  return url ? instance.get(url) : instance.get("/inventory/ingredientsPages/");
+export const getIngredientsPages = (page, search) => {
+  let url = `/inventory/ingredientsPages/?page=${page}`;
+
+  if (search) {
+    url += `&search=${search}`;
+  }
+
+  return instance.get(url);
 };
 export const getIngredients = () => instance.get("/inventory/ingredients/");
 

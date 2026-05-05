@@ -2,6 +2,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework import generics, filters
 from django.db.models import F
 from .utils import update_menu_item_availability
 from .models import Ingredient, MenuItemIngredient, StockMovement
@@ -37,6 +38,9 @@ class IngredientPaginatedView(generics.ListAPIView):
     serializer_class = IngredientSerializer
     permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
     pagination_class = StockMovementPagination
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']  # you can add more fields later
 
     def get_queryset(self):
         return Ingredient.objects.filter(
