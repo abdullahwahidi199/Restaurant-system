@@ -28,7 +28,7 @@ const INITIAL_FORM_DATA = {
 export default function RestaurantForm({ restaurant = {} }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 

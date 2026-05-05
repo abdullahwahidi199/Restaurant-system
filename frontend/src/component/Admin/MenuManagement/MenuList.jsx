@@ -14,7 +14,7 @@ export default function MenuList({
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [searchTerm, setSearchTerm] = useState("");
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const filteredItems = categoryItems.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );

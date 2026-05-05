@@ -12,7 +12,7 @@ export default function IndividualItem() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
@@ -111,7 +111,7 @@ export default function IndividualItem() {
         formData.append("image", item.image);
       }
 
-      await instance.put(`/menu/menu-items/${id}/`, formData, {
+      await instance.patch(`/menu/menu-items/${id}/`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

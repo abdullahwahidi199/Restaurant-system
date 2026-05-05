@@ -11,7 +11,7 @@ export default function RestaurantCard({
   const { subscription } = restaurant;
   console.log(subscription);
   console.log(restaurant);
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const endSubscription = async (restaurantId) => {
     try {
       await instance.post(`restaurant/disable-subscription/${restaurantId}/`);

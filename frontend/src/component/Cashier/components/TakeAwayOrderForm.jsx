@@ -35,7 +35,7 @@ export default function TakeAwayForm() {
     note: "",
   });
 
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
 
   const fetchMenuData = async () => {
     setLoading(true);
@@ -230,7 +230,6 @@ export default function TakeAwayForm() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
         <div className="mb-6">
           <div className="relative max-w-md">
             <Search
@@ -255,7 +254,6 @@ export default function TakeAwayForm() {
           </div>
         </div>
 
-       
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allCategories.map((cat) => {
             const catData = menuData.find((c) => c.name === cat);
@@ -350,7 +348,6 @@ export default function TakeAwayForm() {
                           item.is_available && handleIncrement(item)
                         }
                       >
-                       
                         {isSelected && (
                           <div className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-md">
                             <Check

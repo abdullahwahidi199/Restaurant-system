@@ -32,6 +32,7 @@ export default function MenuPage({ orderingClosed }) {
   console.log(user);
   const parsedUser = JSON.parse(localStorage.getItem("customer"));
   const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_MEDIA_URL = import.meta.env.VITE_MEDIA_URL;
 
   const fetchMenuData = async () => {
     setLoading(true);
@@ -204,6 +205,14 @@ export default function MenuPage({ orderingClosed }) {
     );
   };
 
+  const cleanImage = (url) => {
+    if (!url) return "/images/placeholder.png";
+
+    return url
+      .replace("http://127.0.0.1:8000", "") // remove bad host
+      .replace("/api", ""); // remove api prefix if injected
+  };
+
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
@@ -339,7 +348,7 @@ export default function MenuPage({ orderingClosed }) {
                   >
                     <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1f1f1f] mb-4 hover:scale-105 transition-transform duration-300">
                       <img
-                        src={item.image}
+                        src={`${BASE_MEDIA_URL}${cleanImage(item.image)}`}
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />

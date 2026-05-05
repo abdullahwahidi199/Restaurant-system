@@ -14,7 +14,7 @@ export default function Header({ restaurantInfo }) {
   const navigate = useNavigate();
   const { slug } = useParams();
   const isRTL = document.documentElement.dir === "rtl";
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
 
   useEffect(() => {
     const fetchUserProfile = async () => {

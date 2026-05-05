@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 export default function MenuDetails({ item, onClose }) {
   const { t, i18n } = useTranslation();
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
 
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
 

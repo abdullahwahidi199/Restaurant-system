@@ -40,7 +40,7 @@ export default function TakeAwayForm() {
   });
   console.log(table);
 
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const navigate = useNavigate();
   const fetchMenuData = async () => {
     setLoading(true);

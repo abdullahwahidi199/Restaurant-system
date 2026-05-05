@@ -28,7 +28,7 @@ const ImageWrapper = ({ src, alt, className }) => {
 
   const fullUrl = src.startsWith("http")
     ? src
-    : `${import.meta.env.VITE_API_URL || ""}${src.replace(/\/$/g, "")}`;
+    : `${import.meta.env.VITE_MEDIA_URL || ""}${src.replace(/\/$/g, "")}`;
 
   return (
     <img

@@ -4,7 +4,7 @@ import instance from "../../../api/axiosInstance";
 export default function ShiftList({ shifts, onShiftDelete }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   if (!shifts.length)
     return <div className="text-center text-gray-500">{t("no_shifts")}</div>;
 

@@ -6,7 +6,7 @@ const BillPrintModal = ({ order, onClose }) => {
   const printRef = useRef();
   const { restaurantDetails } = useContext(AuthContext);
   console.log(restaurantDetails);
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const logo = `${BASE_URL}${restaurantDetails.logo}`;
 
   if (!order) return null;
