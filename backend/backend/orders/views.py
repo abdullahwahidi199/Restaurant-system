@@ -17,7 +17,7 @@ from users.models import Staff
 from inventory.services import deduct_stock_for_order_item
 from rest_framework.pagination import PageNumberPagination
 from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin
-from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive
+from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive,IsManager
 from rest_framework.exceptions import NotFound
 from django.utils import timezone
 
@@ -117,7 +117,7 @@ def order_list_create(request):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, IsCashier | IsRestaurantAdmin,IsRestaurantActive])
+@permission_classes([IsAuthenticated,IsManager| IsCashier | IsRestaurantAdmin,IsRestaurantActive])
 def reservation_list_create(request):
     restaurant = get_restaurant_from_user(request)
 
@@ -156,7 +156,7 @@ class ReservationRetrieveUpdateDestroyView(
     generics.RetrieveUpdateDestroyAPIView
 ):
     serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated, IsCashier | IsRestaurantAdmin,IsRestaurantActive]
+    permission_classes = [IsAuthenticated, IsManager|IsCashier | IsRestaurantAdmin,IsRestaurantActive]
 
     def get_queryset(self):
         restaurant = get_restaurant_from_user(self.request)
@@ -243,7 +243,7 @@ def kitchen_orders(request):
 
 
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive, IsWaiter  | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive,IsManager| IsWaiter  | IsRestaurantAdmin])
 def cancel_order(request, pk):
     restaurant = get_restaurant_from_user(request)
     
@@ -273,6 +273,9 @@ def cancel_order(request, pk):
     elif role == "Waiter":
         if order.status not in ["pending"]:
             return Response({"error": "Waiter cannot cancel this order now"}, status=status.HTTP_403_FORBIDDEN)
+    elif role=='Manager':
+        if order.status not in ["pending"]:
+            return Response({"error": "Manager cannot cancel this order now"}, status=status.HTTP_403_FORBIDDEN)
     elif role == "Admin":
         if order.status in ["completed"]:
             return Response({"error":"Order is already completed"}, status=status.HTTP_403_FORBIDDEN)
@@ -545,7 +548,7 @@ def cashier_reservations(request):
     serializer = ReservationSerializer(reservations, many=True)
     return Response(serializer.data)
 @api_view(["POST"])
-@permission_classes([IsAuthenticated,IsRestaurantActive, IsCashier | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated,IsRestaurantActive,IsManager| IsCashier | IsRestaurantAdmin])
 def mark_reservation_arrived(request, pk):
     restaurant = get_restaurant_from_user(request)
 
@@ -567,7 +570,7 @@ def mark_reservation_arrived(request, pk):
     return Response({"message": "Customer marked as arrived"})
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated,IsRestaurantActive, IsCashier | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated,IsRestaurantActive,IsManager | IsRestaurantAdmin])
 def mark_reservation_no_show(request, pk):
     restaurant = get_restaurant_from_user(request)
 
@@ -588,7 +591,7 @@ def mark_reservation_no_show(request, pk):
 
     return Response({"message": "Customer marked as no shoiw"})
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated,IsRestaurantActive, IsCashier | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated,IsRestaurantActive, IsManager|IsCashier | IsRestaurantAdmin])
 def cancel_reservation(request,pk):
     restaurant = get_restaurant_from_user(request)
 

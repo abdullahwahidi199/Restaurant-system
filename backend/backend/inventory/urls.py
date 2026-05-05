@@ -1,16 +1,19 @@
 from django.urls import path
 from .views import (
     IngredientListCreateView,
+    IngredientPaginatedView,
     IngredientRetrieveUpdateDestroyView,
     MenuItemIngredientListCreateView,
     MenuItemIngredientDeleteView,
     StockMovementListView,
+
     low_stock_items,add_stock_view,adjust_stock_view,
     inventory_dashboard_summary
 )
 
 urlpatterns = [
     path('ingredients/', IngredientListCreateView.as_view()),
+    path('ingredientsPages/',IngredientPaginatedView.as_view()),
     path('ingredients/<int:pk>/', IngredientRetrieveUpdateDestroyView.as_view()),
 
     path('recipes/', MenuItemIngredientListCreateView.as_view()),

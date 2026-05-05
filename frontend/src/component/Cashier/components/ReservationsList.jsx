@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
 import AddReservation from "./AddReservation";
+import ReservationUpdateForm from "./ReservationUpdateForms";
 
 export default function ReservationsList() {
   const [reservations, setReservations] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
+  const [selectedReservation, setSelectedReservation] = useState(null);
   const fetchReservations = async () => {
     try {
       const res = await instance.get("/orders/cashier/reservations/");
@@ -27,16 +28,6 @@ export default function ReservationsList() {
       fetchReservations();
     } catch (err) {
       toast.error("Failed to update reservation status");
-    }
-  };
-
-  const markNOShow = async (id) => {
-    try {
-      await instance.post(`/orders/cashier/reservations/${id}/no_show/`);
-      toast.success("Marked as No Show");
-      fetchReservations();
-    } catch (err) {
-      toast.error("Failed to mark as No Show");
     }
   };
 
@@ -184,14 +175,7 @@ export default function ReservationsList() {
                             >
                               Arrived
                             </button>
-                            {canMarkNoShow && (
-                              <button
-                                onClick={() => markNOShow(r.id)}
-                                className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
-                              >
-                                No Show
-                              </button>
-                            )}
+
                             <button
                               onClick={() => markCancel(r.id)}
                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
@@ -211,6 +195,23 @@ export default function ReservationsList() {
                             No Show
                           </span>
                         )}
+                        <button
+                          onClick={() => setSelectedReservation(r)}
+                          disabled={[
+                            "completed",
+                            "cancelled",
+                            "no_show",
+                          ].includes(r.status)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition
+      ${
+        ["completed", "cancelled", "no_show"].includes(r.status)
+          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+          : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+      }`}
+                        >
+                          ✏️ Edit
+                        </button>
+
                         {r.status === "cancelled" && (
                           <span className="text-gray-500 text-xs">
                             Cancelled
@@ -232,6 +233,16 @@ export default function ReservationsList() {
           onClose={() => setIsAddModalOpen(false)}
           onReservationSaved={() => {
             setIsAddModalOpen(false);
+            fetchReservations();
+          }}
+        />
+      )}
+      {selectedReservation && (
+        <ReservationUpdateForm
+          reservation={selectedReservation}
+          onClose={() => setSelectedReservation(null)}
+          onReservationSaved={() => {
+            setSelectedReservation(null);
             fetchReservations();
           }}
         />

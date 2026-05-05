@@ -11,16 +11,16 @@ import {
   Check,
   User,
   Phone,
-  ArrowLeft,
   FileText,
+  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import instance from "../../api/axiosInstance";
+import instance from "../../../api/axiosInstance";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function TakeAwayForm() {
+export default function ManagerOrderAddModal() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
   const location = useLocation();
@@ -38,10 +38,12 @@ export default function TakeAwayForm() {
     phone: "",
     note: "",
   });
-  console.log(table);
+  //   console.log(table);
+
+  const navigate = useNavigate();
 
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const navigate = useNavigate();
+
   const fetchMenuData = async () => {
     setLoading(true);
     try {
@@ -218,7 +220,6 @@ export default function TakeAwayForm() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Back Button */}
             <button
               onClick={() => navigate(-1)}
               className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200"
@@ -230,12 +231,10 @@ export default function TakeAwayForm() {
               <span className="text-sm font-medium text-gray-700">Back</span>
             </button>
 
-            {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
               <ShoppingBag size={20} className="text-white" />
             </div>
 
-            {/* Title */}
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Dine-in Order
@@ -438,7 +437,7 @@ export default function TakeAwayForm() {
                                   }}
                                   className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
                                 >
-                                  <Minus size={20} />
+                                  <Minus size={20} className="text-gray-700" />
                                 </button>
 
                                 <span className="w-5 text-center text-xs font-bold">
@@ -452,7 +451,7 @@ export default function TakeAwayForm() {
                                   }}
                                   className="w-6 h-6 rounded bg-emerald-500 text-white flex items-center justify-center"
                                 >
-                                  <Plus size={20} />
+                                  <Plus size={20} className="text-white" />
                                 </button>
                               </div>
                             ) : (
@@ -588,7 +587,7 @@ export default function TakeAwayForm() {
                       className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0 group/del"
                     >
                       <Trash2
-                        size={14}
+                        size={12}
                         className="ml-2 text-red-500 transition-colors"
                       />
                     </button>

@@ -249,6 +249,9 @@ export default function StaffFormModal({
                 >
                   <option value="">{t("staff.form.select_role")}</option>
                   <option value="Admin">{t("staff.roles.admin")}</option>
+                  <option value="Manager">
+                    {t("staff.roles.manager") || "Manager"}
+                  </option>
                   <option value="Kitchen_manager">Kitchen Manager</option>
                   <option value="Cashier">{t("staff.roles.cashier")}</option>
                   <option value="Waiter">{t("staff.roles.waiter")}</option>

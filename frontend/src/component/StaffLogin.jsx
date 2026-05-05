@@ -78,6 +78,7 @@ export default function StaffLogin() {
 
       if (role === "SuperAdmin") nav("/super-admin");
       else if (role === "Admin") nav("/admin/dashboard");
+      else if (role === "Manager") nav("/manager");
       else if (role === "Cashier") nav("/cashier");
       else if (role === "Waiter") nav("/waiter");
       else if (role === "Kitchen_manager") nav("/kitchen");

@@ -5,6 +5,7 @@ import ItemDelete from "./ItemDeleteModal";
 import RestrictedToast from "../../RistrictedAction";
 import { AuthContext } from "../../../api/authforRBC";
 import { useTranslation } from "react-i18next";
+import Select from "react-select";
 
 export default function IndividualItem() {
   const { id } = useParams();
@@ -211,20 +212,21 @@ export default function IndividualItem() {
                 className="flex flex-col gap-1 mb-3 border p-2 rounded"
               >
                 <div className="flex gap-2">
-                  <select
-                    value={ing.ingredient}
-                    onChange={(e) =>
-                      updateIngredient(index, "ingredient", e.target.value)
+                  <Select
+                    value={allIngredients
+                      .map((opt) => ({
+                        value: opt.id,
+                        label: `${opt.name} (${opt.unit})`,
+                      }))
+                      .find((o) => o.value === ing.ingredient)}
+                    onChange={(selected) =>
+                      updateIngredient(index, "ingredient", selected.value)
                     }
-                    className="flex-1 border rounded px-2 py-1"
-                  >
-                    <option value="">Select ingredient</option>
-                    {allIngredients.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.name} ({opt.unit})
-                      </option>
-                    ))}
-                  </select>
+                    options={allIngredients.map((opt) => ({
+                      value: opt.id,
+                      label: `${opt.name} (${opt.unit})`,
+                    }))}
+                  />
 
                   <input
                     type="number"

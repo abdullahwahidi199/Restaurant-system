@@ -1,30 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { getIngredients } from "../../../api/inventoryApi";
+import { getIngredients, getIngredientsPages } from "../../../api/inventoryApi";
 import AdjustStockModal from "./AdjustStockModal";
 import EditIngredientModal from "./EditIngredientModal";
 
 export default function IngredientList() {
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [prevPage, setPrevPage] = useState(null);
   const [adjustIngredient, setAdjustIngredient] = useState(null);
   const [editIngredient, setEditIngredient] = useState(null);
   const [showUpdateIngredient, setShowUpdateIngredient] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const fetchIngredients = async () => {
+  const fetchIngredients = async (url = null) => {
+    setLoading(true);
     try {
-      const response = await getIngredients();
-      setIngredients(response.data);
-      console.log(response.data);
+      const response = await getIngredientsPages(url);
+      setIngredients(response.data.results);
+      setNextPage(response.data.next);
+      setPrevPage(response.data.previous);
     } catch (error) {
       console.error("Failed to fetch ingredients", error);
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchIngredients();
   }, []);
+
+  const filteredIngredients = ingredients.filter((ingredient) =>
+    ingredient.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   if (loading) {
     return (
@@ -42,6 +50,13 @@ export default function IngredientList() {
         <p className="text-gray-500">No ingredients found.</p>
       ) : (
         <div className="overflow-x-auto">
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="mb-4 w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left text-sm text-gray-600">
@@ -55,7 +70,7 @@ export default function IngredientList() {
             </thead>
 
             <tbody>
-              {ingredients.map((ingredient) => (
+              {filteredIngredients.map((ingredient) => (
                 <tr key={ingredient.id} className="border-t hover:bg-gray-50">
                   <td className="p-3 font-medium">{ingredient.name}</td>
 
@@ -105,6 +120,31 @@ export default function IngredientList() {
               ))}
             </tbody>
           </table>
+          <div className="flex justify-between mt-4">
+            <button
+              onClick={() => fetchIngredients(prevPage)}
+              disabled={!prevPage}
+              className={`px-4 py-2 rounded ${
+                prevPage
+                  ? "bg-gray-300 hover:bg-gray-400"
+                  : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={() => fetchIngredients(nextPage)}
+              disabled={!nextPage}
+              className={`px-4 py-2 rounded ${
+                nextPage
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 

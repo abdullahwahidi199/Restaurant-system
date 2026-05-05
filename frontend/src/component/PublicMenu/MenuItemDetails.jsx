@@ -148,7 +148,6 @@ export default function MenuItemDetails() {
     );
   }
 
-  // Compute average rating
   const avgRating =
     itemDetails.reviews && itemDetails.reviews.length > 0
       ? (

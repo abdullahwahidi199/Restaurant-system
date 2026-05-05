@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { X, PlusCircle, CheckCircle } from "lucide-react";
 import { useScroll } from "framer-motion";
-import NewOrderModal from "./OrderAddModal";
-import AddNewItemModal from "./AddNewItemModal";
-import instance from "../../api/axiosInstance";
+import ManagerOrderAddModal from "./ManagerAddOrder";
+import ManagerAddItem from "./MangerAddNewItem";
+import instance from "../../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 
-export default function TableActionModal({ table, onClose, refetchTables }) {
+export default function ManagerTableActionModal({
+  table,
+  onClose,
+  refetchTables,
+}) {
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
   const navigate = useNavigate();
@@ -22,25 +26,25 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
   const { name, status, capacity, note, current_order } = table;
   console.log(table);
 
-  // const markAvailable = async () => {
-  //   try {
-  //     const res = await instance.patch(`/orders/tables/${table.id}/`, {
-  //       status: "available",
-  //     });
+  const markAvailable = async () => {
+    try {
+      const res = await instance.patch(`/orders/tables/${table.id}/`, {
+        status: "available",
+      });
 
-  //     onClose();
-  //     refetchTables();
-  //   } catch (err) {
-  //     console.error("Error:", err);
-  //   }
-  // };
-  // const markUnAvailable = async () => {
-  //   const res = await instance.patch(`/orders/tables/${table.id}/`, {
-  //     status: "unavailable",
-  //   });
-  //   onClose();
-  //   refetchTables();
-  // };
+      onClose();
+      refetchTables();
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
+  const markUnAvailable = async () => {
+    const res = await instance.patch(`/orders/tables/${table.id}/`, {
+      status: "unavailable",
+    });
+    onClose();
+    refetchTables();
+  };
 
   const handleMarkServed = async () => {
     try {
@@ -94,7 +98,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => {
-                    navigate("/waiter/new-order/", {
+                    navigate("/manager/new-order/", {
                       state: { table },
                     });
                     onClose();
@@ -103,6 +107,14 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                 >
                   <PlusCircle size={18} /> Start New Order
                 </button>
+                <button
+                  onClick={() => {
+                    markUnAvailable(true);
+                  }}
+                  className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+                >
+                  Mark unavailable
+                </button>
               </div>
             </div>
           )}
@@ -110,6 +122,12 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
           {status === "unavailable" && (
             <div>
               <p>This table is currently unavailable</p>
+              <button
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg mt-5 hover:bg-green-700 transition"
+                onClick={markAvailable}
+              >
+                Mark Available
+              </button>
             </div>
           )}
 
@@ -173,7 +191,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   Add Item
                 </button>
                 {addNewItemDisplay && (
-                  <AddNewItemModal
+                  <ManagerAddItem
                     orderId={current_order.id}
                     onClose={() => setAddNewItemDisplay(false)}
                     refetchTables={refetchTables}

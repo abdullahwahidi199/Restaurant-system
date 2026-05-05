@@ -54,6 +54,13 @@ import SubscriptionInactive from "./SubscriptionInactive";
 import ReservationsMainPage from "./component/Admin/Reservations/ReservationsMainPage";
 import PublicMenu from "./component/PublicMenu/PublicMenu";
 import MenuItemDetails from "./component/PublicMenu/MenuItemDetails";
+import ManagerDashboard from "./component/Manager/ManagerDashboard";
+import ManagerRootLayout from "./component/Manager/ManagerRootLayout";
+import ManagerOrderBase from "./component/Manager/orders/ManagerOrdersBase";
+import ManagerReservationBase from "./component/Manager/reservations/ManagerReservationsBase";
+import ManagerTablesDisplay from "./component/Manager/tables/ManagerTables";
+import ManagerOrderAddModal from "./component/Manager/tables/ManagerAddOrder";
+import ManagerTablesHome from "./component/Manager/tables/ManagerTablesHome";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -108,6 +115,32 @@ function App() {
           <Route path="feedbacks" element={<Feedbacks />} />
           <Route path="settings" element={<RestaurantSettings />} />
         </Route>
+
+        <Route
+          path="manager"
+          element={
+            <RequireAuth allowedRoles={["Manager"]}>
+              <RequireActiveRestaurant>
+                <ManagerRootLayout />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        >
+          {/* <Route index element={<ManagerDashboard />} /> */}
+          <Route index element={<ManagerOrderBase />} />
+          <Route path="reservations" element={<ManagerReservationBase />} />
+          <Route path="tables" element={<ManagerTablesHome />} />
+        </Route>
+        <Route
+          path="manager/new-order"
+          element={
+            <RequireAuth>
+              <RequireActiveRestaurant>
+                <ManagerOrderAddModal />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        />
 
         <Route
           path="waiter"

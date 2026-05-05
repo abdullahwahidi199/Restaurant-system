@@ -33,6 +33,15 @@ class IngredientListCreateView(generics.ListCreateAPIView):
         restaurant = self.request.user.staff_profile.restaurant
         serializer.save(restaurant=restaurant)
 
+class IngredientPaginatedView(generics.ListAPIView):
+    serializer_class = IngredientSerializer
+    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+    pagination_class = StockMovementPagination
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(
+            restaurant=self.request.user.staff_profile.restaurant
+        )
 
 class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Ingredient.objects.all()

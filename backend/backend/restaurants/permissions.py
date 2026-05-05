@@ -57,7 +57,8 @@ class HasStaffRole(BasePermission):
 
 class IsRestaurantAdmin(HasStaffRole):
     allowed_roles = ["Admin"]
-
+class IsManager(HasStaffRole):
+    allowed_roles = ["Manager"]
 
 class IsCashier(HasStaffRole):
     allowed_roles = ["Cashier"]

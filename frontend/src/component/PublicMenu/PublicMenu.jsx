@@ -71,7 +71,7 @@ export default function PublicMenu() {
     try {
       setLoading(true);
       setError(null);
-      const res = await instance.get(`/menu/public/afiat/categories/`);
+      const res = await instance.get(`/menu/public/${slug}/categories/`);
       setCategories(res.data || []);
     } catch (err) {
       console.error("Error fetching menu:", err);
@@ -178,9 +178,9 @@ export default function PublicMenu() {
   const cartTotals = useMemo(() => {
     const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const tax = subtotal * 0.05; // 5% tax (adjust as needed)
-    const total = subtotal + tax;
-    return { subtotal, tax, total, itemCount };
+
+    const total = subtotal;
+    return { subtotal, total, itemCount };
   }, [cart]);
 
   const filteredItems = useMemo(() => {

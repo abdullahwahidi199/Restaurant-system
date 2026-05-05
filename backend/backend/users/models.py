@@ -23,6 +23,7 @@ class Staff(models.Model):
     ROLE_CHOICES=[
         ('SuperAdmin','Super Admin'),
         ('Admin','Admin'),
+        ('Manager','Manager'),
         ('Cashier','Cashier'),
         ('Waiter','Waiter'),
         ('Kitchen_manager','Kitchen Manager'),
