@@ -75,6 +75,7 @@ class Restaurant(models.Model):
         qr = qrcode.make(qr_url)
 
         buffer = BytesIO()
+        
         qr.save(buffer, format='PNG')
 
         file_name = f"{self.slug}_qr.png"
