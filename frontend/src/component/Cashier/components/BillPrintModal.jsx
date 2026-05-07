@@ -39,7 +39,13 @@ const BillPrintModal = ({ order, onClose }) => {
   const reservationRemaining = reservationPayment?.remaining || 0;
 
   // Grand total
-  const grandTotal = (parseFloat(finalTotal) + reservationRemaining).toFixed(2);
+  const orderItemsTotal = orderTotal + tax + deliveryFee;
+  const finalPayable = (
+    orderTotal +
+    tax +
+    deliveryFee +
+    reservationRemaining
+  ).toFixed(2);
 
   const generateHtml = () => {
     const itemsHtml = (order.items || [])
@@ -120,13 +126,15 @@ const BillPrintModal = ({ order, onClose }) => {
           ${tax ? `<div>Tax: AFN ${tax.toFixed(2)}</div>` : ""}
           ${reservationFee ? `<div>Reservation Fee: AFN ${reservationFee.toFixed(2)}</div>` : ""}
           ${deliveryFee ? `<div>Delivery: AFN ${deliveryFee.toFixed(2)}</div>` : ""}
-          <h3 style="margin-top:6px">Order Total: AFN ${finalTotal}</h3>
+          <h3 className="text-lg font-bold mt-1">
+  Order Total: AFN ${orderItemsTotal}
+</h3>
           
           ${reservationHtml}
           
           ${
             hasReservation
-              ? `<h3 style="margin-top:6px">Grand Total: AFN ${grandTotal}</h3>`
+              ? `<h3 style="margin-top:6px">Grand Total: AFN ${finalPayable}</h3>`
               : ""
           }
         </div>
@@ -320,14 +328,14 @@ Thank you for dining with us!
                 <p>Pre-paid: AFN {reservationPaid.toFixed(2)}</p>
                 <p>Remaining: AFN {reservationRemaining.toFixed(2)}</p>
                 <h3 className="text-lg font-bold mt-1">
-                  Grand Total: AFN {grandTotal}
+                  Final Payable: AFN {finalPayable}
                 </h3>
               </div>
             )}
           </div>
 
           <p className="text-center text-gray-500 text-xs mt-4">
-            Thank you for your business!
+            Thanks for dining with us!
           </p>
         </div>
 

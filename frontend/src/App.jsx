@@ -61,6 +61,10 @@ import ManagerReservationBase from "./component/Manager/reservations/ManagerRese
 import ManagerTablesDisplay from "./component/Manager/tables/ManagerTables";
 import ManagerOrderAddModal from "./component/Manager/tables/ManagerAddOrder";
 import ManagerTablesHome from "./component/Manager/tables/ManagerTablesHome";
+import KitchenManagerStockDashboard from "./component/kitchen/Stock/KitchenManagerStockDashboard";
+import KitchenManagerMenu from "./component/kitchen/Menu/MenuBase";
+import KitchenManagerItemDetails from "./component/kitchen/Menu/IndividualItem";
+import KitchenRootLoyout from "./component/kitchen/KitchenRootLoyout";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -168,11 +172,19 @@ function App() {
           element={
             <RequireAuth allowedRoles={["Kitchen_manager"]}>
               <RequireActiveRestaurant>
-                <KitchenHomepage />
+                <KitchenRootLoyout />
               </RequireActiveRestaurant>
             </RequireAuth>
           }
-        ></Route>
+        >
+          <Route index element={<KitchenHomepage />} />
+          <Route path="stock" element={<KitchenManagerStockDashboard />} />
+          <Route path="menu" element={<KitchenManagerMenu />} />
+          <Route
+            path="menu/items/:id"
+            element={<KitchenManagerItemDetails />}
+          />
+        </Route>
 
         <Route
           path="cashier"

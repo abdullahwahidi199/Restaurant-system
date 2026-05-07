@@ -51,7 +51,7 @@ export default function MenuPage({ orderingClosed }) {
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
-              : `${BASE_URL}${item.image}`
+              : `${BASE_MEDIA_URL}${item.image}`
             : "/images/placeholder.png",
         })),
       );
@@ -348,7 +348,7 @@ export default function MenuPage({ orderingClosed }) {
                   >
                     <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1f1f1f] mb-4 hover:scale-105 transition-transform duration-300">
                       <img
-                        src={`${cleanImage(item.image)}`}
+                        src={`${item.image}`}
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />

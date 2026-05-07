@@ -17,7 +17,7 @@ from .serializers import (
     MenuItemIngredientSerializer,
     StockMovementSerializer
 )
-from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive
+from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive,IsKitchenManager
 
 
 
@@ -25,7 +25,7 @@ from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaur
 class IngredientListCreateView(generics.ListCreateAPIView):
 
     serializer_class = IngredientSerializer
-    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [IsKitchenManager|IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
     def get_queryset(self):
         return Ingredient.objects.filter(
             restaurant=self.request.user.staff_profile.restaurant
@@ -36,7 +36,7 @@ class IngredientListCreateView(generics.ListCreateAPIView):
 
 class IngredientPaginatedView(generics.ListAPIView):
     serializer_class = IngredientSerializer
-    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsKitchenManager, IsSameRestaurant, IsRestaurantActive]
     pagination_class = StockMovementPagination
 
     filter_backends = [filters.SearchFilter]
@@ -139,7 +139,7 @@ class StockMovementListView(generics.ListAPIView):
 
 # LOW STOCK
 @api_view(['GET'])
-@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsKitchenManager,IsSameRestaurant,IsRestaurantActive])
 def low_stock_items(request):
     restaurant = request.user.staff_profile.restaurant
 
@@ -233,7 +233,7 @@ def adjust_stock_view(request):
     return Response({'detail': 'Stock adjusted successfully'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsKitchenManager,IsSameRestaurant,IsRestaurantActive])
 
 def inventory_dashboard_summary(request):
     restaurant = request.user.staff_profile.restaurant
@@ -292,3 +292,219 @@ def inventory_dashboard_summary(request):
         "high_waste_ingredients":high_waste_ingredients
     })
 
+
+
+from io import BytesIO
+from decimal import Decimal
+
+from django.http import HttpResponse
+from django.db.models import F
+from django.utils.timezone import now
+
+from rest_framework.decorators import api_view, permission_classes
+
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle,
+    Paragraph,
+    Spacer,
+)
+
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import letter
+
+from .models import Ingredient
+from restaurants.permissions import (
+    IsRestaurantAdmin,
+    IsKitchenManager,
+    IsSameRestaurant,
+    IsRestaurantActive
+)
+
+
+@api_view(['GET'])
+@permission_classes([
+    IsRestaurantAdmin | IsKitchenManager,
+    IsSameRestaurant,
+    IsRestaurantActive
+])
+def inventory_pdf(request):
+
+    restaurant = request.user.staff_profile.restaurant
+
+    ingredients = Ingredient.objects.filter(
+        restaurant=restaurant
+    ).order_by("name")
+
+    # =========================
+    # QUERY PARAM FILTERS
+    # =========================
+
+    low_stock = request.GET.get("low_stock")
+    out_of_stock = request.GET.get("out_of_stock")
+    
+
+    report_type = request.GET.get("type", "all")
+
+    if report_type == "low_stock":
+        ingredients = ingredients.filter(
+            quantity_available__lte=F("minimum_threshold"),
+            quantity_available__gt=0
+        )
+
+    elif report_type == "out_of_stock":
+        ingredients = ingredients.filter(
+            quantity_available=0
+        )
+
+    
+    
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=18
+    )
+
+    elements = []
+    styles = getSampleStyleSheet()
+
+
+    title = Paragraph(
+        f"{restaurant.name} Inventory Report",
+        styles['Heading1']
+    )
+
+    elements.append(title)
+
+    generated_at = Paragraph(
+        f"Generated: {now().strftime('%Y-%m-%d %H:%M')}",
+        styles['Normal']
+    )
+
+    elements.append(generated_at)
+
+    elements.append(Spacer(1, 16))
+
+ 
+
+    data = [[
+        "Ingredient",
+        "Unit",
+        "Available",
+        "Minimum",
+        "Cost/Unit",
+        "Status",
+        "Total Value"
+    ]]
+
+    total_inventory_value = Decimal("0.00")
+
+    for item in ingredients:
+
+        total_value = (
+            item.quantity_available * item.cost_per_unit
+        )
+
+        total_inventory_value += total_value
+
+        # Better stock status
+        if item.quantity_available == 0:
+            status = "Out of Stock"
+
+        elif item.quantity_available <= item.minimum_threshold:
+            status = "Low Stock"
+
+        else:
+            status = "Good"
+
+        data.append([
+            item.name,
+            item.unit,
+            str(item.quantity_available),
+            str(item.minimum_threshold),
+            f"${item.cost_per_unit:.2f}",
+            status,
+            f"${total_value:.2f}"
+        ])
+
+    # =========================
+    # TABLE
+    # =========================
+
+    table = Table(
+        data,
+        repeatRows=1,
+        colWidths=[120, 50, 70, 70, 70, 90, 90]
+    )
+
+    table.setStyle(TableStyle([
+
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4f46e5")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+        # Body
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+
+        # Alignment
+        ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+
+        # Font size
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+
+        # Padding
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+
+    ]))
+
+    elements.append(table)
+
+    elements.append(Spacer(1, 20))
+
+    # =========================
+    # SUMMARY
+    # =========================
+
+    summary = Paragraph(
+        f"""
+        <b>Total Ingredients:</b> {ingredients.count()}
+        <br/>
+        <b>Total Inventory Value:</b> ${total_inventory_value:.2f}
+        """,
+        styles['Heading3']
+    )
+
+    elements.append(summary)
+
+    # =========================
+    # BUILD PDF
+    # =========================
+
+    doc.build(elements)
+
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer,
+        content_type='application/pdf'
+    )
+
+    response['Content-Disposition'] = (
+        'attachment; filename="inventory_report.pdf"'
+    )
+
+    return response

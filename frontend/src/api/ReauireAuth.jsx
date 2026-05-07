@@ -6,7 +6,7 @@ import { AuthContext } from "./authforRBC";
 export default function RequireAuth({ children, allowedRoles = [] }) {
   const { auth } = useContext(AuthContext);
   const location = useLocation();
-  console.log(auth);
+  // console.log(auth);
   if (!auth?.tokens?.access) {
     return <Navigate to="/staff-login" state={{ from: location }} replace />;
   }

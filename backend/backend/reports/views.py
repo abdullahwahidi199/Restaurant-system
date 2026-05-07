@@ -52,14 +52,26 @@ class DashboardSummaryAPIView(APIView):
         total_orders_week=Order.objects.filter(created_at__gte=week_start, restaurant=restaurant).count()
         total_orders_month=Order.objects.filter(created_at__gte=month_start, restaurant=restaurant).count()
 
-        orders_today = Order.objects.filter(created_at__date=today, restaurant=restaurant).exclude(status='cancelled')
+        orders_today = Order.objects.filter(
+    created_at__date=today,
+    restaurant=restaurant,
+    status="completed"
+)
+
         revenue_today = sum(order.get_total() for order in orders_today)
-        orders_week = Order.objects.filter(created_at__date__gte=week_start, restaurant=restaurant).exclude(status='cancelled')
+        orders_week = Order.objects.filter(
+    created_at__date__gte=week_start,
+    restaurant=restaurant,
+    status="completed"
+)
         revenue_week = sum(order.get_total() for order in orders_week)
         orders_month = Order.objects.filter(
     created_at__date__gte=month_start,
-    restaurant=restaurant
-).exclude(status='cancelled')
+    restaurant=restaurant,
+    status="completed"
+)
+
+        revenue_month = sum(order.get_total() for order in orders_month)
         revenue_month = sum(order.get_total() for order in orders_month)
 
         deliveries_today_count = Order.objects.filter(created_at__date=today,  order_type='delivery', restaurant=restaurant).count()

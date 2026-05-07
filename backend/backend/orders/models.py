@@ -259,11 +259,8 @@ class Order(models.Model):
             if r.reservation_type == "fee":
                 reservation_total = r.total_price
 
-            elif r.reservation_type == "prepaid":
-                reservation_total = max(
-                    r.total_price - r.paid_amount,
-                    Decimal("0.00")
-                )
+            if r.reservation_type == "prepaid":
+                reservation_total = r.total_price 
 
         # 🔥 FORCE delivery_fee to Decimal
         delivery_total = Decimal(str(self.delivery_fee)) if self.order_type == "delivery" else Decimal("0.00")

@@ -6,7 +6,7 @@ from .views import (
     MenuItemIngredientListCreateView,
     MenuItemIngredientDeleteView,
     StockMovementListView,
-
+    inventory_pdf,
     low_stock_items,add_stock_view,adjust_stock_view,
     inventory_dashboard_summary
 )
@@ -23,5 +23,6 @@ urlpatterns = [
     path('low-stock/', low_stock_items),
     path('purchases/',add_stock_view),
     path('adjust-stock/', adjust_stock_view),
-    path('inventory-summary/',inventory_dashboard_summary)
+    path('inventory-summary/',inventory_dashboard_summary),
+    path('inventory-pdf/',inventory_pdf)
 ]

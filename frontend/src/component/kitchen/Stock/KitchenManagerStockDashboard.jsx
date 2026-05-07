@@ -8,17 +8,17 @@ import {
   Trash2,
   Flame,
 } from "lucide-react";
-import TopConsumedChart from "./TopConsumedChart";
+import TopConsumedChart from "../../Admin/Inventory/TopConsumedChart";
 
-import IngredientList from "./IngredientList";
-import LowStockItems from "./LowStockItems";
-import StockMovementList from "./StockMovementList";
-import AddStock from "./AddStock";
-import CreateIngredientModal from "./CreateIngredient";
+import KichenManagerIngredientList from "./IngredientList";
+import LowStockItems from "../../Admin/Inventory/LowStockItems";
+// import StockMovementList from "./StockMovementList";
+// import AddStock from "./AddStock";
+// import CreateIngredientModal from "./CreateIngredient";
 
 import { getInventorySummary } from "../../../api/inventoryApi";
 
-export default function InventoryDashboard() {
+export default function KitchenManagerStockDashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export default function InventoryDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-10">
       {/* PAGE HEADER */}
       <div className="flex items-center justify-between">
         <div>
@@ -53,17 +53,17 @@ export default function InventoryDashboard() {
           <p className="text-sm text-gray-500">Stock overview and management</p>
         </div>
 
-        <button
+        {/* <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800"
         >
           <Plus className="w-4 h-4" />
           New Ingredient
-        </button>
+        </button> */}
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard
           title="Total Ingredients"
           value={stats.total_ingredients}
@@ -81,13 +81,11 @@ export default function InventoryDashboard() {
           icon={<Trash2 />}
           danger
         />
-        <StatCard
+        {/* <StatCard
           title="Inventory Value"
-          value={`AFN ${new Intl.NumberFormat().format(
-            Number(stats.inventory_value).toFixed(2),
-          )}`}
+          value={`AFN${Number(stats.inventory_value).toFixed(2)}`}
           icon={<TrendingUp />}
-        />
+        /> */}
       </div>
 
       {/* INSIGHTS */}
@@ -103,22 +101,19 @@ export default function InventoryDashboard() {
         />
       </div>
 
-      {/* MAIN CONTENT */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* DATA */}
         <div className="xl:col-span-3 space-y-6">
-          <IngredientList />
-          <StockMovementList />
+          <KichenManagerIngredientList />
+          {/* <StockMovementList /> */}
         </div>
 
-        {/* ACTIONS */}
         <div className="space-y-6">
-          <AddStock />
+          {/* <AddStock /> */}
           <LowStockItems />
         </div>
       </div>
 
-      {showCreate && (
+      {/* {showCreate && (
         <CreateIngredientModal
           onClose={() => setShowCreate(false)}
           onSuccess={() => {
@@ -126,26 +121,22 @@ export default function InventoryDashboard() {
             loadSummary();
           }}
         />
-      )}
+      )} */}
     </div>
   );
 }
-
-/* =========================
-   COMPONENTS
-========================= */
 
 function StatCard({ title, value, icon, danger }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border rounded-2xl p-5 flex items-start justify-between gap-4 shadow-sm overflow-hidden"
+      className="bg-white border rounded-2xl p-5 flex items-center justify-between shadow-sm"
     >
       <div>
         <p className="text-sm text-gray-500">{title}</p>
         <p
-          className={`text-2xl xl:text-3xl font-bold break-words ${
+          className={`text-3xl font-bold ${
             danger ? "text-red-600" : "text-gray-900"
           }`}
         >

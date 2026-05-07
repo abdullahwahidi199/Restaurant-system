@@ -28,6 +28,7 @@ class MenuItemIngredientSerializer(serializers.ModelSerializer):
         return obj.quantity_required * obj.ingredient.cost_per_unit
 class StockMovementSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.ReadOnlyField(source='ingredient.name')
+    createt_by_name=serializers.ReadOnlyField(source='created_by.name')
 
     class Meta:
         model = StockMovement

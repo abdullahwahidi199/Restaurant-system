@@ -164,7 +164,7 @@ export default function StockMovementList() {
                   </td>
 
                   <td className="p-3 text-sm">
-                    {m.created_by ? `User #${m.created_by}` : "System"}
+                    {m.createt_by_name ? `${m.createt_by_name}` : "System"}
                   </td>
                 </tr>
               ))}

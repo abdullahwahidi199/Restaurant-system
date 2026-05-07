@@ -32,7 +32,21 @@ export default function InventoryReport({ startDate, endDate }) {
   const [inventoryData, setInventoryData] = useState(null);
   const [movementsData, setMovementsData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [low_stock_items, set_low_stock_items] = useState();
+  const [low_stock_list, set_low_stock_list] = useState([]);
 
+  const getLowStockItems = async () => {
+    try {
+      const res = await instance.get("/inventory/low-stock/");
+      set_low_stock_items(res.data.length);
+      set_low_stock_list(res.data);
+    } catch (error) {
+      console.log("Could not get low stock items");
+    }
+  };
+  useEffect(() => {
+    getLowStockItems();
+  }, []);
   const getInvertoryReport = async () => {
     try {
       const res = await instance.get(
@@ -94,7 +108,7 @@ export default function InventoryReport({ startDate, endDate }) {
     );
   }
 
-  const { total_items, low_stock_items, low_stock_list } = inventoryData;
+  const { total_items } = inventoryData;
   const { total_movements, by_type } = movementsData;
 
   return (

@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { getIngredientsPages } from "../../../api/inventoryApi";
-import AdjustStockModal from "./AdjustStockModal";
-import EditIngredientModal from "./EditIngredientModal";
-import instance from "../../../api/axiosInstance";
-import { FileText, AlertTriangle, PackageX } from "lucide-react";
+// import AdjustStockModal from "./AdjustStockModal";
+// import EditIngredientModal from "./EditIngredientModal";
 
-export default function IngredientList() {
+export default function KichenManagerIngredientList() {
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -32,7 +30,7 @@ export default function IngredientList() {
     }
   }, []);
 
-  // reset to page 1 when search changes
+
   useEffect(() => {
     setPage(1);
   }, [search]);
@@ -45,26 +43,6 @@ export default function IngredientList() {
 
     return () => clearTimeout(delay);
   }, [search, page, fetchIngredients]);
-
-  const handleDownloadPDF = async (type) => {
-    try {
-      const res = await instance.get("/inventory/inventory-pdf/", {
-        params: { type },
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${type}_inventory_report.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const refresh = () => fetchIngredients(page, search);
 
@@ -126,7 +104,7 @@ export default function IngredientList() {
                         : "OK"}
                     </span>
                   </td>
-                  <td className="p-3">
+                  {/* <td className="p-3">
                     <div className="flex gap-3">
                       <button
                         onClick={() => setAdjustIngredient(ingredient)}
@@ -141,38 +119,13 @@ export default function IngredientList() {
                         Edit
                       </button>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => handleDownloadPDF("all")}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-900 transition"
-              >
-                <FileText size={16} />
-                Full Inventory Report
-              </button>
-
-              <button
-                onClick={() => handleDownloadPDF("low_stock")}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition"
-              >
-                <AlertTriangle size={16} />
-                Low Stock Report
-              </button>
-
-              <button
-                onClick={() => handleDownloadPDF("out_of_stock")}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
-              >
-                <PackageX size={16} />
-                Out of Stock Report
-              </button>
-            </div>
+          <div className="flex items-center justify-between mt-4">
             <span className="text-sm text-gray-500">
               Page {page} of {totalPages}
             </span>
@@ -198,7 +151,7 @@ export default function IngredientList() {
         </div>
       )}
 
-      {adjustIngredient && (
+      {/* {adjustIngredient && (
         <AdjustStockModal
           ingredient={adjustIngredient}
           onClose={() => setAdjustIngredient(null)}
@@ -212,7 +165,7 @@ export default function IngredientList() {
           onClose={() => setEditIngredient(null)}
           onSuccess={refresh}
         />
-      )}
+      )} */}
     </div>
   );
 }

@@ -39,19 +39,20 @@ class FinanceReportService:
 
         # -------- Revenue --------
         items = OrderItem.objects.filter(
-            order__created_at__range=(start_dt, end_dt),
-            order__restaurant=restaurant
-        ).exclude(order__status="cancelled")
+    order__created_at__range=(start_dt, end_dt),
+    order__restaurant=restaurant,
+    order__status="completed"
+)
 
         orders = (
-            Order.objects.filter(
-                restaurant=restaurant,
-                created_at__range=(start_dt, end_dt)
-            )
-            .exclude(status="cancelled")
-            .select_related("reservation")
-            .prefetch_related("items__menu_item")
-        )
+    Order.objects.filter(
+        restaurant=restaurant,
+        created_at__range=(start_dt, end_dt),
+        status="completed"
+    )
+    .select_related("reservation")
+    .prefetch_related("items__menu_item")
+)
 
         revenue = Decimal("0")
 

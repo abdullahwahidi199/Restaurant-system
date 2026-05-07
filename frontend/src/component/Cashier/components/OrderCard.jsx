@@ -18,7 +18,7 @@ const OrderCard = ({
   );
   const isPrinted = order.is_printed;
   const tax = subtotal * (order.tax ?? 0);
-  const formattedTotal = (Number(order.total) + tax).toFixed(2);
+  const formattedTotal = (Number(order.remaining_total) + tax).toFixed(2);
   console.log("OrderCard Rendered with order:", order);
   const statusLabel =
     order.status_display ||

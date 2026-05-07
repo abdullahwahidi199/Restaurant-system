@@ -7,6 +7,8 @@ from users.models import Staff
 from django.utils import timezone
 from decimal import Decimal
 from .utils.distance import calculate_distance_km,calculate_delivery_fee
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     item_name = serializers.ReadOnlyField(source='menu_item.name')
     item_price = serializers.SerializerMethodField()
@@ -310,12 +312,13 @@ class OrderSerializer(serializers.ModelSerializer):
     preparation_time = serializers.ReadOnlyField()
     created_by_name = serializers.CharField(source='created_by.user.get_full_name', read_only=True)
     received_by_name = serializers.CharField(source='received_by.user.get_full_name', read_only=True)
+    remaining_total = serializers.SerializerMethodField()
 
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment',
+            'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment','remaining_total',
             'order_type','table', 'order_type_display', 'status', 'status_display','is_printed','order_number',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
@@ -381,6 +384,22 @@ class OrderSerializer(serializers.ModelSerializer):
                 )
 
         return data
+    
+    def get_remaining_total(self, obj):
+        items_total = sum(
+            (item.get_subtotal() for item in obj.items.all()),
+            Decimal("0.00")
+        )
+
+        reservation_remaining = Decimal("0.00")
+
+        if obj.reservation:
+            reservation_remaining = max(
+                obj.reservation.total_price - obj.reservation.paid_amount,
+                Decimal("0.00")
+            )
+
+        return str(items_total + reservation_remaining)
 
     def get_reservation_payment(self, obj):
         res = obj.reservation

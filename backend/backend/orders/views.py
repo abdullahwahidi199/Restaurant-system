@@ -21,7 +21,20 @@ from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,
 from rest_framework.exceptions import NotFound
 from django.utils import timezone
 
+from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
+# def recalc_order_total(order):
+#     total = order.items.aggregate(
+#         total=Sum(
+#             ExpressionWrapper(
+#                 F("quantity") * F("menu_item__price"),
+#                 output_field=DecimalField(max_digits=10, decimal_places=2)
+#             )
+#         )
+#     )["total"] or 0
+
+#     order.total = total
+#     order.save(update_fields=["total"])
 # --- Helper Function ---
 def get_restaurant_from_user(request):
     """
@@ -610,3 +623,28 @@ def cancel_reservation(request,pk):
     reservation.save(update_fields=["status"])
 
     return Response({"message": "Reservation ancelled successfully"})
+
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def bulk_update_order_items(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+
+    if order.status != "pending":
+        return Response({"error": "Locked order"}, status=400)
+
+    items_data = request.data.get("items", [])
+
+    incoming_ids = [i["id"] for i in items_data]
+
+    # 🔥 DELETE removed items
+    OrderItem.objects.filter(order=order).exclude(id__in=incoming_ids).delete()
+
+    # 🔥 UPDATE existing items
+    for i in items_data:
+        item = OrderItem.objects.get(id=i["id"], order=order)
+        item.quantity = i["quantity"]
+        item.save()
+
+    return Response({"message": "updated"})

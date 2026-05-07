@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 export default function TableActionModal({ table, onClose, refetchTables }) {
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
+  const [items, setItems] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,10 +18,15 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
-
+  const { name, status, capacity, note, current_order } = table;
+  useEffect(() => {
+    if (current_order?.items) {
+      setItems(current_order.items);
+    }
+  }, [current_order]);
   if (!table) return null;
 
-  const { name, status, capacity, note, current_order } = table;
+  const isEditable = current_order?.status === "pending" && isEditing;
   console.log(table);
 
   // const markAvailable = async () => {
@@ -50,6 +57,44 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
           status: "served",
         },
       );
+      refetchTables();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const increaseQty = (id) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
+    );
+  };
+
+  const updateQty = (id, qty) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: Math.max(1, qty) } : item,
+      ),
+    );
+  };
+
+  const deleteItem = (id) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+  const saveChanges = async () => {
+    try {
+      await instance.patch(
+        `/orders/orders/${current_order.id}/bulk-update-items/`,
+        {
+          items: items.map((i) => ({
+            id: i.id,
+            quantity: i.quantity,
+          })),
+        },
+      );
+
+      setIsEditing(false);
       refetchTables();
     } catch (err) {
       console.log(err);
@@ -134,20 +179,64 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       </span>
                     </p>
                   </div>
+                  {current_order?.status === "pending" && !isEditing && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="bg-yellow-500 text-white px-3 py-2 rounded"
+                    >
+                      Edit Order
+                    </button>
+                  )}
                   {current_order.items.length > 0 ? (
                     <ul className="space-y-2">
-                      {current_order.items.map((item) => (
+                      {items.map((item) => (
                         <li
                           key={item.id}
                           className="flex items-center justify-between border rounded-lg p-2 bg-white shadow-sm hover:shadow-md transition"
                         >
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {item.item_name}{" "}
-                              <span className="text-gray-500">
-                                × {item.quantity}
-                              </span>
-                            </p>
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <p className="font-medium text-gray-800">
+                                {item.item_name}
+                              </p>
+
+                              <div className="flex items-center gap-2">
+                                {isEditable && (
+                                  <button
+                                    onClick={() =>
+                                      updateQty(item.id, item.quantity - 1)
+                                    }
+                                    className="px-2 bg-gray-200 rounded"
+                                  >
+                                    -
+                                  </button>
+                                )}
+
+                                <span className="text-gray-500">
+                                  × {item.quantity}
+                                </span>
+
+                                {isEditable && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        updateQty(item.id, item.quantity + 1)
+                                      }
+                                      className="px-2 bg-gray-200 rounded"
+                                    >
+                                      +
+                                    </button>
+
+                                    <button
+                                      onClick={() => deleteItem(item.id)}
+                                      className="text-red-500 ml-2"
+                                    >
+                                      ✕
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
                           {item.is_new && (
@@ -157,6 +246,14 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                           )}
                         </li>
                       ))}
+                      {isEditing && (
+                        <button
+                          onClick={saveChanges}
+                          className="w-full mt-3 bg-green-600 text-white px-3 py-2 rounded"
+                        >
+                          Save Changes
+                        </button>
+                      )}
                     </ul>
                   ) : (
                     <p>No active orders</p>

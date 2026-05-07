@@ -47,7 +47,7 @@ class OrderReportService:
         cancelled_orders = orders.filter(status='cancelled')
 
         # ----- Revenue (only from non-cancelled orders) -----
-        billable_orders = orders.exclude(status='cancelled')
+        billable_orders = orders.filter(status='completed')
         
         total_revenue = sum(
             float(o.get_total()) for o in billable_orders
