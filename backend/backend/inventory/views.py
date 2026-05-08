@@ -430,9 +430,9 @@ def inventory_pdf(request):
             item.unit,
             str(item.quantity_available),
             str(item.minimum_threshold),
-            f"${item.cost_per_unit:.2f}",
+            f"AFN{item.cost_per_unit:.2f}",
             status,
-            f"${total_value:.2f}"
+            f"AFN{total_value:.2f}"
         ])
 
     # =========================
