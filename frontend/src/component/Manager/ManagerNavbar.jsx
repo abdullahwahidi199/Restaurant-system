@@ -41,6 +41,12 @@ export default function ManagerNavbar() {
       label: t("nav.tables"),
       icon: <Clock size={18} />,
     },
+    {
+      to: "/manager/discount-requests",
+      label: "Discount requests",
+      icon: <Clock size={18} />,
+    },
+
     // {
     //   to: "/manager/menu",
     //   label: t("nav.shifts"),

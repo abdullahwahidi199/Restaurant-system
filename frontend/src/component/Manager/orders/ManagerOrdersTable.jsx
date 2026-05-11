@@ -51,7 +51,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
               <td className="p-3">
-                {order.table ? order.tableName : t("table.takeaway")}
+                {order.table ? order.tableName : order.order_type}
               </td>
               <td className="p-3">
                 <span

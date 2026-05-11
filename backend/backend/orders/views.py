@@ -10,8 +10,8 @@ from django_ratelimit.core import is_ratelimited
 from restaurants.models import Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
-from .models import Order, Table, OrderItem,Reservation
-from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer
+from .models import Order, Table, OrderItem,Reservation,DiscountRequest
+from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer
 from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item
@@ -20,6 +20,8 @@ from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin
 from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive,IsManager
 from rest_framework.exceptions import NotFound
 from django.utils import timezone
+from decimal import Decimal
+from rest_framework.exceptions import ValidationError
 
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
@@ -98,16 +100,8 @@ def order_list_create(request):
         return paginator.get_paginated_response(serializer.data)
 
     elif request.method == 'POST':
-        order_type = request.data.get("order_type")
-        if order_type == "delivery":
-            limited = is_ratelimited(
-                request=request, group='online_orders', fn=None,
-                key='ip', rate='5/20m', method='POST', increment=True
-            )
-            if limited:
-                return Response({"error": "Too many online orders."}, status=429)
 
-        serializer = OrderSerializer(data=request.data, context={'request': request})
+        serializer = OrderSerializer(data=request.data, context={'request': request,'restaurant': restaurant,})
         if serializer.is_valid():
             # 2. Save with Restaurant
             try:
@@ -511,7 +505,7 @@ def cashier_orders(request):
     orders = Order.objects.filter(
         restaurant=restaurant 
     ).filter(
-        Q(order_type='dine-in', status='served') |
+        Q(order_type='dine-in', status__in=['served','ready']) |
         (Q(order_type='takeaway') & ~Q(status='completed')) |
         Q(order_type='delivery', status__in=['ready', 'out_for_delivery'])
     ).order_by('-created_at')
@@ -648,3 +642,151 @@ def bulk_update_order_items(request, pk):
         item.save()
 
     return Response({"message": "updated"})
+
+from django.utils.dateparse import parse_date
+from django.db.models import Q
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsSameRestaurant, IsRestaurantAdmin])
+def all_discount_requests(request):
+
+    discounts = DiscountRequest.objects.filter(
+        order__restaurant=request.user.staff_profile.restaurant
+    ).select_related(
+        "order",
+        "requested_by",
+        "approved_by",
+        "order__table"
+    ).order_by("-created_at")
+
+    # status filter
+    status_filter = request.GET.get("status")
+
+    if status_filter and status_filter.lower() != "all":
+        discounts = discounts.filter(status=status_filter.lower())
+
+    # start and end date filter
+    start_date = request.GET.get("start")
+    end_date = request.GET.get("end")
+
+    if start_date:
+        parsed_start = parse_date(start_date)
+        if parsed_start:
+            discounts = discounts.filter(created_at__date__gte=parsed_start)
+
+    if end_date:
+        parsed_end = parse_date(end_date)
+        if parsed_end:
+            discounts = discounts.filter(created_at__date__lte=parsed_end)
+
+    serializer = DiscountRequestSerializer(discounts, many=True)
+
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsCashier])
+def request_discount(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    percent = Decimal(request.data.get("discount_percent", 0))
+    reason = request.data.get("reason", "")
+
+    if DiscountRequest.objects.filter(order=order, status="approved").exists():
+        return Response({"error": "Discount already applied"}, status=400)
+    if order.discount_percent>0:
+        raise ValidationError("Order already discounted")
+    if percent<=0:
+        return Response({"error": "Invalid discount"}, status=400)
+    if percent>100:
+        return Response({"error": "Invalid discount"}, status=400)
+    discount = DiscountRequest.objects.create(
+        order=order,
+        requested_by=request.user.staff_profile,
+        discount_percent=percent,
+        reason=reason
+    )
+    return Response({"message": "Discount request submitted", "id": discount.id})
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def approve_discount_or_reject(request, pk):
+    discount = get_object_or_404(DiscountRequest, id=pk)
+
+    staff = request.user.staff_profile
+    percent = discount.discount_percent
+
+    
+    if percent <= 10:
+        if staff.role != "Manager" and staff.role!="Admin":
+            return Response({"error": "Only Manager and Admin can approve this discount"}, status=403)
+
+    else:
+        if staff.role != "Admin":
+            return Response({"error": "Only Admin can approve this discount"}, status=403)
+
+    action = request.data.get("action")  # approve / reject
+
+    if action == "reject":
+        discount.status = "rejected"
+        discount.approved_by = staff
+        discount.approved_at = timezone.now()
+        discount.save()
+        return Response({"message": "Rejected"})
+
+    if action == "approve":
+        discount.status = "approved"
+        discount.approved_by = staff
+        discount.approved_at = timezone.now()
+        discount.save()
+
+        
+        order = discount.order
+        order.discount_percent = discount.discount_percent
+        order.save()
+
+        return Response({"message": "Approved and applied"})
+
+    return Response({"error": "Invalid action"}, status=400)
+
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated,IsSameRestaurant,IsManager])
+def manager_pending_discount_requests(request):
+    restaurant = get_restaurant_from_user(request)
+
+    staff = request.user.staff_profile
+
+    qs = DiscountRequest.objects.filter(
+        order__restaurant=restaurant,
+        status="pending"
+    ).select_related(
+        "order",
+        "requested_by",
+        "order__table"
+    ).order_by("-created_at")
+
+    # MANAGER CAN ONLY SEE <20%
+    if staff.role == "Manager":
+        qs = qs.filter(discount_percent__lte=10)
+
+    serializer = DiscountRequestSerializer(qs, many=True)
+
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsSameRestaurant,IsRestaurantAdmin])
+def admin_pending_discount_requests(request):
+    restaurant=get_restaurant_from_user(request)
+    staff=request.user.staff_profile
+
+    qs=DiscountRequest.objects.filter(
+        order__restaurant=restaurant,
+        status="pending"
+    ).select_related(
+        "order",
+        "requested_by",
+        "order__table"
+    ).order_by("-created_at")
+    serializer = DiscountRequestSerializer(qs, many=True)
+    return Response(serializer.data)

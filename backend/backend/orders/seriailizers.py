@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer
 from customers.serializers import CustomerProfileSerializer
-from .models import OrderItem,Order,Table,Reservation
+from .models import OrderItem,Order,Table,Reservation,DiscountRequest
 from customers.models import Customer
 from users.models import Staff
 from django.utils import timezone
@@ -294,6 +294,24 @@ class TableMiniSerializer(serializers.ModelSerializer):
         model=Table
         fields=['number']
 
+class DiscountRequestSerializer(serializers.ModelSerializer):
+    requested_by_name = serializers.CharField(source="requested_by.user.get_full_name", read_only=True)
+    approved_by_name = serializers.CharField(source="approved_by.user.get_full_name", read_only=True)
+
+    class Meta:
+        model = DiscountRequest
+        fields = [
+            "id",
+            "order",
+            "discount_percent",
+            "reason",
+            "status",
+            "requested_by_name",
+            "approved_by_name",
+            "created_at",
+            "approved_at",
+        ]
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     total = serializers.SerializerMethodField()
@@ -313,13 +331,14 @@ class OrderSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.user.get_full_name', read_only=True)
     received_by_name = serializers.CharField(source='received_by.user.get_full_name', read_only=True)
     remaining_total = serializers.SerializerMethodField()
-
+    discount_percent = serializers.DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    discount_requests = DiscountRequestSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
         fields = [
             'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment','remaining_total',
-            'order_type','table', 'order_type_display', 'status', 'status_display','is_printed','order_number',
+            'order_type','table', 'order_type_display', 'status', 'status_display','is_printed','order_number','discount_percent','discount_requests',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
         read_only_fields = ['created_at', 'updated_at', 'total']
@@ -351,13 +370,21 @@ class OrderSerializer(serializers.ModelSerializer):
                 )
 
         # DELIVERY LOCATION check
-        if order_type == "delivery":
-            request = self.context.get("request")
+        request = self.context.get("request")
+
+        is_staff_order = (
+            request
+            and request.user.is_authenticated
+            and hasattr(request.user, "staff_profile")
+        )
+        if order_type == "delivery" and not is_staff_order:
             if not request:
                 return data
 
             customer_lat = data.get("latitude")
             customer_lng = data.get("longitude")
+
+            
 
             if not restaurant or not restaurant.latitude or not restaurant.longitude:
                 raise serializers.ValidationError("Restaurant location not set")
@@ -385,22 +412,19 @@ class OrderSerializer(serializers.ModelSerializer):
 
         return data
     
-    def get_remaining_total(self, obj):
-        items_total = sum(
-            (item.get_subtotal() for item in obj.items.all()),
-            Decimal("0.00")
-        )
+    from decimal import Decimal
 
-        reservation_remaining = Decimal("0.00")
+    def get_remaining_total(self, obj):
+        total = Decimal(str(obj.get_total()))
+
+        already_paid = Decimal("0.00")
 
         if obj.reservation:
-            reservation_remaining = max(
-                obj.reservation.total_price - obj.reservation.paid_amount,
-                Decimal("0.00")
-            )
+            already_paid = Decimal(str(obj.reservation.paid_amount or 0))
 
-        return str(items_total + reservation_remaining)
+        remaining = total - already_paid
 
+        return str(max(remaining, Decimal("0.00")))
     def get_reservation_payment(self, obj):
         res = obj.reservation
         if not res:
@@ -500,4 +524,103 @@ class OrderSerializer(serializers.ModelSerializer):
 
         return order
     
+class DiscountRequestSerializer(serializers.ModelSerializer):
+    requested_by_name = serializers.CharField(
+        source="requested_by.name",
+        read_only=True
+    )
 
+    approved_by_name = serializers.CharField(
+        source="approved_by.name",
+        read_only=True
+    )
+
+    order_number = serializers.IntegerField(
+        source="order.order_number",
+        read_only=True
+    )
+
+    table_name = serializers.CharField(
+        source="order.table.name",
+        read_only=True
+    )
+
+    customer_name = serializers.CharField(
+        source="order.name",
+        read_only=True
+    )
+
+    original_total = serializers.SerializerMethodField()
+
+    final_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DiscountRequest
+
+        fields = [
+            "id",
+            "order",
+            "order_number",
+            "table_name",
+            "customer_name",
+
+            "discount_percent",
+            "reason",
+            "status",
+
+            "original_total",
+            "final_total",
+
+            "requested_by",
+            "requested_by_name",
+            "approved_by",
+            "approved_by_name",
+
+            "created_at",
+            "approved_at",
+        ]
+
+        read_only_fields = [
+            "status",
+            "requested_by",
+            "approved_by",
+            "approved_at",
+        ]
+
+    def get_original_total(self, obj):
+        order = obj.order
+
+        items_total = sum(
+            item.get_subtotal()
+            for item in order.items.all()
+        )
+
+        reservation_total = Decimal("0.00")
+
+        if order.reservation:
+            reservation_total = order.reservation.total_price
+
+        delivery_total = (
+            Decimal(str(order.delivery_fee))
+            if order.order_type == "delivery"
+            else Decimal("0.00")
+        )
+
+        subtotal = (
+            Decimal(str(items_total))
+            + reservation_total
+            + delivery_total
+        )
+
+        return str(round(subtotal, 2))
+
+    def get_final_total(self, obj):
+        original = Decimal(
+            self.get_original_total(obj)
+        )
+
+        discount = (
+            original * obj.discount_percent
+        ) / Decimal("100")
+
+        return str(round(original - discount, 2))

@@ -339,6 +339,10 @@ class StaffReportService:
             default=Value(0),
             output_field=StaffReportService.MONEY_FIELD,
         )
+    )
+    *
+    (
+        1 - (F("discount_percent") / 100.0)
     ),
     output_field=StaffReportService.MONEY_FIELD,
 )

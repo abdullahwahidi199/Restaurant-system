@@ -42,7 +42,7 @@ const Login = () => {
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white px-6"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <Toaster poistion="bottom-center" />
+      <Toaster position="bottom-center" />
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}

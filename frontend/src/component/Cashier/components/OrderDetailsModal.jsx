@@ -19,6 +19,8 @@ const OrderDetailsModal = ({
 
   //   const finalTotal = (subtotal + reservation_fee).toFixed(2);
   const finalTotal = Number(order.total || 0);
+  const remainingTotal = Number(order.remaining_total || 0);
+  const reservationPaid = Number(order.reservation_payment?.paid || 0);
 
   const statusLabel =
     order.status_display ||
@@ -66,6 +68,9 @@ const OrderDetailsModal = ({
           <p className="text-gray-600 mb-1">
             <strong>Status:</strong> {statusLabel}
           </p>
+          <p className="text-gray-600 mb-1">
+            <strong>Created by:</strong> {order.created_by_name}
+          </p>
           {order.status === "out_for_delivery" && (
             <p className="text-gray-600 mb-1">
               <strong>Delivered By: </strong> {order.delivery_boy_details.name}
@@ -109,28 +114,43 @@ const OrderDetailsModal = ({
           </table>
         </div>
 
-        <div className="mt-3 text-right text-gray-800">
-          <p>Subtotal: AFN{subtotal.toFixed(2)}</p>
+        <div className="mt-3 text-right text-gray-800 space-y-1">
+          <p>Food Subtotal: AFN{subtotal.toFixed(2)}</p>
+
           {order.reservation_payment && (
-            <div>
+            <>
               <p>
-                Reservation(Total): AFN
-                {order.reservation_payment.total.toFixed(2)}
+                Reservation Total: AFN
+                {Number(order.reservation_payment.total).toFixed(2)}
               </p>
-              <p>
-                Reservation(Paid): AFN
-                {order.reservation_payment.paid.toFixed(2)}
+
+              <p className="text-green-600">
+                Reservation Paid: AFN
+                {reservationPaid.toFixed(2)}
               </p>
-              <p>
-                Reservation(Remaining): AFN
-                {order.reservation_payment.remaining.toFixed(2)}
-              </p>
-            </div>
+            </>
           )}
-          {order.delivery_fee !== 0 && (
-            <p>Delivery fee: {order.delivery_fee}AFN</p>
+
+          {Number(order.delivery_fee) > 0 && (
+            <p>
+              Delivery Fee: AFN
+              {Number(order.delivery_fee).toFixed(2)}
+            </p>
           )}
-          <h3 className="text-xl font-bold mt-1">Total: {finalTotal}AFN</h3>
+
+          {Number(order.discount_percent) > 0 && (
+            <p className="text-red-600">Discount: {order.discount_percent}%</p>
+          )}
+
+          <h3 className="text-xl font-bold mt-2">
+            Total: AFN{finalTotal.toFixed(2)}
+          </h3>
+
+          {reservationPaid > 0 && (
+            <p className="text-blue-600 font-semibold">
+              Remaining: AFN{remainingTotal.toFixed(2)}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap justify-end gap-3 mt-6">

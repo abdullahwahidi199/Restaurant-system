@@ -65,6 +65,10 @@ import KitchenManagerStockDashboard from "./component/kitchen/Stock/KitchenManag
 import KitchenManagerMenu from "./component/kitchen/Menu/MenuBase";
 import KitchenManagerItemDetails from "./component/kitchen/Menu/IndividualItem";
 import KitchenRootLoyout from "./component/kitchen/KitchenRootLoyout";
+import DiscountRequestMain from "./component/Manager/DiscountRequest/DiscountRequestMain";
+import AdminDiscountsMain from "./component/Admin/Discounts/AdminDiscountsMain";
+import AllDiscounts from "./component/Admin/Discounts/AllDiscounts";
+import DeliveryOrderForm from "./component/Cashier/components/DeliveryOrderForm";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -112,6 +116,11 @@ function App() {
           <Route path="expenses" element={<ExpensesMain />} />
           <Route path="expenses/history" element={<ExpenseHistory />} />
           <Route path="expenses/history/:id" element={<IndividualExpense />} />
+          <Route
+            path="pending-discount-requests"
+            element={<AdminDiscountsMain />}
+          />
+          <Route path="all-discount-requests" element={<AllDiscounts />} />
           <Route path="reports" element={<ReportsMainPage />} />
           <Route path="reservations" element={<ReservationsMainPage />} />
           <Route path="inventory" element={<InventoryDashboard />} />
@@ -134,6 +143,7 @@ function App() {
           <Route index element={<ManagerOrderBase />} />
           <Route path="reservations" element={<ManagerReservationBase />} />
           <Route path="tables" element={<ManagerTablesHome />} />
+          <Route path="discount-requests" element={<DiscountRequestMain />} />
         </Route>
         <Route
           path="manager/new-order"
@@ -202,6 +212,16 @@ function App() {
             <RequireAuth allowedRoles={["Cashier"]}>
               <RequireActiveRestaurant>
                 <TakeAwayForm />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="cashier/delivery"
+          element={
+            <RequireAuth allowedRoles={["Cashier"]}>
+              <RequireActiveRestaurant>
+                <DeliveryOrderForm />
               </RequireActiveRestaurant>
             </RequireAuth>
           }

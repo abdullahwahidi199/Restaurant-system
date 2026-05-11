@@ -18,7 +18,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 
-export default function TakeAwayForm() {
+export default function DeliveryOrderForm() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
 
@@ -153,7 +153,8 @@ export default function TakeAwayForm() {
     const payload = {
       name: formData.name,
       phone: formData.phone,
-      order_type: "takeaway",
+      order_type: "delivery",
+      address: formData.address,
       note: formData.note,
       items: cart.map((item) => ({
         menu_item: item.id,
@@ -169,7 +170,25 @@ export default function TakeAwayForm() {
       setFormData({ name: "", phone: "", note: "" });
     } catch (err) {
       console.error(err);
-      toast.error(t("menu.messages.order_failed"));
+
+      const data = err?.response?.data;
+
+      // DRF non_field_errors
+      if (data?.non_field_errors?.length > 0) {
+        toast.error(data.non_field_errors[0]);
+      }
+
+      // DRF field errors
+      else if (typeof data === "object") {
+        const firstError = Object.values(data).flat().find(Boolean);
+
+        toast.error(firstError || t("menu.messages.order_failed"));
+      }
+
+      // fallback
+      else {
+        toast.error(t("menu.messages.order_failed"));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -199,7 +218,6 @@ export default function TakeAwayForm() {
     <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-gray-50">
       <Toaster position="bottom-center" />
 
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -208,10 +226,10 @@ export default function TakeAwayForm() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                Takeaway Order
+                Delivery Order
               </h1>
               <p className="text-xs text-gray-500">
-                Create a new takeaway order
+                Create a new delivery order
               </p>
             </div>
           </div>
@@ -606,6 +624,23 @@ export default function TakeAwayForm() {
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone
+                      size={14}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="address"
+                      placeholder="Address *"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                      required
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
                     />
                   </div>

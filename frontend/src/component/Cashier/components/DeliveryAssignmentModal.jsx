@@ -30,19 +30,28 @@ const DeliveryAssignmentModal = ({
 
     const phone = selectedPerson.phone.replace("+", "");
 
-    const mapLink = `https://www.google.com/maps?q=${order.latitude},${order.longitude}`;
+    // ✅ Check if location exists
+    const hasLocation = order.latitude && order.longitude;
 
-    const message = `
+    let message = `
 New Delivery Order 🚚
 
-Order ID: ${order.id}
+Order ID: ${order.order_number}
 Name: ${order.name}
 Phone: ${order.phone}
 Address: ${order.address}
+`;
+
+    // ✅ Only add map link if lat/lng exist
+    if (hasLocation) {
+      const mapLink = `https://www.google.com/maps?q=${order.latitude},${order.longitude}`;
+
+      message += `
 
 📍 Location:
 ${mapLink}
-  `;
+`;
+    }
 
     const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 

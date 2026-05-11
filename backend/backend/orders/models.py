@@ -189,6 +189,8 @@ class Order(models.Model):
     phone = models.CharField(max_length=15,null=True,blank=True)
     preparation_start = models.DateTimeField(null=True, blank=True)
     preparation_end = models.DateTimeField(null=True, blank=True)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)   
     stock_deducted = models.BooleanField(default=False)
     address = models.TextField(blank=True)
     table = models.ForeignKey(
@@ -255,18 +257,19 @@ class Order(models.Model):
 
         if self.reservation:
             r = self.reservation
-
             if r.reservation_type == "fee":
                 reservation_total = r.total_price
-
             if r.reservation_type == "prepaid":
-                reservation_total = r.total_price 
+                reservation_total = r.total_price
 
-        # 🔥 FORCE delivery_fee to Decimal
         delivery_total = Decimal(str(self.delivery_fee)) if self.order_type == "delivery" else Decimal("0.00")
 
-        return items_total + reservation_total + delivery_total
-        
+        subtotal = items_total + reservation_total + delivery_total
+
+        discount = (subtotal * self.discount_percent) / Decimal("100")
+
+        return subtotal - discount
+            
     
     @property
     def preparation_time(self):
@@ -349,3 +352,28 @@ class OrderItem(models.Model):
 
     def get_subtotal(self):
         return self.quantity * self.menu_item.price
+
+
+
+
+class DiscountRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="discount_requests")
+    requested_by = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="discount_requests")
+
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    reason = models.TextField()
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    approved_by = models.ForeignKey(
+        Staff, on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_discounts"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)

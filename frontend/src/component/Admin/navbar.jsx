@@ -16,6 +16,7 @@ import {
   BarChart,
   Star,
   Wallet,
+  BadgePercent,
   Package,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -50,6 +51,11 @@ function Navbar() {
       to: "/admin/dashboard/menu",
       label: t("nav.menu"),
       icon: <Utensils size={18} />,
+    },
+    {
+      to: "/admin/dashboard/pending-discount-requests",
+      label: "Discount Requests",
+      icon: <BadgePercent size={18} />,
     },
     {
       to: "/admin/dashboard/orders",

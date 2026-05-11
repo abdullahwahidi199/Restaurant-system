@@ -67,7 +67,7 @@ export default function OrderCard({ order, refresh }) {
           ) : order.order_type === "takeaway" ? (
             <h2 className="text-lg font-semibold">Take away</h2>
           ) : (
-            <h2 className="text-lg font-semibold">Online Order</h2>
+            <h2 className="text-lg font-semibold">Delivery</h2>
           )}
 
           <span

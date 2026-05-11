@@ -1,14 +1,16 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "./navbar";
 import { useTranslation } from "react-i18next";
 import instance from "../../api/axiosInstance";
 import { useEffect, useState } from "react";
 import { X, AlertTriangle, CheckCircle, CreditCard } from "lucide-react";
+import useDiscountSocket from "../../hooks/useDiscoutSocket";
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language !== "en";
-
+  const [discountAlert, setDiscountAlert] = useState(null);
+  const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWarningDismissed, setIsWarningDismissed] = useState(false);
@@ -28,6 +30,22 @@ export default function AdminDashboard() {
     checkRestaurant();
   }, []);
 
+  const playSound = () => {
+    const audio = new Audio("/sounds/notification.mp3");
+    audio.play().catch(() => {});
+  };
+
+  const handleDiscountMessage = (data) => {
+    if (data.type === "NEW_DISCOUNT_REQUEST") {
+      setDiscountAlert(data);
+      playSound();
+
+      // auto hide after 6s
+      setTimeout(() => setDiscountAlert(null), 6000);
+    }
+  };
+
+  useDiscountSocket(handleDiscountMessage);
   const getSubscriptionAlert = (days_left) => {
     if (days_left <= 3) {
       return {
@@ -75,7 +93,6 @@ export default function AdminDashboard() {
       className="flex h-screen overflow-hidden bg-gray-50"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      {/* 🔥 FLOATING SUBSCRIPTION WARNING (Better UI) */}
       {alert && !isWarningDismissed && (
         <div
           className={`fixed top-5 ${isRTL ? "left-5" : "right-5"} z-50 flex items-center gap-3 rounded-lg shadow-2xl transition-all duration-300 animate-in slide-in-from-top-5`}
@@ -95,6 +112,30 @@ export default function AdminDashboard() {
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {discountAlert && (
+        <div
+          onClick={() => navigate("/admin/dashboard/pending-discount-requests")}
+          className="
+      fixed top-6 right-6 z-50
+      bg-orange-500 text-white
+      px-5 py-4 rounded-xl shadow-2xl
+      cursor-pointer
+      animate-bounce
+      w-72
+    "
+        >
+          <div className="font-bold text-lg">🔔 New Discount Request</div>
+
+          <div className="text-sm mt-1">
+            Order #{discountAlert.order_number}
+          </div>
+
+          <div className="text-xs mt-2 opacity-90">
+            Click to review pending requests
           </div>
         </div>
       )}

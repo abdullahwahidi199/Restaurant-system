@@ -181,7 +181,6 @@ export default function MenuPage({ orderingClosed }) {
       return 0;
     });
 
-  console.log(filteredItems);
   const fetchSelectedItem = async (id) => {
     const response = await fetch(
       `${BASE_URL}/menu/public/${slug}/menu-items/${id}/`,
@@ -257,7 +256,17 @@ export default function MenuPage({ orderingClosed }) {
       </div>
 
       <div className="relative w-full mb-14">
-        <div className="flex justify-start gap-10 border-b border-gray-700 pb-2 relative">
+        <div
+          className="
+      flex gap-6 md:gap-10
+      overflow-x-auto
+      whitespace-nowrap
+      scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent
+      border-b border-gray-700 pb-2
+      relative
+      px-1
+    "
+        >
           {categories.map((cat) => (
             <button
               key={cat}
