@@ -3,6 +3,7 @@ import ManagerNavbar from "./ManagerNavbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
+import notification from "../../../src/assets/sounds/notification.mp3";
 
 export default function ManagerRootLayout() {
   const { t, i18n } = useTranslation();
@@ -11,7 +12,7 @@ export default function ManagerRootLayout() {
   const navigate = useNavigate();
 
   const playSound = () => {
-    const audio = new Audio("/sounds/notification.mp3");
+    const audio = new Audio(notification);
     audio.play().catch(() => {});
   };
 

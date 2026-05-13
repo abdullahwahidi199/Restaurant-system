@@ -5,6 +5,7 @@ import instance from "../../api/axiosInstance";
 import { useEffect, useState } from "react";
 import { X, AlertTriangle, CheckCircle, CreditCard } from "lucide-react";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
+import notification from "../../../src/assets/sounds/notification.mp3";
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
@@ -31,7 +32,7 @@ export default function AdminDashboard() {
   }, []);
 
   const playSound = () => {
-    const audio = new Audio("/sounds/notification.mp3");
+    const audio = new Audio(notification);
     audio.play().catch(() => {});
   };
 
