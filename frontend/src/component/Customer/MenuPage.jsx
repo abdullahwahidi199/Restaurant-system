@@ -7,6 +7,7 @@ import CheckoutForm from "./CheckoutForm";
 import ReviewItemModel from "./ReviewPage";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import PlatterDetails from "./PlatterDetails";
 
 export default function MenuPage({ orderingClosed }) {
   const { slug } = useParams();
@@ -24,6 +25,7 @@ export default function MenuPage({ orderingClosed }) {
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showReviewModel, setShowReviewModel] = useState(false);
+  const [selectedPlatter, setSelectedPlatter] = useState(null);
   const [reviewItemId, setReviewItemId] = useState(null);
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
@@ -44,17 +46,40 @@ export default function MenuPage({ orderingClosed }) {
 
       setCategories(["All", ...data.map((cat) => cat.name)]);
 
-      const items = data.flatMap((cat) =>
-        cat.menu_items.map((item) => ({
+      const items = data.flatMap((cat) => {
+        // normal menu items
+        const menuItems = cat.menu_items.map((item) => ({
           ...item,
+          type: "menu_item",
+
           category: cat.name,
+
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_MEDIA_URL}${item.image}`
             : "/images/placeholder.png",
-        })),
-      );
+        }));
+
+        // platters
+        const platters = cat.platters.map((platter) => ({
+          ...platter,
+          type: "platter",
+
+          category: cat.name,
+
+          image: platter.image
+            ? platter.image.startsWith("http")
+              ? platter.image
+              : `${BASE_MEDIA_URL}${platter.image}`
+            : "/images/placeholder.png",
+
+          // so existing review code does not crash
+          reviews: platter.reviews || [],
+        }));
+
+        return [...menuItems, ...platters];
+      });
       setMenuItems(items);
     } catch (err) {
       console.error(err);
@@ -123,7 +148,10 @@ export default function MenuPage({ orderingClosed }) {
       address: data.address,
       order_type: "delivery",
       items: cart.map((item) => ({
-        menu_item: item.id,
+        ...(item.type === "platter"
+          ? { platter: item.id }
+          : { menu_item: item.id }),
+
         quantity: item.qty,
       })),
       longitude: data.longitude,
@@ -181,12 +209,18 @@ export default function MenuPage({ orderingClosed }) {
       return 0;
     });
 
-  const fetchSelectedItem = async (id) => {
-    const response = await fetch(
-      `${BASE_URL}/menu/public/${slug}/menu-items/${id}/`,
-    );
-    const data = await response.json();
-    setSelectedItem(data);
+  const handleSelectItem = async (item) => {
+    if (item.type === "menu_item") {
+      const response = await fetch(
+        `${BASE_URL}/menu/public/${slug}/menu-items/${item.id}/`,
+      );
+      const data = await response.json();
+      setSelectedItem(data);
+    }
+
+    if (item.type === "platter") {
+      setSelectedPlatter(item); // no API needed since API already gives full platter
+    }
   };
   const increaseQty = (id) => {
     setCart((prev) =>
@@ -302,11 +336,11 @@ export default function MenuPage({ orderingClosed }) {
           {filteredItems.length > 0 ? (
             filteredItems.map((item) => {
               const avgRating =
-                item.reviews.length > 0
+                item.reviews?.length > 0
                   ? item.reviews.reduce(
                       (sum, review) => sum + review.rating,
                       0,
-                    ) / item.reviews.length
+                    ) / item.reviews?.length
                   : 0;
 
               return (
@@ -352,7 +386,7 @@ export default function MenuPage({ orderingClosed }) {
                   </div>
 
                   <div
-                    onClick={() => fetchSelectedItem(item.id)}
+                    onClick={() => handleSelectItem(item)}
                     className="cursor-pointer flex flex-col items-center z-10"
                   >
                     <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1f1f1f] mb-4 hover:scale-105 transition-transform duration-300">
@@ -538,6 +572,13 @@ export default function MenuPage({ orderingClosed }) {
         <MenuDetails
           item={selectedItem}
           onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {selectedPlatter && (
+        <PlatterDetails
+          platter={selectedPlatter}
+          onClose={() => setSelectedPlatter(null)}
         />
       )}
       {showCheckout && (

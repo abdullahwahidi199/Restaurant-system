@@ -52,12 +52,24 @@ export default function ManagerOrderAddModal() {
 
       const enriched = data.map((cat) => ({
         ...cat,
+
         menu_items: cat.menu_items.map((item) => ({
           ...item,
+          type: "menu_item",
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_URL}${item.image}`
+            : null,
+        })),
+
+        platters: (cat.platters || []).map((platter) => ({
+          ...platter,
+          type: "platter",
+          image: platter.image
+            ? platter.image.startsWith("http")
+              ? platter.image
+              : `${BASE_URL}${platter.image}`
             : null,
         })),
       }));
@@ -92,15 +104,17 @@ export default function ManagerOrderAddModal() {
 
   const getFilteredItems = () => {
     let items = [];
+
+    const collect = (cat) => [
+      ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
+      ...(cat.platters || []).map((p) => ({ ...p, category: cat.name })),
+    ];
+
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-      );
+      items = menuData.flatMap(collect);
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
-      items = cat
-        ? cat.menu_items.map((item) => ({ ...item, category: cat.name }))
-        : [];
+      items = cat ? collect(cat) : [];
     }
 
     if (searchQuery.trim()) {
@@ -174,7 +188,10 @@ export default function ManagerOrderAddModal() {
       table: table.id,
       note: formData.note,
       items: cart.map((item) => ({
-        menu_item: item.id,
+        ...(item.type === "platter"
+          ? { platter: item.id }
+          : { menu_item: item.id }),
+
         quantity: item.qty,
       })),
     };
@@ -288,8 +305,13 @@ export default function ManagerOrderAddModal() {
             const catData = menuData.find((c) => c.name === cat);
             const count =
               cat === "All"
-                ? menuData.reduce((s, c) => s + c.menu_items.length, 0)
-                : catData?.menu_items.length || 0;
+                ? menuData.reduce(
+                    (s, c) =>
+                      s + c.menu_items.length + (c.platters?.length || 0),
+                    0,
+                  )
+                : (catData?.menu_items.length || 0) +
+                  (catData?.platters?.length || 0);
 
             return (
               <button
@@ -447,6 +469,9 @@ export default function ManagerOrderAddModal() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+
+                                    if (!item.is_available) return;
+
                                     handleIncrement(item);
                                   }}
                                   className="w-6 h-6 rounded bg-emerald-500 text-white flex items-center justify-center"
@@ -458,6 +483,9 @@ export default function ManagerOrderAddModal() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
+
+                                  if (!item.is_available) return;
+
                                   handleIncrement(item);
                                 }}
                                 disabled={!item.is_available}

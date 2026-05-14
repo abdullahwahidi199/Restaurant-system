@@ -22,6 +22,7 @@ from rest_framework.exceptions import NotFound
 from django.utils import timezone
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
+from menu.models import Platter
 
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
@@ -395,23 +396,74 @@ def add_items_to_order(request, pk):
     new_items = []
 
     with transaction.atomic():
-        for item in items_data:
-            # Ensure Menu Item belongs to the same restaurant (assuming MenuItem has restaurant field)
-            try:
-                menu_item = MenuItem.objects.get(pk=item['menu_item'], restaurant=restaurant)
-            except MenuItem.DoesNotExist:
-                # Handle case where menu item doesn't exist or doesn't belong to restaurant
-                continue 
 
-            order_item = OrderItem.objects.create(
-                order=order,
-                menu_item=menu_item,
-                quantity=item.get('quantity', 1),
-                is_new=True,
-                description=item.get("description", "")
-            )
-            deduct_stock_for_order_item(order_item, order)
-            new_items.append({"id": order_item.id, "name": menu_item.name, "quantity": order_item.quantity})
+        for item in items_data:
+
+            menu_item_id = item.get("menu_item")
+            platter_id = item.get("platter")
+            quantity = item.get("quantity", 1)
+
+            # must have one
+            if not menu_item_id and not platter_id:
+                continue
+
+            # cannot have both
+            if menu_item_id and platter_id:
+                continue
+
+            # ─── MENU ITEM ───
+            if menu_item_id:
+
+                try:
+                    menu_item = MenuItem.objects.get(
+                        pk=menu_item_id,
+                        restaurant=restaurant
+                    )
+                except MenuItem.DoesNotExist:
+                    continue
+
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    menu_item=menu_item,
+                    quantity=quantity,
+                    is_new=True,
+                    description=item.get("description", "")
+                )
+
+                deduct_stock_for_order_item(order_item, order)
+
+                new_items.append({
+                    "id": order_item.id,
+                    "name": menu_item.name,
+                    "quantity": order_item.quantity
+                })
+
+            # ─── PLATTER ───
+            elif platter_id:
+
+                try:
+                    platter = Platter.objects.get(
+                        pk=platter_id,
+                        restaurant=restaurant
+                    )
+                except Platter.DoesNotExist:
+                    continue
+
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    platter=platter,
+                    quantity=quantity,
+                    is_new=True,
+                    description=item.get("description", "")
+                )
+
+                deduct_stock_for_order_item(order_item, order)
+
+                new_items.append({
+                    "id": order_item.id,
+                    "name": platter.name,
+                    "quantity": order_item.quantity
+                })
 
     return Response({"new_items": new_items}, status=status.HTTP_200_OK)
 

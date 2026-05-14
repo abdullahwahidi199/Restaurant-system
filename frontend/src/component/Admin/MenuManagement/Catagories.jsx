@@ -22,7 +22,7 @@ export default function CategoriesList({ categories, onCategoryDelete }) {
   }, [categories, selectedCategoryId]);
 
   const {
-    data: categoryItems = [],
+    data: categoryItems = {},
     isFetching,
     isError,
     refetch,

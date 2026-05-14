@@ -6,6 +6,7 @@ from restaurants.models import Restaurant
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
+# from inventory.utils import update_platter_availability_from_menu_item
 
 
 from decimal import Decimal
@@ -59,13 +60,34 @@ class MenuItem(models.Model):
 
         except Exception as e:
             print("Image processing error:", e)
+
+        
+        
     def mark_unavailable(self):
-        self.is_available=False
-        self.save()
+        self.is_available = False
+        self.save(update_fields=["is_available"])
+
+        from inventory.utils import (
+            update_platter_availability_from_menu_item
+        )
+
+        update_platter_availability_from_menu_item(
+            self
+        )
 
     def mark_available(self):
         self.is_available = True
-        self.save()
+        self.save(update_fields=["is_available"])
+
+        from inventory.utils import (
+            update_platter_availability_from_menu_item
+        )
+
+        update_platter_availability_from_menu_item(
+            self
+        )
+
+    
     def get_cost_per_unit(self, restaurant=None):
         qs = self.ingredients.all()
 
@@ -100,3 +122,67 @@ class Review(models.Model):
 
     # def __str__(self):
     #     return f"{self.customer} - {self.menu_item.name} ({self.rating}/5)"
+
+class Platter(models.Model):
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='platters'
+    )
+
+    name = models.CharField(max_length=150)
+
+    description = models.TextField(blank=True, null=True)
+
+    price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2
+    )
+
+    image = models.ImageField(
+        upload_to='platters/',
+        blank=True,
+        null=True
+    )
+
+    is_available = models.BooleanField(default=True)
+
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='platters'
+    )
+
+    def __str__(self):
+        return self.name
+    
+class PlatterItem(models.Model):
+    platter = models.ForeignKey(
+        Platter,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+
+    menu_item = models.ForeignKey(
+        MenuItem,
+        on_delete=models.CASCADE,
+        related_name='platter_items'
+    )
+
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.menu_item.name} x {self.quantity}"
+    def save(self, *args, **kwargs):
+
+        super().save(*args, **kwargs)
+
+        from inventory.utils import (
+            update_platter_availability
+        )
+
+        update_platter_availability(
+            self.platter
+        )

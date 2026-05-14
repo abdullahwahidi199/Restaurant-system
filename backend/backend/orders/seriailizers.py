@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from menu.serializers import MenuItemSerializer
+from menu.serializers import MenuItemSerializer,PlatterSerializer
 from customers.serializers import CustomerProfileSerializer
 from .models import OrderItem,Order,Table,Reservation,DiscountRequest
 from customers.models import Customer
@@ -9,25 +9,86 @@ from decimal import Decimal
 from .utils.distance import calculate_distance_km,calculate_delivery_fee
 
 
+
 class OrderItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.ReadOnlyField(source='menu_item.name')
+    item_name = serializers.SerializerMethodField()
     item_price = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
-    table_name = serializers.ReadOnlyField(source="order.table.name")
+
+    menu_item_details = MenuItemSerializer(
+        source='menu_item',
+        read_only=True
+    )
+
+    platter_details = PlatterSerializer(
+        source='platter',
+        read_only=True
+    )
+
+    table_name = serializers.ReadOnlyField(
+        source="order.table.name"
+    )
 
     class Meta:
         model = OrderItem
+
         fields = [
-            'id', 'menu_item', 'item_name',
-            'item_price', 'quantity',
-            'subtotal', 'table_name', 'is_new'
+            'id',
+
+            'menu_item',
+            'platter',
+
+            'menu_item_details',
+            'platter_details',
+
+            'item_name',
+            'item_price',
+
+            'quantity',
+            'subtotal',
+
+            'table_name',
+            'is_new',
+            'description',
         ]
 
+    def validate(self, data):
+        menu_item = data.get("menu_item")
+        platter = data.get("platter")
+
+        if not menu_item and not platter:
+            raise serializers.ValidationError(
+                "Either menu_item or platter is required."
+            )
+
+        if menu_item and platter:
+            raise serializers.ValidationError(
+                "Cannot have both menu_item and platter."
+            )
+
+        return data
+
+    def get_item_name(self, obj):
+        if obj.menu_item:
+            return obj.menu_item.name
+
+        if obj.platter:
+            return obj.platter.name
+
+        return None
+
     def get_item_price(self, obj):
-        return str(obj.menu_item.price)  
+
+        if obj.menu_item:
+            return str(obj.menu_item.price)
+
+        if obj.platter:
+            return str(obj.platter.price)
+
+        return "0"
 
     def get_subtotal(self, obj):
-        return str(obj.get_subtotal()) 
+        return str(obj.get_subtotal())
 
 class OrderMiniSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
@@ -355,13 +416,27 @@ class OrderSerializer(serializers.ModelSerializer):
         total = 0
 
         for item in items:
+
             menu_item = item.get("menu_item")
+            platter = item.get("platter")
+
             quantity = item.get("quantity", 1)
 
-            if not menu_item:
-                raise serializers.ValidationError("Menu item is required")
+            if not menu_item and not platter:
+                raise serializers.ValidationError(
+                    "Either menu_item or platter is required"
+                )
 
-            total += menu_item.price * quantity
+            if menu_item and platter:
+                raise serializers.ValidationError(
+                    "Cannot use both menu_item and platter"
+                )
+
+            if menu_item:
+                total += menu_item.price * quantity
+
+            if platter:
+                total += platter.price * quantity
         # MIN ORDER check
         if order_type == "delivery" and restaurant:
             if total < restaurant.min_order_amount:

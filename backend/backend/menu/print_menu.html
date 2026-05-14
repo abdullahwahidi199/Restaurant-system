@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Menu Print</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        h2 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .category {
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border-bottom: 1px solid #eee;
+            padding: 6px;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            background: #f5f5f5;
+        }
+
+        .name {
+            width: 30%;
+        }
+
+        .ingredients {
+            width: 50%;
+            font-size: 12px;
+        }
+
+        .price {
+            width: 20%;
+            text-align: right;
+        }
+
+        @media print {
+            button { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+
+<button onclick="window.print()">Print</button>
+
+{% for cat in data %}
+<div class="category">
+
+    <h2>{{ cat.category.name }}</h2>
+
+    <table>
+
+        <tr>
+            <th class="name">Name</th>
+            <th class="ingredients">Ingredients</th>
+            <th class="price">Price</th>
+        </tr>
+
+        {% for item in cat.menu_items %}
+        <tr>
+            <td>{{ item.name }}</td>
+            <td>
+                {% for ing in item.ingredients.all %}
+                    {{ ing.ingredient.name }} ({{ ing.quantity_required }}){% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ item.price }}</td>
+        </tr>
+        {% endfor %}
+
+        {% for p in cat.platters %}
+        <tr>
+            <td>{{ p.name }} (Platter)</td>
+            <td>
+                {% for it in p.items.all %}
+                    {{ it.menu_item.name }} x{{ it.quantity }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ p.price }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</div>
+{% endfor %}
+
+</body>
+</html>

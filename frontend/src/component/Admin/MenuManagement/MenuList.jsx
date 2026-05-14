@@ -3,6 +3,7 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import AddItemModal from "./AddItemModal";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import PlatterAddModal from "./PlatterAddModal";
 
 export default function MenuList({
   categoryItems,
@@ -11,11 +12,17 @@ export default function MenuList({
   onDeleteCategory,
 }) {
   const [itemAdd_Modal, setItemAddModal] = useState(false);
+  const [platerAddModal, setPlatterAddModal] = useState(false);
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [searchTerm, setSearchTerm] = useState("");
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
-  const filteredItems = categoryItems.filter((item) =>
+
+  const allItems = [
+    ...(categoryItems?.menu_items || []),
+    ...(categoryItems?.platters || []),
+  ];
+  const filteredItems = allItems.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
@@ -23,6 +30,11 @@ export default function MenuList({
 
   const handleItemAdded = () => {
     setItemAddModal(false);
+    fetchCategoryAgain();
+  };
+
+  const handlePlaterAdded = () => {
+    setPlatterAddModal(false);
     fetchCategoryAgain();
   };
   return (
@@ -53,13 +65,26 @@ export default function MenuList({
           >
             <Plus className="w-4 h-4" /> {t("add_item")}
           </button>
+          <button
+            onClick={() => setPlatterAddModal(true)}
+            className="flex items-center gap-2 cursor-pointer bg-lime-500 hover:bg-lime-600 text-white px-4 py-2 rounded-lg shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" /> Add Platter
+          </button>
         </div>
       </div>
 
       {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredItems.map((item) => (
-            <Link to={`/admin/dashboard/menu/item/${item.id}`} key={item.id}>
+            <Link
+              to={
+                item.items
+                  ? `/admin/dashboard/menu/platter/${item.id}`
+                  : `/admin/dashboard/menu/item/${item.id}`
+              }
+              key={item.id}
+            >
               <div
                 key={item.id}
                 className="bg-white rounded-xl cursor-pointer shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden group"
@@ -108,6 +133,14 @@ export default function MenuList({
         <AddItemModal
           onClose={() => setItemAddModal(false)}
           onItemAdded={handleItemAdded}
+          selectedcategoryid={selectedCategoryid}
+        />
+      )}
+
+      {platerAddModal && (
+        <PlatterAddModal
+          onClose={() => setPlatterAddModal(false)}
+          onItemAdded={handlePlaterAdded}
           selectedcategoryid={selectedCategoryid}
         />
       )}

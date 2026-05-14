@@ -29,7 +29,7 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
     try {
       const res = await instance.get("/menu/categories/");
       const data = res.data;
-
+      console.log(data);
       const enriched = data.map((cat) => ({
         ...cat,
         menu_items: cat.menu_items.map((item) => ({
@@ -62,14 +62,38 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
 
   const getFilteredItems = () => {
     let items = [];
+
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-      );
+      items = menuData.flatMap((cat) => [
+        ...cat.menu_items.map((item) => ({
+          ...item,
+          category: cat.name,
+          item_type: "menu_item",
+        })),
+
+        ...cat.platters.map((platter) => ({
+          ...platter,
+          category: cat.name,
+          item_type: "platter",
+        })),
+      ]);
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
+
       items = cat
-        ? cat.menu_items.map((item) => ({ ...item, category: cat.name }))
+        ? [
+            ...cat.menu_items.map((item) => ({
+              ...item,
+              category: cat.name,
+              item_type: "menu_item",
+            })),
+
+            ...cat.platters.map((platter) => ({
+              ...platter,
+              category: cat.name,
+              item_type: "platter",
+            })),
+          ]
         : [];
     }
 
@@ -151,8 +175,11 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
     setSubmitting(true);
     const payload = {
       items: selectedItems.map((i) => ({
-        menu_item: i.menu_item.id,
         quantity: i.quantity,
+
+        ...(i.menu_item.item_type === "menu_item"
+          ? { menu_item: i.menu_item.id }
+          : { platter: i.menu_item.id }),
       })),
     };
 
@@ -256,8 +283,12 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
                 const catData = menuData.find((c) => c.name === cat);
                 const count =
                   cat === "All"
-                    ? menuData.reduce((s, c) => s + c.menu_items.length, 0)
-                    : catData?.menu_items.length || 0;
+                    ? menuData.reduce(
+                        (s, c) => s + c.menu_items.length + c.platters.length,
+                        0,
+                      )
+                    : (catData?.menu_items.length || 0) +
+                      (catData?.platters.length || 0);
 
                 return (
                   <button
@@ -345,7 +376,10 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
                                   ? "border-emerald-400 shadow-lg shadow-emerald-100 ring-1 ring-emerald-200"
                                   : "border-gray-100 hover:border-gray-200 hover:shadow-md"
                               }`}
-                              onClick={() => handleIncrement(item)}
+                              onClick={() => {
+                                if (!item.is_available) return;
+                                handleIncrement(item);
+                              }}
                             >
                               {/* Selected badge */}
                               {isSelected && (

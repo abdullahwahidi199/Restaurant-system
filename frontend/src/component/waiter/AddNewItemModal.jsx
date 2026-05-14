@@ -33,15 +33,27 @@ export default function AddItemToOrderModal({
     try {
       const res = await instance.get("/menu/categories/");
       const data = res.data;
-
+      // console.log(data)
       const enriched = data.map((cat) => ({
         ...cat,
+
         menu_items: cat.menu_items.map((item) => ({
           ...item,
+          item_type: "menu_item",
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_URL}${item.image}`
+            : null,
+        })),
+
+        platters: (cat.platters || []).map((platter) => ({
+          ...platter,
+          item_type: "platter",
+          image: platter.image
+            ? platter.image.startsWith("http")
+              ? platter.image
+              : `${BASE_URL}${platter.image}`
             : null,
         })),
       }));
@@ -66,14 +78,34 @@ export default function AddItemToOrderModal({
 
   const getFilteredItems = () => {
     let items = [];
+
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-      );
+      items = menuData.flatMap((cat) => [
+        ...cat.menu_items.map((item) => ({
+          ...item,
+          category: cat.name,
+        })),
+
+        ...(cat.platters || []).map((platter) => ({
+          ...platter,
+          category: cat.name,
+        })),
+      ]);
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
+
       items = cat
-        ? cat.menu_items.map((item) => ({ ...item, category: cat.name }))
+        ? [
+            ...cat.menu_items.map((item) => ({
+              ...item,
+              category: cat.name,
+            })),
+
+            ...(cat.platters || []).map((platter) => ({
+              ...platter,
+              category: cat.name,
+            })),
+          ]
         : [];
     }
 
@@ -85,7 +117,6 @@ export default function AddItemToOrderModal({
 
     return items;
   };
-
   const getSelectedItemQty = (menuItemId) => {
     const found = selectedItems.find((i) => i.menu_item.id === menuItemId);
     return found ? found.quantity : 0;
@@ -155,8 +186,11 @@ export default function AddItemToOrderModal({
     setSubmitting(true);
     const payload = {
       items: selectedItems.map((i) => ({
-        menu_item: i.menu_item.id,
         quantity: i.quantity,
+
+        ...(i.menu_item.item_type === "menu_item"
+          ? { menu_item: i.menu_item.id }
+          : { platter: i.menu_item.id }),
       })),
     };
 
@@ -260,8 +294,13 @@ export default function AddItemToOrderModal({
                 const catData = menuData.find((c) => c.name === cat);
                 const count =
                   cat === "All"
-                    ? menuData.reduce((s, c) => s + c.menu_items.length, 0)
-                    : catData?.menu_items.length || 0;
+                    ? menuData.reduce(
+                        (s, c) =>
+                          s + c.menu_items.length + (c.platters?.length || 0),
+                        0,
+                      )
+                    : (catData?.menu_items.length || 0) +
+                      (catData?.platters?.length || 0);
 
                 return (
                   <button
@@ -349,7 +388,10 @@ export default function AddItemToOrderModal({
                                   ? "border-emerald-400 shadow-lg shadow-emerald-100 ring-1 ring-emerald-200"
                                   : "border-gray-100 hover:border-gray-200 hover:shadow-md"
                               }`}
-                              onClick={() => handleIncrement(item)}
+                              onClick={() => {
+                                if (!item.is_available) return;
+                                handleIncrement(item);
+                              }}
                             >
                               {/* Selected badge */}
                               {isSelected && (
@@ -428,6 +470,9 @@ export default function AddItemToOrderModal({
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
+
+                                          if (!item.is_available) return;
+
                                           handleIncrement(item);
                                         }}
                                         className="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center transition-colors"
@@ -442,6 +487,9 @@ export default function AddItemToOrderModal({
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
+
+                                        if (!item.is_available) return;
+
                                         handleIncrement(item);
                                       }}
                                       className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"

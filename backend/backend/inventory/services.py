@@ -2,38 +2,88 @@ from django.db import transaction
 from .models import MenuItemIngredient, StockMovement
 from .utils import update_menu_item_availability
 
+
+from django.db import transaction
+from .models import MenuItemIngredient, StockMovement
+from .utils import update_menu_item_availability
+
+
 @transaction.atomic
-def deduct_stock_for_order(order):
-    for order_item in order.items.all():
-        recipe_items = MenuItemIngredient.objects.select_related(
-            'ingredient', 'menu_item'
-        ).filter(menu_item=order_item.menu_item)
+def deduct_menu_item_stock(
+    menu_item,
+    quantity,
+    order
+):
 
-        for recipe in recipe_items:
-            required_qty = recipe.quantity_required * order_item.quantity
-            ingredient = recipe.ingredient
+    recipe_items = MenuItemIngredient.objects.select_related(
+        'ingredient',
+        'menu_item'
+    ).filter(menu_item=menu_item)
 
-            if ingredient.quantity_available < required_qty:
-                raise ValueError(
-                    f"Insufficient stock for {ingredient.name}"
-                )
+    for recipe in recipe_items:
 
-            ingredient.quantity_available -= required_qty
-            ingredient.save(update_fields=['quantity_available'])
+        required_qty = (
+            recipe.quantity_required * quantity
+        )
 
-            StockMovement.objects.create(
-                restaurant=ingredient.restaurant,
-                ingredient=ingredient,
-                change_quantity=-required_qty,
-                movement_type='order',
-                related_order=order,
-                # created_by=order.waiter
+        ingredient = recipe.ingredient
+
+        if ingredient.quantity_available < required_qty:
+            raise ValueError(
+                f"Insufficient stock for {ingredient.name}"
             )
 
+        ingredient.quantity_available -= required_qty
 
-        for recipe in recipe_items:
-            for rel in recipe.ingredient.menu_items.select_related('menu_item'):
-                update_menu_item_availability(rel.menu_item)
+        ingredient.save(
+            update_fields=['quantity_available']
+        )
+
+        StockMovement.objects.create(
+            restaurant=ingredient.restaurant,
+            ingredient=ingredient,
+            change_quantity=-required_qty,
+            movement_type='order',
+            related_order=order
+        )
+
+    # update availability
+    for recipe in recipe_items:
+
+        for rel in recipe.ingredient.menu_items.select_related(
+            'menu_item'
+        ):
+
+            update_menu_item_availability(
+                rel.menu_item
+            )
+@transaction.atomic
+def deduct_stock_for_order(order):
+
+    for order_item in order.items.all():
+
+        # NORMAL MENU ITEM
+        if order_item.menu_item:
+
+            deduct_menu_item_stock(
+                menu_item=order_item.menu_item,
+                quantity=order_item.quantity,
+                order=order
+            )
+
+        # PLATTER
+        elif order_item.platter:
+
+            for platter_item in order_item.platter.items.all():
+
+                deduct_menu_item_stock(
+                    menu_item=platter_item.menu_item,
+                    quantity=(
+                        platter_item.quantity
+                        * order_item.quantity
+                    ),
+                    order=order
+                )
 from django.db import transaction
 from decimal import Decimal
 from .models import StockMovement
@@ -87,28 +137,26 @@ from .utils import update_menu_item_availability
 
 @transaction.atomic
 def deduct_stock_for_order_item(order_item, order):
-    recipe_items = MenuItemIngredient.objects.select_related(
-        'ingredient', 'menu_item'
-    ).filter(menu_item=order_item.menu_item)
 
-    for recipe in recipe_items:
-        required_qty = recipe.quantity_required * order_item.quantity
-        ingredient = recipe.ingredient
+    # NORMAL ITEM
+    if order_item.menu_item:
 
-        if ingredient.quantity_available < required_qty:
-            raise ValueError(f"Insufficient stock for {ingredient.name}")
-
-        ingredient.quantity_available -= required_qty
-        ingredient.save(update_fields=['quantity_available'])
-
-        StockMovement.objects.create(
-            restaurant=ingredient.restaurant,
-            ingredient=ingredient,
-            change_quantity=-required_qty,
-            movement_type='order',
-            related_order=order
+        deduct_menu_item_stock(
+            menu_item=order_item.menu_item,
+            quantity=order_item.quantity,
+            order=order
         )
 
-    for recipe in recipe_items:
-        for rel in recipe.ingredient.menu_items.select_related('menu_item'):
-            update_menu_item_availability(rel.menu_item)
+    # PLATTER
+    elif order_item.platter:
+
+        for platter_item in order_item.platter.items.all():
+
+            deduct_menu_item_stock(
+                menu_item=platter_item.menu_item,
+                quantity=(
+                    platter_item.quantity
+                    * order_item.quantity
+                ),
+                order=order
+            )

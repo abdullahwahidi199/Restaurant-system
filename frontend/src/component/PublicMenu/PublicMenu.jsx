@@ -169,6 +169,12 @@ export default function PublicMenu() {
     setCart([]);
   };
 
+  const getCategoryCount = (category) => {
+    const menuCount = category.menu_items?.length || 0;
+    const platterCount = category.platters?.length || 0;
+    return menuCount + platterCount;
+  };
+
   const getItemQuantity = (id) => {
     const item = cart.find((i) => i.id === id);
     return item ? item.quantity : 0;
@@ -185,17 +191,25 @@ export default function PublicMenu() {
 
   const filteredItems = useMemo(() => {
     if (!selectedCategory) return [];
-    const categoryItems = selectedCategory.menu_items || [];
-    return categoryItems.filter((item) => {
+
+    const menuItems = selectedCategory.menu_items || [];
+    const platters = selectedCategory.platters || [];
+
+    const allItems = [
+      ...menuItems.map((i) => ({ ...i, type: "menu_item" })),
+      ...platters.map((p) => ({ ...p, type: "platter" })),
+    ];
+
+    return allItems.filter((item) => {
       const matchesSearch =
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.description || "")
           .toLowerCase()
           .includes(searchQuery.toLowerCase());
+
       return matchesSearch;
     });
   }, [selectedCategory, searchQuery]);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -288,7 +302,9 @@ export default function PublicMenu() {
               }`}
             >
               <span className="text-sm font-medium">{category.name}</span>
-              {category.menu_items && category.menu_items.length > 0 && (
+              {(category.menu_items?.length || 0) +
+                (category.platters?.length || 0) >
+                0 && (
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full ${
                     selectedCategory?.id === category.id
@@ -296,7 +312,7 @@ export default function PublicMenu() {
                       : "bg-gray-100 text-gray-500"
                   }`}
                 >
-                  {category.menu_items.length}
+                  {getCategoryCount(category)}
                 </span>
               )}
             </button>
@@ -339,8 +355,13 @@ export default function PublicMenu() {
                 <div
                   key={item.id}
                   onClick={(e) => {
-                    e.stopPropagation(); // ✅ THIS FIXES IT
-                    navigate(`/menu/${slug}/item/${item.id}/`);
+                    e.stopPropagation();
+
+                    if (item.type === "platter") {
+                      navigate(`/menu/${slug}/platter/${item.id}/`);
+                    } else {
+                      navigate(`/menu/${slug}/item/${item.id}/`);
+                    }
                   }}
                   className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden border border-gray-100 flex flex-col"
                 >

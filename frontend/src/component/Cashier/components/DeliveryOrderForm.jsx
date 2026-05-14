@@ -45,12 +45,26 @@ export default function DeliveryOrderForm() {
 
       const enriched = data.map((cat) => ({
         ...cat,
+
         menu_items: cat.menu_items.map((item) => ({
           ...item,
+          type: "menu_item",
+
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_URL}${item.image}`
+            : null,
+        })),
+
+        platters: (cat.platters || []).map((platter) => ({
+          ...platter,
+          type: "platter",
+
+          image: platter.image
+            ? platter.image.startsWith("http")
+              ? platter.image
+              : `${BASE_URL}${platter.image}`
             : null,
         })),
       }));
@@ -75,14 +89,34 @@ export default function DeliveryOrderForm() {
 
   const getFilteredItems = () => {
     let items = [];
+
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-      );
+      items = menuData.flatMap((cat) => [
+        ...cat.menu_items.map((item) => ({
+          ...item,
+          category: cat.name,
+        })),
+
+        ...(cat.platters || []).map((platter) => ({
+          ...platter,
+          category: cat.name,
+        })),
+      ]);
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
+
       items = cat
-        ? cat.menu_items.map((item) => ({ ...item, category: cat.name }))
+        ? [
+            ...cat.menu_items.map((item) => ({
+              ...item,
+              category: cat.name,
+            })),
+
+            ...(cat.platters || []).map((platter) => ({
+              ...platter,
+              category: cat.name,
+            })),
+          ]
         : [];
     }
 
@@ -157,7 +191,10 @@ export default function DeliveryOrderForm() {
       address: formData.address,
       note: formData.note,
       items: cart.map((item) => ({
-        menu_item: item.id,
+        ...(item.type === "platter"
+          ? { platter: item.id }
+          : { menu_item: item.id }),
+
         quantity: item.qty,
       })),
     };
@@ -277,8 +314,13 @@ export default function DeliveryOrderForm() {
             const catData = menuData.find((c) => c.name === cat);
             const count =
               cat === "All"
-                ? menuData.reduce((s, c) => s + c.menu_items.length, 0)
-                : catData?.menu_items.length || 0;
+                ? menuData.reduce(
+                    (s, c) =>
+                      s + c.menu_items.length + (c.platters?.length || 0),
+                    0,
+                  )
+                : (catData?.menu_items.length || 0) +
+                  (catData?.platters?.length || 0);
 
             return (
               <button

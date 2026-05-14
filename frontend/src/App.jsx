@@ -69,6 +69,9 @@ import DiscountRequestMain from "./component/Manager/DiscountRequest/DiscountReq
 import AdminDiscountsMain from "./component/Admin/Discounts/AdminDiscountsMain";
 import AllDiscounts from "./component/Admin/Discounts/AllDiscounts";
 import DeliveryOrderForm from "./component/Cashier/components/DeliveryOrderForm";
+import PlatterDetails from "./component/Admin/MenuManagement/PlatterDetails";
+import PublicPlatterDetails from "./component/PublicMenu/PlatterDetails";
+import Platters from "./component/Admin/MenuManagement/Platters";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -111,6 +114,9 @@ function App() {
           <Route path="shifts" element={<Shifts />} />
           <Route path="menu" element={<Menu />} />
           <Route path="menu/item/:id" element={<IndividaulItem />} />
+          <Route path="platters" element={<Platters />} />
+
+          <Route path="menu/platter/:id" element={<PlatterDetails />} />
           <Route path="orders" element={<OrderBase />} />
           <Route path="tables" element={<TableBaseModal />} />
           <Route path="expenses" element={<ExpensesMain />} />
@@ -238,6 +244,10 @@ function App() {
         />
         <Route path="/menu/:slug" element={<PublicMenu />} />
         <Route path="/menu/:slug/item/:id" element={<MenuItemDetails />} />
+        <Route
+          path="/menu/:slug/platter/:id"
+          element={<PublicPlatterDetails />}
+        />
         <Route
           path="subscription-inactive"
           element={<SubscriptionInactive />}

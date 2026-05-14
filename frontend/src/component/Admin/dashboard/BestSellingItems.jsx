@@ -10,8 +10,8 @@ export default function BestSellingItems({ summary }) {
     activeTab === "today"
       ? summary.best_selling_items.best_selling_today
       : activeTab === "week"
-      ? summary.best_selling_items.best_selling_week
-      : summary.best_selling_items.best_selling_month;
+        ? summary.best_selling_items.best_selling_week
+        : summary.best_selling_items.best_selling_month;
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"}>
@@ -46,11 +46,11 @@ export default function BestSellingItems({ summary }) {
                 <p className="text-sm text-gray-500">
                   {t("dashboard.best_selling.sold")}: {item.total_sales} |{" "}
                   {t("dashboard.best_selling.revenue")}: Afs
-                  {item.total_revenue.toFixed(2)}
+                  {Number(item.total_revenue || 0).toFixed(2)}
                 </p>
               </div>
               <span className="font-semibold">
-                Afs{item.unit_price.toFixed(2)}
+                Afs{Number(item.unit_price || 0).toFixed(2)}
               </span>
             </li>
           ))}

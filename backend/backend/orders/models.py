@@ -1,5 +1,5 @@
 from django.db import models
-from menu.models import MenuItem
+from menu.models import MenuItem,Platter
 from users.models import Staff
 from django.utils import timezone
 from datetime import timedelta
@@ -7,6 +7,7 @@ from restaurants.models import Restaurant
 from inventory.services import deduct_stock_for_order
 import math
 from django.db.models import Max
+from django.core.exceptions import ValidationError
 from decimal import Decimal
 class Table(models.Model):
     STATUS_CHOICES = [
@@ -342,17 +343,47 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(
+        MenuItem,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    platter = models.ForeignKey(
+        Platter,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
+    def clean(self):
+
+        if not self.menu_item and not self.platter:
+            raise ValidationError(
+                "Either menu_item or platter is required."
+            )
+
+        if self.menu_item and self.platter:
+            raise ValidationError(
+                "Cannot have both menu_item and platter."
+            )
+
     def __str__(self):
-        return f"{self.menu_item.name} x {self.quantity}"
+        if self.menu_item:
+            return f"{self.menu_item.name} x {self.quantity}"
+
+        return f"{self.platter.name} x {self.quantity}"
+    
 
     def get_subtotal(self):
-        return self.quantity * self.menu_item.price
+        if self.menu_item:
+            return self.quantity * self.menu_item.price
 
+        return self.quantity * self.platter.price
 
 
 
