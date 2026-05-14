@@ -376,29 +376,40 @@ def public_platter_detail(
 
 # views.py
 
+
+
+# Improved PDF Menu Generator
+
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
+from django.utils import timezone
 from io import BytesIO
 
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib.colors import HexColor, black, white
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer,
+    Table, TableStyle
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 from .models import Category
 
 
 class MenuPrintView(APIView):
-
     permission_classes = [IsAuthenticated, IsSameRestaurant, IsRestaurantActive]
 
     def get(self, request):
-
-        # ✅ GET RESTAURANT FROM STAFF PROFILE (YOUR SYSTEM)
+        # ✅ GET RESTAURANT FROM STAFF PROFILE
         restaurant = request.user.staff_profile.restaurant
 
         mode = request.query_params.get("mode", "all")
         category_id = request.query_params.get("category")
 
+        # ✅ BUILD CATEGORIES QUERY
         categories = Category.objects.filter(
             restaurant=restaurant
         ).prefetch_related(
@@ -409,45 +420,99 @@ class MenuPrintView(APIView):
         if category_id:
             categories = categories.filter(id=category_id)
 
+        # ✅ CREATE BUFFER AND PDF DOCUMENT
         buffer = BytesIO()
-        p = canvas.Canvas(buffer, pagesize=A4)
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=15*mm,
+            rightMargin=15*mm,
+            topMargin=12*mm,
+            bottomMargin=12*mm
+        )
 
-        width, height = A4
-        y = height - 40
+        # ✅ STYLES (Compact)
+        styles = getSampleStyleSheet()
 
-        # HEADER
-        # HEADER
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(200, y, f"{restaurant.name} MENU")
-        y -= 20
+        title_style = ParagraphStyle(
+            'MenuTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=2,
+            alignment=TA_CENTER,
+            textColor=HexColor('#1a1a1a')
+        )
 
-        # MODE + CATEGORY INFO
-        p.setFont("Helvetica", 10)
+        meta_style = ParagraphStyle(
+            'Meta',
+            parent=styles['Normal'],
+            fontSize=8,
+            spaceAfter=1,
+            alignment=TA_CENTER,
+            textColor=HexColor('#555555')
+        )
 
-        mode_label = f"Mode: {mode.capitalize()}"
+        category_style = ParagraphStyle(
+            'CategoryHeader',
+            parent=styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica-Bold',
+            spaceBefore=6,
+            spaceAfter=2,
+            textColor=white,
+            backColor=HexColor('#2C3E50'),
+            borderPadding=(3, 3, 3, 3),
+        )
 
-        selected_category = None
-        if category_id:
-            selected_category = categories.filter(id=category_id).first()
-            category_label = f"Category: {selected_category.name if selected_category else 'Unknown'}"
-        else:
-            category_label = "Category: All"
+        item_name_style = ParagraphStyle(
+            'ItemName',
+            parent=styles['Normal'],
+            fontSize=9,
+            fontName='Helvetica-Bold',
+            textColor=black,
+            spaceAfter=0
+        )
 
-        p.drawString(40, y, mode_label)
-        y -= 15
+        item_detail_style = ParagraphStyle(
+            'ItemDetail',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=HexColor('#444444'),
+            leftIndent=10,
+            spaceAfter=0
+        )
 
-        p.drawString(40, y, category_label)
-        y -= 25
+        price_style = ParagraphStyle(
+            'Price',
+            parent=styles['Normal'],
+            fontSize=9,
+            fontName='Helvetica-Bold',
+            alignment=TA_RIGHT,
+            textColor=HexColor('#27AE60')
+        )
 
+        # ✅ BUILD CONTENT
+        elements = []
+
+        # === HEADER ===
+        elements.append(Paragraph(f"{restaurant.name} - MENU", title_style))
+        elements.append(Paragraph(
+            f"Mode: {mode.title()} | "
+            + (f"Category: {categories.first().name}" if category_id and categories.first() else "All Categories") +
+            f" | {timezone.now().strftime('%d %b %Y, %H:%M')}",
+            meta_style
+        ))
+        elements.append(Spacer(1, 4))
+
+        # === MENU CONTENT ===
         for cat in categories:
-
             menu_items = cat.menu_items.all()
             platters = cat.platters.all()
 
+            # Apply mode filter
             if mode == "available":
                 menu_items = menu_items.filter(is_available=True)
                 platters = platters.filter(is_available=True)
-
             elif mode == "unavailable":
                 menu_items = menu_items.filter(is_available=False)
                 platters = platters.filter(is_available=False)
@@ -455,53 +520,73 @@ class MenuPrintView(APIView):
             if not menu_items.exists() and not platters.exists():
                 continue
 
-            # CATEGORY
-            p.setFont("Helvetica-Bold", 12)
-            p.drawString(40, y, f"{cat.name}")
-            y -= 20
-
-            p.setFont("Helvetica", 10)
+            # Category Header
+            elements.append(Paragraph(f"  {cat.name.upper()}", category_style))
 
             # MENU ITEMS
             for item in menu_items:
-
-                ingredients = ", ".join([
-                    f"{i.ingredient.name}({i.quantity_required})"
+                ingredients_list = [
+                    f"{i.ingredient.name}({i.quantity_required}{i.ingredient.unit or ''})"
                     for i in item.ingredients.all()
-                ])
+                ]
+                ingredients_text = " | ".join(ingredients_list) if ingredients_list else "-"
 
-                text = f"{item.name} | {ingredients} | {item.price}"
-                p.drawString(50, y, text[:120])
-                y -= 15
+                item_data = [
+                    [
+                        Paragraph(item.name, item_name_style),
+                        Paragraph(ingredients_text, item_detail_style),
+                        Paragraph(f"AFN{item.price:.2f}", price_style)
+                    ]
+                ]
 
-                if y < 50:
-                    p.showPage()
-                    y = height - 40
+                item_table = Table(
+                    item_data,
+                    colWidths=[doc.width * 0.25, doc.width * 0.55, doc.width * 0.20]
+                )
+                item_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('LINEBELOW', (0, 0), (-1, -1), 0.3, HexColor('#DDDDDD')),
+                ]))
+                elements.append(item_table)
 
             # PLATTERS
             for platter in platters:
-
-                items = ", ".join([
+                items_list = [
                     f"{i.menu_item.name}x{i.quantity}"
                     for i in platter.items.all()
-                ])
+                ]
+                items_text = " | ".join(items_list) if items_list else "-"
 
-                text = f"{platter.name} (Platter) | {items} | {platter.price}"
-                p.drawString(50, y, text[:120])
-                y -= 15
+                platter_data = [
+                    [
+                        Paragraph(f"{platter.name} (Platter)", item_name_style),
+                        Paragraph(items_text, item_detail_style),
+                        Paragraph(f"${platter.price:.2f}", price_style)
+                    ]
+                ]
 
-                if y < 50:
-                    p.showPage()
-                    y = height - 40
+                platter_table = Table(
+                    platter_data,
+                    colWidths=[doc.width * 0.25, doc.width * 0.55, doc.width * 0.20]
+                )
+                platter_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('LINEBELOW', (0, 0), (-1, -1), 0.3, HexColor('#DDDDDD')),
+                ]))
+                elements.append(platter_table)
 
-            y -= 10
+            elements.append(Spacer(1, 4))
 
-        p.save()
+        # ✅ BUILD PDF
+        doc.build(elements)
         buffer.seek(0)
 
+        # ✅ RETURN RESPONSE
         response = HttpResponse(buffer, content_type="application/pdf")
-
-        # ✅ FORCE DOWNLOAD
         response["Content-Disposition"] = f'attachment; filename="{restaurant.name}_menu.pdf"'
 
         return response

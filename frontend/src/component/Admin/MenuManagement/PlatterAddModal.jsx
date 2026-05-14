@@ -209,7 +209,7 @@ export default function PlatterAddModal({
                       <option value="">Select an item</option>
                       {menuItems.map((mi) => (
                         <option key={mi.id} value={mi.id}>
-                          {mi.name} — ${mi.price}
+                          {mi.name} — AFN{mi.price}
                         </option>
                       ))}
                     </select>
