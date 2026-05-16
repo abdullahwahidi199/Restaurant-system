@@ -196,8 +196,14 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                         >
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center justify-between w-full">
-                              <p className="font-medium text-gray-800">
+                              <p className="font-medium text-gray-800 flex items-center gap-2">
                                 {item.item_name}
+
+                                {item.is_new && (
+                                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                    New • {item.added_by_name}
+                                  </span>
+                                )}
                               </p>
 
                               <div className="flex items-center gap-2">
@@ -238,12 +244,6 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                               </div>
                             </div>
                           </div>
-
-                          {item.is_new && (
-                            <span className="ml-2 text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
-                              🆕 New
-                            </span>
-                          )}
                         </li>
                       ))}
                       {isEditing && (

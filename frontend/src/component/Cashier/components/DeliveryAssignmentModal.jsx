@@ -11,7 +11,9 @@ const DeliveryAssignmentModal = ({
   const [selectedPersonId, setSelectedPersonId] = useState("");
   console.log(order);
   useEffect(() => {
-    if (isOpen) setSelectedPersonId("");
+    if (isOpen) {
+      setSelectedPersonId(order?.delivery_boy?.id || "");
+    }
   }, [isOpen, order?.id]);
 
   if (!isOpen || !order) return null;
@@ -28,9 +30,14 @@ const DeliveryAssignmentModal = ({
       return;
     }
 
+    const confirmed = window.confirm(
+      "Do you want to open WhatsApp and assign this order?",
+    );
+
+    if (!confirmed) return;
+
     const phone = selectedPerson.phone.replace("+", "");
 
-    // ✅ Check if location exists
     const hasLocation = order.latitude && order.longitude;
 
     let message = `
@@ -42,30 +49,15 @@ Phone: ${order.phone}
 Address: ${order.address}
 `;
 
-    // ✅ Only add map link if lat/lng exist
     if (hasLocation) {
       const mapLink = `https://www.google.com/maps?q=${order.latitude},${order.longitude}`;
-
-      message += `
-
-📍 Location:
-${mapLink}
-`;
+      message += `\n\n📍 Location:\n${mapLink}\n`;
     }
 
     const whatsappURL = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-    // 👉 Step 1: Open WhatsApp
     window.open(whatsappURL, "_blank");
 
-    // 👉 Step 2: Ask user confirmation
-    const confirmed = window.confirm(
-      "Did you send the WhatsApp message to the delivery person?",
-    );
-
-    if (!confirmed) return;
-
-    // 👉 Step 3: NOW assign
     try {
       const response = await instance.patch(
         `/orders/orders/${order.id}/assign-delivery/`,
@@ -96,7 +88,11 @@ ${mapLink}
         >
           ✕
         </button>
-        <h2 className="text-xl font-semibold mb-4">Assign Delivery Person</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          {order.delivery_boy
+            ? "Reassign Delivery Person"
+            : "Assign Delivery Person"}
+        </h2>
         <p className="mb-4">
           Order ID: <span className="font-bold">{order.id}</span>
         </p>
@@ -124,7 +120,7 @@ ${mapLink}
             disabled={!selectedPersonId}
             className={`flex-1 ${selectedPersonId ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-gray-200 text-gray-600 cursor-not-allowed"} py-2 rounded transition`}
           >
-            Assign
+            {order.delivery_boy ? "Reassign" : "Assign"}
           </button>
 
           <button

@@ -86,7 +86,14 @@ export default function OrderCard({ order, refresh }) {
         👤 {order.name} | 📞 {order.phone}
       </p>
       <p className="text-sm text-gray-500">Total: {order.total} AFN</p>
-
+      {order.note && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+          <p className="text-sm font-semibold text-yellow-800">📝 Notes:</p>
+          <p className="text-sm text-gray-700 whitespace-pre-line">
+            {order.note}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-0">
         {order.items.map((item, index) => (
           <div
@@ -95,7 +102,7 @@ export default function OrderCard({ order, refresh }) {
               index % 2 === 0 ? "border-r border-gray-200 pr-2" : "pl-2"
             }`}
           >
-            <OrderItem item={item} />
+            <OrderItem item={item} onItemPrepared={refresh} />
           </div>
         ))}
       </div>

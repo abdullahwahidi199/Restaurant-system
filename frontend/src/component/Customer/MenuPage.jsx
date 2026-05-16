@@ -31,7 +31,6 @@ export default function MenuPage({ orderingClosed }) {
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
 
   const user = localStorage.getItem("customer");
-  console.log(user);
   const parsedUser = JSON.parse(localStorage.getItem("customer"));
   const BASE_URL = import.meta.env.VITE_API_URL;
   const BASE_MEDIA_URL = import.meta.env.VITE_MEDIA_URL;

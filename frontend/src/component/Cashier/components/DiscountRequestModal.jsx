@@ -7,14 +7,14 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  console.log(order);
 
-  const subtotal =
-    order?.items?.reduce((acc, item) => acc + Number(item.subtotal), 0) || 0;
+  const managerLimit = Number(order.manager_discount_limit);
+  const total = Number(order.total || 0);
 
-  const previewDiscount = subtotal * (Number(discountPercent || 0) / 100);
+  const previewDiscount = total * (Number(discountPercent || 0) / 100);
 
-  const finalTotal = subtotal - previewDiscount;
-
+  const finalTotal = total - previewDiscount;
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -83,9 +83,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Current Total</span>
 
-              <span className="font-semibold text-lg">
-                {subtotal.toFixed(2)}
-              </span>
+              <span className="font-semibold text-lg">{total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -109,9 +107,9 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
               />
             </div>
 
-            {Number(discountPercent) > 20 && (
+            {Number(discountPercent) > managerLimit && (
               <p className="text-xs text-red-500 mt-2">
-                Discounts above 10% require Admin approval.
+                Discounts above {managerLimit}% require Admin approval.
               </p>
             )}
           </div>

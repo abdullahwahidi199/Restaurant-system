@@ -356,8 +356,16 @@ class OrderItem(models.Model):
         null=True,
         blank=True
     )
+    added_by = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="added_order_items"
+    )
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
+    is_prepared = models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
     def clean(self):

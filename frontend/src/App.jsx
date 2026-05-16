@@ -72,6 +72,7 @@ import DeliveryOrderForm from "./component/Cashier/components/DeliveryOrderForm"
 import PlatterDetails from "./component/Admin/MenuManagement/PlatterDetails";
 import PublicPlatterDetails from "./component/PublicMenu/PlatterDetails";
 import Platters from "./component/Admin/MenuManagement/Platters";
+import NotFound from "./PageNotFound";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -252,6 +253,7 @@ function App() {
           path="subscription-inactive"
           element={<SubscriptionInactive />}
         />
+        <Route path="*" element={<NotFound />} />
       </Route>,
     ),
   );

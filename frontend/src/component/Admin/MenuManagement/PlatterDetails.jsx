@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 
+import Select from "react-select";
 export default function PlatterDetails() {
   const { id } = useParams();
 
@@ -79,7 +80,7 @@ export default function PlatterDetails() {
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
 
-    updatedItems[index][field] = value;
+    updatedItems[index][field] = field === "menu_item" ? Number(value) : value;
 
     setFormData((prev) => ({
       ...prev,
@@ -170,6 +171,11 @@ export default function PlatterDetails() {
   const totalCost = Number(platterDetails?.total_cost || 0);
 
   const profit = Number(formData.price || 0) - totalCost;
+
+  const menuOptions = menuItems.map((mi) => ({
+    value: mi.id,
+    label: mi.name,
+  }));
   if (loading) {
     return <div className="p-5">Loading...</div>;
   }
@@ -304,21 +310,20 @@ export default function PlatterDetails() {
                 <div>
                   <label className="block mb-2 font-medium">Menu Item</label>
 
-                  <select
-                    value={item.menu_item}
-                    onChange={(e) =>
-                      handleItemChange(index, "menu_item", e.target.value)
+                  <Select
+                    options={menuOptions}
+                    value={menuOptions.find(
+                      (opt) => opt.value === Number(item.menu_item),
+                    )}
+                    onChange={(selected) =>
+                      handleItemChange(
+                        index,
+                        "menu_item",
+                        selected ? selected.value : "",
+                      )
                     }
-                    className="w-full border p-3 rounded"
-                  >
-                    <option value="">Select Menu Item</option>
-
-                    {menuItems.map((menuItem) => (
-                      <option key={menuItem.id} value={menuItem.id}>
-                        {menuItem.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select Menu Item"
+                  />
                 </div>
 
                 <div>

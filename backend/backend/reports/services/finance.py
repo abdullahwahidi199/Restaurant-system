@@ -31,24 +31,25 @@ class FinanceReportService:
         end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
 
         return start_dt, end_dt
-
+    
     @staticmethod
     def profit_loss(start, end, restaurant):
+        SUCCESSFUL_STATUSES = ["completed", "delivered"]
         start_dt, end_dt = FinanceReportService._parse_range(start, end)
         money_field = DecimalField(max_digits=14, decimal_places=2)
 
         # -------- Revenue --------
         items = OrderItem.objects.filter(
-    order__created_at__range=(start_dt, end_dt),
-    order__restaurant=restaurant,
-    order__status="completed"
+        order__created_at__range=(start_dt, end_dt),
+        order__restaurant=restaurant,
+        order__status__in=SUCCESSFUL_STATUSES
 )
 
         orders = (
     Order.objects.filter(
         restaurant=restaurant,
         created_at__range=(start_dt, end_dt),
-        status="completed"
+        status__in=SUCCESSFUL_STATUSES
     )
     .select_related("reservation")
     .prefetch_related("items__menu_item")
@@ -60,9 +61,39 @@ class FinanceReportService:
             revenue += Decimal(o.get_total())
 
         # -------- COGS --------
+        # -------- COGS --------
         cogs = Decimal("0")
-        for item in items.select_related("menu_item"):
-            cogs += Decimal(item.quantity) * Decimal(item.menu_item.get_cost_per_unit())
+
+        for item in items.select_related(
+            "menu_item",
+            "platter",
+        ).prefetch_related(
+            "platter__items__menu_item"
+        ):
+
+            # MENU ITEM
+            if item.menu_item:
+                cogs += (
+                    Decimal(item.quantity)
+                    * Decimal(item.menu_item.get_cost_per_unit())
+                )
+
+            # PLATTER
+            elif item.platter:
+
+                platter_cost = Decimal("0")
+
+                for platter_item in item.platter.items.all():
+
+                    platter_cost += (
+                        Decimal(platter_item.quantity)
+                        * Decimal(platter_item.menu_item.get_cost_per_unit())
+                    )
+
+                cogs += (
+                    Decimal(item.quantity)
+                    * platter_cost
+                )
 
         # -------- Stock purchases --------
         purchases = StockMovement.objects.filter(

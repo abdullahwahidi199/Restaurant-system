@@ -154,15 +154,6 @@ const OrderDetailsModal = ({
         </div>
 
         <div className="flex flex-wrap justify-end gap-3 mt-6">
-          {String(statusLabel).toLowerCase() === "ready" && (
-            <button
-              onClick={() => onPrintBill && onPrintBill(order)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all"
-            >
-              Print Bill
-            </button>
-          )}
-
           <button
             onClick={onClose}
             className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition-all"

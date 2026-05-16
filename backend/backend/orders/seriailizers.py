@@ -24,6 +24,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         source='platter',
         read_only=True
     )
+    added_by_name = serializers.SerializerMethodField()
 
     table_name = serializers.ReadOnlyField(
         source="order.table.name"
@@ -46,9 +47,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
             'quantity',
             'subtotal',
-
+            'added_by_name',
             'table_name',
             'is_new',
+            'is_prepared',
             'description',
         ]
 
@@ -68,6 +70,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_added_by_name(self, obj):
+        if obj.is_new and obj.added_by:
+            return obj.added_by.name
+        return None
     def get_item_name(self, obj):
         if obj.menu_item:
             return obj.menu_item.name
@@ -380,12 +386,17 @@ class OrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     table = serializers.PrimaryKeyRelatedField(queryset=Table.objects.all(), required=False)
     tableName = serializers.CharField(source="table.name", read_only=True)
-    
+    manager_discount_limit = serializers.SerializerMethodField()
+    admin_discount_limit = serializers.SerializerMethodField()
     delivery_boy = serializers.PrimaryKeyRelatedField(
         queryset=Staff.objects.filter(role='DeliveryBoy'),
         required=False,
         allow_null=True
     )
+    distance_km = serializers.FloatField(
+    required=False,
+    write_only=True
+)
     delivery_boy_details = DeliveryBoyMiniSerializer(source='delivery_boy', read_only=True)
     reservation_payment = serializers.SerializerMethodField()
     preparation_time = serializers.ReadOnlyField()
@@ -398,7 +409,8 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment','remaining_total',
+            'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment','remaining_total',"manager_discount_limit",
+            "admin_discount_limit",'distance_km',
             'order_type','table', 'order_type_display', 'status', 'status_display','is_printed','order_number','discount_percent','discount_requests',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
@@ -452,41 +464,59 @@ class OrderSerializer(serializers.ModelSerializer):
             and request.user.is_authenticated
             and hasattr(request.user, "staff_profile")
         )
-        if order_type == "delivery" and not is_staff_order:
-            if not request:
-                return data
+        if order_type == "delivery":
 
-            customer_lat = data.get("latitude")
-            customer_lng = data.get("longitude")
+            if is_staff_order:
+                distance = data.get("distance_km")
 
-            
+                if distance is None:
+                    raise serializers.ValidationError(
+                        "Distance is required for delivery orders"
+                    )
 
-            if not restaurant or not restaurant.latitude or not restaurant.longitude:
-                raise serializers.ValidationError("Restaurant location not set")
+                distance = float(distance)
 
-            if not customer_lat or not customer_lng:
-                raise serializers.ValidationError("Customer location is required for delivery")
+            else:
+                customer_lat = data.get("latitude")
+                customer_lng = data.get("longitude")
 
-            distance = calculate_distance_km(
-                restaurant.latitude,
-                restaurant.longitude,
-                float(customer_lat),
-                float(customer_lng)
-            )
+                if not restaurant or not restaurant.latitude or not restaurant.longitude:
+                    raise serializers.ValidationError(
+                        "Restaurant location not set"
+                    )
 
-            delivery_fee = calculate_delivery_fee(restaurant, distance)
+                if not customer_lat or not customer_lng:
+                    raise serializers.ValidationError(
+                        "Customer location is required for delivery"
+                    )
 
-            # store temporarily for use in create()
-            self.context["delivery_fee"] = delivery_fee
-            self.context["distance"] = distance
+                distance = calculate_distance_km(
+                    restaurant.latitude,
+                    restaurant.longitude,
+                    float(customer_lat),
+                    float(customer_lng)
+                )
 
             if distance > restaurant.delivery_radius_km:
                 raise serializers.ValidationError(
                     f"Delivery not available in your area ({distance:.2f} km too far)"
                 )
 
+            delivery_fee = calculate_delivery_fee(
+                restaurant,
+                distance
+            )
+
+            self.context["delivery_fee"] = delivery_fee
+            self.context["distance"] = distance
+
         return data
     
+    def get_manager_discount_limit(self, obj):
+        return obj.restaurant.manager_discount_limit
+
+    def get_admin_discount_limit(self, obj):
+        return obj.restaurant.admin_discount_limit
     from decimal import Decimal
 
     def get_remaining_total(self, obj):
@@ -558,7 +588,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 validated_data.setdefault('phone', customer.phone)
             except Customer.DoesNotExist:
                 pass
-
+        validated_data.pop("distance_km", None)
         table = validated_data.get("table")
         order_phone = validated_data.get("phone")
         order_name = validated_data.get("name")

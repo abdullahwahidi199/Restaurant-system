@@ -563,7 +563,7 @@ class MenuPrintView(APIView):
                     [
                         Paragraph(f"{platter.name} (Platter)", item_name_style),
                         Paragraph(items_text, item_detail_style),
-                        Paragraph(f"${platter.price:.2f}", price_style)
+                        Paragraph(f"AFN{platter.price:.2f}", price_style)
                     ]
                 ]
 

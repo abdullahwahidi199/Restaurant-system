@@ -2,6 +2,7 @@ import React from "react";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 const DiscountRequestCard = ({ request, onApprove, onReject }) => {
+  // const [actionError, setActionError] = useState("");
   return (
     <div className="bg-white shadow-md rounded-2xl p-5 border border-gray-200">
       <div className="flex justify-between items-center mb-4">

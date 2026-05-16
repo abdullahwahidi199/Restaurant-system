@@ -17,6 +17,7 @@ export default function AdminDiscountsMain() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const pendingCount = useMemo(
     () => requests.filter((r) => r.status === "pending").length,
@@ -61,9 +62,16 @@ export default function AdminDiscountsMain() {
       // Remove approved/rejected request instantly
       setRequests((prev) => prev.filter((req) => req.id !== id));
     } catch (error) {
-      console.error(error);
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.detail ||
+        `Failed to ${action} request.`;
 
-      setError(error?.response?.data?.detail || `Failed to ${action} request.`);
+      setError(message);
+
+      setTimeout(() => {
+        setError("");
+      }, 4000);
     } finally {
       setActionLoading(null);
     }

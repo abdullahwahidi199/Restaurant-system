@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, time
-
 from django.db.models import (
     Sum,
     Count,
@@ -8,6 +7,8 @@ from django.db.models import (
     Value,
     ExpressionWrapper,
     DecimalField,
+    Case,
+    When,
 )
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -15,7 +16,7 @@ from django.utils.dateparse import parse_date
 
 from users.models import Staff, Attendance, Payroll
 from orders.models import Order, Reservation
-
+from decimal import Decimal
 
 class StaffReportService:
     MONEY_FIELD = DecimalField(max_digits=12, decimal_places=2)
@@ -179,14 +180,22 @@ class StaffReportService:
         distinct=True,
     ),
     revenue=Coalesce(
-        Sum(
-            ExpressionWrapper(
-                F("items__quantity") * F("items__menu_item__price"),
-                output_field=StaffReportService.MONEY_FIELD,
-            )
-        ),
-        Value(0, output_field=StaffReportService.MONEY_FIELD),
+    Sum(
+        Case(
+            When(
+                items__menu_item__isnull=False,
+                then=F("items__quantity") * F("items__menu_item__price"),
+            ),
+            When(
+                items__platter__isnull=False,
+                then=F("items__quantity") * F("items__platter__price"),
+            ),
+            default=Value(0),
+            output_field=StaffReportService.MONEY_FIELD,
+        )
     ),
+    Value(0, output_field=StaffReportService.MONEY_FIELD),
+),
 )
             )
         }
@@ -216,38 +225,44 @@ class StaffReportService:
             .order_by("name")
         )
 
-        delivery_stats = {
-            row["staff_id"]: row
-            for row in (
-                orders_qs
-                .filter(
-                    order_type="delivery",
-                    delivery_boy__isnull=False,
-                    delivery_boy__role="DeliveryBoy",
-                )
-                .values(
-                    staff_id=F("delivery_boy__id"),
-                )
-                .annotate(
-                    deliveries_handled=Count("id", distinct=True),
-                    delivered=Count(
-                        "id",
-                        filter=Q(status="delivered"),
-                        distinct=True,
-                    ),
-                    revenue=Coalesce(
-                        Sum(
-                            ExpressionWrapper(
-                                F("items__quantity") * F("items__menu_item__price"),
-                                output_field=StaffReportService.MONEY_FIELD,
-                            )
-                        ),
-                        Value(0, output_field=StaffReportService.MONEY_FIELD),
-                    ),
-                )
-            )
-        }
+        delivery_stats = {}
+        from decimal import Decimal
 
+        delivery_stats = {}
+
+        delivery_orders = (
+            orders_qs
+            .filter(
+                order_type="delivery",
+                delivery_boy__isnull=False,
+                delivery_boy__role="DeliveryBoy",
+                status="delivered",
+            )
+            .select_related("delivery_boy")
+            .prefetch_related(
+                "items__menu_item",
+                "items__platter",
+                "reservation",
+            )
+        )
+
+        for order in delivery_orders:
+
+            boy_id = order.delivery_boy.id
+
+            if boy_id not in delivery_stats:
+                delivery_stats[boy_id] = {
+                    "deliveries_handled": 0,
+                    "delivered": 0,
+                    "revenue": Decimal("0.00"),
+                }
+
+            # ✅ USE CENTRALIZED TOTAL LOGIC
+            final_total = order.get_total()
+
+            delivery_stats[boy_id]["deliveries_handled"] += 1
+            delivery_stats[boy_id]["delivered"] += 1
+            delivery_stats[boy_id]["revenue"] += final_total
         delivery_performance = [
             {
                 "staff_id": boy["id"],
@@ -298,60 +313,88 @@ class StaffReportService:
             )
         }
 
-        from django.db.models import Case, When
+    
 
-        order_cashier_stats = {
-            row["staff_id"]: row
-            for row in (
-                orders_qs
-                .filter(
-                    received_by__isnull=False,
-                    received_by__role="Cashier",
-                    status="completed",
-                )
-                .values(
-                    staff_id=F("received_by__id"),
-                )
-                .annotate(
-                    orders_paid=Count("id", distinct=True),
+        from decimal import Decimal
 
-                    order_revenue=Coalesce(
-                        Sum(
-                            ExpressionWrapper(
-    (
-        (F("items__quantity") * F("items__menu_item__price"))
-        +
-        Case(
-            When(
-                reservation__reservation_type="prepaid",
-                then=F("reservation__amount") - F("reservation__paid_amount"),
-            ),
-            When(
-                reservation__reservation_type="fee",
-                then=F("reservation__amount"),
-            ),
-            default=Value(0),
-            output_field=StaffReportService.MONEY_FIELD,
-        )
-        +
-        Case(
-            When(order_type="delivery", then=F("delivery_fee")),
-            default=Value(0),
-            output_field=StaffReportService.MONEY_FIELD,
-        )
-    )
-    *
-    (
-        1 - (F("discount_percent") / 100.0)
-    ),
-    output_field=StaffReportService.MONEY_FIELD,
-)
-                        ),
-                        Value(0, output_field=StaffReportService.MONEY_FIELD),
-                    ),
-                )
+        order_cashier_stats = {}
+
+        cashier_orders = (
+            orders_qs
+            .filter(
+                received_by__isnull=False,
+                received_by__role="Cashier",
+                status__in=["completed","delivered"],
             )
-        }
+            .select_related("reservation", "received_by")
+            .prefetch_related("items__menu_item", "items__platter")
+        )
+
+        for order in cashier_orders:
+            cashier_id = order.received_by.id
+
+            if cashier_id not in order_cashier_stats:
+                order_cashier_stats[cashier_id] = {
+                    "staff_id": cashier_id,
+                    "orders_paid": 0,
+                    "order_revenue": Decimal("0.00"),
+                }
+
+            # ITEMS TOTAL
+                    # ITEMS TOTAL
+            items_total = Decimal("0.00")
+
+            for item in order.items.all():
+                if item.menu_item:
+                    items_total += item.quantity * item.menu_item.price
+
+                elif item.platter:
+                    items_total += item.quantity * item.platter.price
+
+
+            # RESERVATION
+            reservation_total = Decimal("0.00")
+            prepaid_amount = Decimal("0.00")
+
+            if order.reservation:
+                r = order.reservation
+
+                # include FULL reservation in discountable subtotal
+                reservation_total += r.amount
+
+                # store prepaid separately
+                if r.reservation_type == "prepaid":
+                    prepaid_amount = r.paid_amount
+
+
+            # DELIVERY
+            delivery_total = (
+                order.delivery_fee
+                if order.order_type == "delivery"
+                else Decimal("0.00")
+            )
+
+            # SUBTOTAL
+            subtotal = items_total + reservation_total + delivery_total
+
+            # DISCOUNT ON FULL BILL
+            discount = (
+                subtotal * order.discount_percent
+            ) / Decimal("100")
+
+            # FINAL TOTAL AFTER DISCOUNT
+            final_total = subtotal - discount
+
+            # REMOVE ALREADY PAID PREPAID AMOUNT
+            final_total -= prepaid_amount
+
+            # safety
+            if final_total < 0:
+                final_total = Decimal("0.00")
+
+
+            order_cashier_stats[cashier_id]["orders_paid"] += 1
+            order_cashier_stats[cashier_id]["order_revenue"] += final_total
 
         cashier_performance = [
         {

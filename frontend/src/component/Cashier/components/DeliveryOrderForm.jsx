@@ -33,6 +33,7 @@ export default function DeliveryOrderForm() {
     name: "",
     phone: "",
     note: "",
+    distance_km: "",
   });
 
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
@@ -182,6 +183,10 @@ export default function DeliveryOrderForm() {
       toast.error("Please fill in customer name");
       return;
     }
+    if (!formData.distance_km) {
+      toast.error("Please enter delivery distance");
+      return;
+    }
 
     setSubmitting(true);
     const payload = {
@@ -190,6 +195,7 @@ export default function DeliveryOrderForm() {
       order_type: "delivery",
       address: formData.address,
       note: formData.note,
+      distance_km: Number(formData.distance_km),
       items: cart.map((item) => ({
         ...(item.type === "platter"
           ? { platter: item.id }
@@ -204,7 +210,13 @@ export default function DeliveryOrderForm() {
       toast.success(t("menu.messages.order_success"));
       setCart([]);
       setShowCart(false);
-      setFormData({ name: "", phone: "", note: "" });
+      setFormData({
+        name: "",
+        phone: "",
+        address: "",
+        note: "",
+        distance_km: "",
+      });
     } catch (err) {
       console.error(err);
 
@@ -686,6 +698,29 @@ export default function DeliveryOrderForm() {
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
                     />
                   </div>
+
+                  <div className="relative">
+                    <ShoppingBag
+                      size={14}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="Distance (KM) *"
+                      value={formData.distance_km}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          distance_km: e.target.value,
+                        })
+                      }
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                    />
+                  </div>
+
                   <div className="relative">
                     <FileText
                       size={14}

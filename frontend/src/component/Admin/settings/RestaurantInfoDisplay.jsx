@@ -23,6 +23,8 @@ const INITIAL_FORM_DATA = {
   base_delivery_fee: "",
   price_per_km: "",
   min_order_amount: "",
+  manager_discount_limit: "",
+  admin_discount_limit: "",
 };
 
 export default function RestaurantForm({ restaurant = {} }) {
@@ -201,6 +203,39 @@ export default function RestaurantForm({ restaurant = {} }) {
             placeholder="67.7097"
           />
         </div>
+      </div>
+
+      {/* Discount Settings */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-6">
+          Discount Settings
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormInput
+            label="Manager Discount Limit (%)"
+            name="manager_discount_limit"
+            value={formData.manager_discount_limit}
+            onChange={handleChange}
+            type="number"
+            step="0.01"
+            placeholder="10"
+          />
+
+          <FormInput
+            label="Admin Discount Limit (%)"
+            name="admin_discount_limit"
+            value={formData.admin_discount_limit}
+            onChange={handleChange}
+            type="number"
+            step="0.01"
+            placeholder="100"
+          />
+        </div>
+
+        <p className="text-sm text-gray-500 mt-4">
+          Discounts above the manager limit require admin approval.
+        </p>
       </div>
 
       {/* Delivery Settings */}

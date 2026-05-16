@@ -25,6 +25,18 @@ class Restaurant(models.Model):
         default=0
     )
 
+    manager_discount_limit = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=10
+    )
+
+    admin_discount_limit = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=100
+    )
+
     delivery_radius_km = models.DecimalField(
         max_digits=5,
         decimal_places=2,

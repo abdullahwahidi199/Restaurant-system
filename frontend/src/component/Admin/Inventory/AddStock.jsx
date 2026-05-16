@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import Select from "react-select";
+
 import { getIngredients, addStock } from "../../../api/inventoryApi";
 
 export default function AddStock() {
@@ -19,7 +21,13 @@ export default function AddStock() {
   const fetchIngredients = async () => {
     try {
       const res = await getIngredients();
-      setIngredients(res.data);
+
+      const formattedIngredients = res.data.map((ing) => ({
+        value: ing.id,
+        label: `${ing.name} (${ing.unit})`,
+      }));
+
+      setIngredients(formattedIngredients);
     } catch (err) {
       console.error(err);
     }
@@ -32,11 +40,18 @@ export default function AddStock() {
     });
   };
 
+  const handleIngredientChange = (selectedOption) => {
+    setForm({
+      ...form,
+      ingredient: selectedOption ? selectedOption.value : "",
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!form.ingredient || !form.quantity  ||!form.cost_per_unit) {
+    if (!form.ingredient || !form.quantity || !form.cost_per_unit) {
       setError("Fill all the fields!");
       return;
     }
@@ -47,7 +62,7 @@ export default function AddStock() {
       await addStock({
         ingredient: form.ingredient,
         quantity: form.quantity,
-        cost_per_unit: form.cost_per_unit ,
+        cost_per_unit: form.cost_per_unit,
       });
 
       setForm({
@@ -78,29 +93,23 @@ export default function AddStock() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Ingredient */}
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Ingredient
-          </label>
-          <select
-            name="ingredient"
-            value={form.ingredient}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Select ingredient</option>
-            {ingredients.map((ing) => (
-              <option key={ing.id} value={ing.id}>
-                {ing.name} ({ing.unit})
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium mb-1">Ingredient</label>
+
+          <Select
+            options={ingredients}
+            value={
+              ingredients.find((ing) => ing.value === form.ingredient) || null
+            }
+            onChange={handleIngredientChange}
+            placeholder="Select ingredient"
+            isClearable
+          />
         </div>
 
         {/* Quantity */}
         <div>
-          <label className="block text-sm font-medium mb-1">
-            Quantity
-          </label>
+          <label className="block text-sm font-medium mb-1">Quantity</label>
+
           <input
             type="number"
             step="0.001"
@@ -112,11 +121,12 @@ export default function AddStock() {
           />
         </div>
 
-        
+        {/* Cost per unit */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Cost per unit 
+            Cost per unit
           </label>
+
           <input
             type="number"
             step="0.01"

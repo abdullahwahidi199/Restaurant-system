@@ -342,7 +342,7 @@ def update_order_status(request, pk):
     order.status = new_status
 
     # ✅ Capture completion payment info
-    if new_status == "completed":
+    if new_status in ["completed", "delivered"]:
         staff = getattr(request.user, "staff_profile", None)
 
         order.received_by = staff
@@ -395,6 +395,8 @@ def add_items_to_order(request, pk):
     items_data = request.data.get('items', [])
     new_items = []
 
+    
+    staff = request.user.staff_profile
     with transaction.atomic():
 
         for item in items_data:
@@ -427,7 +429,9 @@ def add_items_to_order(request, pk):
                     menu_item=menu_item,
                     quantity=quantity,
                     is_new=True,
-                    description=item.get("description", "")
+                    description=item.get("description", ""),
+                    added_by=staff
+
                 )
 
                 deduct_stock_for_order_item(order_item, order)
@@ -454,7 +458,8 @@ def add_items_to_order(request, pk):
                     platter=platter,
                     quantity=quantity,
                     is_new=True,
-                    description=item.get("description", "")
+                    description=item.get("description", ""),
+                    added_by=staff
                 )
 
                 deduct_stock_for_order_item(order_item, order)
@@ -466,6 +471,29 @@ def add_items_to_order(request, pk):
                 })
 
     return Response({"new_items": new_items}, status=status.HTTP_200_OK)
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated, IsRestaurantActive])
+def mark_order_item_prepared(request, pk):
+    restaurant = get_restaurant_from_user(request)
+
+    try:
+        item = OrderItem.objects.get(
+            pk=pk,
+            order__restaurant=restaurant
+        )
+    except OrderItem.DoesNotExist:
+        return Response(
+            {"error": "Item not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    item.is_prepared = True
+    item.save(update_fields=["is_prepared"])
+
+    return Response({
+        "message": "Item marked as prepared"
+    })
 
 
 @api_view(['GET', "POST"])
@@ -520,32 +548,81 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return super().delete(request, *args, **kwargs)
 
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated,IsCashier,IsRestaurantActive])
+@permission_classes([IsAuthenticated, IsCashier, IsRestaurantActive])
 def assign_delivery(request, pk):
     restaurant = get_restaurant_from_user(request)
-    
+
     try:
         order = Order.objects.get(pk=pk, restaurant=restaurant)
     except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Order not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Prevent changing after delivered/cancelled
+    if order.status in ["delivered", "cancelled"]:
+        return Response(
+            {"error": f"Cannot assign delivery for {order.status} orders"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     delivery_boy_id = request.data.get("delivery_person_id")
+
     if not delivery_boy_id:
-        return Response({'error': 'Delivery person ID required'}, status=status.HTTP_400_BAD_REQUEST)
-    
+        return Response(
+            {"error": "Delivery person ID required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
-        # Ensure Delivery Boy belongs to the SAME restaurant
-        delivery_boy = Staff.objects.get(pk=delivery_boy_id, role='DeliveryBoy', restaurant=restaurant)
+        delivery_boy = Staff.objects.get(
+            pk=delivery_boy_id,
+            role="DeliveryBoy",
+            restaurant=restaurant,
+        )
     except Staff.DoesNotExist:
-        return Response({'error': 'Delivery person not found in your restaurant'}, status=status.HTTP_404_NOT_FOUND)
-        
+        return Response(
+            {"error": "Delivery person not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    
+
+    # Detect reassignment
+    was_reassigned = (
+        order.delivery_boy
+        and order.delivery_boy.id != delivery_boy.id
+    )
+
+    old_delivery_boy = order.delivery_boy
+
     order.delivery_boy = delivery_boy
-    order.status = "out_for_delivery"
-    order.save(update_fields=["delivery_boy", "status", "updated_at"])
+
+    
+
+    order.save(
+        update_fields=[
+            "delivery_boy",
+            "status",
+            "updated_at"
+        ]
+    )
 
     serializer = OrderSerializer(order)
-    return Response(serializer.data, status=status.HTTP_200_OK)
 
+    return Response(
+        {
+            "message": (
+                f"Order reassigned from "
+                f"{old_delivery_boy.name} to {delivery_boy.name}"
+                if was_reassigned
+                else "Delivery assigned successfully"
+            ),
+            "order": serializer.data,
+        },
+        status=status.HTTP_200_OK
+    )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,IsRestaurantActive, IsCashier|IsRestaurantAdmin])
@@ -765,16 +842,30 @@ def approve_discount_or_reject(request, pk):
     discount = get_object_or_404(DiscountRequest, id=pk)
 
     staff = request.user.staff_profile
+    restaurant = staff.restaurant
     percent = discount.discount_percent
 
-    
-    if percent <= 10:
-        if staff.role != "Manager" and staff.role!="Admin":
-            return Response({"error": "Only Manager and Admin can approve this discount"}, status=403)
+    manager_limit = restaurant.manager_discount_limit
+    admin_limit = restaurant.admin_discount_limit
+    restaurant = staff.restaurant
+    if percent <= manager_limit:
+        if staff.role not in ["Manager", "Admin"]:
+            return Response(
+                {"error": "Only Manager/Admin can approve"},
+                status=403
+            )
 
-    else:
+    elif percent <= admin_limit:
         if staff.role != "Admin":
-            return Response({"error": "Only Admin can approve this discount"}, status=403)
+            return Response(
+                {"error": "Only Admin can approve"},
+                status=403
+            )
+    else:
+        return Response(
+            {"error": "Discount exceeds allowed limit"},
+            status=400
+        )
 
     action = request.data.get("action")  # approve / reject
 
@@ -806,6 +897,7 @@ def approve_discount_or_reject(request, pk):
 @permission_classes([IsAuthenticated,IsSameRestaurant,IsManager])
 def manager_pending_discount_requests(request):
     restaurant = get_restaurant_from_user(request)
+    manager_limit = restaurant.manager_discount_limit
 
     staff = request.user.staff_profile
 
@@ -820,7 +912,7 @@ def manager_pending_discount_requests(request):
 
     # MANAGER CAN ONLY SEE <20%
     if staff.role == "Manager":
-        qs = qs.filter(discount_percent__lte=10)
+        qs = qs.filter(discount_percent__lte=manager_limit)
 
     serializer = DiscountRequestSerializer(qs, many=True)
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
+import Select from "react-select";
 
 export default function PlatterAddModal({
   onClose,
@@ -89,6 +90,10 @@ export default function PlatterAddModal({
     }
   };
 
+  const menuOptions = menuItems.map((mi) => ({
+    value: mi.id,
+    label: `${mi.name} — AFN ${mi.price}`,
+  }));
   /* ───────── RENDER ───────── */
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -198,21 +203,22 @@ export default function PlatterAddModal({
                     <label className="text-xs text-gray-500 mb-1 block">
                       Menu Item
                     </label>
-                    <select
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none"
-                      value={item.menu_item}
-                      onChange={(e) =>
-                        updatePlatterItem(index, "menu_item", e.target.value)
+                    <Select
+                      options={menuOptions}
+                      value={menuOptions.find(
+                        (opt) => opt.value === item.menu_item,
+                      )}
+                      onChange={(selected) =>
+                        updatePlatterItem(
+                          index,
+                          "menu_item",
+                          selected?.value || "",
+                        )
                       }
-                      required
-                    >
-                      <option value="">Select an item</option>
-                      {menuItems.map((mi) => (
-                        <option key={mi.id} value={mi.id}>
-                          {mi.name} — AFN{mi.price}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Select an item"
+                      className="text-sm"
+                      classNamePrefix="react-select"
+                    />
                   </div>
 
                   {/* Quantity */}

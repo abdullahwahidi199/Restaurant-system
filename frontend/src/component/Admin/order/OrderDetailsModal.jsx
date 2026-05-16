@@ -208,8 +208,15 @@ export default function OrderDetailsModal({ order, onClose }) {
                   className="px-4 py-3 flex justify-between items-center hover:bg-gray-50"
                 >
                   <div>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 flex items-center gap-2">
                       {item.item_name}
+
+                      {item.is_new && (
+                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          New
+                          {item.added_by_name ? ` • ${item.added_by_name}` : ""}
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-gray-400">× {item.quantity}</p>
                   </div>

@@ -20,20 +20,28 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
    
 class CustomerSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    # phone = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
 
     phone = serializers.CharField(required=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    address = serializers.CharField(required=True)
     date_of_birth = serializers.DateField(required=True)
     gender = serializers.ChoiceField(
         choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
         required=True
     )
+
+    email = serializers.EmailField(required=False, allow_blank=True)
+
     class Meta:
         model = User
-        fields = ['username', 'password','email','phone', 'address', 'date_of_birth', 'gender']
-
+        fields = [
+            'username',
+            'password',
+            'email',
+            'phone',
+            'address',
+            'date_of_birth',
+            'gender'
+        ]
     def create(self, validated_data):
 
         restaurant = self.context["restaurant"]

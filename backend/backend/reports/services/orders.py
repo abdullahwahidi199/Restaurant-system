@@ -43,33 +43,37 @@ class OrderReportService:
 
         # ----- Basic counts -----
         total_orders = orders.count()
-        completed_orders = orders.filter(status='completed')
+        completed_orders = orders.filter(status__in=['completed', 'delivered'])
         cancelled_orders = orders.filter(status='cancelled')
 
         # ----- Revenue (only from non-cancelled orders) -----
-        billable_orders = orders.filter(status='completed')
+        billable_orders = orders.filter(status__in=['completed', 'delivered'])
         
+        from decimal import Decimal
+
         total_revenue = sum(
-            float(o.get_total()) for o in billable_orders
+            (o.get_total() or Decimal("0")) for o in billable_orders
         )
         
         lost_revenue = sum(
             float(o.get_total()) for o in cancelled_orders
         )
 
+        from decimal import Decimal
+
         service_revenue = sum(
-            float(o.delivery_fee or 0) for o in billable_orders
+            (o.delivery_fee or Decimal("0")) for o in billable_orders
         )
 
-        reservations = {
-            o.reservation.id: o.reservation
-            for o in billable_orders
-            if o.reservation and o.reservation.reservation_type != "free"
-        }.values()
+        from decimal import Decimal
 
         reservation_revenue = sum(
-            float(r.total_price)
-            for r in reservations
+            (
+                o.reservation.amount
+                * (Decimal("1") - (Decimal(o.discount_percent or 0) / Decimal("100")))
+            )
+            for o in billable_orders
+            if o.reservation and o.reservation.reservation_type != "free"
         )
 
         avg_order_value = (

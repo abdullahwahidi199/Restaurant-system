@@ -87,7 +87,7 @@ const Signup = () => {
       localStorage.setItem("refresh_token", res.data.refresh);
 
       toast.success("Account created successfully!");
-      setTimeout(() => navigate("/"), 800);
+      setTimeout(() => navigate(`/${slug}`), 800);
     } catch (err) {
       console.error(err);
       setError(err.message);

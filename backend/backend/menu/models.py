@@ -16,6 +16,8 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
 
+    
+
     def __str__(self):
         return self.name
     
@@ -62,7 +64,7 @@ class MenuItem(models.Model):
             print("Image processing error:", e)
 
         
-        
+    
     def mark_unavailable(self):
         self.is_available = False
         self.save(update_fields=["is_available"])

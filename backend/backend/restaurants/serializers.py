@@ -50,7 +50,8 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'logo',
             'qr_code',
             'is_active',
-
+            'manager_discount_limit',
+            'admin_discount_limit',
             # extra fields
             'website',
             'opening_hours',

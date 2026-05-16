@@ -150,7 +150,7 @@ const OrderCard = ({
             "—"}
         </p>
         {order.table && (
-          <p className="text-sm text-gray-600 mb-1">
+          <p className="text-lg text-gray-600 mb-1">
             <strong>Table:</strong> {order.tableName}
           </p>
         )}
@@ -160,6 +160,11 @@ const OrderCard = ({
         <p className="text-sm text-gray-600 mb-1">
           <strong>Created by:</strong> {order.created_by_name}
         </p>
+        {order.delivery_boy && (
+          <p className="text-sm text-gray-600 mb-1">
+            <strong>Delivery Person:</strong> {order.delivery_boy_details.name}
+          </p>
+        )}
         {Number(order.discount_percent) > 0 && (
           <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
             {order.discount_percent}% Discount Applied
@@ -255,15 +260,22 @@ const OrderCard = ({
               )}
 
             {/* Assign Delivery */}
+            {/* Assign/Reassign Delivery */}
             {String(order.order_type || order.order_type_display || "")
               .toLowerCase()
               .includes("delivery") &&
-              order.status !== "out_for_delivery" && (
+              order.status !== "completed" &&
+              order.status !== "cancelled" && (
                 <button
                   onClick={() => onAssignDelivery && onAssignDelivery(order)}
-                  className="bg-purple-500 hover:bg-purple-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+                  className={`text-white text-sm px-3 py-1 rounded-lg transition-all
+      ${
+        order.delivery_boy
+          ? "bg-amber-500 hover:bg-amber-600"
+          : "bg-purple-500 hover:bg-purple-600"
+      }`}
                 >
-                  Assign
+                  {order.delivery_boy ? "Reassign" : "Assign"}
                 </button>
               )}
 
