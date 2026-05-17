@@ -12,7 +12,7 @@ export default function useDiscountSocket(onMessage) {
     if (socketRef.current) return; // prevent duplicate connections
 
     const socket = new WebSocket(
-      `ws://127.0.0.1:8000/ws/discounts/${restaurantId}/`,
+      `ws://185.197.249.94/ws/discounts/${restaurantId}/`,
     );
 
     socketRef.current = socket;
