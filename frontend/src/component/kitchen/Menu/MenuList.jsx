@@ -15,7 +15,12 @@ export default function KitcheManagerMenuList({
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [searchTerm, setSearchTerm] = useState("");
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
-  const filteredItems = categoryItems.filter((item) =>
+  const allItems = [
+    ...(categoryItems?.menu_items || []),
+    ...(categoryItems?.platters || []),
+  ];
+
+  const filteredItems = allItems.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 

@@ -122,6 +122,113 @@ def order_list_create(request):
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(["PATCH"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsManager | IsWaiter | IsRestaurantAdmin
+])
+def change_order_table(request, pk):
+
+    restaurant = get_restaurant_from_user(request)
+
+    try:
+        order = Order.objects.select_related("table").get(
+            pk=pk,
+            restaurant=restaurant
+        )
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    if order.order_type != "dine-in":
+        return Response(
+            {"error": "Only dine-in orders can change tables"},
+            status=400
+        )
+
+    if order.status in ["completed", "cancelled"]:
+        return Response(
+            {"error": "Cannot change table for this order"},
+            status=400
+        )
+
+    new_table_id = request.data.get("table")
+
+    if not new_table_id:
+        return Response(
+            {"error": "Table is required"},
+            status=400
+        )
+
+    try:
+        new_table = Table.objects.get(
+            id=new_table_id,
+            restaurant=restaurant
+        )
+    except Table.DoesNotExist:
+        return Response(
+            {"error": "Table not found"},
+            status=404
+        )
+
+    # prevent same table
+    if order.table_id == new_table.id:
+        return Response(
+            {"error": "Order already assigned to this table"},
+            status=400
+        )
+
+    # check active order on target table
+    occupied = Order.objects.filter(
+        table=new_table,
+        status__in=[
+            "pending",
+            "in_progress",
+            "ready",
+            "served"
+        ]
+    ).exclude(id=order.id).exists()
+
+    if occupied:
+        return Response(
+            {"error": "Target table is occupied"},
+            status=400
+        )
+
+    old_table = order.table
+
+    # assign new table
+    order.table = new_table
+    order.save()
+
+    # free old table
+    if old_table:
+        has_active_orders = Order.objects.filter(
+            table=old_table,
+            status__in=[
+                "pending",
+                "in_progress",
+                "ready",
+                "served"
+            ]
+        ).exclude(id=order.id).exists()
+
+        if not has_active_orders:
+            old_table.status = "available"
+            old_table.save(update_fields=["status"])
+
+    # occupy new table
+    new_table.status = "occupied"
+    new_table.save(update_fields=["status"])
+
+    serializer = OrderSerializer(order)
+
+    return Response(serializer.data)
 
 
 @api_view(["GET", "POST"])

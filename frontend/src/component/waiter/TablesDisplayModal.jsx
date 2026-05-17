@@ -83,6 +83,15 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
     return date.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
   };
 
+  const formatOrderTime = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleString([], {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+  };
+
   // Accurate counts (excludes reserved from available count)
   const availableCount = tables.filter(
     (t) => t.status === "available" && !t.current_reservation,
@@ -139,6 +148,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
         ) : (
           filteredTables.map((table) => {
             const order = table.current_order;
+            console.log(order);
             const hasReservation = !!table.current_reservation;
 
             const canCancel = order && order.status === "pending";
@@ -190,7 +200,11 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                     Kitchen: {order.status}
                   </p>
                 )}
-
+                {order?.created_at && (
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    🕒 {formatOrderTime(order.created_at)}
+                  </p>
+                )}
                 {table.note && (
                   <p className="text-xs text-gray-600 italic mt-1">
                     Note: {table.note}

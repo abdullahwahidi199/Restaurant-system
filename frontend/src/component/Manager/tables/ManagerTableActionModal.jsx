@@ -5,6 +5,7 @@ import ManagerOrderAddModal from "./ManagerAddOrder";
 import ManagerAddItem from "./MangerAddNewItem";
 import instance from "../../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import ChangeTableModal from "../../waiter/ChangeTableModal";
 
 export default function ManagerTableActionModal({
   table,
@@ -13,6 +14,7 @@ export default function ManagerTableActionModal({
 }) {
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
+  const [showChangeTableModal, setShowChangeTableModal] = useState(false);
   const [items, setItems] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
@@ -276,6 +278,14 @@ export default function ManagerTableActionModal({
                 <p className="text-gray-500 italic">No current order data.</p>
               )}
               <div className="flex gap-2">
+                {!table.current_reservation && (
+                  <button
+                    onClick={() => setShowChangeTableModal(true)}
+                    className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition"
+                  >
+                    Change Table
+                  </button>
+                )}
                 <button
                   onClick={() => setAddNewItemDisplay(true)}
                   className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -306,6 +316,14 @@ export default function ManagerTableActionModal({
           )}
         </div>
       </div>
+      {showChangeTableModal && (
+        <ChangeTableModal
+          currentTable={table}
+          order={current_order}
+          onClose={() => setShowChangeTableModal(false)}
+          refetchTables={refetchTables}
+        />
+      )}
     </div>
   );
 }
