@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Ingredient,MenuItemIngredient,StockMovement
 
 class IngredientSerializer(serializers.ModelSerializer):
+    menu_items_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Ingredient
         fields = '__all__'

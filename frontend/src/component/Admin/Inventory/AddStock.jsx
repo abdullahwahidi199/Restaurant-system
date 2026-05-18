@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
-
 import { getIngredients, addStock } from "../../../api/inventoryApi";
 
 export default function AddStock() {
@@ -8,10 +7,12 @@ export default function AddStock() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [selectedIngredient, setSelectedIngredient] = useState(null);
+
   const [form, setForm] = useState({
     ingredient: "",
     quantity: "",
-    cost_per_unit: "",
+    total_price: "",
   });
 
   useEffect(() => {
@@ -22,15 +23,27 @@ export default function AddStock() {
     try {
       const res = await getIngredients();
 
-      const formattedIngredients = res.data.map((ing) => ({
+      const formatted = res.data.map((ing) => ({
         value: ing.id,
         label: `${ing.name} (${ing.unit})`,
+        unit: ing.unit,
       }));
 
-      setIngredients(formattedIngredients);
+      setIngredients(formatted);
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleIngredientChange = (selected) => {
+    setSelectedIngredient(selected);
+
+    setForm({
+      ...form,
+      ingredient: selected ? selected.value : "",
+      quantity: "",
+      total_price: "",
+    });
   };
 
   const handleChange = (e) => {
@@ -40,36 +53,61 @@ export default function AddStock() {
     });
   };
 
-  const handleIngredientChange = (selectedOption) => {
-    setForm({
-      ...form,
-      ingredient: selectedOption ? selectedOption.value : "",
-    });
+  // 🔥 UNIT CONVERSION LOGIC
+  const convertQuantityToDB = (qty, unit) => {
+    const q = parseFloat(qty);
+
+    if (unit === "g") return q * 1000; // input kg → g
+    if (unit === "kg") return q; // already kg stored as kg
+
+    if (unit === "ml") return q * 1000; // input l → ml
+    if (unit === "l") return q; // already l stored as l
+
+    return q; // pcs
+  };
+
+  const getInputUnit = (unit) => {
+    if (unit === "g") return "kg";
+    if (unit === "kg") return "kg";
+
+    if (unit === "ml") return "l";
+    if (unit === "l") return "l";
+
+    return unit;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!form.ingredient || !form.quantity || !form.cost_per_unit) {
-      setError("Fill all the fields!");
+    if (!form.ingredient || !form.quantity || !form.total_price) {
+      setError("Fill all fields!");
       return;
     }
 
     setLoading(true);
 
     try {
+      const unit = selectedIngredient?.unit;
+
+      // convert quantity to base unit
+      const quantity = convertQuantityToDB(form.quantity, unit);
+
+      const costPerUnit = parseFloat(form.total_price) / quantity;
+
       await addStock({
         ingredient: form.ingredient,
-        quantity: form.quantity,
-        cost_per_unit: form.cost_per_unit,
+        quantity,
+        cost_per_unit: costPerUnit,
       });
 
       setForm({
         ingredient: "",
         quantity: "",
-        cost_per_unit: "",
+        total_price: "",
       });
+
+      setSelectedIngredient(null);
 
       alert("Stock added successfully");
     } catch (err) {
@@ -97,9 +135,7 @@ export default function AddStock() {
 
           <Select
             options={ingredients}
-            value={
-              ingredients.find((ing) => ing.value === form.ingredient) || null
-            }
+            value={selectedIngredient}
             onChange={handleIngredientChange}
             placeholder="Select ingredient"
             isClearable
@@ -108,7 +144,10 @@ export default function AddStock() {
 
         {/* Quantity */}
         <div>
-          <label className="block text-sm font-medium mb-1">Quantity</label>
+          <label className="block text-sm font-medium mb-1">
+            Quantity (
+            {selectedIngredient ? getInputUnit(selectedIngredient.unit) : "-"})
+          </label>
 
           <input
             type="number"
@@ -121,17 +160,17 @@ export default function AddStock() {
           />
         </div>
 
-        {/* Cost per unit */}
+        {/* Total Price */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Cost per unit
+            Total Purchase Price
           </label>
 
           <input
             type="number"
             step="0.01"
-            name="cost_per_unit"
-            value={form.cost_per_unit}
+            name="total_price"
+            value={form.total_price}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
             placeholder="e.g. 400"

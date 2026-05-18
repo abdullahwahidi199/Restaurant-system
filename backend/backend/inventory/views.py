@@ -22,14 +22,24 @@ from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaur
 
 
 # INGREDIENT CRUD
+from django.db.models import Count
+
 class IngredientListCreateView(generics.ListCreateAPIView):
 
     serializer_class = IngredientSerializer
-    permission_classes = [IsKitchenManager|IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [
+        IsKitchenManager | IsRestaurantAdmin,
+        IsSameRestaurant,
+        IsRestaurantActive
+    ]
+
     def get_queryset(self):
         return Ingredient.objects.filter(
             restaurant=self.request.user.staff_profile.restaurant
+        ).annotate(
+            menu_items_count=Count('menu_items', distinct=True)
         )
+
     def perform_create(self, serializer):
         restaurant = self.request.user.staff_profile.restaurant
         serializer.save(restaurant=restaurant)
@@ -45,6 +55,8 @@ class IngredientPaginatedView(generics.ListAPIView):
     def get_queryset(self):
         return Ingredient.objects.filter(
             restaurant=self.request.user.staff_profile.restaurant
+        ).annotate(
+            menu_items_count=Count('menu_items', distinct=True)
         )
 
 class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):

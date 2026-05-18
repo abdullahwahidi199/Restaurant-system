@@ -69,20 +69,32 @@ def menu_item_list_create_view(request):
         serializer=MenuItemSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(restaurant=restaurant)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class MenuItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MenuItemSerializer
-    permission_classes = [IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [IsSameRestaurant, IsRestaurantActive]
+
+    parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
-        return MenuItem.objects.filter(restaurant=restaurant).prefetch_related('reviews')
+        return MenuItem.objects.filter(
+            restaurant=restaurant
+        ).prefetch_related('reviews')
 
     def update(self, request, *args, **kwargs):
+        print(request.data)   # DEBUG
+
         if request.user.staff_profile.is_demo:
-            return Response({'detail': 'Action restricted in demo mode.'}, status=403)
+            return Response(
+                {'detail': 'Action restricted in demo mode.'},
+                status=403
+            )
+
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):

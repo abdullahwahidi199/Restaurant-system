@@ -95,6 +95,7 @@ export default function IngredientList() {
                 <th className="p-3">Quantity</th>
                 <th className="p-3">Min Threshold</th>
                 <th className="p-3">Cost / Unit</th>
+                <th className="p-3">Used In</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Action</th>
               </tr>
@@ -110,6 +111,18 @@ export default function IngredientList() {
                   <td className="p-3">{ingredient.minimum_threshold}</td>
                   <td className="p-3">
                     {ingredient.cost_per_unit ? ingredient.cost_per_unit : "—"}
+                  </td>
+                  <td className="p-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        ingredient.menu_items_count > 0
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {ingredient.menu_items_count || 0} Menu Item
+                      {ingredient.menu_items_count !== 1 ? "s" : ""}
+                    </span>
                   </td>
                   <td className="p-3">
                     <span

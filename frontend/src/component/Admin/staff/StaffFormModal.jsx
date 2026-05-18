@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { useTranslation } from "react-i18next";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function StaffFormModal({
   open,
@@ -11,6 +12,7 @@ export default function StaffFormModal({
 }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language !== "en";
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -358,24 +360,38 @@ export default function StaffFormModal({
               </div>
 
               {/* Password */}
+              {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   {t("staff.form.password")}
                   {!editingStaff && <span className="text-red-400"> *</span>}
                 </label>
-                <input
-                  name="password"
-                  value={formData.password}
-                  placeholder={
-                    editingStaff
-                      ? t("staff.form.password_optional") ||
-                        "Leave blank to keep current"
-                      : t("staff.form.password")
-                  }
-                  onChange={handleChange}
-                  type="password"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
-                />
+
+                <div className="relative">
+                  <input
+                    name="password"
+                    value={formData.password}
+                    placeholder={
+                      editingStaff
+                        ? t("staff.form.password_optional") ||
+                          "Leave blank to keep current"
+                        : t("staff.form.password")
+                    }
+                    onChange={handleChange}
+                    type={showPassword ? "text" : "password"}
+                    className="w-full px-4 py-3 pr-12 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-white ${
+                      isRTL ? "left-4" : "right-4"
+                    }`}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

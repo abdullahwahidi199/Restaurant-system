@@ -64,6 +64,7 @@ export default function EditIngredientModal({
             <label className="block text-sm font-medium mb-1">Unit</label>
             <select
               name="unit"
+              disabled
               value={form.unit}
               onChange={handleChange}
               className="w-full border rounded-lg px-3 py-2"

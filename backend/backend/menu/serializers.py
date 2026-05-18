@@ -187,14 +187,13 @@ class MenuItemSerializer(serializers.ModelSerializer):
     
     reviews=ReveiwMiniSerializer(read_only=True,many=True)
     ingredients=MenuItemIngredientSerializer(many=True,read_only=True)
-    image=serializers.SerializerMethodField()
+    image = serializers.ImageField(required=False, allow_null=True)
     cost_per_unit = serializers.SerializerMethodField()
     profit_per_unit = serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
         fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category','reviews','ingredients','cost_per_unit','profit_per_unit']
-    def get_image(self, obj):
-        return obj.image.url if obj.image else None
+    
     def get_cost_per_unit(self, obj):
         return obj.get_cost_per_unit()
     def get_profit_per_unit(self, obj):
