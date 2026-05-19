@@ -17,6 +17,7 @@ from .serializers import (
     MenuItemIngredientSerializer,
     StockMovementSerializer
 )
+from .services import edit_stock_movement
 from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive,IsKitchenManager
 
 
@@ -203,6 +204,86 @@ def add_stock_view(request):
         status=status.HTTP_200_OK
     )
 
+from decimal import Decimal, InvalidOperation
+@api_view(['PUT'])
+@permission_classes([
+    IsRestaurantAdmin,
+    IsSameRestaurant,
+    IsRestaurantActive
+])
+
+
+
+def edit_stock_movement_view(request, pk):
+
+    movement = StockMovement.objects.get(
+        id=pk,
+        restaurant=request.user.staff_profile.restaurant
+    )
+
+    if movement.movement_type == "order":
+        return Response({"detail": "Order movements cannot be edited"}, status=400)
+
+    try:
+        quantity = Decimal(str(request.data.get("quantity")))
+    except:
+        return Response({"detail": "Invalid quantity"}, status=400)
+    
+    # movement type
+    new_type = request.data.get(
+        "movement_type",
+        movement.movement_type
+    )
+
+    # purchases cannot become other types
+    if (
+        movement.movement_type == "purchase"
+        and new_type != "purchase"
+    ):
+        return Response(
+            {
+                "detail":
+                "Purchase movements cannot change type"
+            },
+            status=400
+        )
+
+    # only adjustment/waste switch allowed
+    if (
+        movement.movement_type in ["adjustment", "waste"]
+        and new_type not in ["adjustment", "waste"]
+    ):
+        return Response(
+            {
+                "detail":
+                "Only adjustment and waste are allowed"
+            },
+        ) 
+
+    unit_cost_raw = request.data.get("new_unit_cost")
+
+    # 🔥 FIX HERE
+    try:
+        unit_cost = (
+            Decimal(str(unit_cost_raw))
+            if unit_cost_raw not in [None, ""]
+            else None
+        )
+    except InvalidOperation:
+        return Response({"detail": "Invalid unit cost"}, status=400)
+
+    try:
+        edit_stock_movement(
+            movement=movement,
+            new_quantity=quantity,
+            new_movement_type=new_type,
+            new_unit_cost=unit_cost
+        )
+
+        return Response({"detail": "Stock movement updated"})
+
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=400)
 
 @api_view(['POST'])
 @permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])

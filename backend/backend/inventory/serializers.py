@@ -30,7 +30,25 @@ class MenuItemIngredientSerializer(serializers.ModelSerializer):
 class StockMovementSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.ReadOnlyField(source='ingredient.name')
     createt_by_name=serializers.ReadOnlyField(source='created_by.name')
+    ingredient_unit = serializers.CharField(
+        source="ingredient.unit",
+        read_only=True
+    )
 
     class Meta:
         model = StockMovement
-        fields = '__all__'
+        fields = [
+            "id",
+            "ingredient",
+            "ingredient_name",
+            "ingredient_unit",  # ADD THIS
+            "createt_by_name",
+            "change_quantity",
+            "unit_cost",
+            "note",
+            "movement_type",
+            "created_at",
+            "restaurant",
+            "related_order",
+            "created_by",
+        ]

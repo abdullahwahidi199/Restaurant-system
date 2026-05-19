@@ -91,41 +91,29 @@ from .utils import update_menu_item_availability
 
 
 @transaction.atomic
-def add_stock(
-    ingredient,
-    quantity,
-    created_by=None,
-    cost_per_unit=None
-):
+def add_stock(ingredient, quantity, created_by=None, cost_per_unit=None):
     quantity = Decimal(quantity)
+    
+    # 1. Update Quantity
+    ingredient.quantity_available += quantity
 
-    old_qty = ingredient.quantity_available
-    old_cost = ingredient.cost_per_unit or Decimal("0")
-
-    ingredient.quantity_available = old_qty + quantity
-
-   
+    # 2. Update Price (Simple: set to new price if provided)
     if cost_per_unit is not None:
-        new_cost = Decimal(cost_per_unit)
-
-        total_old_value = old_qty * old_cost
-        total_new_value = quantity * new_cost
-        total_qty = old_qty + quantity
-
-        ingredient.cost_per_unit = (
-            (total_old_value + total_new_value) / total_qty
-        )
+        ingredient.cost_per_unit = Decimal(cost_per_unit)
 
     ingredient.save()
 
+    # 3. Create Movement
     StockMovement.objects.create(
         ingredient=ingredient,
         restaurant=ingredient.restaurant,
         change_quantity=quantity,
         movement_type="purchase",
-        created_by=created_by
+        created_by=created_by,
+        unit_cost=cost_per_unit # Ensure you added this field to model
     )
 
+    # 4. Update availability
     for recipe in ingredient.menu_items.select_related("menu_item"):
         update_menu_item_availability(recipe.menu_item)
 
@@ -160,3 +148,91 @@ def deduct_stock_for_order_item(order_item, order):
                 ),
                 order=order
             )
+
+
+from decimal import Decimal
+from django.db import transaction
+from .utils import update_menu_item_availability
+
+
+@transaction.atomic
+def edit_stock_movement(
+    movement,
+    new_quantity,
+    new_movement_type,
+    new_unit_cost=None
+):
+
+    ingredient = movement.ingredient
+
+    old_quantity = Decimal(movement.change_quantity)
+    old_type = movement.movement_type
+
+    new_quantity = Decimal(new_quantity)
+
+    """
+    STOCK EFFECT RULES
+
+    purchase   => +
+    adjustment => signed
+    waste      => always negative
+    """
+
+    # OLD EFFECT
+    old_effect = old_quantity
+
+    # NEW EFFECT
+    if new_movement_type == "waste":
+        new_effect = -abs(new_quantity)
+    else:
+        new_effect = new_quantity
+
+    # reverse old movement
+    ingredient.quantity_available -= old_effect
+
+    # apply new movement
+    ingredient.quantity_available += new_effect
+
+    if ingredient.quantity_available < 0:
+        raise ValueError(
+            "Stock cannot become negative"
+        )
+
+    # purchases update ingredient cost
+    if (
+        old_type == "purchase"
+        and new_unit_cost is not None
+    ):
+        ingredient.cost_per_unit = Decimal(
+            new_unit_cost
+        )
+
+    ingredient.save(
+        update_fields=[
+            "quantity_available",
+            "cost_per_unit"
+        ]
+    )
+
+    # update movement
+    movement.change_quantity = new_effect
+    movement.movement_type = new_movement_type
+
+    if (
+        old_type == "purchase"
+        and new_unit_cost is not None
+    ):
+        movement.unit_cost = Decimal(
+            new_unit_cost
+        )
+
+    movement.save()
+
+    # refresh menu availability
+    for recipe in ingredient.menu_items.select_related(
+        "menu_item"
+    ):
+
+        update_menu_item_availability(
+            recipe.menu_item
+        )

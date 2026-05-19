@@ -72,6 +72,21 @@ class StockMovement(models.Model):
     restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='stock_movements', null=True, blank=True)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     change_quantity = models.DecimalField(max_digits=10, decimal_places=3)
+    unit_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    
+
+    note = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    
     movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
     related_order = models.ForeignKey(
         'orders.Order',

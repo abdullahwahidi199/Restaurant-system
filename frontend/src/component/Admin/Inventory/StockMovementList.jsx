@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getStockMovements } from "../../../api/inventoryApi";
+import EditStockMovement from "./EditStockModal";
 
 export default function StockMovementList() {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedMovement, setSelectedMovement] = useState(null);
 
   /* PAGINATION */
   const [page, setPage] = useState(1);
@@ -23,10 +25,10 @@ export default function StockMovementList() {
 
   const fetchMovements = async () => {
     setLoading(true);
+
     try {
       const res = await getStockMovements({
         page,
-        // ingredient,
         type,
         from: fromDate,
         to: toDate,
@@ -40,8 +42,8 @@ export default function StockMovementList() {
       setLoading(false);
     }
   };
-  // only for ingredient name other filters are handled at the backend
 
+  /* SEARCH FILTER */
   const filteredMovements = useMemo(() => {
     return movements.filter((m) =>
       m.ingredient_name.toLowerCase().includes(search.toLowerCase()),
@@ -49,6 +51,38 @@ export default function StockMovementList() {
   }, [search, movements]);
 
   const totalPages = Math.ceil(count / pageSize);
+
+  /* =========================
+     UNIT HELPERS
+  ========================== */
+
+  const getDisplayUnit = (unit) => {
+    if (unit === "g") return "kg";
+    if (unit === "ml") return "L";
+
+    return unit;
+  };
+
+  const convertToDisplayQuantity = (qty, unit) => {
+    const q = parseFloat(qty);
+
+    if (unit === "g") return q / 1000;
+    if (unit === "ml") return q / 1000;
+
+    return q;
+  };
+
+  const formatQuantity = (qty, unit) => {
+    const converted = convertToDisplayQuantity(qty, unit);
+
+    return `${converted.toFixed(3)} ${getDisplayUnit(unit)}`;
+  };
+
+  const calculateTotalPrice = (qty, unitCost) => {
+    if (!unitCost) return null;
+
+    return (parseFloat(qty) * parseFloat(unitCost)).toFixed(2);
+  };
 
   if (loading) {
     return (
@@ -131,9 +165,10 @@ export default function StockMovementList() {
               <tr className="bg-gray-100 text-sm text-gray-600 text-left">
                 <th className="p-3">Ingredient</th>
                 <th className="p-3">Type</th>
-                <th className="p-3">Change Qty</th>
+                <th className="p-3">Details</th>
                 <th className="p-3">Date</th>
                 <th className="p-3">Created By</th>
+                <th className="p-3">Action</th>
               </tr>
             </thead>
 
@@ -157,14 +192,53 @@ export default function StockMovementList() {
                     </span>
                   </td>
 
-                  <td className="p-3">{m.change_quantity}</td>
+                  {/* DETAILS */}
+                  <td className="p-3">
+                    {m.movement_type === "purchase" ? (
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          Qty:{" "}
+                          {formatQuantity(m.change_quantity, m.ingredient_unit)}
+                        </div>
+
+                        <div className="text-sm text-green-700 font-medium">
+                          Total: AFN{" "}
+                          {calculateTotalPrice(m.change_quantity, m.unit_cost)}
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+                          Unit Cost({m.ingredient_unit}): AFN {m.unit_cost}
+                        </div>
+                      </div>
+                    ) : (
+                      <span
+                        className={
+                          parseFloat(m.change_quantity) >= 0
+                            ? "text-green-600 font-medium"
+                            : "text-red-600 font-medium"
+                        }
+                      >
+                        {parseFloat(m.change_quantity) > 0 ? "+" : ""}
+                        {formatQuantity(m.change_quantity, m.ingredient_unit)}
+                      </span>
+                    )}
+                  </td>
 
                   <td className="p-3 text-sm text-gray-600">
                     {new Date(m.created_at).toLocaleString()}
                   </td>
 
                   <td className="p-3 text-sm">
-                    {m.createt_by_name ? `${m.createt_by_name}` : "System"}
+                    {m.createt_by_name || "System"}
+                  </td>
+
+                  <td className="p-3">
+                    <button
+                      onClick={() => setSelectedMovement(m)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -197,6 +271,14 @@ export default function StockMovementList() {
           </button>
         </div>
       </div>
+
+      {selectedMovement && (
+        <EditStockMovement
+          movement={selectedMovement}
+          onClose={() => setSelectedMovement(null)}
+          onSuccess={fetchMovements}
+        />
+      )}
     </div>
   );
 }
