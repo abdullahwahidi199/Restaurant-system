@@ -66,6 +66,19 @@ export default function IngredientList() {
     }
   };
 
+  function deleteIngredient(id) {
+    if (!window.confirm("Are you sure you want to delete this ingredient?")) {
+      return;
+    }
+    try {
+      instance.delete(`/inventory/ingredients/${id}/`).then(() => {
+        fetchIngredients(page, search);
+      });
+    } catch (error) {
+      console.error("Failed to delete ingredient", error);
+    }
+  }
+
   const refresh = () => fetchIngredients(page, search);
 
   return (
@@ -153,6 +166,14 @@ export default function IngredientList() {
                       >
                         Edit
                       </button>
+                      {ingredient.menu_items_count === 0 && (
+                        <button
+                          onClick={() => deleteIngredient(ingredient.id)}
+                          className="px-3 py-1 text-sm rounded-lg bg-red-600 text-white"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -9,7 +9,8 @@ from .views import (
     inventory_pdf,
     low_stock_items,add_stock_view,adjust_stock_view,
     inventory_dashboard_summary,
-    edit_stock_movement_view
+    edit_stock_movement_view,
+    search_ingredient_usage_view
 )
 
 urlpatterns = [
@@ -27,5 +28,6 @@ urlpatterns = [
     path('purchases/',add_stock_view),
     path('adjust-stock/', adjust_stock_view),
     path('inventory-summary/',inventory_dashboard_summary),
-    path('inventory-pdf/',inventory_pdf)
+    path('inventory-pdf/',inventory_pdf),
+    path('ingredient-usage/', search_ingredient_usage_view),
 ]

@@ -285,6 +285,50 @@ def edit_stock_movement_view(request, pk):
     except ValueError as e:
         return Response({"detail": str(e)}, status=400)
 
+
+from django.db.models import Prefetch, Q
+from .serializers import IngredientUsageSerializer
+
+
+@api_view(['GET'])
+@permission_classes([
+    IsRestaurantAdmin | IsKitchenManager,
+    IsSameRestaurant,
+    IsRestaurantActive
+])
+def search_ingredient_usage_view(request):
+
+    query = request.GET.get("q", "").strip()
+
+    if not query:
+        return Response([])
+
+    restaurant = request.user.staff_profile.restaurant
+
+    ingredients = (
+        Ingredient.objects
+        .filter(
+            restaurant=restaurant
+        )
+        .filter(
+            Q(name__icontains=query)
+        )
+        .prefetch_related(
+            Prefetch(
+                "menu_items",
+                queryset=MenuItemIngredient.objects.select_related(
+                    "menu_item"
+                )
+            )
+        )
+    )
+
+    serializer = IngredientUsageSerializer(
+        ingredients,
+        many=True
+    )
+
+    return Response(serializer.data)
 @api_view(['POST'])
 @permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
 def adjust_stock_view(request):
@@ -601,3 +645,4 @@ def inventory_pdf(request):
     )
 
     return response
+

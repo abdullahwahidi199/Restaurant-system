@@ -17,6 +17,7 @@ import AddStock from "./AddStock";
 import CreateIngredientModal from "./CreateIngredient";
 
 import { getInventorySummary } from "../../../api/inventoryApi";
+import InventorySearch from "./InventorySearch";
 
 export default function InventoryDashboard() {
   const [showCreate, setShowCreate] = useState(false);
@@ -52,7 +53,7 @@ export default function InventoryDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Inventory</h1>
           <p className="text-sm text-gray-500">Stock overview and management</p>
         </div>
-
+        <InventorySearch />
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800"

@@ -52,3 +52,40 @@ class StockMovementSerializer(serializers.ModelSerializer):
             "related_order",
             "created_by",
         ]
+
+
+from rest_framework import serializers
+from .models import Ingredient
+
+
+class IngredientUsageSerializer(serializers.ModelSerializer):
+
+    menu_items = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ingredient
+        fields = [
+            "id",
+            "name",
+            "unit",
+            "quantity_available",
+            "minimum_threshold",
+            "menu_items"
+        ]
+
+    def get_menu_items(self, obj):
+
+        recipes = obj.menu_items.select_related(
+            "menu_item"
+        ).all()
+
+        return [
+            {
+                "id": recipe.menu_item.id,
+                "name": recipe.menu_item.name,
+                "price": recipe.menu_item.price,
+                "quantity_required": recipe.quantity_required,
+                "is_available": recipe.menu_item.is_available
+            }
+            for recipe in recipes
+        ]

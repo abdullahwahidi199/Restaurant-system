@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 import ItemDelete from "./ItemDeleteModal";
 import RestrictedToast from "../../RistrictedAction";
@@ -10,6 +10,8 @@ import Select from "react-select";
 export default function IndividualItem() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const highlightIngredient = location.state?.highlightIngredient;
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
@@ -23,6 +25,8 @@ export default function IndividualItem() {
   const [loading, setLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showRestriction, setShowRestriction] = useState(false);
+
+  const ingredientRefs = useRef({});
 
   const fetchItem = async () => {
     const res = await instance.get(`/menu/menu-items/${id}/`);
@@ -122,6 +126,19 @@ export default function IndividualItem() {
     }
   };
 
+  useEffect(() => {
+    if (!highlightIngredient || ingredients.length === 0) return;
+
+    const el = ingredientRefs.current[highlightIngredient];
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [ingredients, highlightIngredient]);
+
   if (!item) {
     return <p className="text-center mt-10 text-gray-500">Loading...</p>;
   }
@@ -206,63 +223,74 @@ export default function IndividualItem() {
           <div className="border-t pt-4">
             <h3 className="font-medium mb-3">Recipe Ingredients</h3>
 
-            {ingredients.map((ing, index) => (
-              <div
-                key={index}
-                className="flex flex-col gap-1 mb-3 border p-2 rounded"
-              >
-                <div className="flex gap-2">
-                  <Select
-                    className="w-full"
-                    value={allIngredients
-                      .map((opt) => ({
+            {ingredients.map((ing, index) => {
+              const isHighlighted = ing.ingredient === highlightIngredient;
+
+              return (
+                <div
+                  key={index}
+                  ref={(el) => {
+                    ingredientRefs.current[ing.ingredient] = el;
+                  }}
+                  className={`flex flex-col gap-1 mb-3 border p-2 rounded transition-all duration-500 ${
+                    isHighlighted
+                      ? "border-yellow-400 bg-yellow-50 shadow-lg"
+                      : ""
+                  }`}
+                >
+                  <div className="flex gap-2">
+                    <Select
+                      className="w-full"
+                      value={allIngredients
+                        .map((opt) => ({
+                          value: opt.id,
+                          label: `${opt.name} (${opt.unit})`,
+                        }))
+                        .find((o) => o.value === ing.ingredient)}
+                      onChange={(selected) =>
+                        updateIngredient(index, "ingredient", selected.value)
+                      }
+                      options={allIngredients.map((opt) => ({
                         value: opt.id,
                         label: `${opt.name} (${opt.unit})`,
-                      }))
-                      .find((o) => o.value === ing.ingredient)}
-                    onChange={(selected) =>
-                      updateIngredient(index, "ingredient", selected.value)
-                    }
-                    options={allIngredients.map((opt) => ({
-                      value: opt.id,
-                      label: `${opt.name} (${opt.unit})`,
-                    }))}
-                  />
+                      }))}
+                    />
 
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={ing.quantity_required}
-                    onChange={(e) =>
-                      updateIngredient(
-                        index,
-                        "quantity_required",
-                        e.target.value,
-                      )
-                    }
-                    className="w-28 border rounded px-2 py-1"
-                    placeholder="Qty"
-                  />
+                    <input
+                      type="number"
+                      step="0.001"
+                      value={ing.quantity_required}
+                      onChange={(e) =>
+                        updateIngredient(
+                          index,
+                          "quantity_required",
+                          e.target.value,
+                        )
+                      }
+                      className="w-28 border rounded px-2 py-1"
+                      placeholder="Qty"
+                    />
 
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(index)}
-                    className="bg-red-500 text-white px-3 rounded"
-                  >
-                    ✕
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => removeIngredient(index)}
+                      className="bg-red-500 text-white px-3 rounded"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="text-sm text-gray-600 pl-1">
+                    <p>
+                      Cost contribution:{" "}
+                      <span className="font-medium text-black">
+                        {ing.ingredient_cost ?? 0}
+                      </span>
+                    </p>
+                  </div>
                 </div>
-
-                <div className="text-sm text-gray-600 pl-1">
-                  <p>
-                    Cost contribution:{" "}
-                    <span className="font-medium text-black">
-                      {ing.ingredient_cost ?? 0}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               onClick={addIngredientRow}

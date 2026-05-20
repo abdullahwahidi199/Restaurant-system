@@ -236,3 +236,7 @@ def edit_stock_movement(
         update_menu_item_availability(
             recipe.menu_item
         )
+
+
+
+
