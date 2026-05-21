@@ -195,12 +195,14 @@ export default function MenuItemDetails() {
             <div className="absolute top-4 left-4">
               <span
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm ${
-                  itemDetails.is_available
+                  itemDetails.final_availability
                     ? "bg-emerald-500/90 text-white"
                     : "bg-gray-700/90 text-white"
                 }`}
               >
-                {itemDetails.is_available ? "● Available" : "● Unavailable"}
+                {itemDetails.final_availability
+                  ? "● Available"
+                  : "● Unavailable"}
               </span>
             </div>
 
@@ -333,7 +335,7 @@ export default function MenuItemDetails() {
       </div>
 
       {/* STICKY ADD TO CART BAR */}
-      {itemDetails.is_available && (
+      {itemDetails.final_availability && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-2xl">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3 sm:gap-4">
             {/* Quantity Selector */}
@@ -383,7 +385,7 @@ export default function MenuItemDetails() {
       )}
 
       {/* Unavailable Notice */}
-      {!itemDetails.is_available && (
+      {!itemDetails.final_availability && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-900 text-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
             <p className="font-medium">

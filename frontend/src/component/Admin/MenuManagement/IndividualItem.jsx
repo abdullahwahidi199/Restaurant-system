@@ -110,7 +110,7 @@ export default function IndividualItem() {
       formData.append("name", item.name);
       formData.append("description", item.description);
       formData.append("price", item.price);
-      formData.append("is_available", item.is_available);
+      formData.append("is_manually_available", item.is_manually_available);
       if (item.image instanceof File) {
         formData.append("image", item.image);
       }
@@ -213,8 +213,8 @@ export default function IndividualItem() {
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              name="is_available"
-              checked={item.is_available}
+              name="is_manually_available"
+              checked={item.is_manually_available}
               onChange={handleChange}
             />
             {t("available")}

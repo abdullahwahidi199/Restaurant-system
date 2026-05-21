@@ -212,8 +212,8 @@ export default function KitchenManagerItemDetails() {
             <input
               disabled
               type="checkbox"
-              name="is_available"
-              checked={item.is_available}
+              name="final_availability"
+              checked={item.final_availability}
               onChange={handleChange}
             />
             {t("available")}

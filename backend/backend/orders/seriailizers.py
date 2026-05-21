@@ -44,13 +44,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
             'item_name',
             'item_price',
-
+            'status',
             'quantity',
             'subtotal',
             'added_by_name',
             'table_name',
             'is_new',
-            'is_prepared',
+            # 'is_prepared',
             'description',
         ]
 
@@ -102,7 +102,7 @@ class OrderMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id','name', 'phone', 'items', 'total', 'order_number', 'status','created_at']
+        fields = ['id','name', 'phone', 'items', 'total', 'order_number', 'status','created_at','status']
 
     def get_total(self, obj):
         return str(obj.get_total())

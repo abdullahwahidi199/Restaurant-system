@@ -72,10 +72,14 @@ def broadcast_table(table):
     )
 
 @receiver(post_save, sender=OrderItem)
-def order_item_created(sender, instance, created, **kwargs):
-    if created:
-        broadcast_order(instance.order)
+def order_item_updated(sender, instance, **kwargs):
+    broadcast_order(instance.order)
+    broadcast_table(instance.order.table)
 
+@receiver(post_delete, sender=OrderItem)
+def order_item_deleted(sender, instance, **kwargs):
+    broadcast_order(instance.order)
+    broadcast_table(instance.order.table)
 @receiver(post_delete, sender=Order)
 def order_post_delete(sender, instance, **kwargs):
     broadcast_order( instance)

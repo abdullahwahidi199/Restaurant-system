@@ -183,10 +183,12 @@ class StaffReportService:
     Sum(
         Case(
             When(
+                items__status__in=["pending", "ready", "served", "completed"],
                 items__menu_item__isnull=False,
                 then=F("items__quantity") * F("items__menu_item__price"),
             ),
             When(
+                items__status__in=["pending", "ready", "served", "completed"],
                 items__platter__isnull=False,
                 then=F("items__quantity") * F("items__platter__price"),
             ),
@@ -344,7 +346,7 @@ class StaffReportService:
                     # ITEMS TOTAL
             items_total = Decimal("0.00")
 
-            for item in order.items.all():
+            for item in order.items.exclude(status="cancelled"):
                 if item.menu_item:
                     items_total += item.quantity * item.menu_item.price
 

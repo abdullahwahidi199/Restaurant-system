@@ -1,3 +1,12 @@
+// import { useEffect, useState } from "react";
+// import { X, PlusCircle, CheckCircle } from "lucide-react";
+// import { useScroll } from "framer-motion";
+// import NewOrderModal from "./OrderAddModal";
+// import AddNewItemModal from "./AddNewItemModal";
+// import instance from "../../api/axiosInstance";
+// import { useNavigate } from "react-router-dom";
+// import ChangeTableModal from "./ChangeTableModal";
+
 import { useEffect, useState } from "react";
 import { X, PlusCircle, CheckCircle } from "lucide-react";
 import { useScroll } from "framer-motion";
@@ -10,6 +19,7 @@ import ChangeTableModal from "./ChangeTableModal";
 export default function TableActionModal({ table, onClose, refetchTables }) {
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
+  const [deletedItems, setDeletedItems] = useState([]);
   const [items, setItems] = useState([]);
   const [showChangeTableModal, setShowChangeTableModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -23,13 +33,21 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
   }, [onClose]);
   const { name, status, capacity, note, current_order } = table;
   useEffect(() => {
-    if (current_order?.items) {
-      setItems(current_order.items);
-    }
-  }, [current_order]);
+    setItems(table?.current_order?.items || []);
+  }, [table.current_order?.items]);
   if (!table) return null;
 
-  const isEditable = current_order?.status === "pending" && isEditing;
+  const canEditItem = (item) => {
+    return ["pending"].includes(item.status);
+  };
+
+  const canDeleteItem = (item) => {
+    return ["pending"].includes(item.status);
+  };
+
+  const canChangeQuantity = (item) => {
+    return ["pending"].includes(item.status);
+  };
   console.log(table);
 
   // const markAvailable = async () => {
@@ -66,6 +84,15 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
     }
   };
 
+  const cancelItem = async (id) => {
+    try {
+      await instance.patch(`/orders/order-items/${id}/cancel/`);
+
+      refetchTables();
+    } catch (err) {
+      console.log(err);
+    }
+  };
   const increaseQty = (id) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -83,6 +110,8 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
   };
 
   const deleteItem = (id) => {
+    setDeletedItems((prev) => [...prev, id]);
+
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
   const saveChanges = async () => {
@@ -94,6 +123,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
             id: i.id,
             quantity: i.quantity,
           })),
+          deleted_items: deletedItems,
         },
       );
 
@@ -182,7 +212,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       </span>
                     </p>
                   </div>
-                  {current_order?.status === "pending" && !isEditing && (
+                  {!isEditing && (
                     <button
                       onClick={() => setIsEditing(true)}
                       className="bg-yellow-500 text-white px-3 py-2 rounded"
@@ -199,23 +229,46 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                         >
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center justify-between w-full">
-                              <p className="font-medium text-gray-800 flex items-center gap-2">
-                                {item.item_name}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-gray-800">
+                                  {item.item_name}
+                                </p>
+
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full ${
+                                    item.status === "pending"
+                                      ? "bg-yellow-100 text-yellow-700"
+                                      : item.status === "approved"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : item.status === "in_progress"
+                                          ? "bg-orange-100 text-orange-700"
+                                          : item.status === "ready"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {item.status.replace("_", " ")}
+                                </span>
 
                                 {item.is_new && (
                                   <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                                     New • {item.added_by_name}
                                   </span>
                                 )}
-                              </p>
+                              </div>
 
                               <div className="flex items-center gap-2">
-                                {isEditable && (
+                                {isEditing && (
                                   <button
+                                    disabled={!canChangeQuantity(item)}
                                     onClick={() =>
                                       updateQty(item.id, item.quantity - 1)
                                     }
-                                    className="px-2 bg-gray-200 rounded"
+                                    className={`px-2 rounded ${
+                                      canChangeQuantity(item)
+                                        ? "bg-gray-200"
+                                        : "bg-gray-100 opacity-50 cursor-not-allowed"
+                                    }`}
                                   >
                                     -
                                   </button>
@@ -225,20 +278,30 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                                   × {item.quantity}
                                 </span>
 
-                                {isEditable && (
+                                {isEditing && (
                                   <>
                                     <button
+                                      disabled={!canChangeQuantity(item)}
                                       onClick={() =>
                                         updateQty(item.id, item.quantity + 1)
                                       }
-                                      className="px-2 bg-gray-200 rounded"
+                                      className={`px-2 rounded ${
+                                        canChangeQuantity(item)
+                                          ? "bg-gray-200"
+                                          : "bg-gray-100 opacity-50 cursor-not-allowed"
+                                      }`}
                                     >
                                       +
                                     </button>
 
                                     <button
-                                      onClick={() => deleteItem(item.id)}
-                                      className="text-red-500 ml-2"
+                                      disabled={!canDeleteItem(item)}
+                                      onClick={() => cancelItem(item.id)}
+                                      className={`ml-2 ${
+                                        canDeleteItem(item)
+                                          ? "text-red-500"
+                                          : "text-gray-300 cursor-not-allowed"
+                                      }`}
                                     >
                                       ✕
                                     </button>

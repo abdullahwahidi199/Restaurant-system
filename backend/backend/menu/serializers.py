@@ -17,7 +17,9 @@ class MenuItemMiniSerializer(serializers.ModelSerializer):
     image=serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'price','image','is_available','reviews'] 
+        fields = ['id', 'name', 'price','image','is_available',
+            'is_manually_available',
+            'final_availability','reviews'] 
     def get_image(self, obj):
         return obj.image.url if obj.image else None
 
@@ -66,6 +68,8 @@ class PlatterSerializer(serializers.ModelSerializer):
             'price',
             'image',
             'is_available',
+            'is_manually_available',
+            'final_availability',
             'items',
             'total_cost'
         ]
@@ -192,7 +196,9 @@ class MenuItemSerializer(serializers.ModelSerializer):
     profit_per_unit = serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image', 'is_available','category','reviews','ingredients','cost_per_unit','profit_per_unit']
+        fields = ['id', 'name', 'description', 'price', 'image', 'is_available',
+            'is_manually_available',
+            'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit']
     
     def get_cost_per_unit(self, obj):
         return obj.get_cost_per_unit()

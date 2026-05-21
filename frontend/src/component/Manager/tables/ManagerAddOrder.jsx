@@ -410,7 +410,7 @@ export default function ManagerOrderAddModal() {
                             : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
                         }`}
                         onClick={() =>
-                          item.is_available && handleIncrement(item)
+                          item.final_availability && handleIncrement(item)
                         }
                       >
                         {/* Selected Indicator */}
@@ -441,7 +441,7 @@ export default function ManagerOrderAddModal() {
                             </div>
                           )}
 
-                          {!item.is_available && (
+                          {!item.final_availability && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                               <span className="text-[10px] font-semibold text-white bg-red-500 px-2 py-0.5 rounded">
                                 {t("menu.unavailable")}
@@ -484,7 +484,7 @@ export default function ManagerOrderAddModal() {
                                   onClick={(e) => {
                                     e.stopPropagation();
 
-                                    if (!item.is_available) return;
+                                    if (!item.final_availability) return;
 
                                     handleIncrement(item);
                                   }}
@@ -498,11 +498,11 @@ export default function ManagerOrderAddModal() {
                                 onClick={(e) => {
                                   e.stopPropagation();
 
-                                  if (!item.is_available) return;
+                                  if (!item.final_availability) return;
 
                                   handleIncrement(item);
                                 }}
-                                disabled={!item.is_available}
+                                disabled={!item.final_availability}
                                 className="w-6 h-6 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center"
                               >
                                 <Plus size={20} />

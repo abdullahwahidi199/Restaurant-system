@@ -35,7 +35,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '10.10.10.247',
     'restaurant-backend-baqe.onrender.com',
-]
+]   
 
 
 # Application definition

@@ -523,12 +523,11 @@ class MenuPrintView(APIView):
 
             # Apply mode filter
             if mode == "available":
-                menu_items = menu_items.filter(is_available=True)
-                platters = platters.filter(is_available=True)
+                menu_items = menu_items.filter(final_availability=True)
+                platters = platters.filter(final_availability=True)
             elif mode == "unavailable":
-                menu_items = menu_items.filter(is_available=False)
-                platters = platters.filter(is_available=False)
-
+                menu_items = menu_items.filter(final_availability=False)
+                platters = platters.filter(final_availability=False)
             if not menu_items.exists() and not platters.exists():
                 continue
 

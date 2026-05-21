@@ -7,16 +7,14 @@ import instance from "../../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import ChangeTableModal from "../../waiter/ChangeTableModal";
 
-export default function ManagerTableActionModal({
-  table,
-  onClose,
-  refetchTables,
-}) {
+export default function TableActionModal({ table, onClose, refetchTables }) {
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
-  const [showChangeTableModal, setShowChangeTableModal] = useState(false);
+  const [deletedItems, setDeletedItems] = useState([]);
   const [items, setItems] = useState([]);
+  const [showChangeTableModal, setShowChangeTableModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,9 +22,6 @@ export default function ManagerTableActionModal({
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
-
-  if (!table) return null;
-
   const { name, status, capacity, note, current_order } = table;
   useEffect(() => {
     if (current_order?.items) {
@@ -35,28 +30,38 @@ export default function ManagerTableActionModal({
   }, [current_order]);
   if (!table) return null;
 
-  const isEditable = current_order?.status === "pending" && isEditing;
+  const canEditItem = (item) => {
+    return ["pending"].includes(item.status);
+  };
+
+  const canDeleteItem = (item) => {
+    return ["pending"].includes(item.status);
+  };
+
+  const canChangeQuantity = (item) => {
+    return ["pending"].includes(item.status);
+  };
   console.log(table);
 
-  const markAvailable = async () => {
-    try {
-      const res = await instance.patch(`/orders/tables/${table.id}/`, {
-        status: "available",
-      });
+  // const markAvailable = async () => {
+  //   try {
+  //     const res = await instance.patch(`/orders/tables/${table.id}/`, {
+  //       status: "available",
+  //     });
 
-      onClose();
-      refetchTables();
-    } catch (err) {
-      console.error("Error:", err);
-    }
-  };
-  const markUnAvailable = async () => {
-    const res = await instance.patch(`/orders/tables/${table.id}/`, {
-      status: "unavailable",
-    });
-    onClose();
-    refetchTables();
-  };
+  //     onClose();
+  //     refetchTables();
+  //   } catch (err) {
+  //     console.error("Error:", err);
+  //   }
+  // };
+  // const markUnAvailable = async () => {
+  //   const res = await instance.patch(`/orders/tables/${table.id}/`, {
+  //     status: "unavailable",
+  //   });
+  //   onClose();
+  //   refetchTables();
+  // };
 
   const handleMarkServed = async () => {
     try {
@@ -72,6 +77,23 @@ export default function ManagerTableActionModal({
     }
   };
 
+  const cancelItem = async (id) => {
+    try {
+      await instance.patch(`/orders/order-items/${id}/cancel/`);
+
+      refetchTables();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const increaseQty = (id) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
+    );
+  };
+
   const updateQty = (id, qty) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -81,6 +103,8 @@ export default function ManagerTableActionModal({
   };
 
   const deleteItem = (id) => {
+    setDeletedItems((prev) => [...prev, id]);
+
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
   const saveChanges = async () => {
@@ -92,6 +116,7 @@ export default function ManagerTableActionModal({
             id: i.id,
             quantity: i.quantity,
           })),
+          deleted_items: deletedItems,
         },
       );
 
@@ -149,14 +174,6 @@ export default function ManagerTableActionModal({
                 >
                   <PlusCircle size={18} /> Start New Order
                 </button>
-                <button
-                  onClick={() => {
-                    markUnAvailable(true);
-                  }}
-                  className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
-                >
-                  Mark unavailable
-                </button>
               </div>
             </div>
           )}
@@ -164,12 +181,6 @@ export default function ManagerTableActionModal({
           {status === "unavailable" && (
             <div>
               <p>This table is currently unavailable</p>
-              <button
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg mt-5 hover:bg-green-700 transition"
-                onClick={markAvailable}
-              >
-                Mark Available
-              </button>
             </div>
           )}
 
@@ -194,7 +205,7 @@ export default function ManagerTableActionModal({
                       </span>
                     </p>
                   </div>
-                  {current_order?.status === "pending" && !isEditing && (
+                  {!isEditing && (
                     <button
                       onClick={() => setIsEditing(true)}
                       className="bg-yellow-500 text-white px-3 py-2 rounded"
@@ -211,23 +222,46 @@ export default function ManagerTableActionModal({
                         >
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center justify-between w-full">
-                              <p className="font-medium text-gray-800 flex items-center gap-2">
-                                {item.item_name}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-gray-800">
+                                  {item.item_name}
+                                </p>
+
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full ${
+                                    item.status === "pending"
+                                      ? "bg-yellow-100 text-yellow-700"
+                                      : item.status === "approved"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : item.status === "in_progress"
+                                          ? "bg-orange-100 text-orange-700"
+                                          : item.status === "ready"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-red-100 text-red-700"
+                                  }`}
+                                >
+                                  {item.status.replace("_", " ")}
+                                </span>
 
                                 {item.is_new && (
                                   <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                                     New • {item.added_by_name}
                                   </span>
                                 )}
-                              </p>
+                              </div>
 
                               <div className="flex items-center gap-2">
-                                {isEditable && (
+                                {isEditing && (
                                   <button
+                                    disabled={!canChangeQuantity(item)}
                                     onClick={() =>
                                       updateQty(item.id, item.quantity - 1)
                                     }
-                                    className="px-2 bg-gray-200 rounded"
+                                    className={`px-2 rounded ${
+                                      canChangeQuantity(item)
+                                        ? "bg-gray-200"
+                                        : "bg-gray-100 opacity-50 cursor-not-allowed"
+                                    }`}
                                   >
                                     -
                                   </button>
@@ -237,20 +271,30 @@ export default function ManagerTableActionModal({
                                   × {item.quantity}
                                 </span>
 
-                                {isEditable && (
+                                {isEditing && (
                                   <>
                                     <button
+                                      disabled={!canChangeQuantity(item)}
                                       onClick={() =>
                                         updateQty(item.id, item.quantity + 1)
                                       }
-                                      className="px-2 bg-gray-200 rounded"
+                                      className={`px-2 rounded ${
+                                        canChangeQuantity(item)
+                                          ? "bg-gray-200"
+                                          : "bg-gray-100 opacity-50 cursor-not-allowed"
+                                      }`}
                                     >
                                       +
                                     </button>
 
                                     <button
-                                      onClick={() => deleteItem(item.id)}
-                                      className="text-red-500 ml-2"
+                                      disabled={!canDeleteItem(item)}
+                                      onClick={() => cancelItem(item.id)}
+                                      className={`ml-2 ${
+                                        canDeleteItem(item)
+                                          ? "text-red-500"
+                                          : "text-gray-300 cursor-not-allowed"
+                                      }`}
                                     >
                                       ✕
                                     </button>

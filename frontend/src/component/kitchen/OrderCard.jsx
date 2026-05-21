@@ -5,20 +5,18 @@ import instance from "../../api/axiosInstance";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
 import { AuthContext } from "../../api/authforRBC";
 
-export default function OrderCard({ order, refresh }) {
+export default function OrderCard({ order }) {
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
-
-  console.log(order);
   const [time, setTime] = useState(0);
   const [running, setRunning] = useState(false);
+
   const updateOrderStatus = async (newStatus) => {
     try {
       setUpdating(true);
       await instance.patch(`/orders/orders/${order.id}/update_status/`, {
         status: newStatus,
       });
-      refresh();
     } catch (error) {
       console.error("Failed to update order:", error);
     } finally {
@@ -26,6 +24,7 @@ export default function OrderCard({ order, refresh }) {
     }
   };
 
+  // Timer Logic
   useEffect(() => {
     if (order.status === "in_progress") {
       const savedTime = localStorage.getItem(`order-${order.id}-time`);
@@ -53,6 +52,7 @@ export default function OrderCard({ order, refresh }) {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
+
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     in_progress: "bg-blue-100 text-blue-800",
@@ -61,9 +61,10 @@ export default function OrderCard({ order, refresh }) {
   };
 
   return (
-    <div className="bg-white shadow-sm rounded-2xl p-4 border space-y-2">
-      <div>
-        <div className="flex justify-between items-center">
+    <div className="bg-white shadow-sm rounded-2xl p-4 border border-gray-100 space-y-3">
+      {/* Header Section */}
+      <div className="flex justify-between items-start">
+        <div>
           {order.order_type === "dine-in" ? (
             <h2 className="text-lg font-semibold">Table {order.tableName}</h2>
           ) : order.order_type === "takeaway" ? (
@@ -71,67 +72,74 @@ export default function OrderCard({ order, refresh }) {
           ) : (
             <h2 className="text-lg font-semibold">Delivery</h2>
           )}
-
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}
-          >
-            {order.status.replace("_", " ")}
-          </span>
+          <p className="text-xs text-gray-500 mt-1">
+            {new Date(order.created_at).toLocaleTimeString()}
+          </p>
         </div>
-
-        <p className="text-xs text-gray-600 mt-1">
-          Created: {new Date(order.created_at).toLocaleTimeString()}
-        </p>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${statusColors[order.status]}`}
+        >
+          {order.status.replace("_", " ")}
+        </span>
       </div>
 
-      <p className="text-sm text-gray-600">
-        👤 {order.name} | 📞 {order.phone}
-      </p>
-      <p className="text-sm text-gray-500">Total: {order.total} AFN</p>
+      {/* Customer Info */}
+      <div className="text-sm text-gray-600 space-y-1">
+        <p className="flex justify-between">
+          <span>👤 {order.name}</span>
+          <span>📞 {order.phone}</span>
+        </p>
+        <p className="font-semibold text-gray-800">Total: {order.total} AFN</p>
+      </div>
+
+      {/* Notes Section */}
       {order.note && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-          <p className="text-sm font-semibold text-yellow-800">📝 Notes:</p>
-          <p className="text-sm text-gray-700 whitespace-pre-line">
+          <p className="text-xs font-semibold text-yellow-800 mb-1">
+            📝 Notes:
+          </p>
+          <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
             {order.note}
           </p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-0">
+
+      {/* Order Items Grid */}
+      {/* Using a 2-column grid. Items are flex rows to keep height compact. 
+          The green border logic is handled inside OrderItem based on status 'new' */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {order.items.map((item, index) => (
           <div
             key={item.id}
-            className={` border-gray-400 ${
-              index % 2 === 0 ? "border-r border-gray-200 pr-2" : "pl-2"
+            className={`${
+              index % 2 === 0 ? "border-r border-gray-100 pr-2" : "pl-2"
             }`}
           >
-            <OrderItem item={item} onItemPrepared={refresh} />
+            <OrderItem item={item} />
           </div>
         ))}
       </div>
 
-      {/* {order.status === "in_progress" && (
-        <div className="text-center my-4">
-          <span className="text-4xl font-mono font-bold text-blue-600">
-            {formatTime(time)}
-          </span>
-        </div>
-      )} */}
-      <div className="flex justify-end gap-2 pt-3">
+      {/* Action Buttons Section */}
+      {/* Buttons wrap if space is tight, keeping the height compact */}
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
         {order.status === "pending" && (
           <button
             disabled={updating}
             onClick={() => updateOrderStatus("in_progress")}
-            className="flex items-center gap-1 bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600"
+            className="flex-1 min-w-[100px] flex items-center justify-center gap-1 bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
           >
             <Clock size={16} /> Start
           </button>
         )}
+
         <button
           onClick={() => setShowPrint(true)}
-          className="bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-gray-800"
+          className="flex-1 min-w-[80px] bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
         >
           Print
         </button>
+
         {order.status === "in_progress" && (
           <button
             disabled={updating}
@@ -139,12 +147,13 @@ export default function OrderCard({ order, refresh }) {
               updateOrderStatus("ready");
               setRunning(false);
             }}
-            className="flex items-center gap-1 bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600"
+            className="flex-1 min-w-[120px] flex items-center justify-center gap-1 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-600 transition-colors"
           >
             <CheckCircle size={16} /> Mark Ready
           </button>
         )}
       </div>
+
       {showPrint && (
         <KitchenBillPrintModal
           order={order}

@@ -274,8 +274,10 @@ class Order(models.Model):
     from decimal import Decimal
 
     def get_total(self):
+        active_items = self.items.exclude(status='cancelled')
+
         items_total = sum(
-            (item.get_subtotal() for item in self.items.all()),
+            (item.get_subtotal() for item in active_items),
             Decimal("0.00")
         )
 
@@ -367,6 +369,18 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
+    ITEM_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('in_progress', 'In Progress'),
+        ('ready', 'Ready'),
+        ('cancelled', 'Cancelled'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=ITEM_STATUS_CHOICES,
+        default='pending'
+    )
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     menu_item = models.ForeignKey(
         MenuItem,
@@ -388,9 +402,22 @@ class OrderItem(models.Model):
         blank=True,
         related_name="added_order_items"
     )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    ready_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(
+    Staff,
+    null=True,
+    blank=True,
+    on_delete=models.SET_NULL,
+    related_name="cancelled_items"
+)
+
+
+
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
-    is_prepared = models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
     def clean(self):

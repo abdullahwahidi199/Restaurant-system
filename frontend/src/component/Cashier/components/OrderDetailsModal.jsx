@@ -11,8 +11,15 @@ const OrderDetailsModal = ({
 
   const items = order.items || [];
   const subtotal = items.reduce((sum, item) => {
+    // Skip cancelled items
+    if (item.status === "cancelled") {
+      return sum;
+    }
+
     const qty = item.qty ?? item.quantity ?? 0;
+
     const price = item.price ?? item.item_price ?? item.menu_item?.price ?? 0;
+
     return sum + qty * price;
   }, 0);
   console.log(order);

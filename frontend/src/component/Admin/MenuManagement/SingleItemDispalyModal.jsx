@@ -16,23 +16,27 @@ export default function SingleItem({ item, error }) {
       />
 
       <div className="p-6">
-        <h2 className="text-3xl font-semibold text-gray-800 mb-2">{item.name}</h2>
+        <h2 className="text-3xl font-semibold text-gray-800 mb-2">
+          {item.name}
+        </h2>
         <p className="text-gray-600 mb-4">{item.description}</p>
 
         <div className="flex justify-between items-center mb-4">
           <p className="text-lg font-bold text-lime-600">${item.price}</p>
           <p
             className={`text-sm font-medium ${
-              item.is_available ? "text-green-600" : "text-red-500"
+              item.final_availability ? "text-green-600" : "text-red-500"
             }`}
           >
-            {item.is_available ? "Available" : "Out of stock"}
+            {item.final_availability ? "Available" : "Out of stock"}
           </p>
         </div>
 
         {item.reviews && item.reviews.length > 0 ? (
           <div className="mt-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">Customer Reviews</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">
+              Customer Reviews
+            </h3>
             <div className="space-y-3">
               {item.reviews.map((review) => (
                 <div
@@ -40,7 +44,9 @@ export default function SingleItem({ item, error }) {
                   className="border border-gray-200 rounded-xl p-4 bg-gray-50"
                 >
                   <div className="flex justify-between">
-                    <p className="font-medium text-gray-800">{review.customer}</p>
+                    <p className="font-medium text-gray-800">
+                      {review.customer}
+                    </p>
                     <p className="text-yellow-500">⭐ {review.rating}/5</p>
                   </div>
                   <p className="text-gray-600 mt-1">{review.comment}</p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle, Coffee, Ban, Calendar } from "lucide-react";
 import TableActionModal from "./TableActionModal";
 import OrderCancellationToast from "../OrderCancellationToast";
@@ -91,6 +91,16 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
       timeStyle: "short",
     });
   };
+
+  useEffect(() => {
+    if (!selectedTable) return;
+
+    const updated = tables.find((t) => t.id === selectedTable.id);
+
+    if (updated) {
+      setSelectedTable(updated);
+    }
+  }, [tables, selectedTable]);
 
   // Accurate counts (excludes reserved from available count)
   const availableCount = tables.filter(

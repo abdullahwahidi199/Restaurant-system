@@ -432,7 +432,7 @@ export default function DeliveryOrderForm() {
                             : "border-gray-100 hover:border-gray-200 hover:shadow-md"
                         }`}
                         onClick={() =>
-                          item.is_available && handleIncrement(item)
+                          item.final_availability && handleIncrement(item)
                         }
                       >
                         {isSelected && (
@@ -468,7 +468,7 @@ export default function DeliveryOrderForm() {
                           </div>
 
                           {/* Availability overlay */}
-                          {!item.is_available && (
+                          {!item.final_availability && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                               <span className="text-xs font-semibold text-white bg-red-500/90 px-2.5 py-1 rounded-lg">
                                 {t("menu.unavailable")}
@@ -519,9 +519,9 @@ export default function DeliveryOrderForm() {
                                   e.stopPropagation();
                                   handleIncrement(item);
                                 }}
-                                disabled={!item.is_available}
+                                disabled={!item.final_availability}
                                 className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                                  item.is_available
+                                  item.final_availability
                                     ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
                                     : "bg-gray-100 text-gray-300 cursor-not-allowed"
                                 }`}

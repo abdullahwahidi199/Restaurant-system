@@ -72,20 +72,31 @@ export default function KitchenHomepage() {
 
     // update current tab orders (your existing logic)
     setOrders((prev) => {
-      // remove orders kitchen should not see
-      if (incoming.status === "served" || incoming.status === "cancelled") {
-        return prev.filter((o) => o.id !== incoming.id);
-      }
+      const ACTIVE = ["pending", "approved", "in_progress", "ready"];
+
+      const hasActiveItems = (order) =>
+        order.items?.some((i) => ACTIVE.includes(i.status));
 
       const idx = prev.findIndex((o) => o.id === incoming.id);
 
       if (idx >= 0) {
         const copy = [...prev];
         copy[idx] = incoming;
+
+        // 🔥 remove only if no active items left
+        if (!hasActiveItems(incoming)) {
+          return copy.filter((o) => o.id !== incoming.id);
+        }
+
         return copy;
       }
 
-      return [incoming, ...prev];
+      // only add if it actually has active items
+      if (hasActiveItems(incoming)) {
+        return [incoming, ...prev];
+      }
+
+      return prev;
     });
 
     // 🔥 ALSO update pendingOrders
@@ -195,7 +206,7 @@ export default function KitchenHomepage() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredOrders.map((order) => (
-              <OrderCard key={order.id} order={order} refresh={fetchOrders} />
+              <OrderCard key={order.id} order={order} />
             ))}
           </div>
         )}

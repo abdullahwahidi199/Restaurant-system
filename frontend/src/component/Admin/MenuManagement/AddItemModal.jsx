@@ -69,7 +69,7 @@ export default function AddItemModal({
       formData.append("description", description);
       formData.append("price", price);
       formData.append("category", selectedcategoryid);
-      formData.append("is_available", "True");
+      formData.append("final_availability", "True");
       if (image) formData.append("image", image);
 
       const itemRes = await instance.post("/menu/menu-items/", formData);

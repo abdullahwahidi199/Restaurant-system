@@ -258,67 +258,7 @@ export default function OrdersReport({ startDate, endDate }) {
         </div>
 
         {/* Bottom Section: Performance & Daily Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Staff Performance */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <Users size={20} className="text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-800">
-                Staff Performance
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Waiter Table */}
-              {data.waiter_performance.length > 0 && (
-                <div className="p-4 border rounded-lg">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Waiter
-                  </h4>
-                  {data.waiter_performance.map((w, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <span className="text-sm font-medium capitalize">
-                        {w.waiter_name}
-                      </span>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-gray-800">
-                          {w.orders_handled} Orders
-                        </div>
-                        <div className="text-xs text-green-600">
-                          {formatCurrency(w.revenue)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Delivery Table */}
-              {data.delivery_performance.length > 0 && (
-                <div className="p-4 border rounded-lg">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Delivery
-                  </h4>
-                  {data.delivery_performance.map((d, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <span className="text-sm font-medium capitalize">
-                        {d.delivery_boy_name}
-                      </span>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-gray-800">
-                          {d.deliveries} Deliveries
-                        </div>
-                        <div className="text-xs text-green-600">
-                          {formatCurrency(d.revenue)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
           {/* Daily Breakdown */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center gap-2 mb-4">

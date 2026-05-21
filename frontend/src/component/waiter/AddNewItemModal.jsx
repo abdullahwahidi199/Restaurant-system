@@ -401,7 +401,7 @@ export default function AddItemToOrderModal({
                                   : "border-gray-100 hover:border-gray-200 hover:shadow-md"
                               }`}
                               onClick={() => {
-                                if (!item.is_available) return;
+                                if (!item.final_availability) return;
                                 handleIncrement(item);
                               }}
                             >
@@ -440,7 +440,7 @@ export default function AddItemToOrderModal({
                                 </div>
 
                                 {/* Availability overlay */}
-                                {!item.is_available && (
+                                {!item.final_availability && (
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <span className="text-xs font-semibold text-white bg-red-500/90 px-2.5 py-1 rounded-lg">
                                       Unavailable
@@ -483,7 +483,7 @@ export default function AddItemToOrderModal({
                                         onClick={(e) => {
                                           e.stopPropagation();
 
-                                          if (!item.is_available) return;
+                                          if (!item.final_availability) return;
 
                                           handleIncrement(item);
                                         }}
@@ -500,7 +500,7 @@ export default function AddItemToOrderModal({
                                       onClick={(e) => {
                                         e.stopPropagation();
 
-                                        if (!item.is_available) return;
+                                        if (!item.final_availability) return;
 
                                         handleIncrement(item);
                                       }}

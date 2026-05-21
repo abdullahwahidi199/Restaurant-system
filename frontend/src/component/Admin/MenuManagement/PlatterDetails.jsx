@@ -19,7 +19,7 @@ export default function PlatterDetails() {
     description: "",
     price: "",
     category: "",
-    is_available: true,
+    is_manually_available: true,
     items: [],
     image: "",
   });
@@ -39,7 +39,7 @@ export default function PlatterDetails() {
         description: res.data.description || "",
         price: res.data.price || "",
         category: res.data.category || "",
-        is_available: res.data.is_available,
+        is_manually_available: res.data.is_manually_available,
         image: res.data.image || null,
         items: res.data.items || [],
       });
@@ -125,7 +125,7 @@ export default function PlatterDetails() {
         description: formData.description,
         price: formData.price,
         category: formData.category,
-        is_available: formData.is_available,
+        is_manually_available: formData.is_manually_available,
 
         items: formData.items.map((item) => ({
           menu_item: Number(item.menu_item),
@@ -278,8 +278,8 @@ export default function PlatterDetails() {
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
-            name="is_available"
-            checked={formData.is_available}
+            name="is_manually_available"
+            checked={formData.is_manually_available}
             onChange={handleChange}
           />
 

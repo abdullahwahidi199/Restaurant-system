@@ -71,7 +71,7 @@ export default function KitcheManagerMenuList({
               >
                 <div
                   className={`aspect-[4/3] bg-gray-100 relative overflow-hidden ${
-                    !item.is_available ? "opacity-70 brightness-75" : ""
+                    !item.final_availability ? "opacity-70 brightness-75" : ""
                   }`}
                 >
                   {item.image ? (
@@ -79,7 +79,7 @@ export default function KitcheManagerMenuList({
                       src={`${BASE_URL}${item.image}`}
                       alt={item.name}
                       className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                        !item.is_available ? "blur-[1px]" : ""
+                        !item.final_availability ? "blur-[1px]" : ""
                       }`}
                     />
                   ) : (
@@ -89,12 +89,12 @@ export default function KitcheManagerMenuList({
 
                 <div className="p-4 flex flex-col justify-between">
                   <h3
-                    className={`${item.is_available === true ? "text-black" : "text-gray-400"} font-semibold text-base sm:text-lg truncate`}
+                    className={`${item.final_availability === true ? "text-black" : "text-gray-400"} font-semibold text-base sm:text-lg truncate`}
                   >
                     {item.name}
                   </h3>
                   <p
-                    className={`${item.is_available === true ? "text-lime-600" : "text-gray-400"} font-semibold mt-1`}
+                    className={`${item.final_availability === true ? "text-lime-600" : "text-gray-400"} font-semibold mt-1`}
                   >
                     Afs{item.price ? item.price : "N/A"}
                   </p>

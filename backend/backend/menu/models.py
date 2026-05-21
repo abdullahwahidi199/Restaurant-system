@@ -28,8 +28,16 @@ class MenuItem(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
     is_available = models.BooleanField(default=True)
+    is_manually_available = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, related_name='menu_items')
 
+
+    @property
+    def final_availability(self):
+        return (
+            self.is_available
+            and self.is_manually_available
+        )
     def __str__(self):
         return self.name
     def save(self, *args, **kwargs):
@@ -148,6 +156,7 @@ class Platter(models.Model):
     )
 
     is_available = models.BooleanField(default=True)
+    is_manually_available = models.BooleanField(default=True)
 
     category = models.ForeignKey(
         Category,
@@ -159,6 +168,9 @@ class Platter(models.Model):
 
     def __str__(self):
         return self.name
+    @property
+    def final_availability(self):
+        return self.is_available and self.is_manually_available
     
 class PlatterItem(models.Model):
     platter = models.ForeignKey(

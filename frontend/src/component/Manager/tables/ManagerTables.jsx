@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle, Coffee, Ban, Calendar } from "lucide-react";
 import ManagerTableActionModal from "./ManagerTableActionModal";
 import OrderCancellationToast from "../../OrderCancellationToast";
@@ -42,7 +42,6 @@ export default function ManagerTablesDisplay({ tables, refetchTables }) {
       await instance.patch(`/orders/${id}/cancel/`);
       setShowCancelToast(false);
       setOrderToCancel(null);
-      refetchTables();
     } catch (error) {
       console.error("Cancel failed:", error);
     }
@@ -82,6 +81,16 @@ export default function ManagerTablesDisplay({ tables, refetchTables }) {
     const date = new Date(isoString);
     return date.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
   };
+
+  useEffect(() => {
+    if (!selectedTable) return;
+
+    const updated = tables.find((t) => t.id === selectedTable.id);
+
+    if (updated) {
+      setSelectedTable(updated);
+    }
+  }, [tables, selectedTable]);
 
   //   Accurate counts (excludes reserved from available count)
   const availableCount = tables.filter(

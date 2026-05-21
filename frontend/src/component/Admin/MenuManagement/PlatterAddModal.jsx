@@ -78,6 +78,7 @@ export default function PlatterAddModal({
         category: selectedcategoryid,
         image: formData.image,
         items: formData.items,
+        is_manually_available: True,
       };
 
       await instance.post("/menu/platters/", payload);

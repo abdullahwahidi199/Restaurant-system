@@ -349,7 +349,7 @@ export default function MenuPage({ orderingClosed }) {
                   className="relative bg-[#121212] rounded-3xl overflow-hidden p-5 border border-[#1f1f1f] 
                              hover:border-red-500/50 transition-all shadow-md hover:shadow-red-600/30"
                 >
-                  {!item.is_available && (
+                  {!item.final_availability && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-3xl z-20">
                       <p className="text-red-500 font-bold text-lg">
                         {t("menu.unavailable")}
@@ -433,14 +433,14 @@ export default function MenuPage({ orderingClosed }) {
 
                   <button
                     onClick={() => addToCart(item)}
-                    disabled={!item.is_available || orderingClosed}
+                    disabled={!item.final_availability || orderingClosed}
                     className={`mt-2 w-full font-semibold py-2 rounded-full transition-all duration-300 ${
-                      item.is_available
+                      item.final_availability
                         ? "bg-red-500 hover:bg-red-600 text-white"
                         : "bg-gray-600 cursor-not-allowed"
                     }`}
                   >
-                    {item.is_available
+                    {item.final_availability
                       ? cart.find((i) => i.id === item.id)
                         ? t("menu.buttons.add_more")
                         : t("menu.buttons.add")

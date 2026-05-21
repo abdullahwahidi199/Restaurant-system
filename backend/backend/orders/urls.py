@@ -1,7 +1,10 @@
 from django.urls import path
 from .views import order_list_create, OrderRetrieveDestroyView,add_items_to_order,table_list_create,TableRetrieveUpdateDestroyView,update_order_status,cashier_reservations,mark_reservation_arrived,mark_reservation_no_show
 from .views import assign_delivery,cashier_orders,cancel_order,kitchen_orders,create_online_order,cancel_online_order,reservation_list_create,ReservationRetrieveUpdateDestroyView,cancel_reservation,handle_order_bill_print
-from .views import bulk_update_order_items,request_discount,approve_discount_or_reject,manager_pending_discount_requests,admin_pending_discount_requests,all_discount_requests,mark_order_item_prepared,change_order_table
+from .views import (bulk_update_order_items,request_discount,approve_discount_or_reject,manager_pending_discount_requests,
+                    admin_pending_discount_requests,all_discount_requests,change_order_table,
+                    cancel_order_item,update_order_item_status
+                    )
 
 urlpatterns = [
     path('orders/', order_list_create, name='order-list-create'),
@@ -9,11 +12,15 @@ urlpatterns = [
     path('orders/<int:pk>/update_status/', update_order_status, name='update_order_status'),
     path('orders/<int:pk>/bulk-update-items/',bulk_update_order_items),
     path('orders/<int:pk>/add-items/', add_items_to_order),
+    path('order-items/<int:pk>/cancel/',cancel_order_item),
     path(
     "orders/<int:pk>/change-table/",
     change_order_table
 ),
-    path('order-items/<int:pk>/prepared/',mark_order_item_prepared),
+    path(
+    "order-items/<int:pk>/status/",
+    update_order_item_status
+),
     path("orders/<int:order_id>/discount-request/", request_discount, name="request-discount"),
     path("discount-requests/",all_discount_requests),
     path("discounts/<int:pk>/approveOrReject/", approve_discount_or_reject, name="approve-discount"),

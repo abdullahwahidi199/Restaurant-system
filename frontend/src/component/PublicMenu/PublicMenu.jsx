@@ -374,12 +374,12 @@ export default function PublicMenu() {
                     <div className="absolute top-3 left-3">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${
-                          item.is_available
+                          item.final_availability
                             ? "bg-emerald-500/90 text-white"
                             : "bg-gray-500/90 text-white"
                         }`}
                       >
-                        {item.is_available ? "Available" : "Unavailable"}
+                        {item.final_availability ? "Available" : "Unavailable"}
                       </span>
                     </div>
                   </div>
@@ -399,7 +399,7 @@ export default function PublicMenu() {
 
                       {qty === 0 ? (
                         <button
-                          disabled={!item.is_available}
+                          disabled={!item.final_availability}
                           onClick={(e) => {
                             e.stopPropagation(); // ✅ prevent card click
                             addToCart(item);
@@ -407,9 +407,11 @@ export default function PublicMenu() {
                           className="w-full py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-orange-600 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
                           <span>
-                            {item.is_available ? "Add to Order" : "Unavailable"}
+                            {item.final_availability
+                              ? "Add to Order"
+                              : "Unavailable"}
                           </span>
-                          {item.is_available && (
+                          {item.final_availability && (
                             <ChevronRight className="w-4 h-4" />
                           )}
                         </button>

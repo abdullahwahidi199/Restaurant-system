@@ -82,18 +82,27 @@ class OrderReportService:
         )
 
         # ----- Breakdown by type (count + revenue) -----
-        by_type = (
-            orders.values("order_type")
-            .annotate(
-                count=Count("id"),
-                revenue=Sum(
-                    ExpressionWrapper(
-                        F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField()
-                    )
-                )
-            )
-        )
+        from collections import defaultdict
+
+        type_map = defaultdict(lambda: {
+            "count": 0,
+            "revenue": 0
+        })
+
+        for order in billable_orders:
+            t = order.order_type
+
+            type_map[t]["count"] += 1
+            type_map[t]["revenue"] += float(order.get_total())
+
+        by_type = [
+            {
+                "order_type": order_type,
+                "count": data["count"],
+                "revenue": round(data["revenue"], 2),
+            }
+            for order_type, data in type_map.items()
+        ]
 
         # ----- Breakdown by status -----
         by_status = (
@@ -103,11 +112,12 @@ class OrderReportService:
         )
 
         top_items = (
-            OrderItem.objects.filter(
-                order__restaurant=restaurant,
-                order__created_at__range=(start_dt, end_dt),
-                order__status__in=["completed", "served", "ready"]
-            )
+        OrderItem.objects.filter(
+            order__restaurant=restaurant,
+            order__created_at__range=(start_dt, end_dt),
+            order__status__in=["completed", "served", "ready"]
+        )
+        .exclude(status="cancelled")
             .values(name=F("menu_item__name"))
             .annotate(
                 quantity_sold=Sum("quantity"),
@@ -149,21 +159,28 @@ class OrderReportService:
             )
             .order_by("date")
         )
-        daily_breakdown = (
-            billable_orders.annotate(date=TruncDate("created_at"))
-            .values("date")
-            .annotate(
-                orders=Count("id"),
-                revenue=Sum(
-                    ExpressionWrapper(
-                        F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField()
-                    )
-                )
-            )
-            .order_by("date")
-        )
-        # ----- Peak hours -----
+        from collections import defaultdict
+
+        daily_map = defaultdict(lambda: {
+            "orders": 0,
+            "revenue": 0
+        })
+
+        for order in billable_orders:
+            day = order.created_at.date()
+
+            daily_map[day]["orders"] += 1
+            daily_map[day]["revenue"] += float(order.get_total())
+
+        daily_breakdown = [
+            {
+                "date": day,
+                "orders": data["orders"],
+                "revenue": round(data["revenue"], 2),
+            }
+            for day, data in sorted(daily_map.items())
+        ]
+                # ----- Peak hours -----
         peak_hours = (
             orders.annotate(hour=TruncHour("created_at"))
             .values("hour")

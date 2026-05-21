@@ -1,3 +1,4 @@
+from urllib import request
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -318,40 +319,53 @@ def create_online_order(request,slug):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from django.db.models import Exists, OuterRef
+
 @api_view(["GET"])
-@permission_classes([IsAuthenticated,IsRestaurantActive, IsKitchenManager | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated, IsRestaurantActive, IsKitchenManager | IsRestaurantAdmin])
+
+
 def kitchen_orders(request):
+    from django.utils import timezone
+    from datetime import timedelta
+
+    cutoff = timezone.now() - timedelta(days=2) 
     restaurant = get_restaurant_from_user(request)
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    KITCHEN_ALLOWED_STATUSES = ["pending", "in_progress", "ready"]
-    
-    orders = (
-        Order.objects
-        .filter(restaurant=restaurant) # FILTER HERE
-        .prefetch_related('items__menu_item', 'customer')
-        .select_related('table')
-        .order_by('-created_at')
-        .filter(order_type__in=["dine-in", "takeaway", "delivery"])
-        .filter(status__in=["pending", "in_progress", "ready"])
+    ACTIVE_STATUSES = ["pending", "approved", "in_progress", "ready"]
+
+    active_items = OrderItem.objects.filter(
+        order=OuterRef("pk"),
+        status__in=ACTIVE_STATUSES
     )
 
+    orders = (
+        Order.objects.filter(
+            restaurant=restaurant,
+            order_type__in=["dine-in", "takeaway", "delivery"],
+        )
+        .exclude(status__in=["completed", "cancelled"])  # 🔥 KEY FIX
+        .annotate(has_active_items=Exists(active_items))
+        .filter(has_active_items=True)
+        .select_related("table")
+        .prefetch_related("items__menu_item", "customer")
+        .order_by("-created_at")
+    )
+            # optional filters
     order_type = request.query_params.get("order_type")
     status = request.query_params.get("status")
 
-    if order_type and order_type != 'all':
+    if order_type and order_type != "all":
         orders = orders.filter(order_type=order_type)
-    if status and status != 'all':
-        orders = orders.filter(status=status)
-    
-    now = timezone.now()
-    def is_visible(order):
-        if order.order_type != "delivery":
-            return True
-        return (now - order.created_at).total_seconds() / 60 >= 2
 
-    orders = [o for o in orders if is_visible(o)]
+    if status and status != "all":
+        orders = orders.filter(status=status)
 
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
@@ -472,7 +486,20 @@ def update_order_status(request, pk):
         if reservation and reservation.status != "completed":
             reservation.status = "completed"
             reservation.save(update_fields=["status"])
+    if new_status == "in_progress":
 
+        order.items.exclude(
+            status="cancelled"
+        ).update(
+            status="approved"
+        )
+    if new_status == "ready":
+
+        order.items.exclude(
+            status="cancelled"
+        ).update(
+            status="ready"
+        )
     order.save()
 
     serializer = OrderSerializer(order)
@@ -580,26 +607,59 @@ def add_items_to_order(request, pk):
     return Response({"new_items": new_items}, status=status.HTTP_200_OK)
 
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsRestaurantActive])
-def mark_order_item_prepared(request, pk):
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive
+])
+def update_order_item_status(request, pk):
+
     restaurant = get_restaurant_from_user(request)
 
     try:
-        item = OrderItem.objects.get(
+        item = OrderItem.objects.select_related(
+            "order"
+        ).get(
             pk=pk,
             order__restaurant=restaurant
         )
+
     except OrderItem.DoesNotExist:
         return Response(
             {"error": "Item not found"},
             status=status.HTTP_404_NOT_FOUND
         )
 
-    item.is_prepared = True
-    item.save(update_fields=["is_prepared"])
+    new_status = request.data.get("status")
+
+    allowed_statuses = [
+        "pending",
+        "approved",
+        "ready",
+        "cancelled",
+    ]
+
+    if new_status not in allowed_statuses:
+        return Response(
+            {"error": "Invalid status"},
+            status=400
+        )
+
+  
+    if item.status == "cancelled":
+        return Response(
+            {
+                "error":
+                "Cancelled items cannot be changed"
+            },
+            status=400
+        )
+
+    item.status = new_status
+
+    item.save(update_fields=["status"])
 
     return Response({
-        "message": "Item marked as prepared"
+        "message": f"Item marked as {new_status}"
     })
 
 
@@ -859,26 +919,71 @@ def cancel_reservation(request,pk):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def bulk_update_order_items(request, pk):
+
     order = get_object_or_404(Order, pk=pk)
-
-    if order.status != "pending":
-        return Response({"error": "Locked order"}, status=400)
-
     items_data = request.data.get("items", [])
 
-    incoming_ids = [i["id"] for i in items_data]
-
-    # 🔥 DELETE removed items
-    OrderItem.objects.filter(order=order).exclude(id__in=incoming_ids).delete()
-
-    # 🔥 UPDATE existing items
     for i in items_data:
-        item = OrderItem.objects.get(id=i["id"], order=order)
+        try:
+            item = OrderItem.objects.get(id=i["id"], order=order)
+        except OrderItem.DoesNotExist:
+            continue
+
+        if item.status != "pending":
+            continue
+
         item.quantity = i["quantity"]
-        item.save()
+        item.save(update_fields=["quantity"])
 
-    return Response({"message": "updated"})
+    # ✅ FIX: use order, not item
+    remaining = order.items.exclude(
+        status__in=["ready", "cancelled"]
+    ).exists()
 
+    if not remaining:
+        order.status = "ready"
+        order.save(update_fields=["status"])
+
+    return Response({"message": "Items updated"})
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def cancel_order_item(request, pk):
+
+    restaurant = get_restaurant_from_user(request)
+
+    try:
+        item = OrderItem.objects.select_related(
+            "order"
+        ).get(
+            pk=pk,
+            order__restaurant=restaurant
+        )
+
+    except OrderItem.DoesNotExist:
+        return Response(
+            {"error": "Item not found"},
+            status=404
+        )
+
+    # only pending items cancellable
+    if item.status != "pending":
+        return Response(
+            {
+                "error":
+                "Only pending items can be cancelled"
+            },
+            status=400
+        )
+
+    item.status = "cancelled"
+    item.cancelled_by = request.user.staff_profile
+    item.cancelled_at = timezone.now()
+
+    item.save(update_fields=["status","cancelled_by","cancelled_at"])
+
+    return Response({
+        "message": "Item cancelled successfully"
+    })
 from django.utils.dateparse import parse_date
 from django.db.models import Q
 

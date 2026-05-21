@@ -24,10 +24,13 @@ const BillPrintModal = ({ order, onClose }) => {
   const reservationPaid = Number(order.reservation_payment?.paid || 0);
 
   // 1. Items Subtotal
-  const itemsSubtotal = (order.items || []).reduce(
-    (sum, item) => sum + itemQty(item) * itemPrice(item),
-    0,
-  );
+  const itemsSubtotal = (order.items || []).reduce((sum, item) => {
+    if (item.status === "cancelled") {
+      return sum;
+    }
+
+    return sum + itemQty(item) * itemPrice(item);
+  }, 0);
 
   // 2. Original Bill Total (Items + Reservation)
   const originalBillTotal = itemsSubtotal + reservationTotal;
@@ -69,13 +72,35 @@ const BillPrintModal = ({ order, onClose }) => {
   // --- Print HTML Generator ---
   const generateHtml = () => {
     const itemsHtml = (order.items || [])
-      .map(
-        (it) => `<tr style="page-break-inside:avoid">
-            <td style="padding:4px;border-bottom:1px solid #eee;font-size:11px">${escapeHtml(itemName(it))}</td>
-            <td style="padding:4px;border-bottom:1px solid #eee;text-align:center;font-size:11px">${escapeHtml(String(itemQty(it)))}</td>
-            <td style="padding:4px;border-bottom:1px solid #eee;text-align:right;font-size:11px">AFN ${(itemQty(it) * itemPrice(it)).toFixed(2)}</td>
-          </tr>`,
-      )
+      .map((it) => {
+        const isCancelled = it.status === "cancelled";
+
+        return `
+    <tr 
+      style="
+        page-break-inside:avoid;
+        ${isCancelled ? "opacity:0.5;text-decoration:line-through;" : ""}
+      "
+    >
+      <td style="padding:4px;border-bottom:1px solid #eee;font-size:11px">
+        ${escapeHtml(itemName(it))}
+        ${isCancelled ? '<span style="color:red"> (Cancelled)</span>' : ""}
+      </td>
+
+      <td style="padding:4px;border-bottom:1px solid #eee;text-align:center;font-size:11px">
+        ${escapeHtml(String(itemQty(it)))}
+      </td>
+
+      <td style="padding:4px;border-bottom:1px solid #eee;text-align:right;font-size:11px">
+        ${
+          isCancelled
+            ? "AFN 0.00"
+            : `AFN ${(itemQty(it) * itemPrice(it)).toFixed(2)}`
+        }
+      </td>
+    </tr>
+  `;
+      })
       .join("");
 
     const customerDisplay = escapeHtml(
