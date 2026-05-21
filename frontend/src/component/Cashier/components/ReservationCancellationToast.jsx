@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function OrderCancellationToast({
-  orderNumber,
+export default function ReservationCancellationToast({
+  reservationNumber,
   duration = 4000,
   onConfirm,
   onClose,
@@ -55,13 +55,13 @@ export default function OrderCancellationToast({
             </svg>
 
             <p className="font-semibold text-red-700">
-              Cancel Order #{orderNumber}
+              Cancel Reservation #{reservationNumber}
             </p>
           </div>
 
           <div className="px-4 py-4">
             <p className="text-sm text-gray-700">
-              Are you sure you want to cancel this order?
+              Are you sure you want to cancel this reservation?
             </p>
             <p className="text-xs text-gray-500 mt-1">
               This action cannot be undone.

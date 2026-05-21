@@ -243,12 +243,12 @@ export default function ManagerTablesDisplay({ tables, refetchTables }) {
 
       {showCancelToast && (
         <OrderCancellationToast
-          orderId={orderToCancel?.id}
+          orderNumber={orderToCancel?.order_number}
           onClose={() => {
             setShowCancelToast(false);
             setOrderToCancel(null);
           }}
-          onConfirm={async (id) => await cancelOrder(id)}
+          onConfirm={async (id) => await cancelOrder(orderToCancel.id)}
         />
       )}
     </div>

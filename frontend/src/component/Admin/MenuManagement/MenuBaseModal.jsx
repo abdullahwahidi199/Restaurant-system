@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Printer } from "lucide-react";
+import { Plus, Printer, X } from "lucide-react";
 
 import AddCategoryModal from "./AddCategoryModal";
 import CategoriesList from "./Catagories";
@@ -11,6 +11,7 @@ export default function Menu() {
   const [show_Add_Modal, set_show_add_modal] = useState(false);
   const [loading, setLoading] = useState(false);
   const BASE_URL = import.meta.env.VITE_API_URL;
+
   // PRINT STATES
   const [printMode, setPrintMode] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -42,7 +43,6 @@ export default function Menu() {
     fetchCategories();
   };
 
-  // 🔥 PRINT HANDLER
   const handlePrint = async () => {
     try {
       let url = `/menu/menu-print/?mode=${printMode}`;
@@ -55,10 +55,7 @@ export default function Menu() {
         responseType: "blob",
       });
 
-      const file = new Blob([response.data], {
-        type: "application/pdf",
-      });
-
+      const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
 
       const a = document.createElement("a");
@@ -67,7 +64,6 @@ export default function Menu() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-
       URL.revokeObjectURL(fileURL);
     } catch (error) {
       console.error("PDF download failed:", error);
@@ -75,12 +71,12 @@ export default function Menu() {
   };
 
   if (loading) {
-    return <div className="p-5">...loading</div>;
+    return <div className="p-5 text-gray-600">...loading</div>;
   }
 
   return (
     <div
-      className="min-h-screen py-5 px-4 bg-gray-100"
+      className="min-h-screen py-5 px-4 bg-gray-50"
       dir={isRTL ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto mb-8">
@@ -89,30 +85,22 @@ export default function Menu() {
         </h1>
 
         {/* ACTION BAR */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* ADD CATEGORY */}
-          {show_Add_Modal && (
-            <div className="bg-white p-5 rounded-xl shadow-md w-80">
-              <AddCategoryModal
-                onClose={() => set_show_add_modal(false)}
-                onCategoryAdded={handleCategoryAdded}
-              />
-            </div>
-          )}
-
+        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-4">
+          {/* ADD CATEGORY BUTTON */}
           <button
-            onClick={() => set_show_add_modal(!show_Add_Modal)}
-            className="flex items-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-800 text-white px-5 py-2.5 rounded-xl shadow-md transition"
+            onClick={() => set_show_add_modal(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer"
           >
-            <Plus className="w-5 h-5" /> {t("add_category")}
+            <Plus className="w-5 h-5" />
+            {t("add_category")}
           </button>
 
           {/* PRINT CONTROLS */}
-          <div className="flex items-center gap-2 bg-white p-2 rounded-xl shadow">
+          <div className="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
             <select
               value={printMode}
               onChange={(e) => setPrintMode(e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm"
+              className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All</option>
               <option value="available">Available</option>
@@ -124,7 +112,7 @@ export default function Menu() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border rounded-lg text-sm"
+                className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Category</option>
                 {categories.map((c) => (
@@ -137,7 +125,7 @@ export default function Menu() {
 
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -151,6 +139,30 @@ export default function Menu() {
         categories={categories}
         onCategoryDelete={fetchCategories}
       />
+
+      {/* STANDARD MODAL OVERLAY */}
+      {show_Add_Modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            // Close when clicking the backdrop
+            if (e.target === e.currentTarget) set_show_add_modal(false);
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-5 relative">
+            <button
+              onClick={() => set_show_add_modal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <AddCategoryModal
+              onClose={() => set_show_add_modal(false)}
+              onCategoryAdded={handleCategoryAdded}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

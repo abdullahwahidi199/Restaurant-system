@@ -72,7 +72,8 @@ export default function KitchenHomepage() {
 
     // update current tab orders (your existing logic)
     setOrders((prev) => {
-      if (incoming.status === "served") {
+      // remove orders kitchen should not see
+      if (incoming.status === "served" || incoming.status === "cancelled") {
         return prev.filter((o) => o.id !== incoming.id);
       }
 
@@ -90,7 +91,7 @@ export default function KitchenHomepage() {
     // 🔥 ALSO update pendingOrders
     setPendingOrders((prev) => {
       // remove if no longer pending
-      if (incoming.status !== "pending") {
+      if (incoming.status !== "pending" || incoming.status === "cancelled") {
         return prev.filter((o) => o.id !== incoming.id);
       }
 

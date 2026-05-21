@@ -111,11 +111,19 @@ class MenuItemIngredientDeleteView(generics.RetrieveUpdateDestroyAPIView):
         # 🔥 update availability after removal
         update_menu_item_availability(menu_item)
 
+from rest_framework import filters
+
 class StockMovementListView(generics.ListAPIView):
     serializer_class = StockMovementSerializer
-    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
-    pagination_class=StockMovementPagination
+    permission_classes = [
+        IsRestaurantAdmin,
+        IsSameRestaurant,
+        IsRestaurantActive
+    ]
+    pagination_class = StockMovementPagination
 
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['ingredient__name']
 
     def get_queryset(self):
         user = self.request.user
@@ -124,8 +132,8 @@ class StockMovementListView(generics.ListAPIView):
         qs = (
             StockMovement.objects
             .select_related('ingredient')
-            .filter(restaurant=restaurant)   # 🔥 IMPORTANT FIX
-            .filter(movement_type__in=['purchase','waste','adjustment'])
+            .filter(restaurant=restaurant)
+            .filter(movement_type__in=['purchase', 'waste', 'adjustment'])
             .order_by('-created_at')
         )
 
@@ -137,16 +145,14 @@ class StockMovementListView(generics.ListAPIView):
         else:
             if from_date:
                 qs = qs.filter(created_at__date__gte=from_date)
+
             if to_date:
                 qs = qs.filter(created_at__date__lte=to_date)
 
-        # ingredient=self.request.query_params.get('ingredient')
-        # if ingredient:
-        #     qs=qs.filter(ingredient__name__icontains=ingredient)
-        
-        movement_type=self.request.query_params.get('type')
+        movement_type = self.request.query_params.get('type')
+
         if movement_type:
-            qs=qs.filter(movement_type=movement_type)
+            qs = qs.filter(movement_type=movement_type)
 
         return qs
 

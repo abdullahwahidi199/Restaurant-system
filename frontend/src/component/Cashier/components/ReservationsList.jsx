@@ -3,11 +3,13 @@ import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
 import AddReservation from "./AddReservation";
 import ReservationUpdateForm from "./ReservationUpdateForms";
+import ReservationCancellationToast from "./ReservationCancellationToast";
 
 export default function ReservationsList() {
   const [reservations, setReservations] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
+  const [reservationToCancel, setReservationToCancel] = useState(null);
   const fetchReservations = async () => {
     try {
       const res = await instance.get("/orders/cashier/reservations/");
@@ -177,7 +179,7 @@ export default function ReservationsList() {
                             </button>
 
                             <button
-                              onClick={() => markCancel(r.id)}
+                              onClick={() => setReservationToCancel(r)}
                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
                               title="Cancel reservation"
                             >
@@ -245,6 +247,16 @@ export default function ReservationsList() {
             setSelectedReservation(null);
             fetchReservations();
           }}
+        />
+      )}
+      {reservationToCancel && (
+        <ReservationCancellationToast
+          reservationNumber={reservationToCancel.reservation_number}
+          onConfirm={() => {
+            markCancel(reservationToCancel.id);
+            setReservationToCancel(null);
+          }}
+          onClose={() => setReservationToCancel(null)}
         />
       )}
     </div>

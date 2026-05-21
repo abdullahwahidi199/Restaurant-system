@@ -4,6 +4,7 @@ import ReservationDetails from "../../Admin/Reservations/ReservationDetails";
 import toast from "react-hot-toast";
 import instance from "../../../api/axiosInstance";
 import ReservationUpdateForm from "../../Cashier/components/ReservationUpdateForms";
+import ReservationCancellationToast from "../../Cashier/components/ReservationCancellationToast";
 
 export default function ManagerReservationsTable({
   reservations,
@@ -16,6 +17,7 @@ export default function ManagerReservationsTable({
   const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reservationToCancel, setReservationToCancel] = useState(null);
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -367,7 +369,9 @@ export default function ManagerReservationsTable({
                             </button>
                           ) : (
                             <button
-                              onClick={() => markCancel(reservation.id)}
+                              onClick={() =>
+                                setReservationToCancel(reservation)
+                              }
                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
                               title="Cancel reservation"
                             >
@@ -409,7 +413,6 @@ export default function ManagerReservationsTable({
         </table>
       </div>
 
-      {/* Mobile View */}
       <div className="md:hidden space-y-4 px-2">
         {reservations.map((reservation, index) => {
           const statusStyle = getStatusStyle(reservation.status);
@@ -583,6 +586,16 @@ export default function ManagerReservationsTable({
           reservation={editReservation}
           onClose={() => setEditReservation(null)}
           onReservationSaved={onReservationSaved}
+        />
+      )}
+      {reservationToCancel && (
+        <ReservationCancellationToast
+          reservationNumber={reservationToCancel.reservation_number}
+          onConfirm={() => {
+            markCancel(reservationToCancel.id);
+            setReservationToCancel(null);
+          }}
+          onClose={() => setReservationToCancel(null)}
         />
       )}
     </div>

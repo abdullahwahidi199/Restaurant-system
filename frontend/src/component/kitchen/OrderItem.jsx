@@ -26,15 +26,24 @@ export default function OrderItem({ item, onItemPrepared }) {
       }`}
     >
       {/* MAIN ROW */}
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex flex-col flex-1">
           <p className="text-sm font-semibold text-gray-900">
             {item.item_name}
           </p>
+
+          {/* ITEM DESCRIPTION */}
+          {item.description && (
+            <div className="mt-1 bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1">
+              <p className="text-xs text-gray-700 whitespace-pre-line">
+                {item.description}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* BIG QUANTITY */}
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <span className="text-xl font-bold text-gray-800">
             ×{item.quantity}
           </span>

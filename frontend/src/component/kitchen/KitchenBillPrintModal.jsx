@@ -13,11 +13,28 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
     const itemsHtml = (order.items || [])
       .map(
         (item) => `
-        <tr>
-          <td>${item.name || item.item_name || ""}</td>
-          <td class="center">${item.qty || item.quantity || 0}</td>
-        </tr>
-      `,
+      <tr>
+        <td>
+          <div class="item-name">
+            ${item.name || item.item_name || ""}
+          </div>
+
+          ${
+            item.description
+              ? `
+                <div class="item-description">
+                  📝 ${item.description}
+                </div>
+              `
+              : ""
+          }
+        </td>
+
+        <td class="center qty">
+          ${item.qty || item.quantity || 0}
+        </td>
+      </tr>
+    `,
       )
       .join("");
 
@@ -51,43 +68,71 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
           }
 
           .bill-wrapper {
-            padding: 4mm 4mm 4mm 4mm; /* same top and bottom */
-            margin: 0;
-          }
+  padding: 2mm 3mm;
+  margin: 0;
+}
 
-          h2 {
-            margin: 0 0 4mm 0;
-            text-align: center;
-          }
+h2 {
+  margin: 0 0 2mm 0;
+  text-align: center;
+  font-size: 18px;
+}
 
-          p {
-            margin: 0 0 2mm 0;
-            font-size: 14px;
-          }
+p {
+  margin: 0 0 1mm 0;
+  font-size: 12px;
+  line-height: 1.2;
+}
 
-          hr {
-            margin: 4mm 0;
-          }
+hr {
+  margin: 2mm 0;
+}
 
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 2mm;
-          }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1mm;
+}
 
-          th, td {
-            border-bottom: 1px solid #ddd;
-            padding: 2mm 0;
-            font-size: 14px;
-          }
+th,
+td {
+  border-bottom: 1px solid #ddd;
+  padding: 1mm 0;
+  font-size: 12px;
+  vertical-align: top;
+}
 
-          th {
-            text-align: left;
-          }
+th {
+  text-align: left;
+}
 
-          .center {
-            text-align: center;
-          }
+.center {
+  text-align: center;
+}
+
+.item-name {
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.item-description {
+  margin-top: 0;
+  padding-left: 2px;
+  font-size: 10px;
+  color: #444;
+  font-style: italic;
+  line-height: 1;
+  white-space: pre-line;
+}
+
+.qty {
+  vertical-align: top;
+  font-weight: bold;
+  width: 20px;
+}
         </style>
       </head>
       <body>

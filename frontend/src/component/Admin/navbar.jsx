@@ -18,6 +18,7 @@ import {
   Wallet,
   BadgePercent,
   Package,
+  CalendarDays,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 function Navbar() {
@@ -75,7 +76,7 @@ function Navbar() {
     {
       to: "/admin/dashboard/reservations",
       label: "Reservations",
-      icon: <Wallet size={18} />,
+      icon: <CalendarDays size={18} />,
     },
     {
       to: "/admin/dashboard/reports",

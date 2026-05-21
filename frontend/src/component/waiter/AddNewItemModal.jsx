@@ -135,11 +135,22 @@ export default function AddItemToOrderModal({
     } else {
       setSelectedItems([
         ...selectedItems,
-        { menu_item: menuItem, quantity: 1 },
+        {
+          menu_item: menuItem,
+          quantity: 1,
+          note: "",
+        },
       ]);
     }
   };
 
+  const handleItemNoteChange = (menuItemId, note) => {
+    setSelectedItems((prev) =>
+      prev.map((item) =>
+        item.menu_item.id === menuItemId ? { ...item, note } : item,
+      ),
+    );
+  };
   const handleDecrement = (menuItemId) => {
     const existing = selectedItems.find((i) => i.menu_item.id === menuItemId);
     if (!existing) return;
@@ -187,6 +198,7 @@ export default function AddItemToOrderModal({
     const payload = {
       items: selectedItems.map((i) => ({
         quantity: i.quantity,
+        description: i.note,
 
         ...(i.menu_item.item_type === "menu_item"
           ? { menu_item: i.menu_item.id }
@@ -576,10 +588,24 @@ export default function AddItemToOrderModal({
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {item.menu_item.name}
                       </p>
+
                       <p className="text-xs text-gray-400 mt-0.5">
                         Afs {parseFloat(item.menu_item.price).toLocaleString()}{" "}
                         each
                       </p>
+
+                      <textarea
+                        placeholder="Item note..."
+                        value={item.note || ""}
+                        onChange={(e) =>
+                          handleItemNoteChange(
+                            item.menu_item.id,
+                            e.target.value,
+                          )
+                        }
+                        rows={2}
+                        className="mt-2 w-full rounded-lg border border-gray-200 px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      />
                     </div>
 
                     {/* Quantity Control */}

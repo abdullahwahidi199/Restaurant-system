@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { getStockMovements } from "../../../api/inventoryApi";
 import EditStockMovement from "./EditStockModal";
 
@@ -19,36 +19,43 @@ export default function StockMovementList() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const fetchMovements = useCallback(
+    async (pageNum = 1, searchTerm = "") => {
+      setLoading(true);
+
+      try {
+        const res = await getStockMovements({
+          page: pageNum,
+          search: searchTerm,
+          type,
+          from: fromDate,
+          to: toDate,
+        });
+
+        setMovements(res.data.results);
+        setCount(res.data.count);
+      } catch (err) {
+        console.error("Failed to fetch stock movements", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [type, fromDate, toDate],
+  );
+
   useEffect(() => {
-    fetchMovements();
-  }, [page, ingredient, type, fromDate, toDate]);
+    const delay = setTimeout(() => {
+      fetchMovements(page, search);
+    }, 600);
 
-  const fetchMovements = async () => {
-    setLoading(true);
+    return () => clearTimeout(delay);
+  }, [page, search, fetchMovements]);
 
-    try {
-      const res = await getStockMovements({
-        page,
-        type,
-        from: fromDate,
-        to: toDate,
-      });
-
-      setMovements(res.data.results);
-      setCount(res.data.count);
-    } catch (err) {
-      console.error("Failed to fetch stock movements", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   /* SEARCH FILTER */
-  const filteredMovements = useMemo(() => {
-    return movements.filter((m) =>
-      m.ingredient_name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [search, movements]);
 
   const totalPages = Math.ceil(count / pageSize);
 
@@ -156,7 +163,7 @@ export default function StockMovementList() {
       </div>
 
       {/* TABLE */}
-      {filteredMovements.length === 0 ? (
+      {movements.length === 0 ? (
         <p className="text-gray-500">No stock movements found.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -173,7 +180,7 @@ export default function StockMovementList() {
             </thead>
 
             <tbody>
-              {filteredMovements.map((m) => (
+              {movements.map((m) => (
                 <tr key={m.id} className="border-t hover:bg-gray-50">
                   <td className="p-3 font-medium">{m.ingredient_name}</td>
 

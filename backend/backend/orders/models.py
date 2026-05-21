@@ -64,6 +64,10 @@ class Reservation(models.Model):
     on_delete=models.CASCADE,  
     related_name='reservations'
 )
+    reservation_number = models.PositiveIntegerField(
+    null=True,
+    blank=True
+)
 
     customer_name = models.CharField(max_length=120)
     phone = models.CharField(max_length=20, blank=True)
@@ -84,7 +88,15 @@ class Reservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.customer_name} - {self.table}"
+        return f"Reservation #{self.reservation_number} - {self.customer_name}"
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['restaurant', 'reservation_number'],
+                name='unique_reservation_number_per_restaurant'
+            )
+        ]
 
     def is_active_now(self):
         if not self.start_time:
@@ -120,6 +132,19 @@ class Reservation(models.Model):
         billed_hours = math.ceil(hours)
 
         return billed_hours * self.table.price_per_hour
+    
+    def save(self, *args, **kwargs):
+
+        if not self.reservation_number and self.restaurant:
+            last_reservation = Reservation.objects.filter(
+                restaurant=self.restaurant
+            ).aggregate(
+                Max('reservation_number')
+            )['reservation_number__max']
+
+            self.reservation_number = (last_reservation or 0) + 1
+
+        super().save(*args, **kwargs)
 class Order(models.Model):
     ORDER_TYPE_CHOICES = [
         ('dine-in', 'Dine-In'),

@@ -209,7 +209,7 @@ class ReservationMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = [
-            "id", "table", "table_name", "customer_name",
+            "id", "table", "table_name", "customer_name","reservation_number",
             "guests", "reservation_date", "start_time", "duration_minutes","end_time",
  "amount", "paid_amount",
             "total_price", 
@@ -231,7 +231,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = [
-            "id", "table", "table_name", "customer_name", "phone",
+            "id", "table", "table_name", "customer_name", "phone","reservation_number",
             "guests", "reservation_date", "start_time", "duration_minutes",
             "end_time", "reservation_type", "amount", "paid_amount",
             "total_price", "status", "created_by", "created_by_name",

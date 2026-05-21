@@ -12,15 +12,14 @@ class IsSameRestaurant(BasePermission):
 
         user_restaurant = request.user.staff_profile.restaurant
 
-        # ✅ Direct restaurant field
+        
         if hasattr(obj, "restaurant"):
             return obj.restaurant == user_restaurant
 
-        # ✅ For MenuItemIngredient (via menu_item)
         if hasattr(obj, "menu_item"):
             return obj.menu_item.restaurant == user_restaurant
 
-        # ✅ Fallback for ingredient relation
+        
         if hasattr(obj, "ingredient"):
             return obj.ingredient.restaurant == user_restaurant
 

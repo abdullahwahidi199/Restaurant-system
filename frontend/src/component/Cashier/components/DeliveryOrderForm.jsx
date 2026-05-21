@@ -137,13 +137,27 @@ export default function DeliveryOrderForm() {
 
   const handleIncrement = (menuItem) => {
     const existing = cart.find((i) => i.id === menuItem.id);
+
     if (existing) {
       setCart(
         cart.map((i) => (i.id === menuItem.id ? { ...i, qty: i.qty + 1 } : i)),
       );
     } else {
-      setCart([...cart, { ...menuItem, qty: 1 }]);
+      setCart([
+        ...cart,
+        {
+          ...menuItem,
+          qty: 1,
+          note: "", // 👈 add item note
+        },
+      ]);
     }
+  };
+
+  const handleItemNoteChange = (itemId, note) => {
+    setCart((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, note } : item)),
+    );
   };
 
   const handleDecrement = (menuItemId) => {
@@ -202,6 +216,7 @@ export default function DeliveryOrderForm() {
           : { menu_item: item.id }),
 
         quantity: item.qty,
+        description: item.note,
       })),
     };
 
@@ -402,7 +417,7 @@ export default function DeliveryOrderForm() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-2.5">
                   {group.items.map((item) => {
                     const qty = getCartItemQty(item.id);
                     const isSelected = qty > 0;
@@ -601,9 +616,20 @@ export default function DeliveryOrderForm() {
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {item.name}
                       </p>
+
                       <p className="text-xs text-gray-400 mt-0.5">
                         Afs {parseFloat(item.price).toLocaleString()} each
                       </p>
+
+                      <textarea
+                        placeholder="Item note..."
+                        value={item.note || ""}
+                        onChange={(e) =>
+                          handleItemNoteChange(item.id, e.target.value)
+                        }
+                        className="mt-2 w-full rounded-lg border border-gray-200 px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        rows={2}
+                      />
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0">

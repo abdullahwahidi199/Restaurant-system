@@ -145,13 +145,13 @@ export default function OrdersPage() {
 
       {showCancelToast && (
         <OrderCancellationToast
-          orderId={orderToCancel?.id}
+          orderNumber={orderToCancel?.order_number}
           onClose={() => {
             setShowCancelToast(false);
             setOrderToCancel(null);
           }}
-          onConfirm={async (id) => {
-            await cancelOrder(id);
+          onConfirm={async () => {
+            await cancelOrder(orderToCancel.id);
           }}
         />
       )}
