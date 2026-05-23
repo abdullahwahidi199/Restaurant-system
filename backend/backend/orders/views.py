@@ -338,7 +338,7 @@ def kitchen_orders(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    ACTIVE_STATUSES = ["pending", "approved", "in_progress", "ready"]
+    ACTIVE_STATUSES = ["pending", "approved", "in_progress"]
 
     active_items = OrderItem.objects.filter(
         order=OuterRef("pk"),

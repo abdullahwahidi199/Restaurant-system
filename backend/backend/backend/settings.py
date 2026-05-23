@@ -27,14 +27,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     '185.197.249.94',
+    'pakhlai.com',
+    'www.pakhlai.com',
 'localhost',
     '127.0.0.1',
-    '10.10.10.247',
-    'restaurant-backend-baqe.onrender.com',
 ]   
 
 
@@ -113,26 +113,26 @@ CHANNEL_LAYERS = {
         },
     },
 }
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rms_db',
-        'USER':'rms_user',
-        'PASSWORD':'AbdullahWahidi123',
-        'HOST':'localhost',
-        'PORT':'5432'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'rms_db',
+#         'USER':'rms_user',
+#         'PASSWORD':'AbdullahWahidi123',
+#         'HOST':'localhost',
+#         'PORT':'5432'
+#     }
+# }
 
 RATELIMIT_IP_META_KEY = "HTTP_X_REAL_IP"
 
 BASE_URL = "http://185.197.249.94"
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 from datetime import timedelta
@@ -203,5 +203,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://your-domain.com"
+    "https://pakhlai.com",
+    "https://www.pakhlai.com"
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
