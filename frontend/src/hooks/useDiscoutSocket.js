@@ -13,6 +13,7 @@ export default function useDiscountSocket(onMessage) {
 
     const socket = new WebSocket(
       `wss://pakhlai.com/ws/discounts/${restaurantId}/`,
+      // `ws://127.0.0.1:8000/ws/discounts/${restaurantId}/`,
     );
 
     socketRef.current = socket;
