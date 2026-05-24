@@ -59,6 +59,9 @@ class IsRestaurantAdmin(HasStaffRole):
 class IsManager(HasStaffRole):
     allowed_roles = ["Manager"]
 
+class IsCallOperator(HasStaffRole):
+    allowed_roles = ["Call_operator"]
+
 class IsCashier(HasStaffRole):
     allowed_roles = ["Cashier"]
 

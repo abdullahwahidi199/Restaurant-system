@@ -53,7 +53,12 @@ def broadcast_order(order):
     )
 
 def broadcast_table(table):
-    table=Table.objects.prefetch_related("orders__items__menu_item").get(pk=table.pk)
+    if not table:
+        return
+
+    table = Table.objects.prefetch_related(
+        "orders__items__menu_item"
+    ).get(pk=table.pk)
     serialized = make_json_safe(
     TableSerializer(table).data
 )
@@ -70,16 +75,18 @@ def broadcast_table(table):
             },
         }
     )
-
 @receiver(post_save, sender=OrderItem)
 def order_item_updated(sender, instance, **kwargs):
     broadcast_order(instance.order)
-    broadcast_table(instance.order.table)
 
+    if instance.order.table:
+        broadcast_table(instance.order.table)
 @receiver(post_delete, sender=OrderItem)
 def order_item_deleted(sender, instance, **kwargs):
     broadcast_order(instance.order)
-    broadcast_table(instance.order.table)
+
+    if instance.order.table:
+        broadcast_table(instance.order.table)
 @receiver(post_delete, sender=Order)
 def order_post_delete(sender, instance, **kwargs):
     broadcast_order( instance)

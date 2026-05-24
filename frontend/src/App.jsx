@@ -214,6 +214,16 @@ function App() {
           }
         />
         <Route
+          path="call-operator"
+          element={
+            <RequireAuth allowedRoles={["Call_operator"]}>
+              <RequireActiveRestaurant>
+                <DeliveryOrderForm />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        />
+        <Route
           path="cashier/takeaway"
           element={
             <RequireAuth allowedRoles={["Cashier"]}>

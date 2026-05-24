@@ -25,6 +25,7 @@ class Staff(models.Model):
         ('Admin','Admin'),
         ('Manager','Manager'),
         ('Cashier','Cashier'),
+        ('Call_operator','Call Operator'),
         ('Waiter','Waiter'),
         ('Kitchen_manager','Kitchen Manager'),
         ('DeliveryBoy','Delivery Boy'),

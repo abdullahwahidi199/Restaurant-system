@@ -256,6 +256,7 @@ export default function StaffFormModal({
                   </option>
                   <option value="Kitchen_manager">Kitchen Manager</option>
                   <option value="Cashier">{t("staff.roles.cashier")}</option>
+                  <option value="Call_operator">Call Operator</option>
                   <option value="Waiter">{t("staff.roles.waiter")}</option>
                   <option value="DeliveryBoy">
                     {t("staff.roles.delivery")}

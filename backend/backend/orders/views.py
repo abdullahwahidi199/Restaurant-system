@@ -17,7 +17,7 @@ from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item
 from rest_framework.pagination import PageNumberPagination
-from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin
+from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin,IsCallOperator
 from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive,IsManager
 from rest_framework.exceptions import NotFound
 from django.utils import timezone
@@ -233,7 +233,7 @@ def change_order_table(request, pk):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated,IsManager| IsCashier | IsRestaurantAdmin,IsRestaurantActive])
+@permission_classes([IsAuthenticated,IsManager| IsCashier |IsCallOperator| IsRestaurantAdmin,IsRestaurantActive])
 def reservation_list_create(request):
     restaurant = get_restaurant_from_user(request)
 
@@ -338,7 +338,7 @@ def kitchen_orders(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    ACTIVE_STATUSES = ["pending", "approved", "in_progress"]
+    ACTIVE_STATUSES = ["pending", "approved", "in_progress","ready"]
 
     active_items = OrderItem.objects.filter(
         order=OuterRef("pk"),
@@ -644,22 +644,52 @@ def update_order_item_status(request, pk):
             status=400
         )
 
-  
     if item.status == "cancelled":
         return Response(
             {
-                "error":
-                "Cancelled items cannot be changed"
+                "error": "Cancelled items cannot be changed"
             },
             status=400
         )
 
     item.status = new_status
-
     item.save(update_fields=["status"])
 
+    # =========================================
+    # AUTO UPDATE ORDER STATUS
+    # =========================================
+
+    order = item.order
+
+    active_items = order.items.exclude(status="cancelled")
+
+    total_items = active_items.count()
+
+    approved_count = active_items.filter(
+        status__in=["approved", "ready"]
+    ).count()
+
+    ready_count = active_items.filter(
+        status="ready"
+    ).count()
+
+    # If ALL active items are ready
+    if total_items > 0 and ready_count == total_items:
+        order.status = "ready"
+
+    # If ALL active items are approved/ready
+    elif total_items > 0 and approved_count == total_items:
+        order.status = "in_progress"
+
+    # Otherwise keep pending
+    else:
+        order.status = "pending"
+
+    order.save(update_fields=["status"])
+
     return Response({
-        "message": f"Item marked as {new_status}"
+        "message": f"Item marked as {new_status}",
+        "order_status": order.status
     })
 
 
