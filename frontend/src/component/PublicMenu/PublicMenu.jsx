@@ -15,8 +15,6 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import MenuItemDetails from "./MenuItemDetails";
-import rmsLogo from "../../assets/images/rmsLogo.png";
-import rmsFavicon from "../../assets/images/rmsFavicon.png";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
@@ -254,7 +252,7 @@ export default function PublicMenu() {
                 {/* Favicon badge */}
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br  flex items-center justify-center shadow-md">
                   <img
-                    src={rmsFavicon}
+                    src="/rmsFavicon.png"
                     alt="favicon"
                     className="w-8 h-8 object-contain"
                   />
@@ -264,7 +262,7 @@ export default function PublicMenu() {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <img
-                      src={rmsLogo}
+                      src="/rmsLogo.png"
                       alt="logo"
                       className="h-8 w-auto object-contain"
                     />

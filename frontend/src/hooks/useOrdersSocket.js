@@ -12,8 +12,8 @@ export default function useOrdersSocket(onMessage) {
     if (socketRef.current) return; // prevent duplicate connections
 
     const socket = new WebSocket(
-      // `wss://pakhlai.com/ws/orders/${restaurantId}/`,
-      `ws://127.0.0.1:8000/ws/orders/${restaurantId}/`,
+      `wss://pakhlai.com/ws/orders/${restaurantId}/`,
+      // `ws://127.0.0.1:8000/ws/orders/${restaurantId}/`,
     );
 
     socketRef.current = socket;

@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { UtensilsCrossed, ArrowRight, ExternalLink } from "lucide-react";
-import rmsFavicon from "./assets/images/rmsFavicon.png";
-import rmsLogo from "./assets/images/rmsLogo.png";
-
 export default function SystemLanding() {
   const [slug, setSlug] = useState("");
   const navigate = useNavigate();
@@ -24,7 +21,7 @@ export default function SystemLanding() {
             {/* Favicon */}
             <div className="w-12 h-12 flex items-center justify-center shrink-0">
               <img
-                src={rmsFavicon}
+                src="/rmsFavicon.png"
                 alt="Pakhlai favicon"
                 className="w-full h-full object-contain"
               />
@@ -32,7 +29,7 @@ export default function SystemLanding() {
 
             <div className="flex flex-col justify-center">
               <img
-                src={rmsLogo}
+                src="/rmsLogo.png"
                 alt="Pakhlai logo"
                 className="h-10 w-auto object-contain"
               />
@@ -48,7 +45,7 @@ export default function SystemLanding() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-lg w-full text-center">
           <div className="mx-auto mb-10 w-30 h-32 bg-white rounded-3xl shadow-xl shadow-orange-100 flex items-center justify-center border border-orange-100">
-            <img src={rmsFavicon} alt="" />
+            <img src="/rmsFavicon.png" alt="" />
           </div>
 
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tighter text-gray-900 mb-6">
