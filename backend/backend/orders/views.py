@@ -338,7 +338,7 @@ def kitchen_orders(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    ACTIVE_STATUSES = ["pending", "approved", "in_progress","ready"]
+    ACTIVE_STATUSES = ["pending", "approved", "in_progress"]
 
     active_items = OrderItem.objects.filter(
         order=OuterRef("pk"),
@@ -350,7 +350,7 @@ def kitchen_orders(request):
             restaurant=restaurant,
             order_type__in=["dine-in", "takeaway", "delivery"],
         )
-        .exclude(status__in=["completed", "cancelled"])  # 🔥 KEY FIX
+        .exclude(status__in=["completed", "cancelled","delivered"]) 
         .annotate(has_active_items=Exists(active_items))
         .filter(has_active_items=True)
         .select_related("table")
@@ -673,8 +673,15 @@ def update_order_item_status(request, pk):
         status="ready"
     ).count()
 
+    # 🚫 DO NOT CHANGE ORDER IF ALREADY SERVED
+    if order.status == "served":
+        return Response({
+            "message": "Order already served, status cannot be changed",
+            "order_status": order.status
+        })
+
     # If ALL active items are ready
-    if total_items > 0 and ready_count == total_items:
+    if total_items > 0 and ready_count == total_items :
         order.status = "ready"
 
     # If ALL active items are approved/ready

@@ -22,6 +22,7 @@ export default function Info() {
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
   const BASE_URL = import.meta.env.VITE_API_URL;
+  const MEDIA_URL = import.meta.env.VITE_MEDIA_URL;
   const { slug } = useParams();
 
   useEffect(() => {
@@ -64,52 +65,52 @@ export default function Info() {
       <div className="max-w-3xl bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-8">
         <div className="flex flex-col items-center mb-6">
           <img
-            src={restaurantInfo.logo}
+            src={`${MEDIA_URL}${restaurantInfo?.logo}`}
             alt="Logo"
-            className="w-24 h-24 rounded-full border-2 border-gray-300 object-cover mb-3"
+            className="h-18 w-auto object-contain mb-3"
           />
           <h1 className="text-3xl font-bold text-red-600">
-            {restaurantInfo.name}
+            {restaurantInfo?.name}
           </h1>
         </div>
 
         <p className="text-gray-600 dark:text-gray-300 text-center mb-8">
-          {t("info.description", { name: restaurantInfo.name })}
+          {t("info.description", { name: restaurantInfo?.name })}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <InfoItem
             icon={<MapPin />}
             label={t("info.address")}
-            value={restaurantInfo.address}
+            value={restaurantInfo?.address}
           />
 
           <InfoItem
             icon={<Phone />}
             label={t("info.phone")}
-            value={restaurantInfo.phone}
+            value={restaurantInfo?.phone}
           />
 
           <InfoItem
             icon={<Mail />}
             label={t("info.email")}
-            value={restaurantInfo.email}
+            value={restaurantInfo?.email}
           />
           <InfoItem
             icon={<Clock />}
             label={t("info.hours")}
-            value={`${restaurantInfo.opening_hours} Hours`}
+            value={`${restaurantInfo?.opening_hours} Hours`}
           />
 
           <InfoItem
             icon={<Globe />}
             label={t("info.website")}
-            value={restaurantInfo.website}
+            value={restaurantInfo?.website}
             isLink
           />
           <InfoItem
             icon={
-              restaurantInfo.delivery_available ? (
+              restaurantInfo?.delivery_available ? (
                 <CheckCircle className="text-green-500" />
               ) : (
                 <XCircle className="text-red-500" />
@@ -117,30 +118,30 @@ export default function Info() {
             }
             label={t("info.delivery")}
             value={
-              restaurantInfo.delivery_available ? t("info.yes") : t("info.no")
+              restaurantInfo?.delivery_available ? t("info.yes") : t("info.no")
             }
           />
         </div>
 
         <div className="flex justify-center gap-6 mt-8">
-          {restaurantInfo.facebook && (
+          {restaurantInfo?.facebook && (
             <SocialIcon
-              href={restaurantInfo.facebook}
+              href={restaurantInfo?.facebook}
               icon={<Facebook className="w-6 h-6 text-blue-400" />}
               hoverColor="hover:bg-gradient-to-tr text-white from-blue-500 via-blue-600 to-blue-800 "
             />
           )}
-          {restaurantInfo.instagram && (
+          {restaurantInfo?.instagram && (
             <SocialIcon
-              href={restaurantInfo.instagram}
+              href={restaurantInfo?.instagram}
               icon={<Instagram className="w-6 h-6 text-pink-300" />}
               hoverColor="hover:bg-gradient-to-tr text-white from-pink-600 via-red-500 to-yellow-500"
             />
           )}
 
-          {restaurantInfo.x && (
+          {restaurantInfo?.x && (
             <SocialIcon
-              href={restaurantInfo.twitter}
+              href={restaurantInfo?.twitter}
               icon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

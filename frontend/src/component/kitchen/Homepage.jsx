@@ -7,6 +7,7 @@ import useOrdersSocket from "../../hooks/useOrdersSocket";
 import { AuthContext } from "../../api/authforRBC";
 import OrderDetailSidebar from "./OrderDetailSidebar";
 import CompactOrderCard from "./CompactOrderCard";
+import { Search, UtensilsCrossed, Package } from "lucide-react";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
@@ -14,10 +15,6 @@ export default function KitchenHomepage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [resName, setResName] = useState(null);
-  const [resLogo, setResLogo] = useState(null);
-  const [resAdd, setResAdd] = useState(null);
-  const [resPhone, setResPhone] = useState(null);
 
   const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
   const [activeStatusTab, setActiveStatusTab] = useState("all");
@@ -28,7 +25,6 @@ export default function KitchenHomepage() {
       setLoading(true);
       const res = await instance.get("/orders/kitchen-orders/", {
         params: {
-          // order_type: activeTypeTab,
           status: activeStatusTab,
           search: search || undefined,
         },
@@ -62,7 +58,6 @@ export default function KitchenHomepage() {
 
   const filteredOrders = orders.filter((order) => {
     const query = search.toLowerCase();
-
     return (
       order.name?.toLowerCase().includes(query) ||
       order.tableName?.toLowerCase().includes(query) ||
@@ -113,30 +108,11 @@ export default function KitchenHomepage() {
 
   useEffect(() => {
     if (!selectedOrder) return;
-
     const updatedSelectedOrder = orders.find((o) => o.id === selectedOrder.id);
-
     if (updatedSelectedOrder) {
       setSelectedOrder(updatedSelectedOrder);
     }
   }, [orders]);
-
-  const typeTabs = [
-    { key: "dine-in", label: "🍽️ Dine-In" },
-    { key: "takeaway", label: "🥡 Takeaway" },
-    { key: "delivery", label: "🚚 Delivery" },
-  ];
-
-  const statusTabs = [
-    { key: "all", label: "All" },
-    { key: "pending", label: "Pending" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "ready", label: "Ready" },
-  ];
-
-  const hasPendingOrders = (type) => {
-    return pendingOrders.some((order) => order.order_type === type);
-  };
 
   const dineInOrders = filteredOrders.filter(
     (order) => order.order_type === "dine-in",
@@ -146,43 +122,82 @@ export default function KitchenHomepage() {
       order.order_type === "takeaway" || order.order_type === "delivery",
   );
 
-  if (loading)
-    return <p className="text-center py-6 text-gray-500">Loading orders...</p>;
+  // ✅ Count new items per section for badges
+  const hasNewItems = (order) =>
+    order.items?.some(
+      (i) =>
+        i.is_new === true &&
+        (i.status === "pending" || i.status === "approved"),
+    );
 
-  if (error) return <p>{error}</p>;
+  const dineInNewCount = dineInOrders.filter(hasNewItems).length;
+  const takeawayNewCount = takeawayDeliveryOrders.filter(hasNewItems).length;
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500">Loading orders...</p>
+        </div>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="flex items-center justify-center h-screen text-red-600">
+        {error}
+      </div>
+    );
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Main Content Area */}
       <div
-        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${selectedOrder ? "mr-96" : ""}`}
+        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+          selectedOrder ? "mr-96" : ""
+        }`}
       >
-        {/* Header & Filters */}
+        {/* Header & Search */}
         <div className="p-4 border-b bg-white shadow-sm">
-          <div className="max-w-full mx-auto space-y-4">
+          <div className="max-w-full mx-auto">
             <div className="flex justify-center">
-              <input
-                type="text"
-                placeholder="Search customer or order number or table..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full sm:w-96 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative w-full sm:w-96">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search customer, order # or table..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Split Screen - Two Equal Sections */}
+        {/* Split Screen */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Dine-In Section - Top 50% */}
-          <div className="flex-1 flex flex-col min-h-0 border-b border-gray-200">
-            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 sticky top-0 z-10">
-              <h2 className="text-xl font-bold text-gray-800">🍽️ Dine-In</h2>
-              <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                {dineInOrders.length}
-              </span>
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200 sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed size={20} className="text-blue-600" />
+                <h2 className="text-lg font-bold text-gray-800">Dine-In</h2>
+                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  {dineInOrders.length}
+                </span>
+                {dineInNewCount > 0 && (
+                  <span className="bg-orange-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full animate-pulse">
+                    {dineInNewCount} new
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4">
+            <div className="flex-1 overflow-y-auto">
               {dineInOrders.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">
                   No dine-in orders found.
@@ -202,17 +217,31 @@ export default function KitchenHomepage() {
             </div>
           </div>
 
+          {/* 🔥 CLEAR VISIBLE DIVIDER */}
+          <div className="relative h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-md flex-shrink-0">
+            <div className="absolute inset-x-0 -top-px h-px bg-white/40"></div>
+            <div className="absolute inset-x-0 -bottom-px h-px bg-black/10"></div>
+          </div>
+
           {/* Takeaway & Delivery Section - Bottom 50% */}
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 sticky top-0 z-10">
-              <h2 className="text-xl font-bold text-gray-800">
-                🥡 Takeaway & 🚚 Delivery
-              </h2>
-              <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                {takeawayDeliveryOrders.length}
-              </span>
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200 sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                <Package size={20} className="text-purple-600" />
+                <h2 className="text-lg font-bold text-gray-800">
+                  Takeaway & Delivery
+                </h2>
+                <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                  {takeawayDeliveryOrders.length}
+                </span>
+                {takeawayNewCount > 0 && (
+                  <span className="bg-orange-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full animate-pulse">
+                    {takeawayNewCount} new
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4">
+            <div className="flex-1 overflow-y-auto">
               {takeawayDeliveryOrders.length === 0 ? (
                 <p className="text-gray-400 text-center py-8">
                   No takeaway or delivery orders found.
@@ -234,7 +263,7 @@ export default function KitchenHomepage() {
         </div>
       </div>
 
-      {/* Right Sidebar - Full Order Details */}
+      {/* Right Sidebar */}
       {selectedOrder && (
         <OrderDetailSidebar
           order={selectedOrder}

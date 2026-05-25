@@ -48,9 +48,14 @@ export default function Header({ restaurantInfo }) {
   };
 
   const navLinks = [
-    { name: t("nav.faqs"), path: `/${slug}/faqs` },
+    // { name: t("nav.faqs"), path: `/${slug}/faqs` },
     { name: t("nav.info"), path: `/${slug}/info` },
   ];
+
+  const formatRestaurantName = (name) => {
+    if (!name) return "";
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  };
 
   return (
     <header
@@ -64,16 +69,21 @@ export default function Header({ restaurantInfo }) {
           }`}
           onClick={() => navigate("/")}
         >
-          {restaurantInfo && (
-            <img
-              src={`${BASE_URL}${restaurantInfo.logo}`}
-              alt="logo"
-              className="w-12 h-12 rounded-full border-2 border-white object-cover shadow-md"
-            />
-          )}
-          <h2 className="text-2xl font-bold text-red-500 hover:text-red-600 transition">
-            {restaurantInfo?.name}
-          </h2>
+          <div className="flex items-center gap-3 cursor-pointer">
+            {restaurantInfo && (
+              <img
+                src={`${BASE_URL}${restaurantInfo.logo}`}
+                alt="logo"
+                className="h-10 w-auto object-contain"
+              />
+            )}
+
+            <div className="flex flex-col justify-center">
+              <h2 className="text-2xl font-bold text-red-500 hover:text-red-600 leading-none transition">
+                {formatRestaurantName(restaurantInfo?.name)}
+              </h2>
+            </div>
+          </div>
         </div>
         <LanguageSwitcher />
 

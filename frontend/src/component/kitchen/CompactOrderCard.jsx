@@ -1,4 +1,4 @@
-import { Clock, User, Phone, MapPin } from "lucide-react";
+import { Clock, User, Phone, MapPin, Bell } from "lucide-react";
 
 export default function CompactOrderCard({ order, isSelected, onClick }) {
   const statusColors = {
@@ -6,6 +6,7 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
     in_progress: "bg-blue-100 text-blue-800",
     ready: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
+    approved: "bg-purple-100 text-purple-800",
   };
 
   const getOrderTitle = () => {
@@ -20,24 +21,33 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
   };
 
   const pendingCount = order.items.filter(
-    (item) => item.status === "pending",
+    (item) => item.status === "pending" && item.is_new === true,
   ).length;
+
+  // ✅ Check for new items with status pending or approved
+  const newItems = order.items.filter(
+    (item) =>
+      item.is_new === true &&
+      (item.status === "pending" || item.status === "approved"),
+  );
+  const hasNewItems = newItems.length > 0;
 
   return (
     <div
       onClick={onClick}
       className={`
-        grid grid-cols-12 gap-2 items-center px-4 py-2 border-b cursor-pointer transition-all duration-200 text-sm
+        relative grid grid-cols-12 gap-2 items-center px-4 py-2 border-b cursor-pointer transition-all duration-200 text-sm
         ${
           isSelected
             ? "bg-blue-50 border-l-4 border-l-blue-500"
-            : "bg-white hover:bg-gray-50"
+            : hasNewItems
+              ? "bg-orange-50 border-l-4 border-l-orange-500 animate-pulse-subtle"
+              : "bg-white hover:bg-gray-50"
         }
       `}
     >
       <div className="col-span-2 text-gray-700 truncate">
         <div className="flex items-center gap-1">
-          {/* <User size={12} className="text-gray-400" /> */}
           <span>order #{order.order_number}</span>
         </div>
       </div>
@@ -48,7 +58,7 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
       </div>
 
       {/* Order Type / Table */}
-      <div className="col-span-2 font-medium text-gray-900">
+      <div className="col-span-2 font-medium text-gray-900 flex items-center gap-2">
         {getOrderTitle()}
       </div>
 
@@ -60,13 +70,22 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
         </div>
       </div>
 
-      {/* Status & Pending Badge */}
-      <div className="col-span-2 flex items-center justify-end gap-2">
+      {/* Status & Badges */}
+      <div className="col-span-4 flex items-center justify-end gap-2 flex-wrap">
+        {/* 🔔 New Item Indicator */}
+        {hasNewItems && (
+          <span className="flex items-center gap-1 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-semibold shadow-sm animate-pulse">
+            <Bell size={12} />
+            {newItems.length} New Item{newItems.length > 1 ? "s" : ""}
+          </span>
+        )}
+
         <span
           className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[order.status]}`}
         >
           {order.status.replace("_", " ")}
         </span>
+
         {pendingCount > 0 && (
           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
             {pendingCount} pending

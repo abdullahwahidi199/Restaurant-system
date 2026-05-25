@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import MenuItemDetails from "./MenuItemDetails";
+import rmsLogo from "../../assets/images/rmsLogo.png";
+import rmsFavicon from "../../assets/images/rmsFavicon.png";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
@@ -248,12 +250,30 @@ export default function PublicMenu() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-                <MenuIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold">Our Menu</h1>
-                <p className="text-xs text-gray-500">{slug?.toUpperCase()}</p>
+              <div className="flex items-center gap-2">
+                {/* Favicon badge */}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br  flex items-center justify-center shadow-md">
+                  <img
+                    src={rmsFavicon}
+                    alt="favicon"
+                    className="w-8 h-8 object-contain"
+                  />
+                </div>
+
+                {/* Brand + name */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={rmsLogo}
+                      alt="logo"
+                      className="h-8 w-auto object-contain"
+                    />
+
+                    <span className="text-lg font-bold  tracking-wide">
+                      {slug?.charAt(0).toUpperCase() + slug?.slice(1)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
