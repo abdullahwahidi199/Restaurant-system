@@ -673,22 +673,18 @@ def update_order_item_status(request, pk):
         status="ready"
     ).count()
 
-    # 🚫 DO NOT CHANGE ORDER IF ALREADY SERVED
-    if order.status == "served":
-        return Response({
-            "message": "Order already served, status cannot be changed",
-            "order_status": order.status
-        })
+    
 
-    # If ALL active items are ready
-    if total_items > 0 and ready_count == total_items :
+    
+    if total_items == 0:
+        order.status = "cancelled"
+
+    if total_items > 0 and ready_count == total_items:
         order.status = "ready"
 
-    # If ALL active items are approved/ready
-    elif total_items > 0 and approved_count == total_items:
+    elif approved_count > 0:
         order.status = "in_progress"
 
-    # Otherwise keep pending
     else:
         order.status = "pending"
 
