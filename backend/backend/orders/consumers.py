@@ -30,10 +30,17 @@ class OrdersConsumer(AsyncWebsocketConsumer):
             self.group_name,
             self.channel_name
         )
+        print(f"🔌 DISCONNECTED code={close_code}")
 
     async def receive(self, text_data):
         data = json.loads(text_data)
 
+        # 💓 Handle ping → reply pong
+        if data.get("type") == "ping":
+            await self.send(text_data=json.dumps({"type": "pong"}))
+            return
+
+        # Normal message → broadcast
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -47,7 +54,6 @@ class OrdersConsumer(AsyncWebsocketConsumer):
 
     async def table_message(self, event):
         await self.send(text_data=json.dumps(event["message"]))
-
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
