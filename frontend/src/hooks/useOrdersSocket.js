@@ -31,7 +31,7 @@
 //   }, [restaurantId, onMessage]);
 // }
 
-import { useContext, useEffect, useRef, useCallback } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { AuthContext } from "../api/authforRBC";
 
 export default function useOrdersSocket(onMessage) {
@@ -39,18 +39,24 @@ export default function useOrdersSocket(onMessage) {
   const restaurantId = auth?.user?.restaurant_id;
   const socketRef = useRef(null);
   const reconnectTimerRef = useRef(null);
+  const heartbeatRef = useRef(null);
   const retryCountRef = useRef(0);
-  const maxRetries = 10;
-  const heartbeatIntervalRef = useRef(null);
+  const isCleanedUp = useRef(false);
 
-  const connect = useCallback(() => {
-    // 🔥 Kill dead socket FIRST
+  // ✅ Stable connect — NO useCallback, NO dependency array issues
+  const connect = () => {
+    if (isCleanedUp.current) return;
+    if (!restaurantId) return;
+
+    // Kill previous dead socket
     if (socketRef.current) {
+      socketRef.current.onclose = null;
+      socketRef.current.onerror = null;
       socketRef.current.close();
       socketRef.current = null;
     }
 
-    if (!restaurantId) return;
+    console.log("🔗 Connecting to WS...");
 
     const socket = new WebSocket(
       `wss://pakhlai.com/ws/orders/${restaurantId}/`,
@@ -59,20 +65,20 @@ export default function useOrdersSocket(onMessage) {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("✅ WS CONNECTED");
-      retryCountRef.current = 0; // reset on success
+      console.log("✅ WS OPEN");
+      retryCountRef.current = 0;
 
-      // 💓 Heartbeat every 25s (beats typical 30s proxy timeout)
-      heartbeatIntervalRef.current = setInterval(() => {
+      // Heartbeat every 20s
+      heartbeatRef.current = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: "ping" }));
         }
-      }, 25000);
+      }, 20000);
     };
 
     socket.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      if (data.type === "pong") return; // ignore pong
+      if (data.type === "pong") return;
       onMessage(data);
     };
 
@@ -80,54 +86,53 @@ export default function useOrdersSocket(onMessage) {
       console.error("❌ WS ERROR", e);
     };
 
-    // 🔑 THIS IS THE KEY — detect dead connection
     socket.onclose = (e) => {
-      console.log(`🔌 WS CLOSED code=${e.code} reason=${e.reason}`);
-      clearInterval(heartbeatIntervalRef.current);
+      console.log(`🔌 CLOSED code=${e.code}`);
+      clearInterval(heartbeatRef.current);
+
+      if (isCleanedUp.current) return;
 
       socketRef.current = null;
 
-      // Auto-reconnect with exponential backoff
-      if (retryCountRef.current < maxRetries) {
-        const delay = Math.min(
-          1000 * Math.pow(2, retryCountRef.current),
-          30000,
-        );
-        console.log(
-          `🔄 Reconnecting in ${delay}ms (attempt ${retryCountRef.current + 1})`,
-        );
-        reconnectTimerRef.current = setTimeout(() => {
-          retryCountRef.current++;
-          connect();
-        }, delay);
-      }
+      // ✅ Exponential backoff: 2s, 4s, 8s, 16s, max 30s
+      const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000);
+      console.log(
+        `⏳ Reconnect in ${delay}ms (attempt ${retryCountRef.current + 1})`,
+      );
+
+      reconnectTimerRef.current = setTimeout(() => {
+        retryCountRef.current++;
+        connect();
+      }, delay);
     };
-  }, [restaurantId, onMessage]);
+  };
 
   useEffect(() => {
+    isCleanedUp.current = false;
     connect();
 
-    // 🔥 Visibility API: reconnect when user comes back to tab
-    const handleVisibility = () => {
+    // Tab visibility reconnect
+    const handler = () => {
       if (
         document.visibilityState === "visible" &&
         (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN)
       ) {
-        console.log("👁 Tab visible — forcing reconnect");
+        console.log("👁 Visible — reconnect");
         retryCountRef.current = 0;
         connect();
       }
     };
-    document.addEventListener("visibilitychange", handleVisibility);
+    document.addEventListener("visibilitychange", handler);
 
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
+      isCleanedUp.current = true;
+      document.removeEventListener("visibilitychange", handler);
       clearTimeout(reconnectTimerRef.current);
-      clearInterval(heartbeatIntervalRef.current);
-      if (socketRef.current?.readyState === WebSocket.OPEN) {
+      clearInterval(heartbeatRef.current);
+      if (socketRef.current) {
         socketRef.current.close();
+        socketRef.current = null;
       }
-      socketRef.current = null;
     };
-  }, [connect]);
+  }, [restaurantId]); // ✅ ONLY restaurantId — onMessage passed directly
 }
