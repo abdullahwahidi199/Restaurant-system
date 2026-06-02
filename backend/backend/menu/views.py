@@ -397,6 +397,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from django.utils import timezone
 from io import BytesIO
+from django.db.models import Q
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -523,11 +524,26 @@ class MenuPrintView(APIView):
 
             # Apply mode filter
             if mode == "available":
-                menu_items = menu_items.filter(final_availability=True)
-                platters = platters.filter(final_availability=True)
+                menu_items = menu_items.filter(
+        is_available=True,
+        is_manually_available=True,
+    )
+                platters = platters.filter(
+                    is_available=True,
+        is_manually_available=True,
+                )
+            
+
             elif mode == "unavailable":
-                menu_items = menu_items.filter(final_availability=False)
-                platters = platters.filter(final_availability=False)
+                menu_items = menu_items.filter(
+                    Q(is_available=False) |
+                    Q(is_manually_available=False)
+                )
+
+                platters = platters.filter(
+                    Q(is_available=False) |
+                    Q(is_manually_available=False)
+                )
             if not menu_items.exists() and not platters.exists():
                 continue
 

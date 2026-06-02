@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { toast } from "react-hot-toast";
 import DiscountRequestModal from "./DiscountRequestModal";
+import OrderEditModal from "./OrderEditModal";
+import OrderCancellationToast from "../../OrderCancellationToast";
 
 const OrderCard = ({
   order = {},
@@ -12,9 +14,18 @@ const OrderCard = ({
 }) => {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   // console.log(order);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const items = order.items || [];
-  console.log(order);
+  const canEditOrder = () => {
+    const t = (order.order_type || "").toLowerCase();
+    return ["takeaway", "delivery"].includes(t);
+  };
 
+  const canCancelOrder = () => {
+    const t = (order.order_type || "").toLowerCase();
+    return ["takeaway", "delivery"].includes(t) && order.status === "pending";
+  };
   const getQty = (it) => it.qty ?? it.quantity ?? 0;
   console.log(order);
 
@@ -125,6 +136,24 @@ const OrderCard = ({
     }
   };
 
+  const cancelOrder = async () => {
+    if (order.status !== "pending") {
+      toast.error("Only pending orders can be cancelled");
+      return;
+    }
+
+    try {
+      await instance.patch(`/orders/${order.id}/cancel/`);
+
+      toast.success("Order cancelled successfully");
+
+      setShowCancelConfirm(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to cancel order");
+    }
+  };
+
   return (
     <>
       <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition-all">
@@ -186,6 +215,14 @@ const OrderCard = ({
             >
               View
             </button>
+            {canEditOrder() && order.status !== "completed" && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+              >
+                Edit
+              </button>
+            )}
             {order.status !== "in_progress" && order.status !== "pending" && (
               <button
                 onClick={() => handlePrint(order)}
@@ -240,6 +277,14 @@ const OrderCard = ({
                   )}
                 </>
               )}
+            {canCancelOrder() && (
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
+              >
+                Cancel
+              </button>
+            )}
 
             {order.status !== "completed" &&
               order.order_type !== "delivery" &&
@@ -313,6 +358,22 @@ const OrderCard = ({
             //   onViewDetails(order);
             // }
           }}
+        />
+      )}
+
+      {showEditModal && (
+        <OrderEditModal
+          order={order}
+          onClose={() => setShowEditModal(false)}
+          // refetchOrders={refetchOrders}
+        />
+      )}
+
+      {showCancelConfirm && (
+        <OrderCancellationToast
+          onConfirm={cancelOrder}
+          onClose={() => setShowCancelConfirm(false)}
+          orderNumber={order.order_number}
         />
       )}
     </>

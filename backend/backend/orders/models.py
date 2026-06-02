@@ -193,7 +193,7 @@ class Order(models.Model):
     order_number=models.PositiveIntegerField(null=True,
     blank=True)
     customer = models.ForeignKey(
-        'customers.Customer', on_delete=models.CASCADE,
+        'customers.Customer', on_delete=models.SET_NULL,
         related_name='orders', null=True, blank=True
     )
     restaurant = models.ForeignKey(
@@ -418,6 +418,7 @@ class OrderItem(models.Model):
 
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
+    is_printed_to_kitchen=models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
     def clean(self):

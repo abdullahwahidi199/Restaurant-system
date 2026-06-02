@@ -209,7 +209,7 @@ export default function AddItemToOrderModal({
     try {
       await instance.patch(`/orders/orders/${orderId}/add-items/`, payload);
       toast.success("Items added successfully!");
-      refetchTables();
+      await refetchTables?.();
       onClose();
     } catch (err) {
       console.error(err);

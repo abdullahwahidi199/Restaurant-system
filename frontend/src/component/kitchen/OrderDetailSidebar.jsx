@@ -12,7 +12,8 @@ import instance from "../../api/axiosInstance";
 import OrderItem from "./OrderItem";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
 
-export default function OrderDetailSidebar({ order, onClose }) {
+export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
+  const [printMode, setPrintMode] = useState("new"); // "new" or "all"
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [time, setTime] = useState(0);
@@ -203,12 +204,23 @@ export default function OrderDetailSidebar({ order, onClose }) {
             </button>
           )}
 
-          <button
-            onClick={() => setShowPrint(true)}
-            className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-          >
-            Print Bill
-          </button>
+          <div className="space-y-2">
+            <select
+              value={printMode}
+              onChange={(e) => setPrintMode(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="new">Unprinted Items</option>
+              <option value="all">Reprint Full Order</option>
+            </select>
+
+            <button
+              onClick={() => setShowPrint(true)}
+              className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+            >
+              Print Bill
+            </button>
+          </div>
 
           {order.status === "in_progress" && (
             <button
@@ -229,6 +241,8 @@ export default function OrderDetailSidebar({ order, onClose }) {
         <KitchenBillPrintModal
           order={order}
           onClose={() => setShowPrint(false)}
+          onOrderPrinted={onOrderPrinted}
+          printMode={printMode}
         />
       )}
     </div>

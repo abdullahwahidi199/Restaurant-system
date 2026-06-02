@@ -17,12 +17,10 @@ from restaurants.models import Restaurant
 from django.shortcuts import get_object_or_404
 from restaurants.models import Restaurant
 
-def get_customer_by_slug(request, slug):
-    restaurant = get_object_or_404(Restaurant, slug=slug)
+def get_customer_by_slug(request):
 
     customer = Customer.objects.filter(
-        user=request.user,
-        restaurant=restaurant
+        user=request.user
     ).first()
 
     return customer
@@ -48,8 +46,8 @@ def get_restaurant_from_user(request):
 class CustomerProfileView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    def get(self, request, slug):
-        customer = get_customer_by_slug(request, slug)
+    def get(self, request):
+        customer = get_customer_by_slug(request)
 
         if not customer:
             return Response(
@@ -63,8 +61,8 @@ class CustomerProfileView(APIView):
 class CustomerOrdersView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, slug):
-        customer = get_customer_by_slug(request, slug)
+    def get(self, request):
+        customer = get_customer_by_slug(request)
 
         if not customer:
             return Response({"error": "Access denied"}, status=403)
@@ -75,6 +73,7 @@ class CustomerOrdersView(APIView):
             {
                 "id": order.id,
                 "order_type": order.order_type,
+                "restaurant": order.restaurant.name if order.restaurant else None,
                 "status": order.status,
                 "total": order.get_total(),
                 "created_at": order.created_at,
@@ -121,11 +120,11 @@ class SignupView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, slug):
-        restaurant = get_object_or_404(Restaurant, slug=slug)
+        # restaurant = get_object_or_404(Restaurant, slug=slug)
 
         serializer = CustomerSignupSerializer(
             data=request.data,
-            context={"restaurant": restaurant}
+            
         )
 
         if serializer.is_valid():
@@ -141,8 +140,7 @@ class SignupView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request, slug):
-        restaurant = get_object_or_404(Restaurant, slug=slug)
+    def post(self, request):
 
         serializer = CustomerLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -156,8 +154,7 @@ class LoginView(APIView):
             return Response({"error": "Invalid credentials"}, status=401)
 
         customer = Customer.objects.filter(
-            user=user,
-            restaurant=restaurant
+            user=user
         ).first()
 
         if not customer:
@@ -173,9 +170,7 @@ class LoginView(APIView):
             "access": str(refresh.access_token),
             "customer": {
                 "id": customer.id,
-                "username": user.username,
-                "restaurant": restaurant.name,
-                "slug": restaurant.slug
+                "username": user.username
             }
         })
 
@@ -202,20 +197,19 @@ class CustomerReviewsView(APIView):
         ]
 
         return Response(data)
-@api_view(['GET'])
-def CustomersView(request):
-    if request.method=="GET":
-        staff=request.user.staff_profile
-        restaurant=staff.restaurant
-        customers=Customer.objects.filter(restaurant=restaurant).all().order_by('-joined_at')
+# @api_view(['GET'])
+# def CustomersView(request):
+#     if request.method=="GET":
+#         staff=request.user.staff_profile
+#         customers=Customer.objects.filter().all().order_by('-joined_at')
         
-        customers_from=request.query_params.get('from')
-        to=request.query_params.get('to')
+#         customers_from=request.query_params.get('from')
+#         to=request.query_params.get('to')
 
-        if customers_from and to:
-            customers=customers.filter(joined_at__date__range=[customers_from,to])
+#         if customers_from and to:
+#             customers=customers.filter(joined_at__date__range=[customers_from,to])
 
-        serializer=CustomerProfileSerializer(customers,many=True)
-        return Response(serializer.data)
-    else:
-        return Response("This type of method is not allowed")
+#         serializer=CustomerProfileSerializer(customers,many=True)
+#         return Response(serializer.data)
+#     else:
+#         return Response("This type of method is not allowed")

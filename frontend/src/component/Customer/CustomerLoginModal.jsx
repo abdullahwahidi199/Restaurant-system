@@ -10,8 +10,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { slug } = useParams();
-  console.log("Current slug:", slug); // Debugging line to check slug value
+  // const { slug } = useParams();
   const { t, i18n } = useTranslation();
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
@@ -23,14 +22,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginCustomer(slug, formData);
+      const res = await loginCustomer(formData);
       localStorage.setItem("access_token", res.data.access);
       localStorage.setItem("refresh_token", res.data.refresh);
 
-      const profileRes = await getProfile(slug);
+      const profileRes = await getProfile();
       localStorage.setItem("customer", JSON.stringify(profileRes.data));
 
-      navigate(`/${slug}/`);
+      navigate(`/`);
     } catch (err) {
       setLoading(false);
       setError(t("login.error"));

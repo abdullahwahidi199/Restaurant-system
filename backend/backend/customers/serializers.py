@@ -44,8 +44,6 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
         ]
     def create(self, validated_data):
 
-        restaurant = self.context["restaurant"]
-
         phone=validated_data.pop('phone')
         address=validated_data.pop('address')
         date_of_birth=validated_data.pop('date_of_birth')
@@ -63,7 +61,6 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
             user=user,
             phone=phone,
             address=address,
-            restaurant=restaurant,
             date_of_birth=date_of_birth,
             gender=gender
         )

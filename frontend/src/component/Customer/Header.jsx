@@ -1,220 +1,64 @@
-// src/components/Header.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { logoutCustomer, getProfile } from "../../api/auth";
-import { Menu, X } from "lucide-react"; // burger icons
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./LanguageSwitcher";
 import toast from "react-hot-toast";
 
 export default function Header({ restaurantInfo }) {
-  const [username, setUsername] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { slug } = useParams();
   const isRTL = document.documentElement.dir === "rtl";
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        try {
-          const res = await getProfile(slug);
-          setUsername(res.data.username);
-        } catch (err) {
-          console.error(err);
-          logoutCustomer();
-        }
-      }
-    };
-    fetchUserProfile();
-  }, []);
-
-  const handleOrdersClick = () => {
-    const customer = localStorage.getItem("customer");
-
-    if (customer) {
-      navigate(`/${slug}/orders`);
-    } else {
-      toast("🔒 To unlock this feature, please log in.");
-    }
-  };
   const handleLogout = () => {
     logoutCustomer();
     navigate("/");
     window.location.reload();
   };
 
-  const navLinks = [
-    // { name: t("nav.faqs"), path: `/${slug}/faqs` },
-    { name: t("nav.info"), path: `/${slug}/info` },
-  ];
-
-  const formatRestaurantName = (name) => {
-    if (!name) return "";
-    return name.charAt(0).toUpperCase() + name.slice(1);
-  };
-
   return (
     <header
-      className={`w-full bg-gradient-to-r from-black via-[#111] to-[#1a1a1a] px-6 py-4 shadow-md`}
+      className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Brand Section */}
         <div
-          className={`flex justify-between items-center ${
-            isRTL ? "flex-row-reverse" : ""
-          }`}
+          className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate("/")}
         >
-          <div className="flex items-center gap-3 cursor-pointer">
-            {restaurantInfo && (
+          {restaurantInfo?.logo && (
+            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex-shrink-0">
               <img
                 src={`${BASE_URL}${restaurantInfo.logo}`}
-                alt="logo"
-                className="h-10 w-auto object-contain"
+                alt={restaurantInfo.name}
+                className="w-full h-full object-cover"
               />
-            )}
-
-            <div className="flex flex-col justify-center">
-              <h2 className="text-2xl font-bold text-red-500 hover:text-red-600 leading-none transition">
-                {formatRestaurantName(restaurantInfo?.name)}
-              </h2>
             </div>
+          )}
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">
+              Pahkhlai
+            </span>
+            <h2 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
+              {restaurantInfo?.name || "Restaurant"}
+            </h2>
           </div>
         </div>
-        <LanguageSwitcher />
 
-        <div className={`hidden md:flex items-center gap-8 `}>
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className="text-gray-300 hover:text-white font-medium transition-colors"
-            >
-              {link.name}
-            </Link>
-          ))}
-          <button
-            onClick={handleOrdersClick}
-            className="text-gray-300 hover:text-white font-medium transition-colors"
+        {/* Navigation & Language */}
+        <div className="flex items-center gap-4">
+          <LanguageSwitcher />
+          <Link
+            to={`/${slug}/info`}
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
           >
-            {t("nav.orders")}
-          </button>
-
-          {username ? (
-            <div
-              className={`flex items-center gap-4 ${isRTL ? "flex-row-reverse" : ""}`}
-            >
-              <div
-                className="bg-red-500 text-white rounded-full w-10 h-10 flex justify-center items-center font-bold uppercase cursor-pointer"
-                onClick={() => navigate("/profile")}
-              >
-                {username.slice(0, 2)}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white"
-              >
-                {t("auth.logout")}
-              </button>
-            </div>
-          ) : (
-            <div className={`flex gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-              <Link
-                to={`/${slug}/login`}
-                className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition"
-              >
-                {t("auth.login")}
-              </Link>
-
-              <Link
-                to={`/${slug}/signup`}
-                className="px-4 py-2 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition"
-              >
-                {t("auth.signup")}
-              </Link>
-            </div>
-          )}
+            {t("nav.info")}
+          </Link>
         </div>
-
-        <button
-          className="md:hidden text-white"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <X size={30} /> : <Menu size={30} />}
-        </button>
       </div>
-
-      {menuOpen && (
-        <div
-          className={`md:hidden mt-4 flex flex-col gap-4 bg-[#111] p-4 rounded-lg animate-fadeIn ${
-            isRTL ? "items-end text-right" : ""
-          }`}
-        >
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className="text-gray-300 hover:text-white text-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              {link.name}
-            </Link>
-          ))}
-          <button
-            onClick={() => {
-              handleOrdersClick();
-              setMenuOpen(false);
-            }}
-            className="text-gray-300 hover:text-white text-lg text-left"
-          >
-            {t("nav.orders")}
-          </button>
-
-          {username ? (
-            <div className={`flex flex-col gap-4 ${isRTL ? "items-end" : ""}`}>
-              <div
-                className="bg-red-500 text-white rounded-full w-12 h-12 flex justify-center items-center font-bold uppercase"
-                onClick={() => {
-                  navigate(`/${slug}/profile`);
-                  setMenuOpen(false);
-                }}
-              >
-                {username.slice(0, 2)}
-              </div>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setMenuOpen(false);
-                }}
-                className="text-gray-400 hover:text-white"
-              >
-                {t("auth.logout")}
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <Link
-                to={`/${slug}/login`}
-                className="px-4 py-2 rounded-full bg-red-500 text-white text-center"
-                onClick={() => setMenuOpen(false)}
-              >
-                {t("auth.login")}
-              </Link>
-              <Link
-                to={`/${slug}/signup`}
-                className="px-4 py-2 rounded-full bg-gray-700 text-white text-center"
-                onClick={() => setMenuOpen(false)}
-              >
-                {t("auth.signup")}
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 }

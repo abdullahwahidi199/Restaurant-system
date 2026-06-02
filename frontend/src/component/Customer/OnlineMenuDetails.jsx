@@ -2,18 +2,19 @@ import React, { useEffect, useState } from "react";
 import {
   Loader2,
   AlertCircle,
+  Star,
   Plus,
   Minus,
   ShoppingCart,
   ArrowLeft,
   Check,
+  MessageSquare,
   Utensils,
-  Users,
-  ListChecks,
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 
+// Reusable Image fallback
 const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
@@ -44,24 +45,25 @@ const ImageWrapper = ({ src, alt, className }) => {
   );
 };
 
-export default function PublicPlatterDetails() {
+export default function OnlineMenuItemDetails() {
   const { id, slug } = useParams();
-  const [platter, setPlatter] = useState(null);
+  const [itemDetails, setItemDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+
   const navigate = useNavigate();
 
-  const fetchPlatterDetails = async () => {
+  const fetchItemDetails = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await instance.get(`/menu/public/${slug}/platters/${id}/`);
-      setPlatter(res.data);
+      const res = await instance.get(`/menu/public/${slug}/menu-items/${id}/`);
+      setItemDetails(res.data);
     } catch (err) {
       console.error(err);
-      setError("Unable to load platter details. Please try again.");
+      setError("Unable to load item details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -69,89 +71,117 @@ export default function PublicPlatterDetails() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetchPlatterDetails();
+    fetchItemDetails();
   }, [id]);
 
   const handleAddToCart = () => {
-    const cartKey = `cart_${slug}`;
+    const cartKey = `online_cart_${slug}`;
     let cart = [];
+
     try {
       const saved = localStorage.getItem(cartKey);
       if (saved) cart = JSON.parse(saved);
     } catch {}
 
-    const existing = cart.find((i) => i.id === platter.id);
+    const existing = cart.find((i) => i.id === itemDetails.id);
 
     if (existing) {
       existing.quantity += quantity;
     } else {
       cart.push({
-        id: platter.id,
-        name: platter.name,
-        price: parseFloat(platter.price),
-        image: platter.image,
+        id: itemDetails.id,
+        name: itemDetails.name,
+        price: parseFloat(itemDetails.price),
+        image: itemDetails.image,
+        type: "menu_item",
         quantity,
-        type: "platter", // distinguish from regular menu item
       });
     }
 
     localStorage.setItem(cartKey, JSON.stringify(cart));
+
+    // 👇 ADD THIS: Dispatch custom event to notify other components
+    window.dispatchEvent(
+      new CustomEvent("cart-updated", {
+        detail: { cart, slug },
+      }),
+    );
+
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
-  // Loading
+  // Loading State
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-orange-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading platter details...</p>
+          <p className="text-gray-600">Loading item details...</p>
         </div>
       </div>
     );
   }
 
-  // Error
-  if (error || !platter) {
+  // Error State
+  if (error || !itemDetails) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            Platter Not Found
+            Item Not Found
           </h2>
           <p className="text-gray-600 mb-6">
-            {error || "This platter is unavailable right now."}
+            {error || "This item is unavailable right now."}
           </p>
-          <button
-            onClick={fetchPlatterDetails}
-            className="bg-orange-600 text-white px-6 py-2 rounded-full hover:bg-orange-700 transition-colors"
-          >
-            Try Again
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={fetchItemDetails}
+              className="bg-orange-600 text-white px-6 py-2 rounded-full hover:bg-orange-700 transition-colors"
+            >
+              Try Again
+            </button>
+
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-gray-100 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              Back
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const totalPrice = (parseFloat(platter.price) * quantity).toFixed(2);
+  const avgRating =
+    itemDetails.reviews && itemDetails.reviews.length > 0
+      ? (
+          itemDetails.reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+          itemDetails.reviews.length
+        ).toFixed(1)
+      : null;
+
+  const totalPrice = (parseFloat(itemDetails.price) * quantity).toFixed(2);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32 md:pb-8">
       {/* HEADER */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
-          </button>
+          {
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+            </button>
+          }
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-gray-900 truncate">
-              {platter.name}
+              {itemDetails.name}
             </h1>
             <p className="text-xs text-gray-500">{slug?.toUpperCase()}</p>
           </div>
@@ -163,8 +193,8 @@ export default function PublicPlatterDetails() {
           {/* Hero Image */}
           <div className="relative h-64 sm:h-80 md:h-96 bg-gray-100 overflow-hidden">
             <ImageWrapper
-              src={platter.image}
-              alt={platter.name}
+              src={itemDetails.image}
+              alt={itemDetails.name}
               className="w-full h-full object-cover"
             />
 
@@ -172,14 +202,29 @@ export default function PublicPlatterDetails() {
             <div className="absolute top-4 left-4">
               <span
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold shadow-md backdrop-blur-sm ${
-                  platter.final_availability
+                  itemDetails.final_availability
                     ? "bg-emerald-500/90 text-white"
                     : "bg-gray-700/90 text-white"
                 }`}
               >
-                {platter.final_availability ? "● Available" : "● Unavailable"}
+                {itemDetails.final_availability
+                  ? "● Available"
+                  : "● Unavailable"}
               </span>
             </div>
+
+            {/* Rating Badge */}
+            {avgRating && (
+              <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="font-bold text-gray-900 text-sm">
+                  {avgRating}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({itemDetails.reviews.length})
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Body */}
@@ -188,70 +233,116 @@ export default function PublicPlatterDetails() {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  {platter.name}
+                  {itemDetails.name}
                 </h2>
-                {platter.description ? (
+                {itemDetails.description ? (
                   <p className="text-gray-600 leading-relaxed">
-                    {platter.description}
+                    {itemDetails.description}
                   </p>
                 ) : (
                   <p className="text-gray-400 italic text-sm">
-                    A generous platter perfect for sharing with friends and
-                    family.
+                    A delicious dish made with the finest ingredients.
                   </p>
                 )}
               </div>
               <div className="text-right">
                 <span className="text-3xl font-bold text-orange-600">
-                  AFN {parseFloat(platter.price).toFixed(2)}
+                  AFN {parseFloat(itemDetails.price).toFixed(2)}
                 </span>
-                <p className="text-xs text-gray-500">per platter</p>
+                <p className="text-xs text-gray-500">per piece</p>
               </div>
             </div>
 
-            {/* Platter Items */}
-            {platter.items && platter.items.length > 0 && (
+            {/* Ingredients (Customer-friendly: only names) */}
+            {itemDetails.ingredients && itemDetails.ingredients.length > 0 && (
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-3">
-                  <ListChecks className="w-5 h-5 text-orange-600" />
+                  <Utensils className="w-5 h-5 text-orange-600" />
                   <h3 className="text-lg font-bold text-gray-900">
-                    What's Inside
+                    Ingredients
                   </h3>
                 </div>
-                <div className="space-y-2">
-                  {platter.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3"
+                <div className="flex flex-wrap gap-2">
+                  {itemDetails.ingredients.map((ing) => (
+                    <span
+                      key={ing.id}
+                      className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-100"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-200 flex items-center justify-center text-orange-700 font-bold text-xs">
-                          {item.quantity}x
-                        </div>
-                        <span className="font-semibold text-gray-800">
-                          {item.menu_item_name}
-                        </span>
-                      </div>
-                      <Utensils className="w-4 h-4 text-orange-300" />
-                    </div>
+                      {ing.ingredient_name}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Cost note (optional, subtle) */}
-            <div className="text-center mb-4">
-              <span className="text-xs text-gray-400">
-                Individual cost: ~AFN{" "}
-                {parseFloat(platter.total_cost).toFixed(2)}
-              </span>
+            {/* Reviews */}
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <MessageSquare className="w-5 h-5 text-orange-600" />
+                <h3 className="text-lg font-bold text-gray-900">
+                  Customer Reviews
+                </h3>
+                {itemDetails.reviews.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    ({itemDetails.reviews.length})
+                  </span>
+                )}
+              </div>
+
+              {itemDetails.reviews.length === 0 ? (
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 text-center">
+                  <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">
+                    No reviews yet. Be the first to share your experience!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {itemDetails.reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="bg-gray-50 border border-gray-100 rounded-2xl p-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm">
+                            {(review.user_name || review.user || "A")
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {review.user_name || review.user || "Anonymous"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < (review.rating || 0)
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                          {review.comment}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* STICKY ADD TO CART BAR */}
-      {platter.final_availability && (
+      {itemDetails.final_availability && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-2xl">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3 sm:gap-4">
             {/* Quantity Selector */}
@@ -301,11 +392,11 @@ export default function PublicPlatterDetails() {
       )}
 
       {/* Unavailable Notice */}
-      {!platter.final_availability && (
+      {!itemDetails.final_availability && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-900 text-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
             <p className="font-medium">
-              This platter is currently unavailable. Please check back later.
+              This item is currently unavailable. Please check back later.
             </p>
           </div>
         </div>

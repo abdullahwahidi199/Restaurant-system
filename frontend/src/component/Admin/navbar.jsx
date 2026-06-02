@@ -88,11 +88,11 @@ function Navbar() {
       label: t("nav.settings"),
       icon: <Settings size={18} />,
     },
-    {
-      to: "/admin/dashboard/customers",
-      label: t("nav.customers"),
-      icon: <User size={18} />,
-    },
+    // {
+    //   to: "/admin/dashboard/customers",
+    //   label: t("nav.customers"),
+    //   icon: <User size={18} />,
+    // },
 
     {
       to: "/admin/dashboard/feedbacks",

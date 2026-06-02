@@ -370,9 +370,38 @@ def kitchen_orders(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
+@api_view(["POST"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsKitchenManager | IsRestaurantAdmin,
+])
+def mark_items_printed_to_kitchen(request, order_id):
+    restaurant = get_restaurant_from_user(request)
+
+    try:
+        order = Order.objects.get(
+            id=order_id,
+            restaurant=restaurant
+        )
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    updated_count = order.items.filter(
+        is_printed_to_kitchen=False
+    ).update(
+        is_printed_to_kitchen=True
+    )
+
+    return Response({
+        "printed_items": updated_count
+    })
 
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive,IsManager| IsWaiter  | IsRestaurantAdmin])
+@permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive,IsManager| IsWaiter|IsCashier  | IsRestaurantAdmin])
 def cancel_order(request, pk):
     restaurant = get_restaurant_from_user(request)
     

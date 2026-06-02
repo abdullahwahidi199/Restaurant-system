@@ -26,7 +26,6 @@ export default function CustomerHomepage() {
         }
 
         const data = await res.json();
-        console.log(data);
         setRestaurantInfo(data);
       } catch (error) {
         console.log(error);

@@ -7,7 +7,7 @@ from restaurants.models import Restaurant
 # if not logged in and dont want to sign up, they will be asked name,phone and address while ordering.
 class Customer(models.Model):
     user=models.OneToOneField(User,on_delete=models.SET_NULL,null=True,blank=True)
-    restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE,null=True,blank=True,related_name='customers')
+    # restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE,null=True,blank=True,related_name='customers')
     phone = models.CharField(max_length=15)
     address=models.TextField(null=True)
     joined_at = models.DateTimeField(auto_now_add=True)

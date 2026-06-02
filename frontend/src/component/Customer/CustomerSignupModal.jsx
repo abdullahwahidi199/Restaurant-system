@@ -244,7 +244,7 @@ const Signup = () => {
         <p className="text-gray-400 text-center mt-6 text-sm">
           {t("signup.loginText")}{" "}
           <span
-            onClick={() => navigate(`/${slug}/login`)}
+            onClick={() => navigate(`/login`)}
             className="text-red-500 hover:underline cursor-pointer"
           >
             {t("signup.login")}

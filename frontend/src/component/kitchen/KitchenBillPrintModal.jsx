@@ -1,7 +1,39 @@
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import instance from "../../api/axiosInstance";
 
-const KitchenBillPrintModal = ({ order, onClose }) => {
+const KitchenBillPrintModal = ({
+  order,
+  onClose,
+  onOrderPrinted,
+  printMode,
+}) => {
   const printedRef = useRef(false);
+
+  const markItemsPrinted = async () => {
+    if (printMode !== "new") return;
+    try {
+      await instance.post(`/orders/kitchen/${order.id}/mark-items-printed/`);
+      const printedIds = order.items
+        .filter((item) => !item.is_printed_to_kitchen)
+        .map((item) => item.id);
+
+      onOrderPrinted?.(order.id, printedIds);
+    } catch (error) {
+      console.error("Failed to mark items as printed:", error);
+    }
+  };
+
+  const getPrintableItems = () => {
+    if (printMode === "new") {
+      return order.items.filter(
+        (item) => !item.is_printed_to_kitchen && item.status !== "cancelled",
+      );
+    }
+
+    return order.items.filter((item) => item.status !== "cancelled");
+  };
+  const itemsToPrint = getPrintableItems();
+  console.log(order);
 
   const generatePrintContent = () => {
     const tableName = order.table_name || order.tableName || "N/A";
@@ -10,7 +42,7 @@ const KitchenBillPrintModal = ({ order, onClose }) => {
       ? new Date(order.created_at).toLocaleString()
       : new Date().toLocaleString();
 
-    const itemsHtml = (order.items || [])
+    const itemsHtml = itemsToPrint
       .map(
         (item) => `
       <tr>
@@ -199,12 +231,27 @@ th {
 
     iframe.onload = () => {
       iframeWindow.focus();
-      iframeWindow.print();
 
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-        if (onClose) onClose();
-      }, 500);
+      const handleAfterPrint = async () => {
+        iframeWindow.removeEventListener("afterprint", handleAfterPrint);
+
+        const confirmed = window.confirm(
+          "Was the kitchen ticket printed successfully?",
+        );
+
+        if (confirmed && printMode === "new") {
+          await markItemsPrinted();
+        }
+
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          onClose?.();
+        }, 300);
+      };
+
+      iframeWindow.addEventListener("afterprint", handleAfterPrint);
+
+      iframeWindow.print();
     };
   }, [order]);
 

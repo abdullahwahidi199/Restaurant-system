@@ -50,6 +50,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'added_by_name',
             'table_name',
             'is_new',
+            'is_printed_to_kitchen',
             # 'is_prepared',
             'description',
         ]

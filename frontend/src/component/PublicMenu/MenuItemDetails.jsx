@@ -134,14 +134,13 @@ export default function MenuItemDetails() {
             >
               Try Again
             </button>
-            {onBack && (
-              <button
-                onClick={() => navigate(-1)}
-                className="bg-gray-100 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                Back
-              </button>
-            )}
+
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-gray-100 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              Back
+            </button>
           </div>
         </div>
       </div>

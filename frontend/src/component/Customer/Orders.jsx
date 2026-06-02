@@ -56,7 +56,7 @@ export default function Orders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await api.get(`/customer/${slug}/orders`);
+        const res = await api.get(`/customer/orders`);
         setOrders(res.data);
       } catch (err) {
         console.error(err);
@@ -169,7 +169,7 @@ export default function Orders() {
                       </span>
 
                       <span className="text-sm text-gray-400 flex items-center gap-1">
-                        <Receipt size={14} />#{order.id}
+                        from: {order.restaurant}
                       </span>
                     </div>
 

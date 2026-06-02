@@ -114,6 +114,35 @@ export default function KitchenHomepage() {
     }
   }, [orders]);
 
+  const handleOrderPrinted = (orderId, printedIds) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              items: order.items.map((item) =>
+                printedIds.includes(item.id)
+                  ? { ...item, is_printed_to_kitchen: true }
+                  : item,
+              ),
+            }
+          : order,
+      ),
+    );
+
+    setSelectedOrder((prev) =>
+      prev?.id === orderId
+        ? {
+            ...prev,
+            items: prev.items.map((item) =>
+              printedIds.includes(item.id)
+                ? { ...item, is_printed_to_kitchen: true }
+                : item,
+            ),
+          }
+        : prev,
+    );
+  };
   const dineInOrders = filteredOrders.filter(
     (order) => order.order_type === "dine-in",
   );
@@ -268,6 +297,7 @@ export default function KitchenHomepage() {
         <OrderDetailSidebar
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+          onOrderPrinted={handleOrderPrinted}
         />
       )}
     </div>

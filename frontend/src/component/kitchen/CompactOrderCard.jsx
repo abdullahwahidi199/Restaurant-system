@@ -36,16 +36,28 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
     <div
       onClick={onClick}
       className={`
-        relative grid grid-cols-12 gap-2 items-center px-4 py-2 border-b cursor-pointer transition-all duration-200 text-sm
-        ${
-          isSelected
-            ? "bg-blue-50 border-l-4 border-l-blue-500"
-            : hasNewItems
-              ? "bg-orange-50 border-l-4 border-l-orange-500 animate-pulse-subtle"
-              : "bg-white hover:bg-gray-50"
-        }
-      `}
+    relative grid grid-cols-12 gap-2 items-center
+    px-4 py-3 mb-2 rounded-lg border shadow-sm
+    cursor-pointer transition-all duration-200 text-sm
+
+    ${
+      isSelected
+        ? "bg-blue-50 border-blue-500 ring-2 ring-blue-200"
+        : hasNewItems
+          ? "bg-orange-50 border-orange-400 shadow-orange-100 animate-pulse-subtle"
+          : "bg-white border-gray-200 hover:bg-gray-50 hover:shadow-md"
+    }
+  `}
     >
+      <div
+        className={`absolute left-0 top-0 h-full w-1 rounded-l-lg ${
+          isSelected
+            ? "bg-blue-500"
+            : hasNewItems
+              ? "bg-orange-500"
+              : "bg-gray-300"
+        }`}
+      />
       <div className="col-span-2 text-gray-700 truncate">
         <div className="flex items-center gap-1">
           <span>order #{order.order_number}</span>

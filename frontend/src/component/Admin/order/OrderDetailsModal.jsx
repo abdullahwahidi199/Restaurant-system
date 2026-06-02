@@ -205,22 +205,48 @@ export default function OrderDetailsModal({ order, onClose }) {
               {order.items.map((item) => (
                 <li
                   key={item.id}
-                  className="px-4 py-3 flex justify-between items-center hover:bg-gray-50"
+                  className={`px-4 py-3 flex justify-between items-center ${
+                    item.status === "cancelled"
+                      ? "bg-red-50 opacity-75"
+                      : "hover:bg-gray-50"
+                  }`}
                 >
                   <div>
                     <p className="font-medium text-gray-800 flex items-center gap-2">
-                      {item.item_name}
+                      <span
+                        className={
+                          item.status === "cancelled"
+                            ? "line-through text-red-600"
+                            : ""
+                        }
+                      >
+                        {item.item_name}
+                      </span>
 
-                      {item.is_new && (
+                      {item.status === "cancelled" && (
+                        <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                          Cancelled
+                        </span>
+                      )}
+
+                      {item.is_new && item.status !== "cancelled" && (
                         <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                           New
                           {item.added_by_name ? ` • ${item.added_by_name}` : ""}
                         </span>
                       )}
                     </p>
+
                     <p className="text-xs text-gray-400">× {item.quantity}</p>
                   </div>
-                  <span className="font-semibold text-gray-700">
+
+                  <span
+                    className={`font-semibold ${
+                      item.status === "cancelled"
+                        ? "text-red-600 line-through"
+                        : "text-gray-700"
+                    }`}
+                  >
                     {item.subtotal} AFN
                   </span>
                 </li>

@@ -14,6 +14,7 @@ import {
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 
+// Reuse the same ImageWrapper
 const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
@@ -44,7 +45,7 @@ const ImageWrapper = ({ src, alt, className }) => {
   );
 };
 
-export default function PublicPlatterDetails() {
+export default function OnlinePlatterDetails() {
   const { id, slug } = useParams();
   const [platter, setPlatter] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +74,7 @@ export default function PublicPlatterDetails() {
   }, [id]);
 
   const handleAddToCart = () => {
-    const cartKey = `cart_${slug}`;
+    const cartKey = `online_cart_${slug}`;
     let cart = [];
     try {
       const saved = localStorage.getItem(cartKey);
@@ -96,6 +97,7 @@ export default function PublicPlatterDetails() {
     }
 
     localStorage.setItem(cartKey, JSON.stringify(cart));
+
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

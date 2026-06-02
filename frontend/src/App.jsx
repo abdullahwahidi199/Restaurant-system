@@ -29,7 +29,6 @@ import RestaurantSettings from "./component/Admin/settings/SettingsBaseModal";
 import { useEffect, useState } from "react";
 import Infopage from "./component/Customer/InfoPage";
 import CustomerProfile from "./component/Customer/CustomerProfile";
-import CustomersBaseModal from "./component/Admin/Customers/CustomersBaseModal";
 import CashierManagement from "./component/Cashier/CashierManagment";
 import AnalyticsBaseModal from "./component/Admin/Analytics/AnalyticsBaseModal";
 
@@ -73,6 +72,8 @@ import PlatterDetails from "./component/Admin/MenuManagement/PlatterDetails";
 import PublicPlatterDetails from "./component/PublicMenu/PlatterDetails";
 import Platters from "./component/Admin/MenuManagement/Platters";
 import NotFound from "./PageNotFound";
+import OnlinePlatterDetails from "./component/Customer/OnlinePlatterDetails";
+import OnlineMenuItemDetails from "./component/Customer/OnlineMenuDetails";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -83,12 +84,15 @@ function App() {
         <Route index element={<SystemLanding />} />
         <Route path=":slug">
           <Route index element={<CustomerHomepage />} />
-          <Route path="signup" element={<CustomerSignUpModal />} />
-          <Route path="profile" element={<CustomerProfile />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="login" element={<Login />} />
           <Route path="info" element={<Infopage />} />
+          <Route path="menu/item/:id" element={<OnlineMenuItemDetails />} />
+          <Route path="menu/platter/:id" element={<OnlinePlatterDetails />} />
         </Route>
+
+        <Route path="signup" element={<CustomerSignUpModal />} />
+        <Route path="login" element={<Login />} />
+        <Route path="profile" element={<CustomerProfile />} />
+        <Route path="orders" element={<Orders />} />
 
         <Route path="staff-login" element={<StaffLogin />} />
         <Route
@@ -131,7 +135,7 @@ function App() {
           <Route path="reports" element={<ReportsMainPage />} />
           <Route path="reservations" element={<ReservationsMainPage />} />
           <Route path="inventory" element={<InventoryDashboard />} />
-          <Route path="customers" element={<CustomersBaseModal />} />
+          {/* <Route path="customers" element={<CustomersBaseModal />} /> */}
           <Route path="feedbacks" element={<Feedbacks />} />
           <Route path="settings" element={<RestaurantSettings />} />
         </Route>
