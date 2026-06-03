@@ -47,7 +47,10 @@ class StaffSerializer(serializers.ModelSerializer):
     required=False
 )   
     created_orders=OrderMiniSerializer(many=True,read_only=True)
-    shift_name=serializers.CharField(source="shift.shift_type",read_only=True)
+    shift_name = serializers.SerializerMethodField()
+
+    def get_shift_name(self, obj):
+        return obj.shift.shift_type if obj.shift else None
     # shift_info=ShiftSerializer(many=True,read_only=True)
     reservations = ReservationMiniSerializer(many=True,read_only=True)
     username=serializers.CharField(write_only=True,required=False,allow_blank=True)
