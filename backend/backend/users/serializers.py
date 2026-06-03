@@ -53,6 +53,9 @@ class StaffListSerializer(serializers.ModelSerializer):
             'status',
             'image',
         ]
+    
+    def get_shift_name(self, obj):
+        return obj.shift.shift_type if obj.shift else None
 
 class StaffSerializer(serializers.ModelSerializer):
     attendances=AttendanceSerializer(many=True,read_only=True)
