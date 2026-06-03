@@ -38,6 +38,22 @@ class AttendanceSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class StaffListSerializer(serializers.ModelSerializer):
+    shift_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Staff
+        fields = [
+            'id',
+            'name',
+            'role',
+            'phone',
+            'email',
+            'shift_name',
+            'status',
+            'image',
+        ]
+
 class StaffSerializer(serializers.ModelSerializer):
     attendances=AttendanceSerializer(many=True,read_only=True)
     payrolls=PayrollSerializer(many=True,read_only=True)

@@ -24,6 +24,7 @@ class DiscountCardSerializer(serializers.ModelSerializer):
             "created_at",
             "restaurant",
         )
+        
 class OrderItemSerializer(serializers.ModelSerializer):
     item_name = serializers.SerializerMethodField()
     item_price = serializers.SerializerMethodField()

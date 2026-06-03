@@ -1,7 +1,7 @@
 # users/views.py
 from rest_framework import viewsets
 from .models import Staff,Shift,Payroll
-from .serializers import StaffSerializer,ShiftSerializer,PayrollSerializer,AttendanceSerializer
+from .serializers import StaffSerializer,ShiftSerializer,PayrollSerializer,AttendanceSerializer,StaffListSerializer
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.decorators import api_view,parser_classes
 from rest_framework.response import Response
@@ -36,7 +36,7 @@ def staffApi(request):
     restaurant=staff.restaurant
     if request.method=='GET':
         staff=Staff.objects.filter(restaurant=restaurant).select_related('shift').prefetch_related('deliveries').all()
-        serializer=StaffSerializer(staff,many=True)
+        serializer=StaffListSerializer(staff,many=True)
         return Response(serializer.data)
 
     if request.method == 'POST':
