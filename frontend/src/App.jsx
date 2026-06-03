@@ -74,6 +74,10 @@ import Platters from "./component/Admin/MenuManagement/Platters";
 import NotFound from "./PageNotFound";
 import OnlinePlatterDetails from "./component/Customer/OnlinePlatterDetails";
 import OnlineMenuItemDetails from "./component/Customer/OnlineMenuDetails";
+import DiscountCardsMain from "./component/Admin/DiscountCards/DiscountCardsMain";
+import CreateDiscountCard from "./component/Admin/DiscountCards/CreateDiscountCard";
+import DiscountCardDetails from "./component/Admin/DiscountCards/DiscountCardDetails";
+import DiscountCardEdit from "./component/Admin/DiscountCards/DiscountCardEdit";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -132,6 +136,16 @@ function App() {
             element={<AdminDiscountsMain />}
           />
           <Route path="all-discount-requests" element={<AllDiscounts />} />
+          <Route path="discount-cards" element={<DiscountCardsMain />} />
+          <Route path="discount-cards/:id" element={<DiscountCardDetails />} />
+          <Route
+            path="discount-cards/:id/edit"
+            element={<DiscountCardEdit />}
+          />
+          <Route
+            path="create-discount-cards"
+            element={<CreateDiscountCard />}
+          />
           <Route path="reports" element={<ReportsMainPage />} />
           <Route path="reservations" element={<ReservationsMainPage />} />
           <Route path="inventory" element={<InventoryDashboard />} />

@@ -35,7 +35,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
 
     setLoading(true);
     try {
-      await instance.put(`/orders/tables/${table.id}/`, {
+      await instance.patch(`/orders/tables/${table.id}/`, {
         name,
         capacity,
         price_per_hour: pricePerHour,

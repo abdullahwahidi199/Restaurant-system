@@ -3,7 +3,8 @@ from .views import order_list_create, OrderRetrieveDestroyView,add_items_to_orde
 from .views import assign_delivery,cashier_orders,cancel_order,kitchen_orders,create_online_order,cancel_online_order,reservation_list_create,ReservationRetrieveUpdateDestroyView,cancel_reservation,handle_order_bill_print
 from .views import (bulk_update_order_items,request_discount,approve_discount_or_reject,manager_pending_discount_requests,
                     admin_pending_discount_requests,all_discount_requests,change_order_table,
-                    cancel_order_item,update_order_item_status,mark_items_printed_to_kitchen
+                    cancel_order_item,update_order_item_status,mark_items_printed_to_kitchen,discount_card_details,discount_cards,
+                    apply_discount_card,discount_card_actions
                     )
 
 urlpatterns = [
@@ -54,4 +55,10 @@ path(
     path('cashier/reservations/',cashier_reservations),
     path('cashier/reservations/<int:pk>/arrive/',mark_reservation_arrived),
     path('cashier/reservations/<int:pk>/no_show/',mark_reservation_no_show),
+
+    path('discount-cards/', discount_cards, name='discount-cards'),
+    path('discount-cards/<int:pk>/', discount_card_details, name='discount-card-details'),
+    path('discount-cards-actions/<int:pk>/', discount_card_actions, name='discount-card-actions'),
+    path('discount-cards/<int:pk>/apply/', apply_discount_card, name='apply-discount-card'),
+
 ]

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer,PlatterSerializer
 from customers.serializers import CustomerProfileSerializer
-from .models import OrderItem,Order,Table,Reservation,DiscountRequest
+from .models import OrderItem,Order,Table,Reservation,DiscountRequest,DiscountCard
 from customers.models import Customer
 from users.models import Staff
 from django.utils import timezone
@@ -10,6 +10,20 @@ from .utils.distance import calculate_distance_km,calculate_delivery_fee
 
 
 
+
+
+
+
+class DiscountCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiscountCard
+        fields = "__all__"
+        read_only_fields = (
+            "id",
+            "used_count",
+            "created_at",
+            "restaurant",
+        )
 class OrderItemSerializer(serializers.ModelSerializer):
     item_name = serializers.SerializerMethodField()
     item_price = serializers.SerializerMethodField()

@@ -269,6 +269,14 @@ export default function OrderDetailsModal({ order, onClose }) {
                   </p>
                 </div>
               )}
+              {Number(order.discount_percent) > 0 && (
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Discount</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {order.discount_percent}%
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-slate-500 mb-1">
                   {t("modal.total")}
@@ -277,6 +285,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                   {order.total} AFN
                 </p>
               </div>
+
               {remainingAmount > 0 && (
                 <div>
                   {/* ✅ Same pattern: completed = Post-paid, else = Balance Due */}

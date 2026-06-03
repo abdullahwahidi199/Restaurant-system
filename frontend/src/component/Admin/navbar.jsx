@@ -19,6 +19,7 @@ import {
   BadgePercent,
   Package,
   CalendarDays,
+  CreditCard,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 function Navbar() {
@@ -77,6 +78,11 @@ function Navbar() {
       to: "/admin/dashboard/reservations",
       label: "Reservations",
       icon: <CalendarDays size={18} />,
+    },
+    {
+      to: "/admin/dashboard/discount-cards",
+      label: "Discount Cards",
+      icon: <CreditCard size={18} />,
     },
     {
       to: "/admin/dashboard/reports",

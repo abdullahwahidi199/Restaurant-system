@@ -145,6 +145,57 @@ class Reservation(models.Model):
             self.reservation_number = (last_reservation or 0) + 1
 
         super().save(*args, **kwargs)
+
+
+class DiscountCard(models.Model):
+    STATUS_CHOICES = [
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("expired", "Expired"),
+    ]
+    restaurant = models.ForeignKey(
+    Restaurant,
+    on_delete=models.CASCADE,
+    related_name="discount_cards"
+)
+    card_name = models.CharField(max_length=100)
+    card_number = models.CharField(max_length=50, unique=True)
+
+    customer_name = models.CharField(max_length=100)
+    customer_phone = models.CharField(max_length=20)
+
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2
+    )
+
+    
+
+    minimum_order_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    valid_from = models.DateField()
+    valid_until = models.DateField()
+
+    usage_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+
+    used_count = models.PositiveIntegerField(default=0)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="active"
+    )
+
+    notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 class Order(models.Model):
     ORDER_TYPE_CHOICES = [
         ('dine-in', 'Dine-In'),
@@ -205,6 +256,14 @@ class Order(models.Model):
 )
     reservation = models.ForeignKey(
     "Reservation",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="orders"
+)
+    
+    discount_card = models.ForeignKey(
+    "DiscountCard",
     on_delete=models.SET_NULL,
     null=True,
     blank=True,

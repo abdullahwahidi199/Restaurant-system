@@ -11,8 +11,8 @@ from django_ratelimit.core import is_ratelimited
 from restaurants.models import Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
-from .models import Order, Table, OrderItem,Reservation,DiscountRequest
-from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer
+from .models import Order, Table, OrderItem,Reservation,DiscountRequest,DiscountCard
+from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer
 from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item
@@ -59,11 +59,203 @@ def get_restaurant_from_user(request):
         return request.user.staff_profile.restaurant
     
     return None
+    
 
 class OrderPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
+
+
+@api_view(["GET", "POST"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsManager | IsCashier | IsRestaurantAdmin,
+])
+def discount_cards(request):
+    restaurant = get_restaurant_from_user(request)
+
+    if not restaurant:
+        return Response(
+            {"error": "Restaurant not found"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if request.method == "GET":
+        cards = DiscountCard.objects.filter(
+            restaurant=restaurant
+        ).order_by("-created_at")
+
+        serializer = DiscountCardSerializer(cards, many=True)
+        return Response(serializer.data)
+
+    serializer = DiscountCardSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save(
+            restaurant=restaurant
+        )
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsManager | IsCashier | IsRestaurantAdmin,
+])
+def discount_card_actions(request, pk):
+    restaurant = get_restaurant_from_user(request)
+
+    try:
+        card = DiscountCard.objects.get(
+            pk=pk,
+            restaurant=restaurant
+        )
+    except DiscountCard.DoesNotExist:
+        return Response(
+            {"error": "Discount card not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.method == "GET":
+        serializer = DiscountCardSerializer(card)
+        return Response(serializer.data)
+
+    if request.method in ["PUT", "PATCH"]:
+        serializer = DiscountCardSerializer(
+            card,
+            data=request.data,
+            partial=request.method == "PATCH"
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    card.delete()
+
+    return Response(
+        {"message": "Discount card deleted successfully"},
+        status=status.HTTP_204_NO_CONTENT
+    )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsCashier])
+def apply_discount_card(request, pk):
+    order = get_object_or_404(Order, id=pk)
+
+    card_number = request.data.get("card_number")
+    customer_phone = request.data.get("customer_phone")
+
+    card = DiscountCard.objects.filter(
+        card_number=card_number,
+        restaurant=order.restaurant
+    ).first()
+
+    if not card:
+        return Response(
+    {"error": "Invalid card number"},
+    status=status.HTTP_400_BAD_REQUEST
+)
+
+    if card.customer_phone != customer_phone:
+        return Response(
+            {"error": "Phone number does not match"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if card.status != "active":
+        return Response(
+            {"error": "Card is not active"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    today = timezone.now().date()
+
+    if card.valid_until < today:
+        return Response(
+            {"error": "Card expired"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if (
+        card.usage_limit is not None and
+        card.used_count >= card.usage_limit
+    ):
+        return Response(
+    {"error": "Usage limit reached"},
+    status=status.HTTP_400_BAD_REQUEST
+)
+
+    if order.get_total() < card.minimum_order_amount:
+        return Response(
+            {"error": f"Minimum order amount is {card.minimum_order_amount}"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if order.discount_percent > 0:
+        return Response(
+            {"error": "Order already discounted"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    order.discount_percent = card.discount_percentage
+    order.discount_card = card
+    order.save()
+
+    card.used_count += 1
+    card.save(update_fields=["used_count"])
+
+    return Response({
+        "message": "Discount card applied successfully",
+        "discount_percent": card.discount_percentage
+    })
+
+@api_view(["GET"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsManager | IsCashier | IsRestaurantAdmin,
+])
+def discount_card_details(request, pk):
+    restaurant = get_restaurant_from_user(request)
+
+    card = get_object_or_404(
+        DiscountCard,
+        id=pk,
+        restaurant=restaurant
+    )
+
+    orders = card.orders.select_related(
+        "table"
+    ).order_by("-created_at")
+
+    return Response({
+        "card": DiscountCardSerializer(card).data,
+        "orders_used": [
+            {
+                "id": o.id,
+                "order_number": o.order_number,
+                "total": o.get_total(),
+                "discount_percent": o.discount_percent,
+                "created_at": o.created_at,
+            }
+            for o in orders
+        ]
+    })
 
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny,IsRestaurantActive])
