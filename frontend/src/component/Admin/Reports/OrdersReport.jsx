@@ -17,6 +17,9 @@ export default function OrdersReport({ startDate, endDate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [itemSearch, setItemSearch] = useState("");
+  const [itemResult, setItemResult] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const fetchOrdersReport = async () => {
     try {
@@ -31,6 +34,24 @@ export default function OrdersReport({ startDate, endDate }) {
       setError("Failed to fetch report data.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleItemSearch = async () => {
+    if (!itemSearch) return;
+
+    try {
+      setSearchLoading(true);
+
+      const res = await instance.get(
+        `/menu/menu-item-sales/?name=${itemSearch}&start=${startDate}&end=${endDate}`,
+      );
+
+      setItemResult(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -122,6 +143,63 @@ export default function OrdersReport({ startDate, endDate }) {
           </div>
         </div>
 
+        {/* Menu Item Search */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+            Menu Item Sales Lookup
+          </h3>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={itemSearch}
+              onChange={(e) => setItemSearch(e.target.value)}
+              placeholder="Enter menu item name..."
+              className="flex-1 border rounded-lg px-3 py-2 text-sm"
+            />
+
+            <button
+              onClick={handleItemSearch}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+            >
+              Search
+            </button>
+          </div>
+
+          {searchLoading && (
+            <p className="text-xs text-gray-400 mt-2">Searching...</p>
+          )}
+
+          {itemResult && itemResult.length > 0 && (
+            <div className="mt-4 border-t pt-3">
+              {itemResult.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between py-2 border-b last:border-0"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {item.menu_item__name || item.platter__name}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-700">
+                      {item.total_sold} sold
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatCurrency(item.total_revenue)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {itemResult && itemResult.length === 0 && (
+            <p className="text-xs text-gray-400 mt-2">No results found</p>
+          )}
+        </div>
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard

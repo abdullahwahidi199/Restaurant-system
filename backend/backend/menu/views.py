@@ -617,3 +617,64 @@ class MenuPrintView(APIView):
         response["Content-Disposition"] = f'attachment; filename="{restaurant.name}_menu.pdf"'
 
         return response
+    
+
+
+from django.db.models import Sum, F, Value, DecimalField, CharField
+from django.db.models.functions import Coalesce
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from orders.models import OrderItem
+from menu.models import Platter
+
+
+@api_view(["GET"])
+def menu_item_sales(request):
+    name = request.GET.get("name")
+    start = request.GET.get("start")
+    end = request.GET.get("end")
+
+    # ----------------------------
+    # 1. MENU ITEM SALES
+    # ----------------------------
+    menu_qs = OrderItem.objects.filter(
+        menu_item__name__icontains=name,
+        order__created_at__range=[start, end],
+        order__status__in=["completed", "delivered"]
+    )
+
+    menu_grouped = menu_qs.values(
+        "menu_item__id",
+        "menu_item__name"
+    ).annotate(
+        total_sold=Sum("quantity"),
+        total_revenue=Sum(F("quantity") * F("menu_item__price"))
+    ).annotate(
+        type=Value("menu_item", output_field=CharField())
+    )
+
+    # ----------------------------
+    # 2. PLATTER SALES
+    # ----------------------------
+    platter_qs = OrderItem.objects.filter(
+        platter__name__icontains=name,
+        order__created_at__range=[start, end],
+        order__status__in=["completed", "delivered"]
+    )
+
+    platter_grouped = platter_qs.values(
+        "platter__id",
+        "platter__name"
+    ).annotate(
+        total_sold=Sum("quantity"),
+        total_revenue=Sum(F("quantity") * F("platter__price"))
+    ).annotate(
+        type=Value("platter", output_field=CharField())
+    )
+
+    # ----------------------------
+    # 3. MERGE RESULTS
+    # ----------------------------
+    data = list(menu_grouped) + list(platter_grouped)
+
+    return Response(data)
