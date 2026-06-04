@@ -75,25 +75,148 @@ def broadcast_table(table):
             },
         }
     )
-@receiver(post_save, sender=OrderItem)
-def order_item_updated(sender, instance, **kwargs):
-    broadcast_order(instance.order)
+# signals.py - Replace the order item signals
 
-    if instance.order.table:
-        broadcast_table(instance.order.table)
+from .models import Order, OrderItem, Table, DiscountRequest
+from .seriailizers import OrderSerializer, TableSerializer, OrderItemMiniSerializer
+
+# ✅ ADD: Lightweight broadcast functions for item changes
+
+def broadcast_order_item_update(instance, action="ITEM_UPDATED"):
+    """Broadcast ONLY the changed item, not the whole order"""
+    if not instance or not instance.order_id or not instance.order.restaurant:
+        return
+    
+    try:
+        # Fetch only the specific item with needed relations
+        item = OrderItem.objects.select_related(
+            'menu_item', 'platter', 'added_by'
+        ).get(pk=instance.pk)
+        
+        serialized_item = make_json_safe(
+            OrderItemMiniSerializer(item).data
+        )
+        
+        group_name = f"orders_{instance.order.restaurant.id}"
+        
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "order_message",
+                "message": {
+                    "type": action,  # "ITEM_UPDATED", "ITEM_CREATED", "ITEM_DELETED"
+                    "order_id": instance.order_id,
+                    "item": serialized_item
+                },
+            }
+        )
+    except OrderItem.DoesNotExist:
+        pass
+
+
+def broadcast_order_item_delete(instance):
+    """Broadcast item deletion (just need the ID and order_id)"""
+    if not instance or not instance.order_id:
+        return
+    
+    try:
+        restaurant_id = instance.order.restaurant_id if instance._state.adding == False else None
+        if not restaurant_id:
+            # Item already deleted, fetch order info from instance
+            restaurant_id = Order.objects.filter(pk=instance.order_id).values_list('restaurant_id', flat=True).first()
+        
+        if not restaurant_id:
+            return
+            
+        group_name = f"orders_{restaurant_id}"
+        
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "order_message",
+                "message": {
+                    "type": "ITEM_DELETED",
+                    "order_id": instance.order_id,
+                    "item_id": instance.pk
+                },
+            }
+        )
+    except Exception:
+        pass
+
+
+def broadcast_table_items_update(order):
+    """Broadcast only item count and total for table updates - MUCH lighter"""
+    if not order or not order.table or not order.restaurant:
+        return
+    
+    group_name = f"orders_{order.restaurant_id}"
+    
+    # Only send what the table view needs
+    async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            "type": "table_message",
+            "message": {
+                "type": "TABLE_ITEMS_UPDATED",
+                "table_id": order.table_id,
+                "order_id": order.id,
+                "item_count": order.items.count(),
+                "order_total": str(order.get_total()),
+                "order_status": order.status
+            },
+        }
+    )
+
+
+# ✅ REPLACE these signal handlers
+
+@receiver(post_save, sender=OrderItem)
+def order_item_updated(sender, instance, created, **kwargs):
+    # Use on_commit to avoid issues with transaction rollback
+    transaction.on_commit(lambda: broadcast_order_item_update(instance, "ITEM_CREATED" if created else "ITEM_UPDATED"))
+    
+    # Only update table info with lightweight message, not full table broadcast
+    if instance.order_id:
+        try:
+            order = Order.objects.only('id', 'table_id', 'restaurant_id', 'status').get(pk=instance.order_id)
+            transaction.on_commit(lambda: broadcast_table_items_update(order))
+        except Order.OrderItem.MultipleObjectsReturned:
+            pass
+
+
 @receiver(post_delete, sender=OrderItem)
 def order_item_deleted(sender, instance, **kwargs):
-    broadcast_order(instance.order)
+    # Store order info before deletion
+    order_id = instance.order_id
+    restaurant_id = instance.order.restaurant_id if hasattr(instance, 'order') and instance.order else None
+    
+    def _broadcast():
+        if order_id:
+            # Send item deletion message
+            broadcast_order_item_delete(instance)
+            
+            # Update table with lightweight message
+            order = Order.objects.only('id', 'table_id', 'restaurant_id', 'status').filter(pk=order_id).first()
+            if order:
+                broadcast_table_items_update(order)
+    
+    transaction.on_commit(_broadcast)
+# Keep this for actual Order changes (status, details, etc.)
+@receiver(post_save, sender=Order)
+def order_post_save(sender, instance, created, **kwargs):
+    if created:
+        # New order - full broadcast is appropriate
+        transaction.on_commit(lambda: broadcast_order(instance))
+    else:
+        # Order details changed (status, address, etc.)
+        # Only broadcast if it's NOT just an item change
+        transaction.on_commit(lambda: broadcast_order(instance))
 
-    if instance.order.table:
-        broadcast_table(instance.order.table)
+
 @receiver(post_delete, sender=Order)
 def order_post_delete(sender, instance, **kwargs):
-    broadcast_order( instance)
-
-@receiver(post_save, sender=Order)
-def order_post_save(sender, instance, **kwargs):
-    broadcast_order(instance)
+    transaction.on_commit(lambda: broadcast_order(instance))
 
 @receiver(post_save, sender=Table)
 def table_post_save(sender, instance, **kwargs):

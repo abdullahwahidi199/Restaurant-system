@@ -745,3 +745,47 @@ class DiscountRequestSerializer(serializers.ModelSerializer):
         ) / Decimal("100")
 
         return str(round(original - discount, 2))
+    
+
+
+
+
+
+# serializers.py - Add this lightweight serializer
+
+class OrderItemMiniSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for real-time item updates"""
+    item_name = serializers.SerializerMethodField()
+    item_price = serializers.SerializerMethodField()
+    added_by_name = serializers.SerializerMethodField()
+    class Meta:
+        model = OrderItem
+        fields = [
+            'id',
+            'menu_item',
+            'platter',
+            'item_name',
+            'item_price',
+            'status',
+            'quantity',
+            'description',
+            'is_new',
+            'added_by_name',
+        ]
+    def get_added_by_name(self, obj):
+        if obj.is_new and obj.added_by:
+            return obj.added_by.name
+        return None
+    def get_item_name(self, obj):
+        if obj.menu_item:
+            return obj.menu_item.name
+        if obj.platter:
+            return obj.platter.name
+        return None
+    
+    def get_item_price(self, obj):
+        if obj.menu_item:
+            return str(obj.menu_item.price)
+        if obj.platter:
+            return str(obj.platter.price)
+        return "0"

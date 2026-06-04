@@ -66,46 +66,129 @@ export default function KitchenHomepage() {
   });
 
   const handleMessage = (msg) => {
-    if (!msg?.order) return;
+    if (!msg?.type) return;
 
-    const incoming = msg.order;
-    const ACTIVE = ["pending", "approved", "in_progress", "ready"];
+    // Backend sometimes wraps order inside msg.order OR msg.message.order
+    const payload = msg.message ?? msg;
 
-    const hasActiveItems = (order) =>
-      order.items?.some((i) => ACTIVE.includes(i.status));
+    const type = payload.type;
 
-    setOrders((prev) => {
-      const idx = prev.findIndex((o) => o.id === incoming.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = incoming;
-        if (!hasActiveItems(incoming)) {
-          return copy.filter((o) => o.id !== incoming.id);
+    /* =========================
+     NEW ORDER
+  ========================= */
+    if (type === "NEW_ORDER") {
+      const incoming = payload.order;
+      if (!incoming?.id) return;
+
+      setOrders((prev) => {
+        const exists = prev.some((o) => o.id === incoming.id);
+
+        if (exists) {
+          return prev.map((o) => (o.id === incoming.id ? incoming : o));
         }
-        return copy;
-      }
-      if (hasActiveItems(incoming)) {
-        return [incoming, ...prev];
-      }
-      return prev;
-    });
 
-    setPendingOrders((prev) => {
-      if (incoming.status !== "pending" || incoming.status === "cancelled") {
-        return prev.filter((o) => o.id !== incoming.id);
-      }
-      const idx = prev.findIndex((o) => o.id === incoming.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = incoming;
-        return copy;
-      }
-      return [incoming, ...prev];
-    });
+        // IMPORTANT: always insert new order (NO item filtering here)
+        return [incoming, ...prev];
+      });
+
+      setPendingOrders((prev) => {
+        if (incoming.status !== "pending") return prev;
+
+        const exists = prev.some((o) => o.id === incoming.id);
+        if (exists) {
+          return prev.map((o) => (o.id === incoming.id ? incoming : o));
+        }
+
+        return [incoming, ...prev];
+      });
+
+      return;
+    }
+
+    /* =========================
+     ITEM CREATED / UPDATED
+  ========================= */
+    if (type === "ITEM_CREATED" || type === "ITEM_UPDATED") {
+      const { order_id, item } = payload;
+      if (!order_id || !item) return;
+
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (order.id !== order_id) return order;
+
+          const existingItems = order.items || [];
+
+          // replace if exists, else add
+          const exists = existingItems.some((i) => i.id === item.id);
+
+          const updatedItems = exists
+            ? existingItems.map((i) => (i.id === item.id ? item : i))
+            : [...existingItems, item];
+
+          return {
+            ...order,
+            items: updatedItems,
+          };
+        }),
+      );
+
+      return;
+    }
+
+    /* =========================
+     ITEM DELETED
+  ========================= */
+    if (type === "ITEM_DELETED") {
+      const { order_id, item_id } = payload;
+      if (!order_id || !item_id) return;
+
+      setOrders((prev) =>
+        prev.map((order) => {
+          if (order.id !== order_id) return order;
+
+          return {
+            ...order,
+            items: (order.items || []).filter((i) => i.id !== item_id),
+          };
+        }),
+      );
+
+      return;
+    }
+
+    /* =========================
+     TABLE UPDATED
+  ========================= */
+    if (type === "TABLE_UPDATED") {
+      const updatedTable = payload.table;
+      if (!updatedTable?.id) return;
+
+      // optional: update only table reference inside orders
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.table === updatedTable.id
+            ? {
+                ...order,
+                tableName: updatedTable.name,
+                table: updatedTable.id,
+              }
+            : order,
+        ),
+      );
+
+      return;
+    }
   };
 
   useOrdersSocket(handleMessage);
-
+  useEffect(() => {
+    const testMsg = {
+      type: "ITEM_CREATED",
+      order_id: 331,
+      item: { id: 999, item_name: "Test", status: "pending", quantity: 1 },
+    };
+    handleMessage(testMsg);
+  }, []);
   useEffect(() => {
     if (!selectedOrder) return;
     const updatedSelectedOrder = orders.find((o) => o.id === selectedOrder.id);
