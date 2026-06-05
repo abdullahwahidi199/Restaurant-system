@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import transaction
 from django_ratelimit.core import is_ratelimited
+from orders.signals import broadcast_order_item_update, broadcast_table_items_update
 from restaurants.models import Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
@@ -15,7 +16,7 @@ from .models import Order, Table, OrderItem,Reservation,DiscountRequest,Discount
 from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer
 from menu.models import Category, MenuItem
 from users.models import Staff
-from inventory.services import deduct_stock_for_order_item
+from inventory.services import deduct_stock_for_order_item,deduct_batch_stock_for_order_items,recalc_batch_menu_availability
 from rest_framework.pagination import PageNumberPagination
 from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin,IsCallOperator
 from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive,IsManager
@@ -23,6 +24,7 @@ from rest_framework.exceptions import NotFound
 from django.utils import timezone
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
+from django.db import transaction
 from menu.models import Platter
 
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
@@ -741,92 +743,117 @@ class OrderRetrieveDestroyView(generics.RetrieveDestroyAPIView):
 @permission_classes([IsAuthenticated])
 def add_items_to_order(request, pk):
     restaurant = get_restaurant_from_user(request)
-    
+
     try:
-        order = Order.objects.get(pk=pk, restaurant=restaurant)
+        order = Order.objects.select_related("restaurant").get(
+            pk=pk,
+            restaurant=restaurant
+        )
     except Order.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Order not found'}, status=404)
 
     items_data = request.data.get('items', [])
-    new_items = []
-
-    
     staff = request.user.staff_profile
+
+    if not items_data:
+        return Response({"new_items": []}, status=200)
+
+    menu_item_ids = [
+        item.get("menu_item")
+        for item in items_data
+        if item.get("menu_item")
+    ]
+
+    platter_ids = [
+        item.get("platter")
+        for item in items_data
+        if item.get("platter")
+    ]
+
+    # Fetch all at once
+    menu_items = {
+        m.id: m for m in
+        MenuItem.objects.filter(
+            id__in=menu_item_ids,
+            restaurant=restaurant
+        )
+    }
+
+    platters = {
+        p.id: p for p in
+        Platter.objects.filter(
+            id__in=platter_ids,
+            restaurant=restaurant
+        ).prefetch_related("items__menu_item")
+    }
+
+    order_items_to_create = []
+    response_items = []
+
     with transaction.atomic():
-
+        # Prepare objects (no DB hit yet)
         for item in items_data:
-
-            menu_item_id = item.get("menu_item")
-            platter_id = item.get("platter")
             quantity = item.get("quantity", 1)
+            description = item.get("description", "")
 
-            # must have one
-            if not menu_item_id and not platter_id:
-                continue
-
-            # cannot have both
-            if menu_item_id and platter_id:
-                continue
-
-            # ─── MENU ITEM ───
-            if menu_item_id:
-
-                try:
-                    menu_item = MenuItem.objects.get(
-                        pk=menu_item_id,
-                        restaurant=restaurant
+            if item.get("menu_item") and item["menu_item"] in menu_items:
+                menu_item = menu_items[item["menu_item"]]
+                order_items_to_create.append(
+                    OrderItem(
+                        order=order,
+                        menu_item=menu_item,
+                        quantity=quantity,
+                        is_new=True,
+                        description=description,
+                        added_by=staff
                     )
-                except MenuItem.DoesNotExist:
-                    continue
-
-                order_item = OrderItem.objects.create(
-                    order=order,
-                    menu_item=menu_item,
-                    quantity=quantity,
-                    is_new=True,
-                    description=item.get("description", ""),
-                    added_by=staff
-
+                )
+            elif item.get("platter") and item["platter"] in platters:
+                platter = platters[item["platter"]]
+                order_items_to_create.append(
+                    OrderItem(
+                        order=order,
+                        platter=platter,
+                        quantity=quantity,
+                        is_new=True,
+                        description=description,
+                        added_by=staff
+                    )
                 )
 
-                deduct_stock_for_order_item(order_item, order)
+        # ✅ Bulk create (ONE query)
+        created_items = OrderItem.objects.bulk_create(order_items_to_create)
+        
+        # ✅ BATCH stock deduction (instead of per-item)
+        ingredient_ids = deduct_batch_stock_for_order_items(created_items, order)
+        
+        # ✅ Batch recalculation (once for all affected menu items)
+        recalc_batch_menu_availability(ingredient_ids)
+        
+        def _broadcast():
+            # Send individual item broadcasts
+            for item in created_items:
+                broadcast_order_item_update(item, "ITEM_CREATED")
+            
+            # One table update for all items
+            broadcast_table_items_update(order)
 
-                new_items.append({
-                    "id": order_item.id,
-                    "name": menu_item.name,
-                    "quantity": order_item.quantity
-                })
+        transaction.on_commit(_broadcast)
 
-            # ─── PLATTER ───
-            elif platter_id:
+        # Prepare response
+        for order_item in created_items:
+            name = (
+                order_item.menu_item.name
+                if order_item.menu_item
+                else order_item.platter.name
+            )
+            response_items.append({
+                "id": order_item.id,
+                "name": name,
+                "quantity": order_item.quantity
+            })
 
-                try:
-                    platter = Platter.objects.get(
-                        pk=platter_id,
-                        restaurant=restaurant
-                    )
-                except Platter.DoesNotExist:
-                    continue
-
-                order_item = OrderItem.objects.create(
-                    order=order,
-                    platter=platter,
-                    quantity=quantity,
-                    is_new=True,
-                    description=item.get("description", ""),
-                    added_by=staff
-                )
-
-                deduct_stock_for_order_item(order_item, order)
-
-                new_items.append({
-                    "id": order_item.id,
-                    "name": platter.name,
-                    "quantity": order_item.quantity
-                })
-
-    return Response({"new_items": new_items}, status=status.HTTP_200_OK)
-
+    return Response({"new_items": response_items}, status=200)
 @api_view(["PATCH"])
 @permission_classes([
     IsAuthenticated,

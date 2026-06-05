@@ -136,7 +136,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-lg relative animate-in fade-in-50 slide-in-from-bottom-10">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] shadow-lg relative animate-in fade-in-50 slide-in-from-bottom-10 flex flex-col">
         <div className="flex justify-between items-center border-b px-5 py-3">
           <h2 className="text-lg font-semibold">
             Table {name} —{" "}
@@ -160,7 +160,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           <p className="text-gray-700 text-sm">Capacity: {capacity}</p>
           {note && <p className="text-gray-600 italic text-sm">Note: {note}</p>}
 

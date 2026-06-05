@@ -64,75 +64,115 @@ export default function KitchenHomepage() {
       order.order_number?.toString().includes(query)
     );
   });
+  const selectOrder = (orderToSelect) => {
+    // If items are missing or empty, fetch fresh data from backend
+    if (!orderToSelect?.items?.length) {
+      setLoading(true); // optional: show loading in sidebar
+      instance
+        .get(`/orders/orders/${orderToSelect.id}/`)
+        .then((res) => {
+          setSelectedOrder(res.data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch order details", err);
+          setSelectedOrder(orderToSelect); // fallback
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setSelectedOrder(orderToSelect);
+    }
+  };
 
   const handleMessage = (msg) => {
+    console.log("SOCKET MESSAGE:", msg);
     if (!msg?.type) return;
 
     // Backend sometimes wraps order inside msg.order OR msg.message.order
     const payload = msg.message ?? msg;
-
-    const type = payload.type;
+    const type = payload.type ?? msg.type;
 
     /* =========================
      NEW ORDER
   ========================= */
     if (type === "NEW_ORDER") {
-      const incoming = payload.order;
+      const incoming = payload.order || payload.message?.order;
       if (!incoming?.id) return;
 
       setOrders((prev) => {
         const exists = prev.some((o) => o.id === incoming.id);
-
         if (exists) {
           return prev.map((o) => (o.id === incoming.id ? incoming : o));
         }
-
-        // IMPORTANT: always insert new order (NO item filtering here)
         return [incoming, ...prev];
       });
 
       setPendingOrders((prev) => {
         if (incoming.status !== "pending") return prev;
-
         const exists = prev.some((o) => o.id === incoming.id);
         if (exists) {
           return prev.map((o) => (o.id === incoming.id ? incoming : o));
         }
-
         return [incoming, ...prev];
       });
 
-      return;
+      // 🔥 NEW: Sync sidebar immediately if this order is already selected
+      if (selectedOrder?.id === incoming.id) {
+        setSelectedOrder(incoming);
+      }
     }
 
     /* =========================
      ITEM CREATED / UPDATED
   ========================= */
+    /* =========================
+   ITEM CREATED / UPDATED
+========================= */
     if (type === "ITEM_CREATED" || type === "ITEM_UPDATED") {
       const { order_id, item } = payload;
-      if (!order_id || !item) return;
+      if (!order_id || !item?.id) return;
 
-      setOrders((prev) =>
-        prev.map((order) => {
-          if (order.id !== order_id) return order;
+      setOrders((prevOrders) => {
+        const index = prevOrders.findIndex((o) => o.id === order_id);
 
-          const existingItems = order.items || [];
+        // Order doesn't exist in our list yet
+        if (index === -1) {
+          instance.get(`/orders/orders/${order_id}/`).then((res) => {
+            const fresh = res.data;
+            setOrders((p) => [fresh, ...p.filter((o) => o.id !== order_id)]);
 
-          // replace if exists, else add
-          const exists = existingItems.some((i) => i.id === item.id);
+            if (selectedOrder?.id === order_id) {
+              setSelectedOrder(fresh);
+            }
+          });
+          return prevOrders;
+        }
 
-          const updatedItems = exists
-            ? existingItems.map((i) => (i.id === item.id ? item : i))
-            : [...existingItems, item];
+        // Order exists - update items
+        const currentOrder = prevOrders[index];
+        const currentItems = currentOrder.items || [];
 
-          return {
-            ...order,
-            items: updatedItems,
-          };
-        }),
-      );
+        const updatedItems = currentItems.some((i) => i.id === item.id)
+          ? currentItems.map((i) => (i.id === item.id ? item : i))
+          : [...currentItems, item];
 
-      return;
+        const updatedOrder = {
+          ...currentOrder,
+          items: updatedItems,
+          total: currentOrder.total, // you can recalculate if needed
+          updated_at: new Date().toISOString(),
+        };
+
+        const newOrders = [...prevOrders];
+        newOrders[index] = updatedOrder;
+
+        // === MOST IMPORTANT FIX ===
+        // Update sidebar immediately using functional update to avoid stale state
+        if (selectedOrder?.id === order_id) {
+          setSelectedOrder(updatedOrder);
+        }
+
+        return newOrders;
+      });
     }
 
     /* =========================
@@ -189,11 +229,17 @@ export default function KitchenHomepage() {
     };
     handleMessage(testMsg);
   }, []);
+  // Keep sidebar always in sync with latest order data
   useEffect(() => {
-    if (!selectedOrder) return;
-    const updatedSelectedOrder = orders.find((o) => o.id === selectedOrder.id);
-    if (updatedSelectedOrder) {
-      setSelectedOrder(updatedSelectedOrder);
+    if (!selectedOrder?.id) return;
+
+    const latest = orders.find((o) => o.id === selectedOrder.id);
+
+    if (
+      latest &&
+      JSON.stringify(latest.items) !== JSON.stringify(selectedOrder.items)
+    ) {
+      setSelectedOrder(latest);
     }
   }, [orders]);
 
@@ -321,7 +367,7 @@ export default function KitchenHomepage() {
                       key={order.id}
                       order={order}
                       isSelected={selectedOrder?.id === order.id}
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={() => selectOrder(order)}
                     />
                   ))}
                 </div>
@@ -365,7 +411,7 @@ export default function KitchenHomepage() {
                       key={order.id}
                       order={order}
                       isSelected={selectedOrder?.id === order.id}
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={() => selectOrder(order)}
                     />
                   ))}
                 </div>

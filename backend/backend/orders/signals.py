@@ -144,13 +144,37 @@ def broadcast_order_item_delete(instance):
     except Exception:
         pass
 
+from django.db.models import Sum, F, DecimalField
+from django.db.models.functions import Coalesce
+from django.db.models import ExpressionWrapper
 
 def broadcast_table_items_update(order):
     """Broadcast only item count and total for table updates - MUCH lighter"""
     if not order or not order.table or not order.restaurant:
         return
     
+
     group_name = f"orders_{order.restaurant_id}"
+    line_total = ExpressionWrapper(
+    F('quantity') * F('menu_item__price'),
+    output_field=DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+    )
+
+    total = order.items.exclude(
+        status='cancelled'
+    ).aggregate(
+        total=Coalesce(
+            Sum(line_total),
+            0,
+            output_field=DecimalField(
+                max_digits=12,
+                decimal_places=2
+            )
+        )
+    )["total"]
     
     # Only send what the table view needs
     async_to_sync(channel_layer.group_send)(
@@ -162,7 +186,7 @@ def broadcast_table_items_update(order):
                 "table_id": order.table_id,
                 "order_id": order.id,
                 "item_count": order.items.count(),
-                "order_total": str(order.get_total()),
+                "order_total": str(total),
                 "order_status": order.status
             },
         }
@@ -173,15 +197,27 @@ def broadcast_table_items_update(order):
 
 @receiver(post_save, sender=OrderItem)
 def order_item_updated(sender, instance, created, **kwargs):
-    # Use on_commit to avoid issues with transaction rollback
-    transaction.on_commit(lambda: broadcast_order_item_update(instance, "ITEM_CREATED" if created else "ITEM_UPDATED"))
-    
-    # Only update table info with lightweight message, not full table broadcast
+    transaction.on_commit(
+        lambda: broadcast_order_item_update(
+            instance,
+            "ITEM_CREATED" if created else "ITEM_UPDATED"
+        )
+    )
+
     if instance.order_id:
         try:
-            order = Order.objects.only('id', 'table_id', 'restaurant_id', 'status').get(pk=instance.order_id)
-            transaction.on_commit(lambda: broadcast_table_items_update(order))
-        except Order.OrderItem.MultipleObjectsReturned:
+            order = Order.objects.only(
+                'id',
+                'table_id',
+                'restaurant_id',
+                'status'
+            ).get(pk=instance.order_id)
+
+            transaction.on_commit(
+                lambda: broadcast_table_items_update(order)
+            )
+
+        except Order.DoesNotExist:
             pass
 
 
