@@ -1,7 +1,7 @@
 import instance from "../../api/axiosInstance";
 import { toast } from "react-hot-toast";
 
-export default function OrderItem({ item }) {
+export default function OrderItem({ item, readOnly = false }) {
   const updateStatus = async (status) => {
     try {
       await instance.patch(`/orders/order-items/${item.id}/status/`, {
@@ -111,7 +111,7 @@ export default function OrderItem({ item }) {
       {/* ACTIONS */}
       {/* Using flex-wrap to ensure buttons don't overflow awkwardly */}
       <div className="mt-2 flex justify-end gap-1 flex-wrap">
-        {item.status === "pending" && (
+        {item.status === "pending" && !readOnly && (
           <button
             onClick={() => updateStatus("approved")}
             className="bg-blue-500 hover:bg-blue-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm"
@@ -120,7 +120,7 @@ export default function OrderItem({ item }) {
           </button>
         )}
 
-        {item.status === "approved" && (
+        {item.status === "approved" && !readOnly && (
           <>
             <button
               onClick={() => updateStatus("pending")}
@@ -138,7 +138,7 @@ export default function OrderItem({ item }) {
           </>
         )}
 
-        {item.status === "ready" && (
+        {item.status === "ready" && !readOnly && (
           <span className="text-[10px] text-green-600 flex items-center italic">
             Completed
           </span>

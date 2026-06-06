@@ -8,8 +8,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta, time
 from decimal import Decimal
 
-from menu.models import MenuItem
-from inventory.models import MenuItemIngredient, Ingredient
+from inventory.models import Ingredient, StockMovement, MenuItemIngredient
 
 
 class InventoryReportService:

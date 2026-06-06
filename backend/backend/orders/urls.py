@@ -4,7 +4,7 @@ from .views import assign_delivery,cashier_orders,cancel_order,kitchen_orders,cr
 from .views import (bulk_update_order_items,request_discount,approve_discount_or_reject,manager_pending_discount_requests,
                     admin_pending_discount_requests,all_discount_requests,change_order_table,
                     cancel_order_item,update_order_item_status,mark_items_printed_to_kitchen,discount_card_details,discount_cards,
-                    apply_discount_card,discount_card_actions
+                    apply_discount_card,discount_card_actions,ready_kitchen_orders
                     )
 
 urlpatterns = [
@@ -26,6 +26,7 @@ urlpatterns = [
     path("discount-requests/",all_discount_requests),
     path("discounts/<int:pk>/approveOrReject/", approve_discount_or_reject, name="approve-discount"),
     path('kitchen-orders/',kitchen_orders),
+    path('ready-kitchen-orders/',ready_kitchen_orders),
     path(
     "kitchen/<int:order_id>/mark-items-printed/",
     mark_items_printed_to_kitchen,

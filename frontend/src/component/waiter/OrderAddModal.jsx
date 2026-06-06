@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import instance from "../../api/axiosInstance";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export default function TakeAwayForm() {
+export default function TakeAwayOrderForm() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
   const location = useLocation();
@@ -38,10 +38,10 @@ export default function TakeAwayForm() {
     phone: "",
     note: "",
   });
-  console.log(table);
 
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const navigate = useNavigate();
+
   const fetchMenuData = async () => {
     setLoading(true);
     try {
@@ -50,7 +50,6 @@ export default function TakeAwayForm() {
 
       const enriched = data.map((cat) => ({
         ...cat,
-
         menu_items: cat.menu_items.map((item) => ({
           ...item,
           type: "menu_item",
@@ -60,7 +59,6 @@ export default function TakeAwayForm() {
               : `${BASE_URL}${item.image}`
             : null,
         })),
-
         platters: (cat.platters || []).map((platter) => ({
           ...platter,
           type: "platter",
@@ -131,20 +129,12 @@ export default function TakeAwayForm() {
 
   const handleIncrement = (menuItem) => {
     const existing = cart.find((i) => i.id === menuItem.id);
-
     if (existing) {
       setCart(
         cart.map((i) => (i.id === menuItem.id ? { ...i, qty: i.qty + 1 } : i)),
       );
     } else {
-      setCart([
-        ...cart,
-        {
-          ...menuItem,
-          qty: 1,
-          note: "", // 👈 add item note
-        },
-      ]);
+      setCart([...cart, { ...menuItem, qty: 1, note: "" }]);
     }
   };
 
@@ -203,7 +193,6 @@ export default function TakeAwayForm() {
         ...(item.type === "platter"
           ? { platter: item.id }
           : { menu_item: item.id }),
-
         quantity: item.qty,
         description: item.note,
       })),
@@ -225,32 +214,25 @@ export default function TakeAwayForm() {
 
   const filteredItems = getFilteredItems();
 
-  const groupedItems = () => {
-    if (activeCategory !== "All") {
-      return [{ category: activeCategory, items: filteredItems }];
+  const getCategoryCount = (catName) => {
+    if (catName === "All") {
+      return menuData.reduce(
+        (s, c) => s + c.menu_items.length + (c.platters?.length || 0),
+        0,
+      );
     }
-    const groups = [];
-    menuData.forEach((cat) => {
-      const items = filteredItems.filter((i) => i.category === cat.name);
-      if (items.length > 0) {
-        groups.push({
-          category: cat.name,
-          description: cat.description,
-          items,
-        });
-      }
-    });
-    return groups;
+    const catData = menuData.find((c) => c.name === catName);
+    return (catData?.menu_items.length || 0) + (catData?.platters?.length || 0);
   };
 
   return (
     <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-gray-50">
       <Toaster position="bottom-center" />
 
+      {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Back Button */}
             <button
               onClick={() => navigate(-1)}
               className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200"
@@ -262,18 +244,18 @@ export default function TakeAwayForm() {
               <span className="text-sm font-medium text-gray-700">Back</span>
             </button>
 
-            {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
               <ShoppingBag size={20} className="text-white" />
             </div>
 
-            {/* Title */}
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
                 Dine-in Order
               </h1>
               <p className="text-xs text-gray-500">
-                Create a new dine-in order
+                {table?.name
+                  ? `Table: ${table.name}`
+                  : "Create a new dine-in order"}
               </p>
             </div>
           </div>
@@ -291,230 +273,218 @@ export default function TakeAwayForm() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder={t("menu.search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition placeholder:text-gray-400"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {allCategories.map((cat) => {
-            const catData = menuData.find((c) => c.name === cat);
-            const count =
-              cat === "All"
-                ? menuData.reduce(
-                    (s, c) =>
-                      s + c.menu_items.length + (c.platters?.length || 0),
-                    0,
-                  )
-                : (catData?.menu_items.length || 0) +
-                  (catData?.platters?.length || 0);
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
-                  activeCategory === cat
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {cat === "All" ? (
-                  <UtensilsCrossed size={14} />
-                ) : (
-                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-                )}
-                {cat}
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-md ${
-                    activeCategory === cat
-                      ? "bg-white/20 text-white"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="animate-spin text-emerald-500" size={32} />
-            <p className="text-sm text-gray-400">{t("menu.loading")}</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-              <UtensilsCrossed size={28} className="text-gray-300" />
-            </div>
-            <p className="text-sm text-gray-400">
-              {searchQuery
-                ? `No items found for "${searchQuery}"`
-                : "No items in this category"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {groupedItems().map((group) => (
-              <div key={group.category}>
-                {activeCategory === "All" && (
-                  <div className="mb-4">
-                    <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-1 h-5 rounded-full bg-emerald-500" />
-                      {group.category}
-                      <span className="text-xs font-normal text-gray-400">
-                        {group.items.length} item
-                        {group.items.length !== 1 && "s"}
+      {/* Main Layout: Sidebar + Content */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex gap-6">
+          {/* Vertical Categories Sidebar */}
+          <aside className="w-56 flex-shrink-0">
+            <div className="sticky top-24 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Categories
+                </h3>
+              </div>
+              <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                {allCategories.map((cat) => {
+                  const count = getCategoryCount(cat);
+                  const isActive = activeCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium transition-all duration-150 border-l-4 ${
+                        isActive
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-500"
+                          : "bg-white text-gray-600 border-transparent hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        {cat === "All" ? (
+                          <UtensilsCrossed size={14} />
+                        ) : (
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isActive ? "bg-emerald-500" : "bg-gray-300"
+                            }`}
+                          />
+                        )}
+                        <span className="truncate">{cat}</span>
                       </span>
-                    </h2>
-                    {group.description && (
-                      <p className="text-xs text-gray-400 ml-3 mt-0.5">
-                        {group.description}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-9 gap-2.5">
-                  {group.items.map((item) => {
-                    const qty = getCartItemQty(item.id);
-                    const isSelected = qty > 0;
-
-                    return (
-                      <motion.div
-                        key={item.id}
-                        whileHover={{ y: -2 }}
-                        className={`relative rounded-xl border overflow-hidden transition-all duration-150 cursor-pointer bg-white ${
-                          isSelected
-                            ? "border-emerald-400 shadow-md shadow-emerald-100"
-                            : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-md flex-shrink-0 ${
+                          isActive
+                            ? "bg-emerald-200 text-emerald-800"
+                            : "bg-gray-100 text-gray-500"
                         }`}
-                        onClick={() =>
-                          item.final_availability && handleIncrement(item)
-                        }
                       >
-                        {/* Selected Indicator */}
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                            <Check
-                              size={10}
-                              className="text-white"
-                              strokeWidth={3}
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Side: Search + Items List */}
+          <div className="flex-1 min-w-0">
+            {/* Search */}
+            <div className="mb-4">
+              <div className="relative max-w-md">
+                <Search
+                  size={18}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder={t("menu.search")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition placeholder:text-gray-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Category Header */}
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                <span className="w-1 h-5 rounded-full bg-emerald-500" />
+                {activeCategory}
+                <span className="text-xs font-normal text-gray-400">
+                  {filteredItems.length} item
+                  {filteredItems.length !== 1 && "s"}
+                </span>
+              </h2>
+            </div>
+
+            {/* Items List */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <Loader2 className="animate-spin text-emerald-500" size={32} />
+                <p className="text-sm text-gray-400">{t("menu.loading")}</p>
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white rounded-xl border border-gray-100">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                  <UtensilsCrossed size={28} className="text-gray-300" />
+                </div>
+                <p className="text-sm text-gray-400">
+                  {searchQuery
+                    ? `No items found for "${searchQuery}"`
+                    : "No items in this category"}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                {filteredItems.map((item) => {
+                  const qty = getCartItemQty(item.id);
+                  const isSelected = qty > 0;
+
+                  return (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className={`flex items-center gap-4 px-4 py-3 transition-colors ${
+                        isSelected ? "bg-emerald-50/50" : "hover:bg-gray-50"
+                      } ${!item.final_availability ? "opacity-60" : ""}`}
+                    >
+                      {/* Image */}
+                      <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <UtensilsCrossed
+                              size={20}
+                              className="text-gray-300"
                             />
                           </div>
                         )}
+                      </div>
 
-                        {/* Image */}
-                        <div className="relative h-24 bg-gray-100 overflow-hidden">
-                          {item.image ? (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <UtensilsCrossed
-                                size={20}
-                                className="text-gray-300"
-                              />
-                            </div>
-                          )}
-
-                          {!item.final_availability && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <span className="text-[10px] font-semibold text-white bg-red-500 px-2 py-0.5 rounded">
-                                {t("menu.unavailable")}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-2.5">
-                          <h3 className="text-xs font-semibold text-gray-800 truncate">
+                      {/* Name & Category */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-gray-800 truncate">
                             {item.name}
                           </h3>
-
-                          <div className="flex items-center justify-between mt-1.5">
-                            <span className="text-sm font-bold text-emerald-600">
-                              Afs {parseFloat(item.price).toLocaleString()}
+                          {item.type === "platter" && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+                              Platter
                             </span>
-
-                            {isSelected ? (
-                              <div
-                                className="flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDecrement(item.id);
-                                  }}
-                                  className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
-                                >
-                                  <Minus size={20} />
-                                </button>
-
-                                <span className="w-5 text-center text-xs font-bold">
-                                  {qty}
-                                </span>
-
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleIncrement(item);
-                                  }}
-                                  className="w-6 h-6 rounded bg-emerald-500 text-white flex items-center justify-center"
-                                >
-                                  <Plus size={20} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleIncrement(item);
-                                }}
-                                disabled={!item.final_availability}
-                                className="w-6 h-6 rounded bg-emerald-50 text-emerald-600 flex items-center justify-center"
-                              >
-                                <Plus size={20} />
-                              </button>
-                            )}
-                          </div>
+                          )}
+                          {!item.final_availability && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-medium">
+                              {t("menu.unavailable")}
+                            </span>
+                          )}
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                        {activeCategory === "All" && (
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            {item.category}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      <div className="text-right flex-shrink-0 w-24">
+                        <span className="text-sm font-bold text-emerald-600">
+                          Afs {parseFloat(item.price).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex-shrink-0">
+                        {isSelected ? (
+                          <div className="flex items-center gap-1.5 bg-white border border-emerald-200 rounded-lg p-1">
+                            <button
+                              onClick={() => handleDecrement(item.id)}
+                              className="w-7 h-7 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                            >
+                              <Minus size={14} className="text-gray-600" />
+                            </button>
+                            <span className="w-7 text-center text-sm font-bold text-gray-800">
+                              {qty}
+                            </span>
+                            <button
+                              onClick={() => handleIncrement(item)}
+                              className="w-7 h-7 rounded bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
+                            >
+                              <Plus size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleIncrement(item)}
+                            disabled={!item.final_availability}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Plus size={14} />
+                            Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </div>
       </div>
 
+      {/* Cart Drawer */}
       <AnimatePresence>
         {showCart && (
           <motion.div
@@ -588,11 +558,9 @@ export default function TakeAwayForm() {
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {item.name}
                       </p>
-
                       <p className="text-xs text-gray-400 mt-0.5">
                         Afs {parseFloat(item.price).toLocaleString()} each
                       </p>
-
                       <textarea
                         placeholder="Item note..."
                         value={item.note || ""}
@@ -609,7 +577,7 @@ export default function TakeAwayForm() {
                         onClick={() => handleDecrement(item.id)}
                         className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                       >
-                        <Minus size={20} className="text-gray-500" />
+                        <Minus size={14} className="text-gray-500" />
                       </button>
                       <input
                         type="number"
@@ -627,17 +595,14 @@ export default function TakeAwayForm() {
                         onClick={() => handleIncrement(item)}
                         className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
                       >
-                        <Plus size={20} className="text-emerald-600" />
+                        <Plus size={14} className="text-emerald-600" />
                       </button>
                     </div>
                     <button
                       onClick={() => handleRemoveFromCart(item.id)}
-                      className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0 group/del"
+                      className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0"
                     >
-                      <Trash2
-                        size={14}
-                        className="ml-2 text-red-500 transition-colors"
-                      />
+                      <Trash2 size={14} className="text-red-500" />
                     </button>
                   </div>
                 ))
@@ -646,7 +611,6 @@ export default function TakeAwayForm() {
 
             {cart.length > 0 && (
               <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 space-y-4">
-                {/* Form */}
                 <div className="space-y-3">
                   <div className="relative">
                     <User
@@ -677,7 +641,6 @@ export default function TakeAwayForm() {
                         setFormData({ ...formData, phone: e.target.value })
                       }
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-                      required
                     />
                   </div>
                   <div className="relative">
@@ -697,7 +660,6 @@ export default function TakeAwayForm() {
                   </div>
                 </div>
 
-                {/* Total */}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-medium text-gray-600">
                     Total
@@ -707,7 +669,6 @@ export default function TakeAwayForm() {
                   </span>
                 </div>
 
-                {/* Submit Button */}
                 <button
                   onClick={handleSubmitOrder}
                   disabled={submitting}

@@ -17,6 +17,7 @@ const INITIAL_FORM_DATA = {
   x: "",
   delivery_available: false,
   logo: null,
+  slogan: "",
   latitude: "",
   longitude: "",
   delivery_radius_km: "",
@@ -107,6 +108,18 @@ export default function RestaurantForm({ restaurant = {} }) {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    setFormData({
+      ...INITIAL_FORM_DATA,
+      ...Object.fromEntries(
+        Object.entries(restaurant).map(([key, value]) => [
+          key,
+          value ?? INITIAL_FORM_DATA[key] ?? "",
+        ]),
+      ),
+      logo: null,
+    });
+  }, [restaurant]);
 
   const downloadQR = async () => {
     const response = await fetch(qrCode);
@@ -146,6 +159,13 @@ export default function RestaurantForm({ restaurant = {} }) {
             value={formData.name}
             onChange={handleChange}
             required
+          />
+
+          <FormInput
+            label={t("slogan")}
+            name="slogan"
+            value={formData.slogan}
+            onChange={handleChange}
           />
           <FormInput
             label={t("phone")}

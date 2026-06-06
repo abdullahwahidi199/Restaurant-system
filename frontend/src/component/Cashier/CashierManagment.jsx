@@ -163,30 +163,19 @@ const CashierManagement = () => {
 
   const filteredOrders = useMemo(() => {
     const q = (filters.search || "").trim().toLowerCase();
+
     return orders.filter((o) => {
-      if (q) {
-        const idMatch = String(o.id).toLowerCase().includes(q);
-        const name = (o.name || o.customer || o.customer_name || "")
-          .toString()
-          .toLowerCase();
-        const phone = (o.phone || "").toString().toLowerCase();
-        if (!idMatch && !name.includes(q) && !phone.includes(q)) return false;
-      }
+      if (!q) return true;
 
-      if (filters.type) {
-        if ((o.order_type || "").toString() !== filters.type) return false;
-      }
+      const idMatch = String(o.id).toLowerCase().includes(q);
 
-      if (filters.status) {
-        if ((o.status || "").toString() !== filters.status) return false;
-      }
+      const name = (o.name || o.customer || o.customer_name || "")
+        .toString()
+        .toLowerCase();
 
-      if (filters.date) {
-        const created = (o.created_at || o.createdAt || "").slice(0, 10);
-        if (created !== filters.date) return false;
-      }
+      const tableNumber = (o.tableName || "").toString().toLowerCase();
 
-      return true;
+      return idMatch || name.includes(q) || tableNumber.includes(q);
     });
   }, [orders, filters]);
 

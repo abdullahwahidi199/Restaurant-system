@@ -12,7 +12,12 @@ import instance from "../../api/axiosInstance";
 import OrderItem from "./OrderItem";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
 
-export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
+export default function OrderDetailSidebar({
+  order,
+  onClose,
+  onOrderPrinted,
+  readOnly = false,
+}) {
   const [printMode, setPrintMode] = useState("new"); // "new" or "all"
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
@@ -177,7 +182,7 @@ export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
           </h4>
           <div className="space-y-2">
             {order.items.map((item) => (
-              <OrderItem key={item.id} item={item} />
+              <OrderItem key={item.id} item={item} readOnly={readOnly} />
             ))}
           </div>
         </div>
@@ -194,7 +199,7 @@ export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          {order.status === "pending" && (
+          {order.status === "pending" && !readOnly && (
             <button
               disabled={updating}
               onClick={() => updateOrderStatus("in_progress")}
@@ -210,7 +215,7 @@ export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
               onChange={(e) => setPrintMode(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm"
             >
-              <option value="new">Unprinted Items</option>
+              {!readOnly && <option value="new">Unprinted Items</option>}
               <option value="all">Reprint Full Order</option>
             </select>
 
@@ -222,7 +227,7 @@ export default function OrderDetailSidebar({ order, onClose, onOrderPrinted }) {
             </button>
           </div>
 
-          {order.status === "in_progress" && (
+          {order.status === "in_progress" && !readOnly && (
             <button
               disabled={updating}
               onClick={() => {

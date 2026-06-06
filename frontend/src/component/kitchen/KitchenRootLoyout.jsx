@@ -60,6 +60,16 @@ export default function KitchenRootLayout() {
           >
             🍴 {!collapsed && "Menu"}
           </NavLink>
+          <NavLink
+            to="/kitchen/ready-orders"
+            className={({ isActive }) =>
+              isActive
+                ? "flex items-center gap-2 bg-blue-500 text-white p-3 rounded"
+                : "flex items-center gap-2 p-3 rounded hover:bg-gray-100"
+            }
+          >
+            ✅ {!collapsed && "Ready Orders"}
+          </NavLink>
         </nav>
       </aside>
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X,
+  PanelRightOpen,
+  PanelRightClose,
   Plus,
   Minus,
   Trash2,
@@ -9,7 +11,6 @@ import {
   UtensilsCrossed,
   ShoppingBag,
   Check,
-  ChevronRight,
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
@@ -21,11 +22,11 @@ export default function AddItemToOrderModal({
 }) {
   const [menuData, setMenuData] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [showSummary, setShowSummary] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const categoryScrollRef = useRef(null);
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
 
   const fetchMenuData = async () => {
@@ -33,10 +34,8 @@ export default function AddItemToOrderModal({
     try {
       const res = await instance.get("/menu/categories/");
       const data = res.data;
-      // console.log(data)
       const enriched = data.map((cat) => ({
         ...cat,
-
         menu_items: cat.menu_items.map((item) => ({
           ...item,
           item_type: "menu_item",
@@ -46,7 +45,6 @@ export default function AddItemToOrderModal({
               : `${BASE_URL}${item.image}`
             : null,
         })),
-
         platters: (cat.platters || []).map((platter) => ({
           ...platter,
           item_type: "platter",
@@ -81,11 +79,7 @@ export default function AddItemToOrderModal({
 
     if (activeCategory === "All") {
       items = menuData.flatMap((cat) => [
-        ...cat.menu_items.map((item) => ({
-          ...item,
-          category: cat.name,
-        })),
-
+        ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
         ...(cat.platters || []).map((platter) => ({
           ...platter,
           category: cat.name,
@@ -93,14 +87,9 @@ export default function AddItemToOrderModal({
       ]);
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
-
       items = cat
         ? [
-            ...cat.menu_items.map((item) => ({
-              ...item,
-              category: cat.name,
-            })),
-
+            ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
             ...(cat.platters || []).map((platter) => ({
               ...platter,
               category: cat.name,
@@ -117,6 +106,7 @@ export default function AddItemToOrderModal({
 
     return items;
   };
+
   const getSelectedItemQty = (menuItemId) => {
     const found = selectedItems.find((i) => i.menu_item.id === menuItemId);
     return found ? found.quantity : 0;
@@ -135,12 +125,10 @@ export default function AddItemToOrderModal({
     } else {
       setSelectedItems([
         ...selectedItems,
-        {
-          menu_item: menuItem,
-          quantity: 1,
-          note: "",
-        },
+        { menu_item: menuItem, quantity: 1, note: "" },
       ]);
+      // Auto-open summary when first item is added
+      if (!showSummary) setShowSummary(true);
     }
   };
 
@@ -151,6 +139,7 @@ export default function AddItemToOrderModal({
       ),
     );
   };
+
   const handleDecrement = (menuItemId) => {
     const existing = selectedItems.find((i) => i.menu_item.id === menuItemId);
     if (!existing) return;
@@ -199,7 +188,6 @@ export default function AddItemToOrderModal({
       items: selectedItems.map((i) => ({
         quantity: i.quantity,
         description: i.note,
-
         ...(i.menu_item.item_type === "menu_item"
           ? { menu_item: i.menu_item.id }
           : { platter: i.menu_item.id }),
@@ -221,27 +209,20 @@ export default function AddItemToOrderModal({
 
   const filteredItems = getFilteredItems();
 
-  const groupedItems = () => {
-    if (activeCategory !== "All") {
-      return [{ category: activeCategory, items: filteredItems }];
+  const getCategoryCount = (catName) => {
+    if (catName === "All") {
+      return menuData.reduce(
+        (s, c) => s + c.menu_items.length + (c.platters?.length || 0),
+        0,
+      );
     }
-    const groups = [];
-    menuData.forEach((cat) => {
-      const items = filteredItems.filter((i) => i.category === cat.name);
-      if (items.length > 0) {
-        groups.push({
-          category: cat.name,
-          description: cat.description,
-          items,
-        });
-      }
-    });
-    return groups;
+    const catData = menuData.find((c) => c.name === catName);
+    return (catData?.menu_items.length || 0) + (catData?.platters?.length || 0);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-3">
@@ -260,20 +241,97 @@ export default function AddItemToOrderModal({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-          >
-            <X size={18} className="text-gray-500" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Toggle Summary Button */}
+            <button
+              onClick={() => setShowSummary((v) => !v)}
+              className={`relative flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-200 ${
+                showSummary
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+              }`}
+              title={showSummary ? "Hide order summary" : "Show order summary"}
+            >
+              {showSummary ? (
+                <PanelRightClose size={18} />
+              ) : (
+                <PanelRightOpen size={18} />
+              )}
+              <span className="text-sm font-medium hidden sm:inline">
+                {showSummary ? "Hide Cart" : "Show Cart"}
+              </span>
+              {totalItems > 0 && (
+                <span className="ml-1 min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
+                  {totalItems}
+                </span>
+              )}
+            </button>
+
+            {/* Close */}
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            >
+              <X size={18} className="text-gray-500" />
+            </button>
+          </div>
         </div>
 
-        {/* ── Body ── */}
+        {/* ── Body: 3 columns (categories | items | summary) ── */}
         <div className="flex flex-1 overflow-hidden">
-          {/* ── LEFT: Menu ── */}
+          {/* ── LEFT: Vertical Categories ── */}
+          <aside className="w-52 flex-shrink-0 border-r border-gray-100 bg-gray-50/50 flex flex-col">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Categories
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {allCategories.map((cat) => {
+                const count = getCategoryCount(cat);
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium transition-all duration-150 border-l-4 ${
+                      isActive
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-500"
+                        : "bg-transparent text-gray-600 border-transparent hover:bg-white hover:text-gray-900"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 truncate">
+                      {cat === "All" ? (
+                        <UtensilsCrossed size={14} />
+                      ) : (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isActive ? "bg-emerald-500" : "bg-gray-300"
+                          }`}
+                        />
+                      )}
+                      <span className="truncate">{cat}</span>
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-md flex-shrink-0 ${
+                        isActive
+                          ? "bg-emerald-200 text-emerald-800"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* ── MIDDLE: Menu Items List ── */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Search */}
-            <div className="px-5 pt-4 pb-2">
+            <div className="px-5 pt-4 pb-3 border-b border-gray-100">
               <div className="relative">
                 <Search
                   size={16}
@@ -295,57 +353,20 @@ export default function AddItemToOrderModal({
                   </button>
                 )}
               </div>
+
+              {/* Active category title */}
+              <h3 className="mt-3 text-sm font-semibold text-gray-800 flex items-center gap-2">
+                <span className="w-1 h-4 rounded-full bg-emerald-500" />
+                {activeCategory}
+                <span className="text-xs font-normal text-gray-400">
+                  {filteredItems.length} item
+                  {filteredItems.length !== 1 && "s"}
+                </span>
+              </h3>
             </div>
 
-            {/* Category Pills */}
-            <div
-              ref={categoryScrollRef}
-              className="px-5 pb-3 flex gap-2 overflow-x-auto scrollbar-hide"
-            >
-              {allCategories.map((cat) => {
-                const catData = menuData.find((c) => c.name === cat);
-                const count =
-                  cat === "All"
-                    ? menuData.reduce(
-                        (s, c) =>
-                          s + c.menu_items.length + (c.platters?.length || 0),
-                        0,
-                      )
-                    : (catData?.menu_items.length || 0) +
-                      (catData?.platters?.length || 0);
-
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 border ${
-                      activeCategory === cat
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-200"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {cat === "All" ? (
-                      <UtensilsCrossed size={14} />
-                    ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
-                    )}
-                    {cat}
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-md ${
-                        activeCategory === cat
-                          ? "bg-white/20 text-white"
-                          : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Menu Items */}
-            <div className="flex-1 overflow-y-auto px-5 pb-4">
+            {/* Items as rows */}
+            <div className="flex-1 overflow-y-auto px-5 py-3">
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-3">
                   <Loader2
@@ -366,322 +387,291 @@ export default function AddItemToOrderModal({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-5">
-                  {groupedItems().map((group) => (
-                    <div key={group.category}>
-                      {activeCategory === "All" && (
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                            <span className="w-1 h-4 rounded-full bg-emerald-500" />
-                            {group.category}
-                            <span className="text-xs font-normal text-gray-400">
-                              {group.items.length} item
-                              {group.items.length !== 1 && "s"}
-                            </span>
-                          </h3>
-                          {group.description && (
-                            <p className="text-xs text-gray-400 ml-3 mt-0.5">
-                              {group.description}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                  {filteredItems.map((item) => {
+                    const qty = getSelectedItemQty(item.id);
+                    const isSelected = qty > 0;
+
+                    return (
+                      <div
+                        key={`${item.item_type}-${item.id}`}
+                        className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                          isSelected ? "bg-emerald-50/50" : "hover:bg-gray-50"
+                        } ${!item.final_availability ? "opacity-60" : ""}`}
+                      >
+                        {/* Thumbnail */}
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <UtensilsCrossed
+                                size={18}
+                                className="text-gray-300"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Name & info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-gray-800 truncate">
+                              {item.name}
+                            </h4>
+                            {item.item_type === "platter" && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+                                Platter
+                              </span>
+                            )}
+                            {!item.final_availability && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-medium">
+                                Unavailable
+                              </span>
+                            )}
+                          </div>
+                          {activeCategory === "All" && (
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                              {item.category}
                             </p>
                           )}
                         </div>
-                      )}
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {group.items.map((item) => {
-                          const qty = getSelectedItemQty(item.id);
-                          const isSelected = qty > 0;
+                        {/* Price */}
+                        <div className="text-right flex-shrink-0 w-24">
+                          <span className="text-sm font-bold text-emerald-600">
+                            Afs {parseFloat(item.price).toLocaleString()}
+                          </span>
+                        </div>
 
-                          return (
-                            <div
-                              key={item.id}
-                              className={`group relative rounded-2xl border-2 overflow-hidden transition-all duration-200 cursor-pointer ${
-                                isSelected
-                                  ? "border-emerald-400 shadow-lg shadow-emerald-100 ring-1 ring-emerald-200"
-                                  : "border-gray-100 hover:border-gray-200 hover:shadow-md"
-                              }`}
+                        {/* Actions */}
+                        <div className="flex-shrink-0">
+                          {isSelected ? (
+                            <div className="flex items-center gap-1 bg-white border border-emerald-200 rounded-lg p-1">
+                              <button
+                                onClick={() => handleDecrement(item.id)}
+                                className="w-7 h-7 rounded bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                              >
+                                <Minus size={14} className="text-gray-600" />
+                              </button>
+                              <span className="w-7 text-center text-sm font-bold text-gray-800">
+                                {qty}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  if (!item.final_availability) return;
+                                  handleIncrement(item);
+                                }}
+                                className="w-7 h-7 rounded bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
                               onClick={() => {
                                 if (!item.final_availability) return;
                                 handleIncrement(item);
                               }}
+                              disabled={!item.final_availability}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {/* Selected badge */}
-                              {isSelected && (
-                                <div className="absolute top-2.5 right-2.5 z-10 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center shadow-md">
-                                  <Check
-                                    size={13}
-                                    className="text-white"
-                                    strokeWidth={3}
-                                  />
-                                </div>
-                              )}
-
-                              {/* Image */}
-                              <div className="relative h-28 bg-gray-100 overflow-hidden">
-                                {item.image ? (
-                                  <img
-                                    src={item.image}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                    onError={(e) => {
-                                      e.target.style.display = "none";
-                                      e.target.nextSibling.style.display =
-                                        "flex";
-                                    }}
-                                  />
-                                ) : null}
-                                <div
-                                  className={`w-full h-full items-center justify-center ${item.image ? "hidden" : "flex"}`}
-                                >
-                                  <UtensilsCrossed
-                                    size={28}
-                                    className="text-gray-300"
-                                  />
-                                </div>
-
-                                {/* Availability overlay */}
-                                {!item.final_availability && (
-                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                    <span className="text-xs font-semibold text-white bg-red-500/90 px-2.5 py-1 rounded-lg">
-                                      Unavailable
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Info */}
-                              <div className="p-3">
-                                <h4 className="text-sm font-semibold text-gray-800 truncate leading-tight">
-                                  {item.name}
-                                </h4>
-                                <div className="flex items-center justify-between mt-1.5">
-                                  <span className="text-sm font-bold text-emerald-600">
-                                    Afs{" "}
-                                    {parseFloat(item.price).toLocaleString()}
-                                  </span>
-                                  {isSelected ? (
-                                    <div
-                                      className="flex items-center gap-1"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDecrement(item.id);
-                                        }}
-                                        className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                                      >
-                                        <Minus
-                                          size={13}
-                                          className="text-gray-600"
-                                        />
-                                      </button>
-                                      <span className="w-7 text-center text-sm font-bold text-gray-800">
-                                        {qty}
-                                      </span>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-
-                                          if (!item.final_availability) return;
-
-                                          handleIncrement(item);
-                                        }}
-                                        className="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center transition-colors"
-                                      >
-                                        <Plus
-                                          size={13}
-                                          className="text-white"
-                                        />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-
-                                        if (!item.final_availability) return;
-
-                                        handleIncrement(item);
-                                      }}
-                                      className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
-                                    >
-                                      <Plus
-                                        size={14}
-                                        className="text-emerald-600"
-                                      />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                              <Plus size={14} />
+                              Add
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
 
           {/* ── RIGHT: Order Summary ── */}
-          <div className="w-80 lg:w-96 border-l border-gray-100 flex flex-col bg-gray-50/50">
-            {/* Summary Header */}
-            <div className="px-5 py-4 border-b border-gray-100 bg-white">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
-                  Order Summary
-                </h3>
-                {totalItems > 0 && (
-                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                    {totalItems} item{totalItems !== 1 && "s"}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Selected Items List */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-              {selectedItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
-                    <ShoppingBag size={24} className="text-gray-300" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-400">
-                      No items selected
-                    </p>
-                    <p className="text-xs text-gray-300 mt-1">
-                      Tap items from the menu to add
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                selectedItems.map((item) => (
-                  <div
-                    key={item.menu_item.id}
-                    className="bg-white rounded-xl border border-gray-100 p-3 flex gap-3 items-center transition-all hover:shadow-sm"
-                  >
-                    {/* Thumbnail */}
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                      {item.menu_item.image ? (
-                        <img
-                          src={item.menu_item.image}
-                          alt={item.menu_item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.nextSibling.style.display = "flex";
-                          }}
-                        />
-                      ) : null}
-                      <div
-                        className={`w-full h-full items-center justify-center ${item.menu_item.image ? "hidden" : "flex"}`}
-                      >
-                        <UtensilsCrossed size={16} className="text-gray-300" />
-                      </div>
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        {item.menu_item.name}
-                      </p>
-
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Afs {parseFloat(item.menu_item.price).toLocaleString()}{" "}
-                        each
-                      </p>
-
-                      <textarea
-                        placeholder="Item note..."
-                        value={item.note || ""}
-                        onChange={(e) =>
-                          handleItemNoteChange(
-                            item.menu_item.id,
-                            e.target.value,
-                          )
-                        }
-                        rows={2}
-                        className="mt-2 w-full rounded-lg border border-gray-200 px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                      />
-                    </div>
-
-                    {/* Quantity Control */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => handleDecrement(item.menu_item.id)}
-                        className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                      >
-                        <Minus size={12} className="text-gray-500" />
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleChangeQuantity(
-                            item.menu_item.id,
-                            Math.max(1, parseInt(e.target.value) || 1),
-                          )
-                        }
-                        className="w-9 text-center text-sm font-bold text-gray-800 bg-transparent border-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button
-                        onClick={() => handleIncrement(item.menu_item)}
-                        className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
-                      >
-                        <Plus size={12} className="text-emerald-600" />
-                      </button>
-                    </div>
-
-                    {/* Remove */}
+          {showSummary && (
+            <div className="w-80 lg:w-96 border-l border-gray-100 flex flex-col bg-gray-50/50 animate-in slide-in-from-right duration-200">
+              <div className="px-5 py-4 border-b border-gray-100 bg-white">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                    Order Summary
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {totalItems > 0 && (
+                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                        {totalItems} item{totalItems !== 1 && "s"}
+                      </span>
+                    )}
                     <button
-                      onClick={() => handleRemoveItem(item.menu_item.id)}
-                      className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0 group/del"
+                      onClick={() => setShowSummary(false)}
+                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                      title="Hide cart"
                     >
-                      <Trash2
-                        size={14}
-                        className="text-gray-300 group-hover/del:text-red-500 transition-colors"
-                      />
+                      <X size={14} className="text-gray-500" />
                     </button>
                   </div>
-                ))
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                {selectedItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <ShoppingBag size={24} className="text-gray-300" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-400">
+                        No items selected
+                      </p>
+                      <p className="text-xs text-gray-300 mt-1">
+                        Tap items from the menu to add
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  selectedItems.map((item) => (
+                    <div
+                      key={item.menu_item.id}
+                      className="bg-white rounded-xl border border-gray-100 p-3 flex gap-3 items-center transition-all hover:shadow-sm"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                        {item.menu_item.image ? (
+                          <img
+                            src={item.menu_item.image}
+                            alt={item.menu_item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`w-full h-full items-center justify-center ${item.menu_item.image ? "hidden" : "flex"}`}
+                        >
+                          <UtensilsCrossed
+                            size={16}
+                            className="text-gray-300"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {item.menu_item.name}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Afs{" "}
+                          {parseFloat(item.menu_item.price).toLocaleString()}{" "}
+                          each
+                        </p>
+                        <textarea
+                          placeholder="Item note..."
+                          value={item.note || ""}
+                          onChange={(e) =>
+                            handleItemNoteChange(
+                              item.menu_item.id,
+                              e.target.value,
+                            )
+                          }
+                          rows={2}
+                          className="mt-2 w-full rounded-lg border border-gray-200 px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleDecrement(item.menu_item.id)}
+                          className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                        >
+                          <Minus size={12} className="text-gray-500" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleChangeQuantity(
+                              item.menu_item.id,
+                              Math.max(1, parseInt(e.target.value) || 1),
+                            )
+                          }
+                          className="w-9 text-center text-sm font-bold text-gray-800 bg-transparent border-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          onClick={() => handleIncrement(item.menu_item)}
+                          className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center transition-colors"
+                        >
+                          <Plus size={12} className="text-emerald-600" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => handleRemoveItem(item.menu_item.id)}
+                        className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors flex-shrink-0 group/del"
+                      >
+                        <Trash2
+                          size={14}
+                          className="text-gray-300 group-hover/del:text-red-500 transition-colors"
+                        />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {selectedItems.length > 0 && (
+                <div className="border-t border-gray-100 bg-white px-5 py-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Subtotal</span>
+                    <span className="text-lg font-bold text-gray-900">
+                      Afs {totalAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleAddItems}
+                    disabled={submitting}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-emerald-200"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} strokeWidth={3} />
+                        Add {totalItems} Item{totalItems !== 1 && "s"} — Afs{" "}
+                        {totalAmount.toLocaleString()}
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
-
-            {/* Total & Submit */}
-            {selectedItems.length > 0 && (
-              <div className="border-t border-gray-100 bg-white px-5 py-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Subtotal</span>
-                  <span className="text-lg font-bold text-gray-900">
-                    Afs {totalAmount.toLocaleString()}
-                  </span>
-                </div>
-                <button
-                  onClick={handleAddItems}
-                  disabled={submitting}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-emerald-200"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={16} strokeWidth={3} />
-                      Add {totalItems} Item{totalItems !== 1 && "s"} — Afs{" "}
-                      {totalAmount.toLocaleString()}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
+
+        {/* ── Floating "Show Cart" button when summary is hidden and items exist ── */}
+        {!showSummary && totalItems > 0 && (
+          <button
+            onClick={() => setShowSummary(true)}
+            className="absolute bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-300/50 transition-all hover:scale-105"
+          >
+            <ShoppingBag size={18} />
+            <span className="text-sm font-semibold">
+              {totalItems} item{totalItems !== 1 && "s"}
+            </span>
+            <span className="text-sm font-bold border-l border-white/30 pl-2 ml-1">
+              Afs {totalAmount.toLocaleString()}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -78,6 +78,7 @@ import DiscountCardsMain from "./component/Admin/DiscountCards/DiscountCardsMain
 import CreateDiscountCard from "./component/Admin/DiscountCards/CreateDiscountCard";
 import DiscountCardDetails from "./component/Admin/DiscountCards/DiscountCardDetails";
 import DiscountCardEdit from "./component/Admin/DiscountCards/DiscountCardEdit";
+import ReadyOrders from "./component/kitchen/ReadyOrders";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -219,6 +220,7 @@ function App() {
             path="menu/items/:id"
             element={<KitchenManagerItemDetails />}
           />
+          <Route path="ready-orders" element={<ReadyOrders />} />
         </Route>
 
         <Route

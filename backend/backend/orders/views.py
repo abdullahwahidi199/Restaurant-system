@@ -564,6 +564,35 @@ def kitchen_orders(request):
     serializer = OrderSerializer(orders, many=True)
     return Response(serializer.data)
 
+
+from django.db.models import Count, Q, F
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+
+@api_view(["GET"])
+@permission_classes([
+    IsAuthenticated,
+    IsRestaurantActive,
+    IsKitchenManager | IsRestaurantAdmin
+])
+def ready_kitchen_orders(request):
+    restaurant = get_restaurant_from_user(request)
+
+    if not restaurant:
+        return Response({"error": "Restaurant not found"}, status=403)
+
+    orders = (
+        Order.objects.filter(
+            restaurant=restaurant,
+            status="ready"
+        )
+        .select_related("table")
+        .prefetch_related("items__menu_item", "customer")
+        .order_by("-created_at")
+    )
+
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
 @api_view(["POST"])
 @permission_classes([
     IsAuthenticated,

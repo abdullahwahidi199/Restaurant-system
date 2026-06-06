@@ -246,26 +246,6 @@ export default function MenuItemDetails() {
             </div>
 
             {/* Ingredients (Customer-friendly: only names) */}
-            {itemDetails.ingredients && itemDetails.ingredients.length > 0 && (
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Utensils className="w-5 h-5 text-orange-600" />
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Ingredients
-                  </h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {itemDetails.ingredients.map((ing) => (
-                    <span
-                      key={ing.id}
-                      className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-medium border border-orange-100"
-                    >
-                      {ing.ingredient_name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Reviews */}
             <div className="mb-8">

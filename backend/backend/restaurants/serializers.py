@@ -48,6 +48,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'phone',
             'address',
             'logo',
+            'slogan',
             'qr_code',
             'is_active',
             'manager_discount_limit',

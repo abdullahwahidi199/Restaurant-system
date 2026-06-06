@@ -36,7 +36,7 @@ const FilterBar = ({ filters, setFilters }) => {
         name="search"
         value={f.search}
         onChange={handleChange}
-        placeholder="Search by Order ID or Customer"
+        placeholder="Search by Order ID, Customer or Table"
         className="border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500"
         aria-label="Search orders"
       />
@@ -54,10 +54,6 @@ const FilterBar = ({ filters, setFilters }) => {
           </option>
         ))}
       </select>
-
-      
-
-    
     </div>
   );
 };

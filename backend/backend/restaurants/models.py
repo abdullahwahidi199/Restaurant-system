@@ -15,6 +15,7 @@ class Restaurant(models.Model):
     address = models.TextField()
 
     logo = models.ImageField(upload_to='restaurant_logos/', null=True, blank=True)
+    slogan=models.TextField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
 
