@@ -21,7 +21,7 @@ import instance from "../../api/axiosInstance";
 
 /* ═══════════════════════════════════════════
    FLOATING GOLD PARTICLES (Live Objects)
-═══════════════════════════════════════════ */
+═════════════════════════════════════h══════ */
 const FloatingParticles = () => {
   const particles = useMemo(
     () =>

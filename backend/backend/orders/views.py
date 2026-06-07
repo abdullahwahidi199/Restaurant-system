@@ -1077,7 +1077,8 @@ def assign_delivery(request, pk):
     order.delivery_boy = delivery_boy
 
     
-
+    if order.status == "ready":
+        order.status = "out_for_delivery"
     order.save(
         update_fields=[
             "delivery_boy",
