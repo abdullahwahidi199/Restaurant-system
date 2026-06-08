@@ -17,17 +17,28 @@ def store_old_expense(sender, instance, **kwargs):
 def log_expense_save(sender, instance, created, **kwargs):
     if created:
         ExpenseHistory.objects.create(
-            restaurant=instance.restaurant,
-            name=instance.name,
-            amount=instance.amount,
-            action='created',
-            description=instance.description
-        )
+    restaurant=instance.restaurant,
+    name=instance.name,
+    amount=instance.amount,
+    currency=instance.currency,
+    exchange_rate=instance.exchange_rate,
+    amount_afn=instance.amount_afn,
+    action='created',
+    description=instance.description
+)
     else:
         old_expense = getattr(instance, '_old_values', None)
         if old_expense:
             changes = {}
-            for field in ['name', 'amount','date', 'description']:
+            for field in [
+    'name',
+    'amount',
+    'currency',
+    'exchange_rate',
+    'amount_afn',
+    'date',
+    'description'
+]:
                 old_value = getattr(old_expense, field)
                 new_value = getattr(instance, field)
 
@@ -49,20 +60,26 @@ def log_expense_save(sender, instance, created, **kwargs):
 
             if changes:
                 ExpenseHistory.objects.create(
-                    restaurant=instance.restaurant,
-                    name=instance.name,
-                    amount=instance.amount,
-                    action='updated',
-                    description=instance.description,
-                    changed_fields=changes
-                )
+    restaurant=instance.restaurant,
+    name=instance.name,
+    amount=instance.amount,
+    currency=instance.currency,
+    exchange_rate=instance.exchange_rate,
+    amount_afn=instance.amount_afn,
+    action='updated',
+    description=instance.description,
+    changed_fields=changes
+)
 
 @receiver(post_delete, sender=Expenses)
 def log_expense_delete(sender, instance, **kwargs):
     ExpenseHistory.objects.create(
-        restaurant=instance.restaurant,
-        name=instance.name,
-        amount=instance.amount,
-        action='deleted',
-        description=instance.description
-    )
+    restaurant=instance.restaurant,
+    name=instance.name,
+    amount=instance.amount,
+    currency=instance.currency,
+    exchange_rate=instance.exchange_rate,
+    amount_afn=instance.amount_afn,
+    action='deleted',
+    description=instance.description
+)

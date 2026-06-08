@@ -44,7 +44,7 @@ import ReportsMainPage from "./component/Admin/Reports/ReportsMainPage";
 import SuperAdminMain from "./superAdmin/SuperAdminMain";
 import SystemLanding from "./SystemLanding";
 import ExpensesMain from "./component/Admin/Expenses/ExpensesMain";
-import ExpenseHistory from "./component/Admin/Expenses/expensesHistory";
+import ExpenseHistory from "./component/Admin/Expenses/ExpensesHistory";
 import IndividualExpense from "./component/Admin/Expenses/IndividualExpense";
 import AddReservation from "./component/Cashier/components/AddReservation";
 import ReservationsList from "./component/Cashier/components/ReservationsList";
@@ -131,7 +131,7 @@ function App() {
           <Route path="tables" element={<TableBaseModal />} />
           <Route path="expenses" element={<ExpensesMain />} />
           <Route path="expenses/history" element={<ExpenseHistory />} />
-          <Route path="expenses/history/:id" element={<IndividualExpense />} />
+          <Route path="expenses/:id" element={<IndividualExpense />} />
           <Route
             path="pending-discount-requests"
             element={<AdminDiscountsMain />}

@@ -1,29 +1,25 @@
-from django.db.models import Sum, Count, F, Avg, FloatField, Q
-from django.db.models.functions import TruncDate, TruncHour
-from django.utils.dateparse import parse_date
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, time
-from django.utils import timezone
-from django.db.models import DurationField
-from orders.models import Order, OrderItem
+from decimal import Decimal
+
 from django.db.models import (
-    Sum, Count, F, FloatField, Q, ExpressionWrapper, DecimalField, Avg
+    Count, DecimalField, ExpressionWrapper, F, FloatField, Prefetch, Sum
 )
 from django.db.models.functions import TruncDate, TruncHour
-from django.utils.dateparse import parse_date
-from datetime import datetime, timedelta, time
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from orders.models import Order, OrderItem
+
 
 class OrderReportService:
 
     # -------------------------
-    # Helpers (unchanged logic but cleaner)
+    # Helpers
     # -------------------------
     @staticmethod
     def _parse_range(start, end):
         today = timezone.now().date()
-
         start_date = parse_date(start) if start else today - timedelta(days=30)
         end_date = parse_date(end) if end else today
 
@@ -32,68 +28,116 @@ class OrderReportService:
 
         return start_dt, end_dt
 
-    # ---------- main report ----------
+    @staticmethod
+    def _order_total(order):
+        """
+        Replicates Order.get_total() but reads from prefetched data
+        so zero extra queries are fired.
+        """
+        prefetched = getattr(order, "_prefetched_objects_cache", {})
+        if "items" in prefetched:
+            items = [i for i in prefetched["items"] if i.status != "cancelled"]
+        else:
+            items = [i for i in order.items.all() if i.status != "cancelled"]
+
+        items_total = sum(
+            (i.get_subtotal() for i in items),
+            Decimal("0.00")
+        )
+
+        reservation_total = Decimal("0.00")
+        if order.reservation:
+            r = order.reservation
+            if r.reservation_type in ("fee", "prepaid"):
+                reservation_total = r.total_price
+
+        delivery_total = (
+            Decimal(str(order.delivery_fee or 0))
+            if order.order_type == "delivery"
+            else Decimal("0.00")
+        )
+
+        subtotal = items_total + reservation_total + delivery_total
+        discount = (subtotal * Decimal(str(order.discount_percent or 0))) / Decimal("100")
+        return subtotal - discount
+
+    # -------------------------
+    # Main report
+    # -------------------------
     @staticmethod
     def summary(start, end, restaurant=None):
         start_dt, end_dt = OrderReportService._parse_range(start, end)
 
-        orders = Order.objects.filter(restaurant=restaurant, created_at__range=[start_dt, end_dt])
-
-        
-
-        # ----- Basic counts -----
-        total_orders = orders.count()
-        completed_orders = orders.filter(status__in=['completed', 'delivered'])
-        cancelled_orders = orders.filter(status='cancelled')
-
-        # ----- Revenue (only from non-cancelled orders) -----
-        billable_orders = orders.filter(status__in=['completed', 'delivered'])
-        
-        from decimal import Decimal
-
-        total_revenue = sum(
-            (o.get_total() or Decimal("0")) for o in billable_orders
-        )
-        
-        lost_revenue = sum(
-            float(o.get_total()) for o in cancelled_orders
+        # Base queryset for DB-level aggregations
+        base_qs = Order.objects.filter(
+            restaurant=restaurant,
+            created_at__range=[start_dt, end_dt],
         )
 
-        from decimal import Decimal
-
-        service_revenue = sum(
-            (o.delivery_fee or Decimal("0")) for o in billable_orders
-        )
-
-        from decimal import Decimal
-
-        reservation_revenue = sum(
-            (
-                o.reservation.amount
-                * (Decimal("1") - (Decimal(o.discount_percent or 0) / Decimal("100")))
+        # Single query: load everything needed for revenue math into memory
+        orders_list = list(
+            base_qs.select_related(
+                "reservation__table"
+            ).prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=OrderItem.objects.select_related("menu_item", "platter")
+                )
             )
-            for o in billable_orders
-            if o.reservation and o.reservation.reservation_type != "free"
         )
 
-        avg_order_value = (
-            round(total_revenue / billable_orders.count(), 2)
-            if billable_orders.exists() else 0
-        )
+        # ----- Partition & count in Python -----
+        status_counts = Counter()
+        completed_orders = []
+        cancelled_orders = []
+        billable_orders = []
 
-        # ----- Breakdown by type (count + revenue) -----
-        from collections import defaultdict
+        for order in orders_list:
+            status_counts[order.status] += 1
+            if order.status in ("completed", "delivered"):
+                completed_orders.append(order)
+                billable_orders.append(order)
+            elif order.status == "cancelled":
+                cancelled_orders.append(order)
 
-        type_map = defaultdict(lambda: {
-            "count": 0,
-            "revenue": 0
-        })
+        total_orders = len(orders_list)
+
+        # ----- Revenue & breakdowns (all Python-side) -----
+        total_revenue = Decimal("0.00")
+        service_revenue = Decimal("0.00")
+        reservation_revenue = Decimal("0.00")
+        lost_revenue = 0.0
+
+        type_map = defaultdict(lambda: {"count": 0, "revenue": 0.0})
+        daily_map = defaultdict(lambda: {"orders": 0, "revenue": 0.0})
 
         for order in billable_orders:
-            t = order.order_type
+            order_total = OrderReportService._order_total(order)
 
+            total_revenue += order_total
+            service_revenue += Decimal(str(order.delivery_fee or 0))
+
+            if order.reservation and order.reservation.reservation_type != "free":
+                reservation_revenue += (
+                    Decimal(str(order.reservation.amount))
+                    * (Decimal("1") - (Decimal(str(order.discount_percent or 0)) / Decimal("100")))
+                )
+
+            t = order.order_type
             type_map[t]["count"] += 1
-            type_map[t]["revenue"] += float(order.get_total())
+            type_map[t]["revenue"] += float(order_total)
+
+            day = order.created_at.date()
+            daily_map[day]["orders"] += 1
+            daily_map[day]["revenue"] += float(order_total)
+
+        for order in cancelled_orders:
+            lost_revenue += float(OrderReportService._order_total(order))
+
+        avg_order_value = (
+            round(total_revenue / len(billable_orders), 2)
+            if billable_orders else 0
+        )
 
         by_type = [
             {
@@ -104,73 +148,10 @@ class OrderReportService:
             for order_type, data in type_map.items()
         ]
 
-        # ----- Breakdown by status -----
-        by_status = (
-            orders.values("status")
-            .annotate(count=Count("id"))
-            .order_by("-count")
-        )
-
-        top_items = (
-        OrderItem.objects.filter(
-            order__restaurant=restaurant,
-            order__created_at__range=(start_dt, end_dt),
-            order__status__in=["completed", "served", "ready"]
-        )
-        .exclude(status="cancelled")
-            .values(name=F("menu_item__name"))
-            .annotate(
-                quantity_sold=Sum("quantity"),
-                revenue=Sum(
-                    ExpressionWrapper(
-                        F("quantity") * F("menu_item__price"),
-                        output_field=DecimalField()
-                    )
-                )
-            )
-            .order_by("-quantity_sold")[:10]
-        )
-
-        prep = completed_orders.filter(
-            preparation_start__isnull=False,
-            preparation_end__isnull=False
-        ).annotate(
-            prep_time=ExpressionWrapper(
-                F("preparation_end") - F("preparation_start"),
-                output_field=DurationField()
-            )
-        )
-
-        avg_prep = prep.aggregate(
-            avg=Avg("prep_time")
-        )["avg"]
-
-        avg_prep_minutes = round(avg_prep.total_seconds() / 60, 2) if avg_prep else 0
-        daily = (
-            orders.exclude(status='cancelled')
-            .annotate(date=TruncDate("created_at"))
-            .values("date")
-            .annotate(
-                orders_count=Count("id"),
-                revenue=Sum(
-                    F("items__quantity") * F("items__menu_item__price"),
-                    output_field=FloatField()
-                )
-            )
-            .order_by("date")
-        )
-        from collections import defaultdict
-
-        daily_map = defaultdict(lambda: {
-            "orders": 0,
-            "revenue": 0
-        })
-
-        for order in billable_orders:
-            day = order.created_at.date()
-
-            daily_map[day]["orders"] += 1
-            daily_map[day]["revenue"] += float(order.get_total())
+        by_status = [
+            {"status": status, "count": count}
+            for status, count in status_counts.most_common()
+        ]
 
         daily_breakdown = [
             {
@@ -180,38 +161,63 @@ class OrderReportService:
             }
             for day, data in sorted(daily_map.items())
         ]
-                # ----- Peak hours -----
-        peak_hours = (
-            orders.annotate(hour=TruncHour("created_at"))
-            .values("hour")
-            .annotate(count=Count("id"))
-            .order_by("-count")[:5]
+
+        # ----- Preparation time (Python-side) -----
+        prep_times = [
+            (o.preparation_end - o.preparation_start).total_seconds() / 60
+            for o in completed_orders
+            if o.preparation_start and o.preparation_end
+        ]
+        avg_prep_minutes = (
+            round(sum(prep_times) / len(prep_times), 2)
+            if prep_times else 0
         )
+
+        # ----- DB-level aggregations (unchanged logic) -----
+        top_items = (
+            OrderItem.objects.filter(
+                order__restaurant=restaurant,
+                order__created_at__range=(start_dt, end_dt),
+                order__status__in=["completed", "served", "ready"],
+            )
+            .exclude(status="cancelled")
+            .values(name=F("menu_item__name"))
+            .annotate(
+                quantity_sold=Sum("quantity"),
+                revenue=Sum(
+                    ExpressionWrapper(
+                        F("quantity") * F("menu_item__price"),
+                        output_field=DecimalField(),
+                    )
+                ),
+            )
+            .order_by("-quantity_sold")[:10]
+        )
+
         peak_hours_data = (
-            orders.annotate(hour=TruncHour("created_at"))
+            base_qs.annotate(hour=TruncHour("created_at"))
             .values("hour")
             .annotate(count=Count("id"))
             .order_by("-count")[:5]
         )
 
-        # ----- Waiter performance -----
         waiter_performance = (
-    orders.exclude(received_by__isnull=True)
-    .values(waiter_name=F("received_by__name"))
-    .annotate(
-        orders_handled=Count("id"),
-        revenue=Sum(
-            ExpressionWrapper(
-                F("items__quantity") * F("items__menu_item__price"),
-                output_field=DecimalField()
+            base_qs.exclude(received_by__isnull=True)
+            .values(waiter_name=F("received_by__name"))
+            .annotate(
+                orders_handled=Count("id"),
+                revenue=Sum(
+                    ExpressionWrapper(
+                        F("items__quantity") * F("items__menu_item__price"),
+                        output_field=DecimalField(),
+                    )
+                ),
             )
+            .order_by("-orders_handled")[:10]
         )
-    )
-    .order_by("-orders_handled")[:10]
-)
-        # ----- Delivery boy performance -----
+
         delivery_performance = (
-            orders.filter(order_type="delivery")
+            base_qs.filter(order_type="delivery")
             .exclude(delivery_boy__isnull=True)
             .values(delivery_boy_name=F("delivery_boy__name"))
             .annotate(
@@ -219,9 +225,9 @@ class OrderReportService:
                 revenue=Sum(
                     ExpressionWrapper(
                         F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField()
+                        output_field=DecimalField(),
                     )
-                )
+                ),
             )
             .order_by("-deliveries")[:10]
         )
@@ -233,12 +239,11 @@ class OrderReportService:
             },
             "totals": {
                 "total_orders": total_orders,
-                "completed_orders": completed_orders.count(),
-                "cancelled_orders": cancelled_orders.count(),
+                "completed_orders": len(completed_orders),
+                "cancelled_orders": len(cancelled_orders),
                 "food_revenue": round(total_revenue - service_revenue - reservation_revenue, 2),
                 "delivery_revenue": round(service_revenue, 2),
                 "reservation_revenue": round(reservation_revenue, 2),
-
                 "total_revenue": round(total_revenue, 2),
                 "lost_revenue": round(lost_revenue, 2),
                 "average_order_value": avg_order_value,

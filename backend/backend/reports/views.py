@@ -25,96 +25,177 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum, F, FloatField, Count, Avg
+from django.db.models.functions import TruncDate
+from django.db.models import Q
+from users.models import Staff, Attendance
+from menu.models import MenuItem, Review
+from orders.models import Order, OrderItem
+from menu.serializers import MenuItemSerializer
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from django.http import HttpResponse
+from .services.orders import OrderReportService
+from .services.staff import StaffReportService
+from restaurants.permissions import IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive
+from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import (
+    Avg, Count, F, FloatField, Prefetch, Q, Sum
+)
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from menu.models import MenuItem, Review
+from orders.models import Order, OrderItem
+from restaurants.permissions import (
+    IsRestaurantActive, IsRestaurantAdmin, IsSameRestaurant
+)
+from users.models import Attendance, Staff
+
+
 class DashboardSummaryAPIView(APIView):
-    permission_classes=[IsRestaurantAdmin, IsSameRestaurant,IsRestaurantActive]
-    
-    def get(self,request):
+    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+
+    def get(self, request):
         restaurant = request.user.staff_profile.restaurant
-        today= timezone.now().date()
-        week_start=today-timedelta(days=7)
-        month_start=today.replace(day=1)
-        last_30_days=today-timedelta(days=30)
+        today = timezone.now().date()
+        week_start = today - timedelta(days=7)
+        month_start = today.replace(day=1)
+        last_30_days = today - timedelta(days=30)
 
+        # ── 1. Staff & attendance ──────────────────────────────────────
         total_staff = Staff.objects.filter(restaurant=restaurant).count()
-        menu_items=MenuItem.objects.filter(restaurant=restaurant).count()
-        attedance_today=Attendance.objects.filter(date=today,status="Present",restaurant=restaurant).count()
-        total_attendance=Staff.objects.filter(restaurant=restaurant).count()
-        attendance_rate=round((attedance_today/total_attendance)*100,2) if total_attendance else 0
-        
+        attendance_today = Attendance.objects.filter(
+            date=today, status="Present", restaurant=restaurant
+        ).count()
+        attendance_rate = (
+            round((attendance_today / total_staff) * 100, 2)
+            if total_staff else 0
+        )
 
-        average_rating = Review.objects.filter(
-            restaurant=restaurant
-        ).aggregate(avg=Avg("rating"))["avg"] or 0
+        # ── 2. Menu & reviews ──────────────────────────────────────────
+        menu_items = MenuItem.objects.filter(restaurant=restaurant).count()
+        average_rating = (
+            Review.objects.filter(restaurant=restaurant)
+            .aggregate(avg=Avg("rating"))["avg"]
+            or 0
+        )
 
-        
+        # ── 3. Order counts & delivery counts (1 query) ────────────────
+        order_aggs = Order.objects.filter(
+            restaurant=restaurant,
+            created_at__gte=month_start,
+        ).aggregate(
+            total_orders_month=Count("id"),
+            total_orders_week=Count("id", filter=Q(created_at__gte=week_start)),
+            total_orders_today=Count("id", filter=Q(created_at=today)),
+            deliveries_this_month_count=Count("id", filter=Q(order_type="delivery")),
+            deliveries_this_week_count=Count(
+                "id", filter=Q(created_at__date__gte=week_start, order_type="delivery")
+            ),
+            deliveries_today_count=Count(
+                "id", filter=Q(created_at__date=today, order_type="delivery")
+            ),
+        )
 
-        total_orders_today=Order.objects.filter(created_at=today, restaurant=restaurant).count()
-        total_orders_week=Order.objects.filter(created_at__gte=week_start, restaurant=restaurant).count()
-        total_orders_month=Order.objects.filter(created_at__gte=month_start, restaurant=restaurant).count()
+        # ── 4. Revenue (1 query + Python sum) ──────────────────────────
+        # Fetch the whole month once; today & week are subsets.
+        completed_orders = list(
+            Order.objects.filter(
+                restaurant=restaurant,
+                created_at__date__gte=month_start,
+                status="completed",
+            )
+            .select_related("reservation__table")
+            .prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=OrderItem.objects.select_related("menu_item", "platter")
+                )
+            )
+        )
 
-        orders_today = Order.objects.filter(
-    created_at__date=today,
-    restaurant=restaurant,
-    status="completed"
-)
+        revenue_today = sum(
+            (self._calculate_order_total(o) for o in completed_orders
+             if o.created_at.date() == today),
+            Decimal("0.00")
+        )
+        revenue_week = sum(
+            (self._calculate_order_total(o) for o in completed_orders
+             if o.created_at.date() >= week_start),
+            Decimal("0.00")
+        )
+        revenue_month = sum(
+            (self._calculate_order_total(o) for o in completed_orders),
+            Decimal("0.00")
+        )
 
-        revenue_today = sum(order.get_total() for order in orders_today)
-        orders_week = Order.objects.filter(
-    created_at__date__gte=week_start,
-    restaurant=restaurant,
-    status="completed"
-)
-        revenue_week = sum(order.get_total() for order in orders_week)
-        orders_month = Order.objects.filter(
-    created_at__date__gte=month_start,
-    restaurant=restaurant,
-    status="completed"
-)
-
-        revenue_month = sum(order.get_total() for order in orders_month)
-        revenue_month = sum(order.get_total() for order in orders_month)
-
-        deliveries_today_count = Order.objects.filter(created_at__date=today,  order_type='delivery', restaurant=restaurant).count()
-        deliveries_this_month_count=Order.objects.filter(created_at__date__gte=month_start, order_type='delivery', restaurant=restaurant).count()
-        deliveries_this_week_count=Order.objects.filter(created_at__date__gte=week_start,order_type='delivery', restaurant=restaurant).count()
-
-        # deliveries_today=Order.objects.filter(created_at__date=today)
-        # revenue_of_deliveries_today=Sum(order.get_total() for order in deliveries_today)
-        # deliveries_this_month=Order.objects.filter(created_at__date__gte=month_start,order_type='delivery')
-        # revenue_of_deliveries_this_month=Sum(order.get_total() for order in deliveries_this_month)
-        # deliveries_this_week=Order.objects.filter(created_at__date__gte=week_start,order_type="delivery")
-        # revenue_of_deliveries_week=Sum(order.get_total() for order in deliveries_this_week)
+        # ── 5. Best selling items ──────────────────────────────────────
         def get_best_selling_items(start_date):
             return (
-                OrderItem.objects.filter(order__restaurant=restaurant,order__created_at__gte=start_date)
-                .values(item_name=F("menu_item__name"),unit_price=F("menu_item__price"))
+                OrderItem.objects.filter(
+                    order__restaurant=restaurant,
+                    order__created_at__gte=start_date,
+                )
+                .values(item_name=F("menu_item__name"), unit_price=F("menu_item__price"))
                 .annotate(
                     total_sales=Sum("quantity"),
                     total_revenue=Sum(
                         F("quantity") * F("menu_item__price"),
-                        output_field=FloatField()
-                    )
+                        output_field=FloatField(),
+                    ),
                 )
                 .order_by("-total_sales")[:5]
             )
-        
-        total_sold_product_month=(
-            OrderItem.objects.filter(order__restaurant=restaurant, order__created_at__gte=month_start)
-            .aggregate(total_sold=Sum("quantity"))['total_sold'] or 0
+
+        best_selling_data = {
+            "best_selling_today": get_best_selling_items(today),
+            "best_selling_week": get_best_selling_items(week_start),
+            "best_selling_month": get_best_selling_items(month_start),
+        }
+
+        total_sold_product_month = (
+            OrderItem.objects.filter(
+                order__restaurant=restaurant,
+                order__created_at__gte=month_start,
+            )
+            .aggregate(total_sold=Sum("quantity"))["total_sold"]
+            or 0
         )
-        # Daily sales for the last one month
+
+        # ── 6. Daily sales (last 30 days) ──────────────────────────────
         daily_sales = (
-            Order.objects.filter(created_at__date__gte=last_30_days, restaurant=restaurant)
+            Order.objects.filter(
+                created_at__date__gte=last_30_days,
+                restaurant=restaurant,
+            )
             .annotate(date=TruncDate("created_at"))
             .values("date")
             .annotate(
                 total_orders=Count("id"),
-                total_revenue=Sum(F("items__quantity") * F("items__menu_item__price"), output_field=FloatField())
+                total_revenue=Sum(
+                    F("items__quantity") * F("items__menu_item__price"),
+                    output_field=FloatField(),
+                ),
             )
             .order_by("date")
         )
 
-        #maps over daily sales and returns the required data
         daily_sales_data = [
             {
                 "date": item["date"].strftime("%Y-%m-%d"),
@@ -123,26 +204,27 @@ class DashboardSummaryAPIView(APIView):
             }
             for item in daily_sales
         ]
-        data = {
-            "best_selling_today": get_best_selling_items(today),
-            "best_selling_week": get_best_selling_items(week_start),
-            "best_selling_month": get_best_selling_items(month_start),
-        }
-        
-                
+
+        # ── 7. Delivery boys performance ───────────────────────────────
         delivery_boys_performance = (
-            Staff.objects.filter(restaurant=restaurant,role="DeliveryBoy")
+            Staff.objects.filter(restaurant=restaurant, role="DeliveryBoy")
             .annotate(
                 deliveries_count=Count(
                     "deliveries",
-                    filter=models.Q(deliveries__created_at__gte=month_start, deliveries__restaurant=restaurant)
+                    filter=Q(
+                        deliveries__created_at__gte=month_start,
+                        deliveries__restaurant=restaurant,
+                    ),
                 ),
                 total_revenue=Sum(
-                    F("deliveries__items__quantity") * F("deliveries__items__menu_item__price"),
-                    filter=models.Q(deliveries__created_at__gte=month_start, deliveries__restaurant=restaurant),
-                    output_field=FloatField()
+                    F("deliveries__items__quantity")
+                    * F("deliveries__items__menu_item__price"),
+                    filter=Q(
+                        deliveries__created_at__gte=month_start,
+                        deliveries__restaurant=restaurant,
+                    ),
+                    output_field=FloatField(),
                 ),
-                
             )
             .values("id", "name", "image", "deliveries_count", "total_revenue")
         )
@@ -152,28 +234,54 @@ class DashboardSummaryAPIView(APIView):
             "menu_items": menu_items,
             "attendance_rate": attendance_rate,
             "average_rating": average_rating,
-            "total_orders_today": total_orders_today,
-            "total_orders_week": total_orders_week,
-            "total_orders_month": total_orders_month,
+            "total_orders_today": order_aggs["total_orders_today"],
+            "total_orders_week": order_aggs["total_orders_week"],
+            "total_orders_month": order_aggs["total_orders_month"],
             "revenue_today": revenue_today,
             "revenue_week": revenue_week,
             "revenue_month": revenue_month,
             "total_sold_products_month": total_sold_product_month,
-            "best_selling_items": data,
+            "best_selling_items": best_selling_data,
             "daily_sales": daily_sales_data,
-            "deliveries_today_count":deliveries_today_count,
-            "deliveries_this_month_count":deliveries_this_month_count,
-            "deliveries_this_week_count":deliveries_this_week_count,
+            "deliveries_today_count": order_aggs["deliveries_today_count"],
+            "deliveries_this_month_count": order_aggs["deliveries_this_month_count"],
+            "deliveries_this_week_count": order_aggs["deliveries_this_week_count"],
             "delivery_boys_performance": delivery_boys_performance,
-            # "deliveries_today":deliveries_today,
-            # "deliveries_this_week":deliveries_this_week,
-            # "deliveries_this_month":deliveries_this_month,
-            # "revenue_of_deliveries_today":revenue_of_deliveries_today,
-            # "revenue_of_deliveries_month":revenue_of_deliveries_this_month,
-            # "revenue_of_deliveries_week":revenue_of_deliveries_week
-                          })
-    
+        })
 
+    @staticmethod
+    def _calculate_order_total(order):
+        """
+        Replicates Order.get_total() but uses prefetched items
+        to avoid an extra query per order.
+        """
+        # Use the prefetch cache if available; otherwise fall back to DB.
+        prefetched = getattr(order, "_prefetched_objects_cache", {})
+        if "items" in prefetched:
+            items = [i for i in prefetched["items"] if i.status != "cancelled"]
+        else:
+            items = order.items.exclude(status="cancelled")
+
+        items_total = sum(
+            (item.get_subtotal() for item in items),
+            Decimal("0.00")
+        )
+
+        reservation_total = Decimal("0.00")
+        if order.reservation:
+            r = order.reservation
+            if r.reservation_type in ("fee", "prepaid"):
+                reservation_total = r.total_price
+
+        delivery_total = (
+            Decimal(str(order.delivery_fee))
+            if order.order_type == "delivery"
+            else Decimal("0.00")
+        )
+
+        subtotal = items_total + reservation_total + delivery_total
+        discount = (subtotal * order.discount_percent) / Decimal("100")
+        return subtotal - discount
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
