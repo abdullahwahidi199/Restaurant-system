@@ -298,6 +298,7 @@ class StaffReportService:
                     created_by__isnull=False,
                     created_by__role="Cashier",
                 )
+                .exclude(status="cancelled")
                 .values(
                     staff_id=F("created_by__id"),
                 )
@@ -358,7 +359,10 @@ class StaffReportService:
             reservation_total = Decimal("0.00")
             prepaid_amount = Decimal("0.00")
 
-            if order.reservation:
+            if (
+    order.reservation
+    and order.reservation.status != "cancelled"
+):
                 r = order.reservation
 
                 # include FULL reservation in discountable subtotal

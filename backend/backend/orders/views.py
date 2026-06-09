@@ -565,9 +565,9 @@ def kitchen_orders(request):
     return Response(serializer.data)
 
 
-from django.db.models import Count, Q, F
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
+from datetime import timedelta
+from django.utils import timezone
+from django.db.models import Q
 
 @api_view(["GET"])
 @permission_classes([
@@ -581,14 +581,20 @@ def ready_kitchen_orders(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
+    recent_time = timezone.now() - timedelta(minutes=30)
+
     orders = (
         Order.objects.filter(
-            restaurant=restaurant,
-            status="ready"
+            restaurant=restaurant
+        ).filter(
+            Q(status="ready") |
+            Q(status="served", updated_at__gte=recent_time) |
+            Q(status="completed", updated_at__gte=recent_time) |
+            Q(status="out_for_delivery", updated_at__gte=recent_time)
         )
         .select_related("table")
         .prefetch_related("items__menu_item", "customer")
-        .order_by("-created_at")
+        .order_by("-updated_at")
     )
 
     serializer = OrderSerializer(orders, many=True)

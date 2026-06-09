@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 import ItemDelete from "./ItemDeleteModal";
 import RestrictedToast from "../../RistrictedAction";
@@ -143,6 +143,10 @@ export default function IndividualItem() {
     return <p className="text-center mt-10 text-gray-500">Loading...</p>;
   }
 
+  const unavailableReasons = item.unavailable_reasons || [];
+  const hasUnavailableReasons =
+    !item.final_availability && unavailableReasons.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center p-6">
       <div className="bg-white w-full max-w-2xl rounded-xl p-6 space-y-6 border">
@@ -163,6 +167,110 @@ export default function IndividualItem() {
             onClose={() => setShowDelete(false)}
             onDelete={() => navigate("/admin/dashboard/menu")}
           />
+        )}
+
+        {/* AVAILABILITY STATUS & UNAVAILABLE REASONS */}
+        {!item.final_availability && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+            {/* Status badge */}
+            <div className="flex items-center gap-2">
+              <span className="flex h-3 w-3 rounded-full bg-red-500" />
+              <span className="font-semibold text-red-700 text-sm uppercase tracking-wide">
+                Currently Unavailable
+              </span>
+            </div>
+
+            {/* Manual toggle off */}
+            {!item.is_manually_available && (
+              <div className="flex items-start gap-2 text-sm text-red-700 bg-red-100 rounded-md px-3 py-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mt-0.5 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>
+                  This item has been{" "}
+                  <strong>manually marked unavailable</strong>.
+                </span>
+              </div>
+            )}
+
+            {/* Ingredient shortage reasons */}
+            {hasUnavailableReasons && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-red-800">
+                  Insufficient ingredients:
+                </p>
+
+                {unavailableReasons.map((reason) => (
+                  <div
+                    key={`${reason.type}-${reason.id}`}
+                    className="flex items-center justify-between bg-white border border-red-200 rounded-md px-3 py-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 text-red-500"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {reason.name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Required:{" "}
+                          <span className="font-medium text-red-600">
+                            {Number(reason.required).toFixed(2)} {reason.unit}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">In Stock</p>
+                      <p className="text-sm font-bold text-red-600">
+                        {Number(reason.available).toFixed(2)} {reason.unit}
+                      </p>
+                      <p className="text-xs text-red-500 mt-0.5">
+                        Short by{" "}
+                        {(
+                          Number(reason.required) - Number(reason.available)
+                        ).toFixed(2)}{" "}
+                        {reason.unit}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Available status */}
+        {item.final_availability && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-center gap-2">
+            <span className="flex h-3 w-3 rounded-full bg-green-500" />
+            <span className="font-semibold text-green-700 text-sm">
+              Available
+            </span>
+          </div>
         )}
 
         <div className="flex flex-col items-center">
@@ -226,6 +334,11 @@ export default function IndividualItem() {
             {ingredients.map((ing, index) => {
               const isHighlighted = ing.ingredient === highlightIngredient;
 
+              // Check if this ingredient is in the unavailable reasons
+              const unavailableReason = unavailableReasons.find(
+                (r) => r.type === "ingredient" && r.id === ing.ingredient,
+              );
+
               return (
                 <div
                   key={index}
@@ -235,7 +348,9 @@ export default function IndividualItem() {
                   className={`flex flex-col gap-1 mb-3 border p-2 rounded transition-all duration-500 ${
                     isHighlighted
                       ? "border-yellow-400 bg-yellow-50 shadow-lg"
-                      : ""
+                      : unavailableReason
+                        ? "border-red-300 bg-red-50"
+                        : ""
                   }`}
                 >
                   <div className="flex gap-2">
@@ -288,6 +403,36 @@ export default function IndividualItem() {
                       </span>
                     </p>
                   </div>
+
+                  {/* Inline shortage warning for this ingredient */}
+                  {unavailableReason && (
+                    <div className="flex items-center gap-2 mt-1 px-2 py-1.5 bg-red-100 border border-red-200 rounded text-xs text-red-700">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 shrink-0"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>
+                        <strong>Low stock!</strong> Need{" "}
+                        {Number(unavailableReason.required).toFixed(2)}{" "}
+                        {unavailableReason.unit}, only{" "}
+                        {Number(unavailableReason.available).toFixed(2)}{" "}
+                        {unavailableReason.unit} available (short by{" "}
+                        {(
+                          Number(unavailableReason.required) -
+                          Number(unavailableReason.available)
+                        ).toFixed(2)}{" "}
+                        {unavailableReason.unit})
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

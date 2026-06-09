@@ -48,7 +48,7 @@ class PlatterItemSerializer(serializers.ModelSerializer):
 class PlatterSerializer(serializers.ModelSerializer):
 
     items = PlatterItemSerializer(many=True)
-
+    unavailable_reasons = serializers.SerializerMethodField()
     category_name = serializers.ReadOnlyField(
         source='category.name'
     )
@@ -70,6 +70,7 @@ class PlatterSerializer(serializers.ModelSerializer):
             'is_available',
             'is_manually_available',
             'final_availability',
+            'unavailable_reasons',
             'items',
             'total_cost'
         ]
@@ -77,6 +78,22 @@ class PlatterSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'restaurant'
         ]
+    
+    def get_unavailable_reasons(self, obj):
+        if obj.final_availability:
+            return []
+
+        reasons = []
+
+        for item in obj.items.select_related("menu_item"):
+            if not item.menu_item.final_availability:
+                reasons.append({
+                    "type": "menu_item",
+                    "id": item.menu_item.id,
+                    "name": item.menu_item.name,
+                })
+
+        return reasons
 
     def get_total_cost(self, obj):
 
@@ -188,7 +205,7 @@ class ReveiwSerializer(serializers.ModelSerializer):
             instance.responded_at = timezone.now()
         return super().update(instance, validated_data)
 class MenuItemSerializer(serializers.ModelSerializer):
-    
+    unavailable_reasons = serializers.SerializerMethodField()
     reviews=ReveiwMiniSerializer(read_only=True,many=True)
     ingredients=MenuItemIngredientSerializer(many=True,read_only=True)
     image = serializers.ImageField(required=False, allow_null=True)
@@ -197,7 +214,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenuItem
         fields = ['id', 'name', 'description', 'price', 'image', 'is_available',
-            'is_manually_available',
+            'is_manually_available','unavailable_reasons',
             'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit']
     
     def get_cost_per_unit(self, obj):
@@ -205,7 +222,26 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def get_profit_per_unit(self, obj):
         return obj.get_profit_per_unit()
 
+    def get_unavailable_reasons(self, obj):
+        if obj.final_availability:
+            return []
 
+        reasons = []
+
+        for recipe in obj.ingredients.select_related("ingredient"):
+            ingredient = recipe.ingredient
+
+            if ingredient.quantity_available  < recipe.quantity_required:
+                reasons.append({
+                    "type": "ingredient",
+                    "id": ingredient.id,
+                    "name": ingredient.name,
+                    "required": recipe.quantity_required,
+                    "available": ingredient.quantity_available,
+                    "unit": ingredient.unit,
+                })
+
+        return reasons
 
 # serializers.py
 
