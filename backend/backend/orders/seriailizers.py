@@ -641,6 +641,14 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order.objects.create(**validated_data)
 
         for item in items:
+            if "price_at_order" not in item or item["price_at_order"] is None:
+                menu_item = item.get("menu_item")
+                platter = item.get("platter")
+                if menu_item:
+                    item["price_at_order"] = menu_item.price
+                elif platter:
+                    item["price_at_order"] = platter.price
+
             OrderItem.objects.create(order=order, **item)
 
         return order

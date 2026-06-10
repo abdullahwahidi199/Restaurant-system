@@ -108,7 +108,11 @@ export default function IndividualItem() {
     try {
       const formData = new FormData();
       formData.append("name", item.name);
-      formData.append("description", item.description);
+      formData.append("name_dari", item.name_dari || "");
+      formData.append("name_pashto", item.name_pashto || "");
+      formData.append("description", item.description || "");
+      formData.append("description_dari", item.description_dari || "");
+      formData.append("description_pashto", item.description_pashto || "");
       formData.append("price", item.price);
       formData.append("is_manually_available", item.is_manually_available);
       if (item.image instanceof File) {
@@ -172,7 +176,6 @@ export default function IndividualItem() {
         {/* AVAILABILITY STATUS & UNAVAILABLE REASONS */}
         {!item.final_availability && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
-            {/* Status badge */}
             <div className="flex items-center gap-2">
               <span className="flex h-3 w-3 rounded-full bg-red-500" />
               <span className="font-semibold text-red-700 text-sm uppercase tracking-wide">
@@ -180,7 +183,6 @@ export default function IndividualItem() {
               </span>
             </div>
 
-            {/* Manual toggle off */}
             {!item.is_manually_available && (
               <div className="flex items-start gap-2 text-sm text-red-700 bg-red-100 rounded-md px-3 py-2">
                 <svg
@@ -202,7 +204,6 @@ export default function IndividualItem() {
               </div>
             )}
 
-            {/* Ingredient shortage reasons */}
             {hasUnavailableReasons && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-red-800">
@@ -263,7 +264,6 @@ export default function IndividualItem() {
           </div>
         )}
 
-        {/* Available status */}
         {item.final_availability && (
           <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-center gap-2">
             <span className="flex h-3 w-3 rounded-full bg-green-500" />
@@ -285,34 +285,110 @@ export default function IndividualItem() {
         </div>
 
         <form onSubmit={handleUpdate} className="space-y-4">
-          <input
-            name="name"
-            value={item.name}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            placeholder="Name"
-          />
+          {/* English name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Name (English)
+            </label>
+            <input
+              name="name"
+              value={item.name || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="Name"
+            />
+          </div>
 
-          <textarea
-            name="description"
-            value={item.description}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            rows={3}
-          />
+          {/* Dari name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              نام (دری)
+            </label>
+            <input
+              name="name_dari"
+              value={item.name_dari || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="نام آیتم به دری"
+              dir="rtl"
+            />
+          </div>
+
+          {/* Pashto name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              نوم (پښتو)
+            </label>
+            <input
+              name="name_pashto"
+              value={item.name_pashto || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="د آیتم نوم په پښتو"
+              dir="rtl"
+            />
+          </div>
+
+          {/* English description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description (English)
+            </label>
+            <textarea
+              name="description"
+              value={item.description || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+              placeholder="Description"
+            />
+          </div>
+
+          {/* Dari description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              توضیحات (دری)
+            </label>
+            <textarea
+              name="description_dari"
+              value={item.description_dari || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+              placeholder="توضیحات به دری"
+              dir="rtl"
+            />
+          </div>
+
+          {/* Pashto description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              توضیحات (پښتو)
+            </label>
+            <textarea
+              name="description_pashto"
+              value={item.description_pashto || ""}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              rows={3}
+              placeholder="توضیحات په پښتو"
+              dir="rtl"
+            />
+          </div>
 
           <input
             type="number"
             name="price"
-            value={item.price}
+            value={item.price || ""}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
+            placeholder="Price"
           />
+
           <div className="border p-3 rounded bg-gray-100">
             <p>
               <b>Total Cost:</b> {item.cost_per_unit.toFixed(2)}
             </p>
-
             <p className="text-green-600">
               <b>Profit:</b> {item.profit_per_unit.toFixed(2)}
             </p>
@@ -334,7 +410,6 @@ export default function IndividualItem() {
             {ingredients.map((ing, index) => {
               const isHighlighted = ing.ingredient === highlightIngredient;
 
-              // Check if this ingredient is in the unavailable reasons
               const unavailableReason = unavailableReasons.find(
                 (r) => r.type === "ingredient" && r.id === ing.ingredient,
               );
@@ -404,7 +479,6 @@ export default function IndividualItem() {
                     </p>
                   </div>
 
-                  {/* Inline shortage warning for this ingredient */}
                   {unavailableReason && (
                     <div className="flex items-center gap-2 mt-1 px-2 py-1.5 bg-red-100 border border-red-200 rounded text-xs text-red-700">
                       <svg

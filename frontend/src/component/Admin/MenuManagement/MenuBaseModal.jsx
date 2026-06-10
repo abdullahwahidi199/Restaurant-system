@@ -137,6 +137,7 @@ export default function Menu() {
       {/* CATEGORY LIST */}
       <CategoriesList
         categories={categories}
+        setCategories={setCategories}
         onCategoryDelete={fetchCategories}
       />
 

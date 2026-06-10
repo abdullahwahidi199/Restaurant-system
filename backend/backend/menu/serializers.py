@@ -17,7 +17,7 @@ class MenuItemMiniSerializer(serializers.ModelSerializer):
     image=serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'price','image','is_available',
+        fields = ['id', 'name','name_dari','name_pashto', 'price','image','is_available',
             'is_manually_available',
             'final_availability','reviews'] 
     def get_image(self, obj):
@@ -64,7 +64,11 @@ class PlatterSerializer(serializers.ModelSerializer):
             'category',
             'category_name',
             'name',
+            'name_dari',
+            'name_pashto',
             'description',
+            'description_dari',
+            'description_pashto',
             'price',
             'image',
             'is_available',
@@ -183,7 +187,7 @@ class CategorySerializer(serializers.ModelSerializer):
                                                       #infos will be accessed using this id in the veiws using prefetch related
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description','menu_items','platters'
+        fields = ['id', 'image','name','name_dari','name_pashto', 'description','menu_items','platters'
 ]
 
 class ReveiwSerializer(serializers.ModelSerializer):
@@ -213,7 +217,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
     profit_per_unit = serializers.SerializerMethodField()
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image', 'is_available',
+        fields = ['id', 'name','name_dari','name_pashto', 'description','description_dari','description_pashto', 'price', 'image', 'is_available',
             'is_manually_available','unavailable_reasons',
             'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit']
     

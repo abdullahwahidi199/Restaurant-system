@@ -21,7 +21,11 @@ export default function AddItemModal({
   const [showRestriction, setShowRestriction] = useState(false);
 
   const [name, setName] = useState("");
+  const [nameDari, setNameDari] = useState("");
+  const [namePashto, setNamePashto] = useState("");
   const [description, setDescription] = useState("");
+  const [descriptionDari, setDescriptionDari] = useState("");
+  const [descriptionPashto, setDescriptionPashto] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState(null);
 
@@ -66,7 +70,11 @@ export default function AddItemModal({
     try {
       const formData = new FormData();
       formData.append("name", name);
+      formData.append("name_dari", nameDari);
+      formData.append("name_pashto", namePashto);
       formData.append("description", description);
+      formData.append("description_dari", descriptionDari);
+      formData.append("description_pashto", descriptionPashto);
       formData.append("price", price);
       formData.append("category", selectedcategoryid);
       formData.append("final_availability", "True");
@@ -96,7 +104,7 @@ export default function AddItemModal({
   };
 
   return (
-    <div className="fixed  inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -114,19 +122,57 @@ export default function AddItemModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* English name */}
           <input
             className="w-full border rounded px-3 py-2"
-            placeholder="Item name"
+            placeholder="Item name (English)"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
 
+          {/* Dari name */}
+          <input
+            className="w-full border rounded px-3 py-2"
+            placeholder="نام آیتم (دری)"
+            dir="rtl"
+            value={nameDari}
+            onChange={(e) => setNameDari(e.target.value)}
+          />
+
+          {/* Pashto name */}
+          <input
+            className="w-full border rounded px-3 py-2"
+            placeholder="د آیتم نوم (پښتو)"
+            dir="rtl"
+            value={namePashto}
+            onChange={(e) => setNamePashto(e.target.value)}
+          />
+
+          {/* English description */}
           <textarea
             className="w-full border rounded px-3 py-2"
-            placeholder="Description"
+            placeholder="Description (English)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+          />
+
+          {/* Dari description */}
+          <textarea
+            className="w-full border rounded px-3 py-2"
+            placeholder="توضیحات (دری)"
+            dir="rtl"
+            value={descriptionDari}
+            onChange={(e) => setDescriptionDari(e.target.value)}
+          />
+
+          {/* Pashto description */}
+          <textarea
+            className="w-full border rounded px-3 py-2"
+            placeholder="توضیحات (پښتو)"
+            dir="rtl"
+            value={descriptionPashto}
+            onChange={(e) => setDescriptionPashto(e.target.value)}
           />
 
           <input

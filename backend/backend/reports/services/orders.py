@@ -1,7 +1,8 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, time
 from decimal import Decimal
-
+from django.db.models import CharField
+from django.db.models.functions import Coalesce
 from django.db.models import (
     Count, DecimalField, ExpressionWrapper, F, FloatField, Prefetch, Sum
 )
@@ -25,6 +26,11 @@ class OrderReportService:
 
         start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
         end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
+        print(start)
+        print(end)
+        print(start_dt)
+        print(end_dt)
+        print(timezone.get_current_timezone())
 
         return start_dt, end_dt
 
@@ -181,12 +187,18 @@ class OrderReportService:
                 order__status__in=["completed", "served", "ready"],
             )
             .exclude(status="cancelled")
-            .values(name=F("menu_item__name"))
+            .values(
+                # ✅ Handle both menu items & platters safely
+                name=Coalesce(F("menu_item__name"), F("platter__name"), output_field=CharField())
+            )
             .annotate(
                 quantity_sold=Sum("quantity"),
                 revenue=Sum(
                     ExpressionWrapper(
-                        F("quantity") * F("menu_item__price"),
+                        F("quantity") * Coalesce(
+                            F("price_at_order"), F("menu_item__price"), F("platter__price"),
+                            output_field=DecimalField()
+                        ),
                         output_field=DecimalField(),
                     )
                 ),
@@ -207,11 +219,14 @@ class OrderReportService:
             .annotate(
                 orders_handled=Count("id"),
                 revenue=Sum(
-                    ExpressionWrapper(
-                        F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField(),
-                    )
-                ),
+    ExpressionWrapper(
+        F("items__quantity") * Coalesce(
+            F("items__price_at_order"), F("items__menu_item__price"), F("items__platter__price"),
+            output_field=DecimalField()
+        ),
+        output_field=DecimalField(),
+    )
+)
             )
             .order_by("-orders_handled")[:10]
         )
@@ -223,11 +238,14 @@ class OrderReportService:
             .annotate(
                 deliveries=Count("id"),
                 revenue=Sum(
-                    ExpressionWrapper(
-                        F("items__quantity") * F("items__menu_item__price"),
-                        output_field=DecimalField(),
-                    )
-                ),
+    ExpressionWrapper(
+        F("items__quantity") * Coalesce(
+            F("items__price_at_order"), F("items__menu_item__price"), F("items__platter__price"),
+            output_field=DecimalField()
+        ),
+        output_field=DecimalField(),
+    )
+)
             )
             .order_by("-deliveries")[:10]
         )

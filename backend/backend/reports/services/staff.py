@@ -179,25 +179,20 @@ class StaffReportService:
         filter=Q(status="completed"),
         distinct=True,
     ),
-    revenue=Coalesce(
+    # Replace the entire revenue annotation in waiter_stats with:
+revenue=Coalesce(
     Sum(
-        Case(
-            When(
-                items__status__in=["pending", "ready", "served", "completed"],
-                items__menu_item__isnull=False,
-                then=F("items__quantity") * F("items__menu_item__price"),
+        ExpressionWrapper(
+            F("items__quantity") * Coalesce(
+                F("items__price_at_order"), F("items__menu_item__price"), F("items__platter__price"),
+                output_field=StaffReportService.MONEY_FIELD
             ),
-            When(
-                items__status__in=["pending", "ready", "served", "completed"],
-                items__platter__isnull=False,
-                then=F("items__quantity") * F("items__platter__price"),
-            ),
-            default=Value(0),
-            output_field=StaffReportService.MONEY_FIELD,
-        )
+            output_field=StaffReportService.MONEY_FIELD
+        ),
+        filter=Q(items__status__in=["pending", "ready", "served", "completed"])
     ),
     Value(0, output_field=StaffReportService.MONEY_FIELD),
-),
+)
 )
             )
         }
@@ -348,11 +343,16 @@ class StaffReportService:
             items_total = Decimal("0.00")
 
             for item in order.items.exclude(status="cancelled"):
-                if item.menu_item:
-                    items_total += item.quantity * item.menu_item.price
+                price = item.price_at_order
+                if price is None:
+                    if item.menu_item:
+                        price = item.menu_item.price
+                    elif item.platter:
+                        price = item.platter.price
+                    else:
+                        price = Decimal("0.00")
 
-                elif item.platter:
-                    items_total += item.quantity * item.platter.price
+                items_total += item.quantity * price
 
 
             # RESERVATION

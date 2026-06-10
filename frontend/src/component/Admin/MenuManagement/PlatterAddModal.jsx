@@ -12,10 +12,14 @@ export default function PlatterAddModal({
 
   const [formData, setFormData] = useState({
     name: "",
+    name_dari: "",
+    name_pashto: "",
     description: "",
+    description_dari: "",
+    description_pashto: "",
     price: "",
     image: null,
-    items: [], // [{ menu_item: id, quantity: number }]
+    items: [],
   });
 
   /* ───────── FETCH MENU ITEMS ───────── */
@@ -73,7 +77,11 @@ export default function PlatterAddModal({
     try {
       const payload = {
         name: formData.name,
+        name_dari: formData.name_dari,
+        name_pashto: formData.name_pashto,
         description: formData.description,
+        description_dari: formData.description_dari,
+        description_pashto: formData.description_pashto,
         price: formData.price,
         category: selectedcategoryid,
         image: formData.image,
@@ -83,7 +91,7 @@ export default function PlatterAddModal({
 
       await instance.post("/menu/platters/", payload);
       onItemAdded();
-      onClose(); // optional: close modal after success
+      onClose();
     } catch (err) {
       console.error(err.response?.data || err);
     } finally {
@@ -95,6 +103,7 @@ export default function PlatterAddModal({
     value: mi.id,
     label: `${mi.name} — AFN ${mi.price}`,
   }));
+
   /* ───────── RENDER ───────── */
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -118,9 +127,10 @@ export default function PlatterAddModal({
         >
           {/* Basic fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* English Name */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Platter Name
+                Platter Name (English)
               </label>
               <input
                 name="name"
@@ -131,13 +141,72 @@ export default function PlatterAddModal({
               />
             </div>
 
+            {/* Dari Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                نام (دری)
+              </label>
+              <input
+                name="name_dari"
+                placeholder="نام پلاتر به دری"
+                dir="rtl"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition"
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Pashto Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                نوم (پښتو)
+              </label>
+              <input
+                name="name_pashto"
+                placeholder="د پلاتر نوم په پښتو"
+                dir="rtl"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition"
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* English Description */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Description (English)
               </label>
               <textarea
                 name="description"
                 placeholder="Short description of the platter..."
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition resize-none"
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Dari Description */}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                توضیحات (دری)
+              </label>
+              <textarea
+                name="description_dari"
+                placeholder="توضیحات پلاتر به دری..."
+                dir="rtl"
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition resize-none"
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Pashto Description */}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                توضیحات (پښتو)
+              </label>
+              <textarea
+                name="description_pashto"
+                placeholder="د پلاتر توضیحات په پښتو..."
+                dir="rtl"
                 rows={3}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-lime-500 focus:border-lime-500 outline-none transition resize-none"
                 onChange={handleChange}

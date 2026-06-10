@@ -6,68 +6,171 @@ import { useTranslation } from "react-i18next";
 
 export default function AddCategoryModal({ onClose, onCategoryAdded }) {
   const [name, setName] = useState("");
+  const [nameDari, setNameDari] = useState("");
+  const [namePashto, setNamePashto] = useState("");
   const [description, setDescription] = useState("");
-  const [showRestriction,setShowRestriction]=useState(false)
-  const {auth}=useContext(AuthContext)
-  const isDemo=auth?.user?.isDemo;
-  const { t, i18n } = useTranslation();
-const isRTL = i18n.language === "fa" || i18n.language === "ps";
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [showRestriction, setShowRestriction] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const { auth } = useContext(AuthContext);
+  const isDemo = auth?.user?.isDemo;
+  const { t } = useTranslation();
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if(isDemo){
+
+    if (isDemo) {
       setShowRestriction(true);
-      return
+      return;
     }
+
+    setLoading(true);
+
     try {
-      const response = await instance.post("/menu/categories/",{
-        name,description
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("name_dari", nameDari);
+      formData.append("name_pashto", namePashto);
+      formData.append("description", description);
+      if (image) formData.append("image", image);
+
+      await instance.post("/menu/categories/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-     
       onCategoryAdded();
+      onClose();
     } catch (error) {
-      console.error("Failed to add new Category",error.response?.data||error.message);
-      
+      console.error(
+        "Failed to add new Category",
+        error.response?.data || error.message,
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-5 rounded-xl  w-80">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">{t("add_category")}</h2>
-      <form onSubmit={handleAddCategory} className="space-y-4">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          placeholder={t("category_name")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
-        />
-      <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t("description")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
-        />
-        <div className="flex justify-between items-center mt-2">
-          <button
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg shadow-md transition"
-          >
-            {t("add")}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
-          >{t("cancel")}
-          </button>
-        </div>
-      </form>
-      {showRestriction&&(
-        <RestrictedToast actionType="Add" onClose={()=>setShowRestriction(false)}/>
-      )}
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white p-6 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">
+          {t("add_category")}
+        </h2>
+
+        <form onSubmit={handleAddCategory} className="space-y-4">
+          {/* English Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("category_name")} (English)
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder={t("category_name")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+            />
+          </div>
+
+          {/* Dari Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              نام کتگوری (دری)
+            </label>
+            <input
+              value={nameDari}
+              onChange={(e) => setNameDari(e.target.value)}
+              placeholder="نام کتگوری به دری"
+              dir="rtl"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+            />
+          </div>
+
+          {/* Pashto Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              د کتگورۍ نوم (پښتو)
+            </label>
+            <input
+              value={namePashto}
+              onChange={(e) => setNamePashto(e.target.value)}
+              placeholder="د کتگورۍ نوم په پښتو"
+              dir="rtl"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("description")}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("description")}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400 resize-none"
+            />
+          </div>
+
+          {/* Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category Image
+            </label>
+
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="preview"
+                className="w-24 h-24 object-cover rounded-lg border mb-2"
+              />
+            )}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition"
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg shadow-md transition disabled:opacity-50"
+            >
+              {loading ? "Adding..." : t("add")}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </form>
+
+        {showRestriction && (
+          <RestrictedToast
+            actionType="Add"
+            onClose={() => setShowRestriction(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

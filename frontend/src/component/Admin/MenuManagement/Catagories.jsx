@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
-
 import { useQueryClient } from "@tanstack/react-query";
 import useCategoryItems from "./useCategoryItems";
 import CategoryDeleteModal from "./CategoryDeleteModal";
+import EditCategoryModal from "./EditCategoryModal"; // Import new modal
 import MenuList from "./MenuList";
-// import useCategoryItems from "./useCategoryItems";
-// import CategoryDeleteModal from "./CategoryDeleteModal";
-// import MenuList from "./MenuList";
+import { Pencil } from "lucide-react";
 
-export default function CategoriesList({ categories, onCategoryDelete }) {
+export default function CategoriesList({
+  categories,
+  setCategories,
+  onCategoryDelete,
+}) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
 
+  // State for Edit Modal
+  const [editingCategory, setEditingCategory] = useState(null);
+
   const queryClient = useQueryClient();
 
-  // Auto select first category when categories arrive
   useEffect(() => {
     if (categories.length > 0 && !selectedCategoryId) {
       setSelectedCategoryId(categories[0].id);
@@ -39,32 +43,52 @@ export default function CategoriesList({ categories, onCategoryDelete }) {
   const handleDeleted = () => {
     setShowDeleteCategoryModal(false);
     onCategoryDelete();
-
     queryClient.removeQueries(["categoryItems", selectedCategoryId]);
-
-    // Select next available first category after delete
     const remaining = categories.filter((c) => c.id !== selectedCategoryId);
-
     setSelectedCategoryId(remaining.length > 0 ? remaining[0].id : null);
   };
+
+  // Called when Edit Modal successfully saves
+  const handleCategoryUpdated = (updatedCategory) => {
+    setCategories((prev) =>
+      prev.map((c) => (c.id === updatedCategory.id ? updatedCategory : c)),
+    );
+  };
+
   return (
     <div className="p-5">
       <div className="flex gap-3 overflow-x-auto border-b pb-3 mb-6 scrollbar-hide">
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => {
-              handleCategoryClick(c.id);
-            }}
-            className={`px-5 py-2 cursor-pointer rounded-full text-sm font-medium transition-all ${
-              selectedCategoryId === c.id
-                ? "bg-red-600 text-white shadow-md"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
+        {categories.map((c) => {
+          const isSelected = selectedCategoryId === c.id;
+
+          return (
+            <div key={c.id} className="relative group">
+              <button
+                onClick={() => handleCategoryClick(c.id)}
+                onDoubleClick={() => setEditingCategory(c)} // Open modal on double click
+                className={`px-5 py-2 cursor-pointer rounded-full text-sm font-medium transition-all ${
+                  isSelected
+                    ? "bg-red-600 text-white shadow-md"
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
+                title="Double click to edit"
+              >
+                {c.name}
+              </button>
+
+              {/* Pencil icon to open edit modal */}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingCategory(c);
+                }}
+                className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-150 hover:text-blue-600"
+              >
+                <Pencil size={14} />
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {isFetching ? (
@@ -96,6 +120,15 @@ export default function CategoriesList({ categories, onCategoryDelete }) {
         <div className="text-gray-400 text-center py-10">
           Select a category to view its items.
         </div>
+      )}
+
+      {/* Render Edit Modal */}
+      {editingCategory && (
+        <EditCategoryModal
+          category={editingCategory}
+          onClose={() => setEditingCategory(null)}
+          onCategoryUpdated={handleCategoryUpdated}
+        />
       )}
     </div>
   );

@@ -589,7 +589,6 @@ def ready_kitchen_orders(request):
         ).filter(
             Q(status="ready") |
             Q(status="served", updated_at__gte=recent_time) |
-            Q(status="completed", updated_at__gte=recent_time) |
             Q(status="out_for_delivery", updated_at__gte=recent_time)
         )
         .select_related("table")
@@ -840,7 +839,8 @@ def add_items_to_order(request, pk):
                         quantity=quantity,
                         is_new=True,
                         description=description,
-                        added_by=staff
+                        added_by=staff,
+                        price_at_order=menu_item.price,
                     )
                 )
             elif item.get("platter") and item["platter"] in platters:
@@ -852,7 +852,8 @@ def add_items_to_order(request, pk):
                         quantity=quantity,
                         is_new=True,
                         description=description,
-                        added_by=staff
+                        added_by=staff,
+                        price_at_order=platter.price,
                     )
                 )
 

@@ -2,6 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 import Select from "react-select";
+import {
+  AlertTriangle,
+  XCircle,
+  Trash2,
+  ArrowRight,
+  Plus,
+  Loader2,
+  CheckCircle,
+  XSquare,
+} from "lucide-react";
 
 export default function PlatterDetails() {
   const { id } = useParams();
@@ -16,7 +26,11 @@ export default function PlatterDetails() {
 
   const [formData, setFormData] = useState({
     name: "",
+    name_dari: "",
+    name_pashto: "",
     description: "",
+    description_dari: "",
+    description_pashto: "",
     price: "",
     category: "",
     is_manually_available: true,
@@ -24,7 +38,6 @@ export default function PlatterDetails() {
     image: "",
   });
 
-  // fetch platter details
   const fetchPlatterDetails = async () => {
     try {
       setLoading(true);
@@ -36,7 +49,11 @@ export default function PlatterDetails() {
 
       setFormData({
         name: res.data.name || "",
+        name_dari: res.data.name_dari || "",
+        name_pashto: res.data.name_pashto || "",
         description: res.data.description || "",
+        description_dari: res.data.description_dari || "",
+        description_pashto: res.data.description_pashto || "",
         price: res.data.price || "",
         category: res.data.category || "",
         is_manually_available: res.data.is_manually_available,
@@ -51,7 +68,6 @@ export default function PlatterDetails() {
     }
   };
 
-  // fetch menu items
   const fetchMenuItems = async () => {
     try {
       const res = await instance.get("/menu/menu-items/");
@@ -66,7 +82,6 @@ export default function PlatterDetails() {
     fetchMenuItems();
   }, []);
 
-  // handle normal inputs
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -76,7 +91,6 @@ export default function PlatterDetails() {
     }));
   };
 
-  // handle platter item change
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
 
@@ -88,7 +102,6 @@ export default function PlatterDetails() {
     }));
   };
 
-  // add new platter item
   const addItem = () => {
     setFormData((prev) => ({
       ...prev,
@@ -102,7 +115,6 @@ export default function PlatterDetails() {
     }));
   };
 
-  // remove item
   const removeItem = (index) => {
     const updatedItems = formData.items.filter((_, i) => i !== index);
 
@@ -112,7 +124,6 @@ export default function PlatterDetails() {
     }));
   };
 
-  // update platter
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -121,7 +132,11 @@ export default function PlatterDetails() {
 
       const payload = {
         name: formData.name,
+        name_dari: formData.name_dari,
+        name_pashto: formData.name_pashto,
         description: formData.description,
+        description_dari: formData.description_dari,
+        description_pashto: formData.description_pashto,
         price: formData.price,
         category: formData.category,
         is_manually_available: formData.is_manually_available,
@@ -196,7 +211,6 @@ export default function PlatterDetails() {
       {/* AVAILABILITY STATUS & UNAVAILABLE REASONS */}
       {!finalAvailability && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3 mb-6">
-          {/* Status badge */}
           <div className="flex items-center gap-2">
             <span className="flex h-3 w-3 rounded-full bg-red-500" />
             <span className="font-semibold text-red-700 text-sm uppercase tracking-wide">
@@ -204,21 +218,9 @@ export default function PlatterDetails() {
             </span>
           </div>
 
-          {/* Manual toggle off */}
           {!isManuallyAvailable && (
             <div className="flex items-start gap-2 text-sm text-red-700 bg-red-100 rounded-md px-3 py-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mt-0.5 shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
               <span>
                 This platter has been{" "}
                 <strong>manually marked unavailable</strong>.
@@ -226,7 +228,6 @@ export default function PlatterDetails() {
             </div>
           )}
 
-          {/* Menu item unavailability reasons */}
           {hasUnavailableReasons && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-red-800">
@@ -240,18 +241,7 @@ export default function PlatterDetails() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-red-500"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      <XCircle className="h-4 w-4 text-red-500" />
                     </div>
 
                     <div>
@@ -283,10 +273,9 @@ export default function PlatterDetails() {
         </div>
       )}
 
-      {/* Available status */}
       {finalAvailability && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-center gap-2 mb-6">
-          <span className="flex h-3 w-3 rounded-full bg-green-500" />
+          <CheckCircle className="h-4 w-4 text-green-500" />
           <span className="font-semibold text-green-700 text-sm">
             Available
           </span>
@@ -319,7 +308,6 @@ export default function PlatterDetails() {
             accept="image/*"
             onChange={(e) => {
               const file = e.target.files[0];
-
               if (file) {
                 setSelectedImage(file);
               }
@@ -327,10 +315,10 @@ export default function PlatterDetails() {
             className="w-full border p-3 rounded"
           />
         </div>
-        {/* name */}
-        <div>
-          <label className="block mb-2 font-semibold">Name</label>
 
+        {/* English Name */}
+        <div>
+          <label className="block mb-2 font-semibold">Name (English)</label>
           <input
             type="text"
             name="name"
@@ -340,16 +328,73 @@ export default function PlatterDetails() {
           />
         </div>
 
-        {/* description */}
+        {/* Dari Name */}
         <div>
-          <label className="block mb-2 font-semibold">Description</label>
+          <label className="block mb-2 font-semibold">نام (دری)</label>
+          <input
+            type="text"
+            name="name_dari"
+            value={formData.name_dari}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+            dir="rtl"
+            placeholder="نام پلاتر به دری"
+          />
+        </div>
 
+        {/* Pashto Name */}
+        <div>
+          <label className="block mb-2 font-semibold">نوم (پښتو)</label>
+          <input
+            type="text"
+            name="name_pashto"
+            value={formData.name_pashto}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+            dir="rtl"
+            placeholder="د پلاتر نوم په پښتو"
+          />
+        </div>
+
+        {/* English Description */}
+        <div>
+          <label className="block mb-2 font-semibold">
+            Description (English)
+          </label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
             className="w-full border p-3 rounded"
             rows={4}
+          />
+        </div>
+
+        {/* Dari Description */}
+        <div>
+          <label className="block mb-2 font-semibold">توضیحات (دری)</label>
+          <textarea
+            name="description_dari"
+            value={formData.description_dari}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+            rows={4}
+            dir="rtl"
+            placeholder="توضیحات پلاتر به دری..."
+          />
+        </div>
+
+        {/* Pashto Description */}
+        <div>
+          <label className="block mb-2 font-semibold">توضیحات (پښتو)</label>
+          <textarea
+            name="description_pashto"
+            value={formData.description_pashto}
+            onChange={handleChange}
+            className="w-full border p-3 rounded"
+            rows={4}
+            dir="rtl"
+            placeholder="د پلاتر توضیحات په پښتو..."
           />
         </div>
 
@@ -398,8 +443,9 @@ export default function PlatterDetails() {
             <button
               type="button"
               onClick={addItem}
-              className="bg-black text-white px-4 py-2 rounded"
+              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded"
             >
+              <Plus className="h-4 w-4" />
               Add Item
             </button>
           </div>
@@ -418,7 +464,7 @@ export default function PlatterDetails() {
               return (
                 <div
                   key={index}
-                  className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+                  className={`rounded-xl border transition-all duration-300 ${
                     unavailableReason
                       ? "border-red-300 shadow-sm shadow-red-100"
                       : "border-gray-200 hover:border-gray-300"
@@ -426,7 +472,7 @@ export default function PlatterDetails() {
                 >
                   {/* Card Header */}
                   <div
-                    className={`flex items-center justify-between px-4 py-2.5 ${
+                    className={`flex items-center justify-between px-4 py-2.5 rounded-t-xl ${
                       unavailableReason
                         ? "bg-red-50 border-b border-red-200"
                         : "bg-gray-50 border-b border-gray-100"
@@ -461,9 +507,9 @@ export default function PlatterDetails() {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-4 bg-white">
+                  <div className="p-4 bg-white rounded-b-xl">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                      {/* Menu Item Select — wider */}
+                      {/* Menu Item Select */}
                       <div className="md:col-span-6">
                         <label className="block mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                           Menu Item
@@ -481,7 +527,13 @@ export default function PlatterDetails() {
                             )
                           }
                           placeholder="Select menu item..."
+                          menuPortalTarget={document.body}
+                          menuPosition="fixed"
                           styles={{
+                            menuPortal: (base) => ({
+                              ...base,
+                              zIndex: 9999,
+                            }),
                             control: (base, state) => ({
                               ...base,
                               borderColor: unavailableReason
@@ -530,18 +582,7 @@ export default function PlatterDetails() {
                           className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium
                          hover:bg-red-50 hover:border-red-300 active:bg-red-100 transition-all duration-200"
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <Trash2 className="h-4 w-4" />
                           Remove
                         </button>
                       </div>
@@ -551,18 +592,7 @@ export default function PlatterDetails() {
                     {unavailableReason && (
                       <div className="mt-3 flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5">
                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 shrink-0">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 text-red-500"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -581,18 +611,7 @@ export default function PlatterDetails() {
                          hover:bg-red-50 hover:border-red-300 transition-all duration-200"
                         >
                           View Details
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-3.5 w-3.5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                          <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
                     )}
@@ -606,8 +625,9 @@ export default function PlatterDetails() {
         <button
           type="submit"
           disabled={saving}
-          className="bg-blue-600 text-white px-6 py-3 rounded"
+          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-50"
         >
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {saving ? "Updating..." : "Update Platter"}
         </button>
       </form>

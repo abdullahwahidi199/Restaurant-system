@@ -473,13 +473,24 @@ class OrderItem(models.Model):
     related_name="cancelled_items"
 )
 
-
+    price_at_order = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        help_text="Price of the item/platter when this order was placed"
+    )
 
     quantity = models.PositiveIntegerField(default=1)
     is_new = models.BooleanField(default=False)
     is_printed_to_kitchen=models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        # Auto-capture price on creation if not manually set
+        if self.pk is None and self.price_at_order is None:
+            if self.menu_item:
+                self.price_at_order = self.menu_item.price
+            elif self.platter:
+                self.price_at_order = self.platter.price
+        super().save(*args, **kwargs)
     def clean(self):
 
         if not self.menu_item and not self.platter:
@@ -500,10 +511,11 @@ class OrderItem(models.Model):
     
 
     def get_subtotal(self):
-        if self.menu_item:
-            return self.quantity * self.menu_item.price
-
-        return self.quantity * self.platter.price
+        # ✅ Use snapshot price first, fallback to live price only for legacy data
+        price = self.price_at_order
+        if price is None:
+            price = self.menu_item.price if self.menu_item else (self.platter.price if self.platter else Decimal("0.00"))
+        return self.quantity * price
 
 
 
