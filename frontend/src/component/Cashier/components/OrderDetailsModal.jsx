@@ -18,11 +18,11 @@ const OrderDetailsModal = ({
 
     const qty = item.qty ?? item.quantity ?? 0;
 
-    const price = item.price ?? item.item_price ?? item.menu_item?.price ?? 0;
+    const price =
+      item.price_at_order ?? item.item_price ?? item.menu_item?.price ?? 0;
 
     return sum + qty * price;
   }, 0);
-  console.log(order);
 
   //   const finalTotal = (subtotal + reservation_fee).toFixed(2);
   const finalTotal = Number(order.total || 0);
@@ -105,7 +105,10 @@ const OrderDetailsModal = ({
               {items.map((item, index) => {
                 const qty = item.qty ?? item.quantity ?? 0;
                 const price =
-                  item.price ?? item.item_price ?? item.menu_item?.price ?? 0;
+                  item.price_at_order ??
+                  item.item_price ??
+                  item.menu_item?.price ??
+                  0;
                 const name = item.name ?? item.item_name ?? "Item";
                 return (
                   <tr key={index} className="border-b last:border-none">

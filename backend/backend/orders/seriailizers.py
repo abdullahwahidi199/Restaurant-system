@@ -59,6 +59,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
             'item_name',
             'item_price',
+            'price_at_order',
             'status',
             'quantity',
             'subtotal',
@@ -815,6 +816,7 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
             'platter',
             'item_name',
             'item_price',
+            'price_at_order',
             'status',
             'quantity',
             'description',

@@ -16,7 +16,7 @@ const BillPrintModal = ({ order, onClose }) => {
   const itemName = (it) => it.name || it.item_name || "";
   const itemQty = (it) => it.qty ?? it.quantity ?? 0;
   const itemPrice = (it) =>
-    it.price ?? it.item_price ?? it.menu_item?.price ?? 0;
+    it.price_at_order ?? it.item_price ?? it.menu_item?.price ?? 0;
 
   // --- Financial Calculations ---
   const hasReservation = !!order.reservation_payment;
