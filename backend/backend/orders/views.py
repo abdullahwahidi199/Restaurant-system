@@ -13,7 +13,7 @@ from restaurants.models import Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
 from .models import Order, Table, OrderItem,Reservation,DiscountRequest,DiscountCard
-from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer
+from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer,OrderListSerializer
 from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item,deduct_batch_stock_for_order_items,recalc_batch_menu_availability
@@ -292,7 +292,7 @@ def order_list_create(request):
         paginator = OrderPagination()
         page = paginator.paginate_queryset(orders, request)
 
-        serializer = OrderSerializer(page, many=True)
+        serializer = OrderListSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
     elif request.method == 'POST':

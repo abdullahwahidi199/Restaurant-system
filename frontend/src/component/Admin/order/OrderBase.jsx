@@ -45,6 +45,15 @@ export default function OrdersPage() {
     setTotalPages(Math.ceil(res.data.count / 10));
   };
 
+  const handleViewOrder = async (orderId) => {
+    try {
+      const response = await instance.get(`/orders/orders/${orderId}/`);
+
+      setSelectedOrder(response.data);
+    } catch (error) {
+      console.error("Failed to fetch order details:", error);
+    }
+  };
   const handleWsMessage = useCallback((msg) => {
     console.log("WS message received:", msg);
 
@@ -111,7 +120,7 @@ export default function OrdersPage() {
 
       <OrdersTable
         orders={orders}
-        onView={(order) => setSelectedOrder(order)}
+        onView={(order) => handleViewOrder(order.id)}
         onCancel={handleCancelClick}
         role={role}
       />

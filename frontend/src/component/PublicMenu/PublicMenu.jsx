@@ -16,12 +16,24 @@ import {
   Star,
   Sparkles,
   UtensilsCrossed,
+  Globe,
+  Check,
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
+import { useTranslation } from "react-i18next";
+
+/* ═══════════════════════════════════════════
+   LANGUAGE CONFIG
+═══════════════════════════════════════════ */
+const LANGUAGES = [
+  { code: "en", label: "English", nativeLabel: "English", dir: "ltr" },
+  { code: "fa", label: "Dari", nativeLabel: "دری", dir: "rtl" },
+  { code: "ps", label: "Pashto", nativeLabel: "پښتو", dir: "rtl" },
+];
 
 /* ═══════════════════════════════════════════
    FLOATING GOLD PARTICLES (Live Objects)
-═════════════════════════════════════h══════ */
+═══════════════════════════════════════════ */
 const FloatingParticles = () => {
   const particles = useMemo(
     () =>
@@ -53,7 +65,6 @@ const FloatingParticles = () => {
           }}
         />
       ))}
-      {/* Large ambient glow orbs */}
       <div
         className="absolute w-[500px] h-[500px] rounded-full"
         style={{
@@ -201,6 +212,141 @@ const ShimmerText = ({ children, className = "" }) => (
 );
 
 /* ═══════════════════════════════════════════
+   LANGUAGE SWITCHER COMPONENT
+═══════════════════════════════════════════ */
+const LanguageSwitcher = ({ i18n }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const currentLang =
+    LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleChange = (code) => {
+    i18n.changeLanguage(code);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Trigger */}
+      <button
+        onClick={() => setIsOpen((v) => !v)}
+        className={`
+          flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5
+          border rounded-full transition-all duration-300
+          ${
+            isOpen
+              ? "border-[#d4a853]/40 bg-[#d4a853]/10 text-[#d4a853]"
+              : "border-[#d4a853]/15 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30"
+          }
+        `}
+        aria-label="Change language"
+      >
+        <Globe className="w-4 h-4" />
+        <span className="text-[11px] sm:text-xs font-medium tracking-wider uppercase">
+          {currentLang.nativeLabel}
+        </span>
+        {/* Animated chevron */}
+        <svg
+          className={`w-3 h-3 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+          viewBox="0 0 12 12"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M3 4.5L6 7.5L9 4.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div
+          className="absolute top-full mt-2 bg-[#131313]/95 backdrop-blur-2xl border border-[#d4a853]/15 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 min-w-[180px] z-[60]"
+          style={{
+            animation: "langDropIn 0.25s cubic-bezier(0.22,1,0.36,1)",
+            right: 0,
+          }}
+        >
+          {/* Dropdown header */}
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-[10px] text-gray-500 tracking-[0.25em] uppercase font-light">
+              Language
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="mx-3 h-[1px] bg-gradient-to-r from-transparent via-[#d4a853]/15 to-transparent" />
+
+          {/* Options */}
+          <div className="py-1.5">
+            {LANGUAGES.map((lang) => {
+              const isActive = i18n.language === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  onClick={() => handleChange(lang.code)}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 group
+                    ${
+                      isActive
+                        ? "bg-[#d4a853]/10 text-[#d4a853]"
+                        : "text-gray-400 hover:bg-[#d4a853]/5 hover:text-gray-200"
+                    }
+                  `}
+                >
+                  {/* Active indicator dot */}
+                  <span
+                    className={`
+                      w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all duration-300
+                      ${isActive ? "bg-[#d4a853] shadow-[0_0_6px_rgba(212,168,83,0.5)]" : "bg-gray-700 group-hover:bg-gray-500"}
+                    `}
+                  />
+
+                  {/* Language info */}
+                  <div className="flex flex-col items-start gap-0.5 flex-1">
+                    <span
+                      className={`font-light tracking-wide text-[13px] ${isActive ? "text-[#d4a853]" : ""}`}
+                    >
+                      {lang.nativeLabel}
+                    </span>
+                    <span className="text-[10px] text-gray-600 tracking-wider">
+                      {lang.label}
+                    </span>
+                  </div>
+
+                  {/* Checkmark */}
+                  {isActive && (
+                    <Check className="w-3.5 h-3.5 text-[#d4a853] flex-shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom accent line */}
+          <div className="h-[2px] bg-gradient-to-r from-transparent via-[#d4a853]/30 to-transparent" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ═══════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════ */
 export default function PublicMenu() {
@@ -212,10 +358,12 @@ export default function PublicMenu() {
   const [error, setError] = useState(null);
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [heroVisible, setHeroVisible] = useState(false);
+  const { t, i18n } = useTranslation();
   const [activeCategoryIndicator, setActiveCategoryIndicator] = useState({
     left: 0,
     width: 0,
   });
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const categoryRefs = useRef({});
   const categoriesContainerRef = useRef(null);
   const navigate = useNavigate();
@@ -231,7 +379,13 @@ export default function PublicMenu() {
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [addedItemId, setAddedItemId] = useState(null);
+  useEffect(() => {
+    const dir =
+      i18n.language === "fa" || i18n.language === "ps" ? "rtl" : "ltr";
 
+    document.documentElement.dir = dir;
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
   // View mode
   const [viewMode, setViewMode] = useState(() => {
     try {
@@ -327,6 +481,8 @@ export default function PublicMenu() {
         {
           id: item.id,
           name: item.name,
+          name_dari: item.name_dari,
+          name_pashto: item.name_pashto,
           price: parseFloat(item.price),
           image: item.image,
           quantity: 1,
@@ -368,21 +524,36 @@ export default function PublicMenu() {
     return { subtotal, total: subtotal, itemCount };
   }, [cart]);
 
+  const normalizeText = (text = "") =>
+    text.toLowerCase().replace(/ي/g, "ی").replace(/ك/g, "ک").trim();
+
   const filteredItems = useMemo(() => {
     if (!selectedCategory) return [];
+
     const menuItems = selectedCategory.menu_items || [];
     const platters = selectedCategory.platters || [];
+
     const allItems = [
       ...menuItems.map((i) => ({ ...i, type: "menu_item" })),
       ...platters.map((p) => ({ ...p, type: "platter" })),
     ];
-    return allItems.filter(
-      (item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.description || "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()),
-    );
+
+    if (!searchQuery.trim()) return allItems;
+
+    const query = normalizeText(searchQuery);
+
+    return allItems.filter((item) => {
+      return [
+        item.name,
+        item.name_dari,
+        item.name_pashto,
+        item.description,
+        item.description_dari,
+        item.description_pashto,
+      ]
+        .filter(Boolean)
+        .some((field) => normalizeText(field).includes(query));
+    });
   }, [selectedCategory, searchQuery]);
 
   // Restaurant logo URL helper
@@ -439,14 +610,14 @@ export default function PublicMenu() {
             <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
           <h2 className="text-xl font-light text-white mb-2 tracking-wide">
-            Menu Unavailable
+            {t("labels.menu_unavailable")}
           </h2>
           <p className="text-gray-500 text-sm mb-8">{error}</p>
           <button
             onClick={fetchMenuItems}
             className="px-8 py-3 bg-gradient-to-r from-[#d4a853] to-[#b8922e] text-[#0a0a0a] rounded-full font-medium text-sm tracking-wide hover:shadow-lg hover:shadow-[#d4a853]/20 transition-all active:scale-95"
           >
-            Try Again
+            {t("labels.try_again")}
           </button>
         </div>
       </div>
@@ -519,6 +690,10 @@ export default function PublicMenu() {
         @keyframes heroReveal {
           from { opacity: 0; transform: translateY(40px) scale(0.95); filter: blur(8px); }
           to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes langDropIn {
+          from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -618,6 +793,14 @@ export default function PublicMenu() {
           HERO / RESTAURANT INFO SECTION
       ══════════════════════════════════════ */}
       <section className="hero-section relative pt-8 sm:pt-12 pb-6 sm:pb-10 px-4">
+        {/* Language switcher – top-right corner of the hero */}
+        <div
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20"
+          style={{ animation: "fadeIn 1s ease-out 0.3s both" }}
+        >
+          <LanguageSwitcher i18n={i18n} />
+        </div>
+
         <div className="max-w-7xl mx-auto relative z-10">
           <div
             className="text-center"
@@ -684,7 +867,7 @@ export default function PublicMenu() {
               className="text-gray-500 text-xs sm:text-sm tracking-[0.2em] uppercase"
               style={{ animation: "fadeIn 1.5s ease-out 0.8s both" }}
             >
-              Our Curated Menu
+              {t("labels.our_curated_menu")}
             </p>
           </div>
         </div>
@@ -721,25 +904,38 @@ export default function PublicMenu() {
 
             {/* Search Bar */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d4a853]/30" />
+              <Search
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-[#d4a853]/30 ${
+                  isRTL ? "right-3 sm:right-4" : "left-3 sm:left-4"
+                }`}
+              />
+
               <input
                 type="text"
-                placeholder="Search our menu..."
+                dir={isRTL ? "rtl" : "ltr"}
+                placeholder={t("labels.search_menu")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input-luxury w-full pl-9 sm:pl-11 pr-4 py-2 sm:py-2.5 bg-[#111]/60 border border-[#d4a853]/10 rounded-full text-white placeholder-gray-600 text-sm focus:outline-none transition-all duration-300"
+                className={`input-luxury w-full py-2 sm:py-2.5 bg-[#111]/60 border border-[#d4a853]/10 rounded-full text-white placeholder-gray-600 text-sm focus:outline-none transition-all duration-300 ${
+                  isRTL
+                    ? "pr-9 sm:pr-11 pl-10 text-right"
+                    : "pl-9 sm:pl-11 pr-10 text-left"
+                }`}
               />
+
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#d4a853] transition-colors"
+                  className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#d4a853] transition-colors ${
+                    isRTL ? "left-3" : "right-3"
+                  }`}
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {/* View Toggle + Cart */}
+            {/* View Toggle + Language + Cart */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* View Mode Toggle */}
               <div className="hidden sm:flex items-center bg-[#111]/60 border border-[#d4a853]/10 rounded-full p-0.5">
@@ -765,6 +961,9 @@ export default function PublicMenu() {
                 </button>
               </div>
 
+              {/* Language Switcher in sticky header */}
+              {/* <LanguageSwitcher i18n={i18n} /> */}
+
               {/* Cart Button */}
               <button
                 onClick={() => setIsCartOpen(true)}
@@ -772,7 +971,7 @@ export default function PublicMenu() {
               >
                 <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden md:inline font-light text-sm tracking-wide">
-                  Cart
+                  {t("labels.cart")}
                 </span>
                 {cartTotals.itemCount > 0 && (
                   <span
@@ -810,7 +1009,13 @@ export default function PublicMenu() {
                       : "bg-transparent text-gray-500 border-[#d4a853]/5 hover:border-[#d4a853]/15 hover:text-gray-300"
                   }`}
                 >
-                  <span>{category.name}</span>
+                  <span>
+                    {i18n.language === "fa"
+                      ? category.name_dari || category.name
+                      : i18n.language === "ps"
+                        ? category.name_pashto || category.name
+                        : category.name}
+                  </span>
                   {getCategoryCount(category) > 0 && (
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full ${
@@ -850,7 +1055,11 @@ export default function PublicMenu() {
           >
             <div className="flex items-center gap-3 mb-2">
               <h2 className="text-2xl sm:text-3xl font-light text-white tracking-wide">
-                {selectedCategory.name}
+                {i18n.language === "fa"
+                  ? selectedCategory.name_dari || selectedCategory.name
+                  : i18n.language === "ps"
+                    ? selectedCategory.name_pashto || selectedCategory.name
+                    : selectedCategory.name}
               </h2>
               <div className="flex-1 h-[1px] bg-gradient-to-r from-[#d4a853]/20 to-transparent" />
             </div>
@@ -917,7 +1126,13 @@ export default function PublicMenu() {
                       <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden bg-[#111]">
                         <ImageWrapper
                           src={item.image}
-                          alt={item.name}
+                          alt={
+                            i18n.language === "fa"
+                              ? item.name_dari || item.name
+                              : i18n.language === "ps"
+                                ? item.name_pashto || item.name
+                                : item.name
+                          }
                           className="card-image w-full h-full"
                         />
                         {/* Image overlay gradient */}
@@ -940,8 +1155,8 @@ export default function PublicMenu() {
                               }`}
                             />
                             {item.final_availability
-                              ? "Available"
-                              : "Unavailable"}
+                              ? t("labels.available")
+                              : t("labels.unavailable")}
                           </span>
                         </div>
 
@@ -949,7 +1164,7 @@ export default function PublicMenu() {
                         {item.type === "platter" && (
                           <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
                             <span className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wide bg-[#d4a853]/15 text-[#d4a853] border border-[#d4a853]/20 backdrop-blur-md">
-                              Platter
+                              {t("labels.platter")}
                             </span>
                           </div>
                         )}
@@ -968,7 +1183,11 @@ export default function PublicMenu() {
                       {/* Content */}
                       <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col">
                         <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 mb-3 group-hover:text-[#d4a853] transition-colors duration-300">
-                          {item.name}
+                          {i18n.language === "fa"
+                            ? item.name_dari || item.name
+                            : i18n.language === "ps"
+                              ? item.name_pashto || item.name
+                              : item.name}
                         </h3>
 
                         <div className="mt-auto">
@@ -983,8 +1202,8 @@ export default function PublicMenu() {
                             >
                               <span>
                                 {item.final_availability
-                                  ? "Add to Order"
-                                  : "Unavailable"}
+                                  ? t("labels.add_to_order")
+                                  : t("labels.unavailable")}
                               </span>
                               {item.final_availability && (
                                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1064,7 +1283,13 @@ export default function PublicMenu() {
                       <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex-shrink-0 overflow-hidden bg-[#111]">
                         <ImageWrapper
                           src={item.image}
-                          alt={item.name}
+                          alt={
+                            i18n.language === "fa"
+                              ? item.name_dari || item.name
+                              : i18n.language === "ps"
+                                ? item.name_pashto || item.name
+                                : item.name
+                          }
                           className="card-image w-full h-full"
                         />
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#111]/50" />
@@ -1085,11 +1310,15 @@ export default function PublicMenu() {
                       <div className="flex-1 p-3 sm:p-4 md:p-5 flex flex-col min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 group-hover:text-[#d4a853] transition-colors duration-300">
-                            {item.name}
+                            {i18n.language === "fa"
+                              ? item.name_dari || item.name
+                              : i18n.language === "ps"
+                                ? item.name_pashto || item.name
+                                : item.name}
                           </h3>
                           {item.type === "platter" && (
                             <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[#d4a853]/10 text-[#d4a853] border border-[#d4a853]/15 flex-shrink-0">
-                              Platter
+                              {t("labels.platter")}
                             </span>
                           )}
                         </div>
@@ -1119,7 +1348,9 @@ export default function PublicMenu() {
                               }}
                               className="btn-gold px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-medium tracking-wide flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
-                              {item.final_availability ? "Add" : "N/A"}
+                              {item.final_availability
+                                ? t("labels.add")
+                                : "N/A"}
                               {item.final_availability && (
                                 <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               )}
@@ -1170,10 +1401,10 @@ export default function PublicMenu() {
               <Search className="w-8 h-8 sm:w-10 sm:h-10 text-[#d4a853]/20" />
             </div>
             <h3 className="text-lg sm:text-xl font-light text-white/60 mb-2 tracking-wide">
-              No items found
+              {t("labels.no_items_found")}
             </h3>
             <p className="text-gray-600 text-sm font-light">
-              Try adjusting your search or selecting a different category
+              {t("labels.try_adjusting_category")}
             </p>
           </div>
         )}
@@ -1183,7 +1414,7 @@ export default function PublicMenu() {
           <div className="mt-12 sm:mt-16">
             <OrnamentalDivider />
             <p className="text-center text-gray-600 text-[10px] sm:text-xs tracking-[0.3em] uppercase font-light">
-              End of Menu
+              {t("labels.end_of_menu")}
             </p>
           </div>
         )}
@@ -1213,7 +1444,7 @@ export default function PublicMenu() {
                 </span>
               </div>
               <span className="font-medium text-sm tracking-wide">
-                View Cart
+                {t("labels.view_cart")}
               </span>
             </div>
             <span className="font-medium text-sm tracking-wide">
@@ -1249,7 +1480,7 @@ export default function PublicMenu() {
             </div>
             <div>
               <h2 className="text-lg font-light text-white tracking-wide">
-                Your Order
+                {t("labels.your_order")}
               </h2>
               <p className="text-[10px] text-gray-500 tracking-[0.2em] uppercase">
                 {cartTotals.itemCount}{" "}
@@ -1276,16 +1507,16 @@ export default function PublicMenu() {
                 <ShoppingCart className="w-10 h-10 text-[#d4a853]/20" />
               </div>
               <h3 className="text-lg font-light text-white/60 mb-2 tracking-wide">
-                Your cart is empty
+                {t("labels.cart_empty")}
               </h3>
               <p className="text-gray-600 text-sm font-light mb-8">
-                Browse our menu to discover exceptional dishes
+                {t("labels.browse_menu")}
               </p>
               <button
                 onClick={() => setIsCartOpen(false)}
                 className="btn-gold px-8 py-3 rounded-full text-sm font-medium tracking-wide"
               >
-                Explore Menu
+                {t("labels.explore_menu")}
               </button>
             </div>
           ) : (
@@ -1308,7 +1539,11 @@ export default function PublicMenu() {
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex justify-between items-start gap-2">
                       <h4 className="font-light text-white leading-snug line-clamp-2 text-sm">
-                        {item.name}
+                        {i18n.language === "fa"
+                          ? item.name_dari || item.name
+                          : i18n.language === "ps"
+                            ? item.name_pashto || item.name
+                            : item.name}
                       </h4>
                       <button
                         onClick={() => removeFromCart(item.id)}
@@ -1354,7 +1589,7 @@ export default function PublicMenu() {
                 className="w-full mt-4 py-3 text-xs text-red-400/60 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all flex items-center justify-center gap-2 tracking-wide"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                Clear All Items
+                {t("labels.clear_all")}
               </button>
             </ul>
           )}
@@ -1365,7 +1600,7 @@ export default function PublicMenu() {
           <div className="border-t border-[#d4a853]/10 px-5 sm:px-6 py-5 bg-[#0d0d0d]">
             <div className="flex justify-between items-center mb-5">
               <span className="text-gray-400 text-sm font-light tracking-wide">
-                Total
+                {t("labels.total")}
               </span>
               <div className="text-right">
                 <span className="text-[#d4a853] text-xs tracking-wider mr-1">

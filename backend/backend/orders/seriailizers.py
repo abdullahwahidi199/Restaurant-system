@@ -653,6 +653,47 @@ class OrderSerializer(serializers.ModelSerializer):
 
         return order
     
+class OrderListSerializer(serializers.ModelSerializer):
+    total = serializers.SerializerMethodField()
+    status_display = serializers.CharField(
+        source='get_status_display',
+        read_only=True
+    )
+
+    tableName = serializers.CharField(
+        source='table.name',
+        read_only=True
+    )
+
+    created_by_name = serializers.CharField(
+        source='created_by.user.get_full_name',
+        read_only=True
+    )
+
+    received_by_name = serializers.CharField(
+        source='received_by.user.get_full_name',
+        read_only=True
+    )
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "order_number",
+            "name",
+            "total",
+            "tableName",
+            "order_type",
+            "status",
+            "status_display",
+            "created_by_name",
+            "received_by_name",
+            "created_at",
+        ]
+
+    def get_total(self, obj):
+        return str(obj.get_total())
+    
 class DiscountRequestSerializer(serializers.ModelSerializer):
     requested_by_name = serializers.CharField(
         source="requested_by.name",

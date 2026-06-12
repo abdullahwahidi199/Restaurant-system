@@ -93,7 +93,7 @@ export default function ReservationsTable({ reservations, onViewDetails }) {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  ID
+                  #
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -143,7 +143,7 @@ export default function ReservationsTable({ reservations, onViewDetails }) {
                 >
                   <td className="px-6 py-5">
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 font-bold text-sm">
-                      #{reservation.id}
+                      #{reservation.reservation_number}
                     </span>
                   </td>
                   <td className="px-6 py-5">
