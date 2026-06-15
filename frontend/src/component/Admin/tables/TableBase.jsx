@@ -11,7 +11,7 @@ export default function TableBaseModal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [addTableDisplay, setAddTableDisplay] = useState(false);
-  console.log(tables);
+  const [search, setSearch] = useState("");
 
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
@@ -71,6 +71,12 @@ export default function TableBaseModal() {
 
   useOrdersSocket(handleSocketMessage);
 
+  const filteredTables = tables.filter((t) => {
+    const name = t.name.toLowerCase();
+
+    return name.includes(search.toLowerCase());
+  });
+
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
@@ -91,6 +97,14 @@ export default function TableBaseModal() {
         className={`flex items-center mb-6 ${isRTL ? "justify-between flex-row-reverse" : "justify-between"}`}
       >
         <h2 className="text-2xl font-semibold text-gray-800">{t("tables")}</h2>
+
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search Tables"
+          className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
         <button
           onClick={() => setAddTableDisplay(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
@@ -101,7 +115,7 @@ export default function TableBaseModal() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <TablesDisplay tables={tables} onUpdate={fetchTables} />
+        <TablesDisplay tables={filteredTables} onUpdate={fetchTables} />
       </div>
 
       {addTableDisplay && (

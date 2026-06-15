@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG =False
+DEBUG =True
 
 ALLOWED_HOSTS = [
     '185.197.249.94',
@@ -126,8 +126,7 @@ DATABASES = {
     }
 }
 
-RATELIMIT_IP_META_KEY = "HTTP_X_REAL_IP"
-
+RATELIMIT_IP_META_KEY = "HTTP_CF_CONNECTING_IP"
 BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
 # DATABASES = {
 #     'default': {

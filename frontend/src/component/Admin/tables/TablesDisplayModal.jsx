@@ -6,7 +6,7 @@ import { useState } from "react";
 export default function TablesDisplay({ tables, onUpdate }) {
   const { t } = useTranslation();
   const [selectedTable, setSelectedTable] = useState(null);
-  // console.log(tables)
+
   return (
     <>
       {tables.map((table) => (

@@ -110,12 +110,35 @@ const OrderDetailsModal = ({
                   item.menu_item?.price ??
                   0;
                 const name = item.name ?? item.item_name ?? "Item";
+
+                const isCancelled = item.status === "cancelled";
+
                 return (
-                  <tr key={index} className="border-b last:border-none">
-                    <td className="py-1">{name}</td>
+                  <tr
+                    key={index}
+                    className={`border-b last:border-none ${
+                      isCancelled ? "opacity-50" : ""
+                    }`}
+                  >
+                    <td
+                      className={`py-1 ${
+                        isCancelled ? "line-through text-red-500" : ""
+                      }`}
+                    >
+                      {name}
+                      {isCancelled && (
+                        <span className="ml-1 text-[10px] text-red-500">
+                          (Cancelled)
+                        </span>
+                      )}
+                    </td>
+
                     <td className="py-1 text-center">{qty}</td>
+
                     <td className="py-1 text-right">
-                      AFN{(qty * price).toFixed(2)}
+                      {isCancelled
+                        ? "AFN 0.00"
+                        : `AFN ${(qty * price).toFixed(2)}`}
                     </td>
                   </tr>
                 );

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../api/authforRBC";
 
 const BillPrintModal = ({ order, onClose }) => {
   const printRef = useRef();
+  console.log(order);
   const { restaurantDetails } = useContext(AuthContext);
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const logo = restaurantDetails?.logo
@@ -331,15 +332,37 @@ const BillPrintModal = ({ order, onClose }) => {
               </tr>
             </thead>
             <tbody>
-              {(order.items || []).map((item, index) => (
-                <tr key={index} className="border-t">
-                  <td className="py-0.5 px-1">{itemName(item)}</td>
-                  <td className="py-0.5 px-1 text-center">{itemQty(item)}</td>
-                  <td className="py-0.5 px-1 text-right">
-                    AFN {(itemQty(item) * itemPrice(item)).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
+              {(order.items || []).map((item, index) => {
+                const isCancelled = item.status === "cancelled";
+
+                return (
+                  <tr
+                    key={index}
+                    className={`border-t ${isCancelled ? "opacity-50" : ""}`}
+                  >
+                    <td
+                      className={`py-0.5 px-1 ${
+                        isCancelled ? "line-through text-red-500" : ""
+                      }`}
+                    >
+                      {itemName(item)}
+                      {isCancelled && (
+                        <span className="ml-1 text-[10px] text-red-500">
+                          (Cancelled)
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-0.5 px-1 text-center">{itemQty(item)}</td>
+
+                    <td className="py-0.5 px-1 text-right">
+                      {isCancelled
+                        ? "AFN 0.00"
+                        : `AFN ${(itemQty(item) * itemPrice(item)).toFixed(2)}`}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

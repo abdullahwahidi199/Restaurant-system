@@ -494,14 +494,28 @@ def create_online_order(request,slug):
 
     if not is_active:
         raise NotFound("Restaurant not found")
-    limited=is_ratelimited(
+    def clean_ip(request):
+        ip = (
+            request.META.get("HTTP_CF_CONNECTING_IP")
+            or request.META.get("HTTP_X_FORWARDED_FOR")
+            or request.META.get("REMOTE_ADDR")
+        )
+
+        if not ip:
+            return "0.0.0.0"
+
+        # TAKE ONLY FIRST IP (VERY IMPORTANT)
+        return ip.split(",")[0].split("/")[0].strip()
+
+
+    limited = is_ratelimited(
         request=request,
         group=f"online_orders_{slug}",
         fn=None,
-                key="ip",
-                rate="5/20m",
-                method="POST",
-                increment=True,
+        key=lambda r: clean_ip(r),
+        rate="5/20m",
+        method="POST",
+        increment=True,
     )
     if limited:
         return Response({"error": "Too many online orders."}, status=429)
