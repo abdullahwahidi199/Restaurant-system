@@ -22,6 +22,25 @@ export default function ManagerTablesDisplay({ tables, refetchTables }) {
           return t.status === filter;
         });
 
+  const sortedTables = [...filteredTables].sort((a, b) => {
+    const extractNumber = (name) => {
+      const match = name.match(/\d+/);
+      return match ? parseInt(match[0], 10) : null;
+    };
+
+    const numA = extractNumber(a.name);
+    const numB = extractNumber(b.name);
+
+    if (numA !== null && numB !== null) {
+      return numA - numB;
+    }
+
+    if (numA !== null) return -1;
+    if (numB !== null) return 1;
+
+    return a.name.localeCompare(b.name);
+  });
+
   const handleCancelClick = (order) => {
     setOrderToCancel(order);
     setShowCancelToast(true);
@@ -141,12 +160,12 @@ export default function ManagerTablesDisplay({ tables, refetchTables }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredTables.length === 0 ? (
+        {sortedTables.length === 0 ? (
           <p className="text-gray-500 col-span-full text-center py-8">
             No tables found.
           </p>
         ) : (
-          filteredTables.map((table) => {
+          sortedTables.map((table) => {
             const order = table.current_order;
             const hasReservation = !!table.current_reservation;
 

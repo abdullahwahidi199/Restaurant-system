@@ -187,7 +187,7 @@ class CategorySerializer(serializers.ModelSerializer):
                                                       #infos will be accessed using this id in the veiws using prefetch related
     class Meta:
         model = Category
-        fields = ['id', 'image','name','name_dari','name_pashto', 'description','menu_items','platters'
+        fields = ['id','rank', 'image','name','name_dari','name_pashto', 'description','menu_items','platters'
 ]
 
 class ReveiwSerializer(serializers.ModelSerializer):

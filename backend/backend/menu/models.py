@@ -35,8 +35,19 @@ class Category(models.Model):
         null=True
     )
 
+    rank = models.PositiveIntegerField(blank=True, null=True)
+    class Meta:
+        ordering = ['rank']
+        # Prevent duplicate ranks within the same restaurant
+        constraints = [
+            models.UniqueConstraint(
+                fields=['restaurant', 'rank'],
+                name='unique_rank_per_restaurant'
+            )
+        ]
     def __str__(self):
-        return self.name
+        return self.name    
+    
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

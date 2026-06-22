@@ -44,10 +44,28 @@ export default function AddReservation({ onClose, onReservationSaved }) {
     fetchTables();
   }, []);
 
+  const sortTables = (tables) => {
+    return [...tables].sort((a, b) => {
+      const extractNumber = (name) => {
+        const match = String(name).match(/\d+/);
+        return match ? parseInt(match[0], 10) : null;
+      };
+
+      const numA = extractNumber(a.name);
+      const numB = extractNumber(b.name);
+
+      if (numA !== null && numB !== null) return numA - numB;
+      if (numA !== null) return -1;
+      if (numB !== null) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const fetchTables = async () => {
     try {
       const res = await instance.get("orders/tables/");
-      setTables(res.data);
+      setTables(sortTables(res.data));
     } catch {
       toast.error("Failed to load tables");
     }

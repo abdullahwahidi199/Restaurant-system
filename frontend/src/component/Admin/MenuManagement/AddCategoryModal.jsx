@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import RestrictedToast from "../../RistrictedAction";
@@ -11,12 +11,48 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [rank, setRank] = useState("");
+  const [takenRanks, setTakenRanks] = useState([]);
+  const [rankError, setRankError] = useState("");
   const [showRestriction, setShowRestriction] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
   const { t } = useTranslation();
+
+  // Fetch existing ranks on mount
+  useEffect(() => {
+    const fetchTakenRanks = async () => {
+      try {
+        const res = await instance.get("/menu/categories/");
+        const ranks = res.data
+          .map((c) => c.rank)
+          .filter((r) => r !== null && r !== undefined);
+        setTakenRanks(ranks);
+      } catch (err) {
+        console.error("Failed to fetch categories", err);
+      }
+    };
+    fetchTakenRanks();
+  }, []);
+
+  const handleRankChange = (e) => {
+    const value = e.target.value;
+    setRank(value);
+
+    if (value === "") {
+      setRankError("");
+      return;
+    }
+
+    const parsed = parseInt(value, 10);
+    if (takenRanks.includes(parsed)) {
+      setRankError(`Rank ${parsed} is already taken. Please choose another.`);
+    } else {
+      setRankError("");
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -34,6 +70,12 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
       return;
     }
 
+    // Final guard before submit
+    if (rank !== "" && takenRanks.includes(parseInt(rank, 10))) {
+      setRankError(`Rank ${rank} is already taken. Please choose another.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -42,6 +84,7 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
       formData.append("name_dari", nameDari);
       formData.append("name_pashto", namePashto);
       formData.append("description", description);
+      if (rank !== "") formData.append("rank", rank);
       if (image) formData.append("image", image);
 
       await instance.post("/menu/categories/", formData, {
@@ -124,12 +167,43 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
             />
           </div>
 
+          {/* Rank */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Display Rank{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={rank}
+              onChange={handleRankChange}
+              placeholder="e.g. 1, 2, 3 …"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400 ${
+                rankError
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-indigo-500"
+              }`}
+            />
+            {rankError && (
+              <p className="text-red-500 text-xs mt-1">{rankError}</p>
+            )}
+            {/* Taken ranks hint */}
+            {takenRanks.length > 0 && (
+              <p className="text-gray-400 text-xs mt-1">
+                Taken ranks:{" "}
+                <span className="font-medium text-gray-500">
+                  {[...takenRanks].sort((a, b) => a - b).join(", ")}
+                </span>
+              </p>
+            )}
+          </div>
+
           {/* Image */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category Image
             </label>
-
             {imagePreview && (
               <img
                 src={imagePreview}
@@ -137,7 +211,6 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
                 className="w-24 h-24 object-cover rounded-lg border mb-2"
               />
             )}
-
             <input
               type="file"
               accept="image/*"
@@ -149,7 +222,7 @@ export default function AddCategoryModal({ onClose, onCategoryAdded }) {
           <div className="flex justify-between items-center mt-2">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !!rankError}
               className="bg-indigo-600 hover:bg-indigo-800 text-white px-4 py-2 rounded-lg shadow-md transition disabled:opacity-50"
             >
               {loading ? "Adding..." : t("add")}

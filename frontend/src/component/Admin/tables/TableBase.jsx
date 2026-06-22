@@ -71,12 +71,29 @@ export default function TableBaseModal() {
 
   useOrdersSocket(handleSocketMessage);
 
-  const filteredTables = tables.filter((t) => {
-    const name = t.name.toLowerCase();
+  const filteredTables = tables
+    .filter((t) => {
+      const name = t.name.toLowerCase();
+      return name.includes(search.toLowerCase());
+    })
+    .sort((a, b) => {
+      const extractNumber = (name) => {
+        const match = name.match(/\d+/);
+        return match ? parseInt(match[0], 10) : null;
+      };
 
-    return name.includes(search.toLowerCase());
-  });
+      const numA = extractNumber(a.name);
+      const numB = extractNumber(b.name);
 
+      if (numA !== null && numB !== null) {
+        return numA - numB;
+      }
+
+      if (numA !== null) return -1;
+      if (numB !== null) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
