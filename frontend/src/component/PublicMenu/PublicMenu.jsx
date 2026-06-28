@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import toast from "react-hot-toast";
 import {
   Search,
   X,
@@ -492,10 +493,42 @@ export default function PublicMenu() {
     setAddedItemId(item.id);
     setTimeout(() => setAddedItemId(null), 600);
   }, []);
+  const menuItems = useMemo(() => {
+    if (!categories?.length) return [];
 
+    return categories.flatMap((cat) => [
+      ...(cat.menu_items || []).map((i) => ({
+        ...i,
+        type: "menu_item",
+      })),
+      ...(cat.platters || []).map((p) => ({
+        ...p,
+        type: "platter",
+      })),
+    ]);
+  }, [categories]);
+  const getMenuItem = (id) => {
+    return menuItems.find((i) => i.id === id);
+  };
   const incrementItem = (id) => {
+    const item = getMenuItem(id);
+    if (!item) return;
+
     setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i)),
+      prev.map((i) => {
+        if (i.id !== id) return i;
+
+        // apply limit ONLY if item uses daily production
+        if (
+          item.uses_daily_production &&
+          i.quantity >= item.production_remaining
+        ) {
+          toast.error("Not enough remaining quantity");
+          return i;
+        }
+
+        return { ...i, quantity: i.quantity + 1 };
+      }),
     );
   };
 

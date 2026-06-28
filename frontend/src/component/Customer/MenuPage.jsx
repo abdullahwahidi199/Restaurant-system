@@ -166,6 +166,9 @@ export default function MenuPage({ orderingClosed }) {
       prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id],
     );
   };
+  const getMenuItem = (id) => {
+    return menuItems.find((i) => i.id === id);
+  };
 
   const toastRef = useRef(false);
 
@@ -200,8 +203,24 @@ export default function MenuPage({ orderingClosed }) {
   };
 
   const incrementItem = (id) => {
+    const item = getMenuItem(id);
+    if (!item) return;
+
     setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i)),
+      prev.map((i) => {
+        if (i.id !== id) return i;
+
+        // apply limit ONLY if item uses daily production
+        if (
+          item.uses_daily_production &&
+          i.quantity >= item.production_remaining
+        ) {
+          toast.error("Not enough remaining quantity");
+          return i;
+        }
+
+        return { ...i, quantity: i.quantity + 1 };
+      }),
     );
   };
 

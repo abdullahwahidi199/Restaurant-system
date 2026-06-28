@@ -115,6 +115,7 @@ export default function IndividualItem() {
       formData.append("description_pashto", item.description_pashto || "");
       formData.append("price", item.price);
       formData.append("is_manually_available", item.is_manually_available);
+      formData.append("uses_daily_production", item.uses_daily_production);
       if (item.image instanceof File) {
         formData.append("image", item.image);
       }
@@ -393,16 +394,27 @@ export default function IndividualItem() {
               <b>Profit:</b> {item.profit_per_unit.toFixed(2)}
             </p>
           </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="is_manually_available"
+                checked={item.is_manually_available}
+                onChange={handleChange}
+              />
+              {t("available")}
+            </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_manually_available"
-              checked={item.is_manually_available}
-              onChange={handleChange}
-            />
-            {t("available")}
-          </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="uses_daily_production"
+                checked={item.uses_daily_production || false}
+                onChange={handleChange}
+              />
+              Uses Daily Production
+            </label>
+          </div>
 
           <div className="border-t pt-4">
             <h3 className="font-medium mb-3">Recipe Ingredients</h3>

@@ -1,6 +1,7 @@
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import F
+from menu.production_utils import consume_production
 
 from menu.models import MenuItem
 from inventory.models import MenuItemIngredient, Ingredient
@@ -39,6 +40,9 @@ from .utils import update_menu_item_availability
 
 # ✅ Deduct stock for a single menu item
 def deduct_menu_item_stock(menu_item, quantity, order, ingredient_ids):
+    if menu_item.uses_daily_production:
+        consume_production(menu_item, int(quantity))
+        return
     recipe_items = (
         MenuItemIngredient.objects
         .select_related("ingredient")
@@ -96,7 +100,7 @@ def deduct_stock_for_order(order):
     ingredient_ids = set()
 
     order_items = (
-        order.items
+        order.items\
         .select_related("menu_item", "platter")
         .prefetch_related("platter__items__menu_item")
     )
@@ -186,12 +190,17 @@ def deduct_batch_stock_for_order_items(order_items, order):
     ingredient_ids = set()
     ingredient_requirements = defaultdict(Decimal)  # ingredient_id -> total qty needed
     stock_movements = []
+    production_consumptions = defaultdict(int)
     
     # Step 1: Aggregate all ingredient requirements across all items
     for order_item in order_items:
         
         # Single menu item
         if order_item.menu_item:
+            mi = order_item.menu_item
+            if mi.uses_daily_production:
+                production_consumptions[mi] += int(order_item.quantity)
+                continue
             recipe_items = MenuItemIngredient.objects.filter(
                 menu_item=order_item.menu_item
             ).select_related("ingredient")
@@ -223,6 +232,12 @@ def deduct_batch_stock_for_order_items(order_items, order):
             platter_quantity = Decimal(str(order_item.quantity))
             
             for platter_item in platter_items:
+                mi = platter_item.menu_item
+                if mi.uses_daily_production:
+                    production_consumptions[mi] += (
+                        int(platter_item.quantity) * int(order_item.quantity)
+                    )
+                    continue
                 recipe_items = MenuItemIngredient.objects.filter(
                     menu_item=platter_item.menu_item
                 ).select_related("ingredient")
@@ -245,6 +260,8 @@ def deduct_batch_stock_for_order_items(order_items, order):
                             related_order=order,
                         )
                     )
+    for mi, qty in production_consumptions.items():
+        consume_production(mi, qty)
     
     # Step 2: Batch update ingredients in a single query per ingredient
     if ingredient_requirements:

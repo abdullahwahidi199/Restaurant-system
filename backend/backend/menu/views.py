@@ -3,14 +3,21 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 
 from restaurants.models import Restaurant
-from .models import Category,MenuItem,Review,PlatterItem,Platter
-from .serializers import CategorySerializer,MenuItemSerializer,ReveiwSerializer,PlatterItemSerializer,PlatterSerializer
+from .models import Category,MenuItem,Review,PlatterItem,Platter,Production
+from .serializers import CategorySerializer,MenuItemSerializer,ReveiwSerializer,PlatterItemSerializer,PlatterSerializer,ProductionSerializer
 from reports.models import Notification
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive
 from django.shortcuts import get_object_or_404
 
+from .production_utils import (
+    create_or_replace_production,
+    adjust_production,
+    clear_production,
+    increment_production,
+    decrement_production
+)
 from django.utils import timezone
 from rest_framework.exceptions import NotFound
 from .permissions import is_restaurant_active
@@ -678,3 +685,115 @@ def menu_item_sales(request):
     data = list(menu_grouped) + list(platter_grouped)
 
     return Response(data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def production_list_create(request):
+    """
+    GET: List all menu items that use daily production, with current production state.
+    POST: Adjust production.
+          Body: { menu_item, action: 'set'|'increment'|'decrement', quantity, notes? }
+    """
+    restaurant = request.user.staff_profile.restaurant
+    if not restaurant:
+        return Response({"error": "No restaurant"}, status=403)
+
+    if request.method == 'GET':
+        menu_items = MenuItem.objects.filter(
+            restaurant=restaurant,
+            uses_daily_production=True,
+        ).select_related('category', 'production').order_by('name')
+
+        data = []
+        for mi in menu_items:
+            prod = getattr(mi, 'production', None)
+            data.append({
+                'id': mi.id,
+                'name': mi.name,
+                'name_dari': mi.name_dari,
+                'name_pashto': mi.name_pashto,
+                'price': str(mi.price),
+                'image': mi.image.url if mi.image else None,
+                'category_name': mi.category.name if mi.category else None,
+                'uses_daily_production': mi.uses_daily_production,
+                'production': {
+                    'id': prod.id,
+                    'quantity_produced': prod.quantity_produced,
+                    'quantity_remaining': prod.quantity_remaining,
+                    'notes': prod.notes,
+                    'updated_at': prod.updated_at,
+                    'created_at': prod.created_at,
+                } if prod else None,
+            })
+        return Response(data)
+
+    # POST
+    menu_item_id = request.data.get('menu_item')
+    action = request.data.get('action', 'set')
+    quantity = request.data.get('quantity')
+    notes = request.data.get('notes', '')
+
+    if not menu_item_id or quantity is None:
+        return Response({'error': 'menu_item and quantity are required'}, status=400)
+
+    try:
+        menu_item = MenuItem.objects.get(id=menu_item_id, restaurant=restaurant)
+    except MenuItem.DoesNotExist:
+        return Response({'error': 'Menu item not found'}, status=404)
+
+    staff = getattr(request.user, 'staff_profile', None)
+
+    try:
+        if action == 'set':
+            production = create_or_replace_production(
+                menu_item=menu_item, quantity=quantity,
+                created_by=staff, notes=notes,
+            )
+        elif action == 'increment':
+            production = increment_production(
+                menu_item=menu_item, quantity=quantity,
+                created_by=staff, notes=notes,
+            )
+        elif action == 'decrement':
+            production = decrement_production(
+                menu_item=menu_item, quantity=quantity, notes=notes,
+            )
+        else:
+            return Response({'error': f'Invalid action: {action}'}, status=400)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=400)
+
+    if production is None:
+        return Response({'cleared': True}, status=200)
+    return Response(ProductionSerializer(production).data, status=200)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def production_detail(request, pk):
+    """
+    PATCH: Adjust quantity_produced (e.g., cooked more). Body: { quantity, notes }
+    DELETE: Clear production. Query param: ?refund=true to refund unsold ingredients.
+    """
+    restaurant = request.user.staff_profile.restaurant
+    try:
+        production = Production.objects.get(pk=pk, restaurant=restaurant)
+    except Production.DoesNotExist:
+        return Response({'error': 'Not found'}, status=404)
+
+    if request.method == 'PATCH':
+        try:
+            production = adjust_production(
+                production,
+                new_quantity=request.data.get('quantity', production.quantity_produced),
+                notes=request.data.get('notes'),
+            )
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        return Response(ProductionSerializer(production).data)
+
+    # DELETE
+    refund = request.query_params.get('refund', 'false').lower() == 'true'
+    clear_production(production.menu_item, refund_remaining=refund)
+    return Response(status=204)

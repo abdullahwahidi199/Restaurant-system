@@ -83,6 +83,8 @@ class Category(models.Model):
 
         except Exception as e:
             print("Category image processing error:", e)
+
+
     
 class MenuItem(models.Model):
     name=models.CharField(max_length=150)
@@ -99,22 +101,50 @@ class MenuItem(models.Model):
     is_available = models.BooleanField(default=True)
     is_manually_available = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, related_name='menu_items')
+    uses_daily_production = models.BooleanField(
+        default=False
+    )
 
-
+    def get_production(self):
+        """Get current active production, if any."""
+        if not self.uses_daily_production:
+            return None
+        return getattr(self, 'production', None)
+    @property
+    def production_remaining(self):
+        prod = self.get_production()
+        return prod.quantity_remaining if prod else 0
+    @property
+    def production_produced(self):
+        prod = self.get_production()
+        return prod.quantity_produced if prod else 0
     @property
     def final_availability(self):
-        return (
-            self.is_available
-            and self.is_manually_available
-        )
+        # Production-based items: must have an active production with remaining qty
+        if self.uses_daily_production:
+            prod = self.get_production()
+            if not prod or prod.quantity_remaining <= 0:
+                return False
+            return self.is_manually_available
+        # Normal items: ingredient-based availability
+        return self.is_available and self.is_manually_available
+        
     def __str__(self):
         return self.name
     def save(self, *args, **kwargs):
+        process_image = False
+
+        if self.pk is None:
+            process_image = bool(self.image)
+        else:
+            old = MenuItem.objects.filter(pk=self.pk).only("image").first()
+            if old and old.image != self.image:
+                process_image = True
+
         super().save(*args, **kwargs)
 
-        if not self.image:
+        if not process_image:
             return
-
         try:
             img = Image.open(self.image.path)
 
@@ -185,7 +215,49 @@ class MenuItem(models.Model):
         cost=self.get_cost_per_unit()
         return Decimal(self.price) - Decimal(cost)
 
+# menu/models.py - ADD THIS NEW MODEL
 
+class Production(models.Model):
+    """
+    Tracks current cooked quantity for menu items that use production-based availability.
+    E.g., Qabuli is cooked in bulk; stays available until sold out or manually cleared.
+    No date dependency — one active production per menu item at a time.
+    """
+    menu_item = models.OneToOneField(
+        MenuItem,
+        on_delete=models.CASCADE,
+        related_name='production'
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='productions'
+    )
+    quantity_produced = models.PositiveIntegerField(
+        help_text="Total portions cooked in this batch"
+    )
+    quantity_remaining = models.PositiveIntegerField(
+        help_text="Portions still available to sell"
+    )
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'users.Staff',  # adjust to your Staff model path
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.menu_item.name} ({self.quantity_remaining}/{self.quantity_produced})"
+
+    @property
+    def is_sold_out(self):
+        return self.quantity_remaining <= 0
 
 class Review(models.Model):
     customer=models.ForeignKey(Customer,on_delete=models.CASCADE,related_name='reviews')
@@ -246,6 +318,50 @@ class Platter(models.Model):
     @property
     def final_availability(self):
         return self.is_available and self.is_manually_available
+    def save(self, *args, **kwargs):
+        process_image = False
+
+        if self.pk is None:
+            # New platter
+            process_image = bool(self.image)
+        else:
+            old = Platter.objects.filter(pk=self.pk).only("image").first()
+            if old and old.image != self.image:
+                process_image = True
+
+        super().save(*args, **kwargs)
+
+        if not process_image:
+            return
+
+        try:
+            img = Image.open(self.image.path)
+
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            img.thumbnail((900, 900))
+
+            img_io = BytesIO()
+            img.save(
+                img_io,
+                format="JPEG",
+                quality=70,
+                optimize=True,
+            )
+
+            name = self.image.name.rsplit(".", 1)[0] + ".jpg"
+
+            self.image.save(
+                name,
+                ContentFile(img_io.getvalue()),
+                save=False,
+            )
+
+            super().save(update_fields=["image"])
+
+        except Exception as e:
+            print("Platter image processing error:", e)
     
 class PlatterItem(models.Model):
     platter = models.ForeignKey(

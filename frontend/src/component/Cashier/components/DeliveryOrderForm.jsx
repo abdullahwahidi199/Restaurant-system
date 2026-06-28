@@ -137,6 +137,15 @@ export default function DeliveryOrderForm() {
 
   const handleIncrement = (menuItem) => {
     const existing = cart.find((i) => i.id === menuItem.id);
+    const remaining = menuItem.production_remaining ?? Infinity;
+
+    const currentQty = existing ? existing.qty : 0;
+
+    // 🔥 HARD BLOCK
+    if (menuItem.uses_daily_production && currentQty >= remaining) {
+      toast.error(`Only ${remaining} available`);
+      return;
+    }
 
     if (existing) {
       setCart(

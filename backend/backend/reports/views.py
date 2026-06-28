@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Sum,F,FloatField,Count
+from django.db.models import Sum,F,FloatField,Count,Avg,Prefetch
 from django.db.models.functions import TruncDate
 from django.db import models
 from users.models import Staff,Attendance
@@ -25,47 +25,12 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Sum, F, FloatField, Count, Avg
-from django.db.models.functions import TruncDate
 from django.db.models import Q
-from users.models import Staff, Attendance
-from menu.models import MenuItem, Review
-from orders.models import Order, OrderItem
-from menu.serializers import MenuItemSerializer
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.platypus import Table, TableStyle, Paragraph
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from django.http import HttpResponse
-from .services.orders import OrderReportService
-from .services.staff import StaffReportService
-from restaurants.permissions import IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive
-from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework.permissions import IsAuthenticated
 
 from datetime import timedelta
 from decimal import Decimal
+from collections import defaultdict
 
-from django.db.models import (
-    Avg, Count, F, FloatField, Prefetch, Q, Sum
-)
-from django.db.models.functions import TruncDate
-from django.utils import timezone
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from menu.models import MenuItem, Review
-from orders.models import Order, OrderItem
-from restaurants.permissions import (
-    IsRestaurantActive, IsRestaurantAdmin, IsSameRestaurant
-)
-from users.models import Attendance, Staff
 
 
 class DashboardSummaryAPIView(APIView):
@@ -179,30 +144,33 @@ class DashboardSummaryAPIView(APIView):
         )
 
         # ── 6. Daily sales (last 30 days) ──────────────────────────────
-        daily_sales = (
-            Order.objects.filter(
-                created_at__date__gte=last_30_days,
-                restaurant=restaurant,
-            )
-            .annotate(date=TruncDate("created_at"))
-            .values("date")
-            .annotate(
-                total_orders=Count("id"),
-                total_revenue=Sum(
-                    F("items__quantity") * F("items__menu_item__price"),
-                    output_field=FloatField(),
-                ),
-            )
-            .order_by("date")
-        )
+        
+
+# ── 6. Daily sales (last 30 days) ──────────────────────────────
+
+        daily_orders = [
+            o for o in completed_orders
+            if o.created_at.date() >= last_30_days
+        ]
+
+        daily_map = defaultdict(lambda: {
+            "orders": 0,
+            "revenue": Decimal("0.00"),
+        })
+
+        for order in daily_orders:
+            day = order.created_at.date()
+
+            daily_map[day]["orders"] += 1
+            daily_map[day]["revenue"] += self._calculate_order_total(order)
 
         daily_sales_data = [
             {
-                "date": item["date"].strftime("%Y-%m-%d"),
-                "orders": item["total_orders"] or 0,
-                "revenue": round(item["total_revenue"] or 0, 2),
+                "date": day.strftime("%Y-%m-%d"),
+                "orders": values["orders"],
+                "revenue": round(float(values["revenue"]), 2),
             }
-            for item in daily_sales
+            for day, values in sorted(daily_map.items())
         ]
 
         # ── 7. Delivery boys performance ───────────────────────────────

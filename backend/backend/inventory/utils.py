@@ -1,4 +1,14 @@
+
+
 def update_menu_item_availability(menu_item):
+    if menu_item.uses_daily_production:
+        prod = menu_item.get_production()
+        if prod and prod.quantity_remaining > 0:
+            menu_item.mark_available()
+        else:
+            menu_item.mark_unavailable()
+        update_platter_availability_from_menu_item(menu_item)
+        return
     recipes = menu_item.ingredients.select_related(
         'ingredient'
     ).all()

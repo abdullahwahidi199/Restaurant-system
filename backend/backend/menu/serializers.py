@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import  Category, MenuItem,Review,Platter,PlatterItem
+from .models import  Category, MenuItem,Review,Platter,PlatterItem,Production
 from customers.models import Customer
 from django.utils import timezone
 from inventory.serializers import MenuItemIngredientSerializer
@@ -15,11 +15,12 @@ class ReveiwMiniSerializer(serializers.ModelSerializer):
 class MenuItemMiniSerializer(serializers.ModelSerializer):
     reviews=ReveiwMiniSerializer(read_only=True,many=True)
     image=serializers.SerializerMethodField()
+    production_remaining = serializers.IntegerField(read_only=True)
     class Meta:
         model = MenuItem
         fields = ['id', 'name','name_dari','name_pashto', 'price','image','is_available',
             'is_manually_available',
-            'final_availability','reviews'] 
+            'final_availability','reviews','uses_daily_production', 'production_remaining'] 
     def get_image(self, obj):
         return obj.image.url if obj.image else None
 
@@ -82,6 +83,41 @@ class PlatterSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'restaurant'
         ]
+    def to_internal_value(self, data):
+        import json
+
+        # multipart/form-data comes as QueryDict.
+        # Convert it to a normal dict so nested serializer can read "items".
+        if hasattr(data, "getlist"):
+            data = {key: data.get(key) for key in data.keys()}
+        else:
+            data = data.copy()
+
+        items = data.get("items")
+
+        if isinstance(items, str):
+            try:
+                data["items"] = json.loads(items)
+            except json.JSONDecodeError:
+                raise serializers.ValidationError({
+                    "items": "Invalid JSON format."
+                })
+
+        return super().to_internal_value(data)
+    def validate(self, attrs):
+        items = attrs.get("items")
+
+        if not items:
+            raise serializers.ValidationError({
+                "items": "This field is required."
+            })
+
+        if len(items) == 0:
+            raise serializers.ValidationError({
+                "items": "Platter must contain at least one item."
+            })
+
+        return attrs
     
     def get_unavailable_reasons(self, obj):
         if obj.final_availability:
@@ -151,22 +187,7 @@ class PlatterSerializer(serializers.ModelSerializer):
 
         return instance
     
-    def to_internal_value(self, data):
-        import json
-        data = data.copy()
-
-        items = data.get('items')
-
-        if isinstance(items, str):
-
-            try:
-                data['items'] = json.loads(items)
-            except json.JSONDecodeError:
-                raise serializers.ValidationError({
-                    'items': 'Invalid JSON format.'
-                })
-
-        return super().to_internal_value(data)
+    
 
     def validate_items(self, value):
 
@@ -215,11 +236,17 @@ class MenuItemSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)
     cost_per_unit = serializers.SerializerMethodField()
     profit_per_unit = serializers.SerializerMethodField()
+
+    production_remaining = serializers.IntegerField(read_only=True)
+    production_produced = serializers.IntegerField(read_only=True)
     class Meta:
         model = MenuItem
         fields = ['id', 'name','name_dari','name_pashto', 'description','description_dari','description_pashto', 'price', 'image', 'is_available',
             'is_manually_available','unavailable_reasons',
-            'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit']
+            'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit',
+            'uses_daily_production',         # 🆕
+            'production_remaining',          # 🆕
+            'production_produced', ]
     
     def get_cost_per_unit(self, obj):
         return obj.get_cost_per_unit()
@@ -231,6 +258,21 @@ class MenuItemSerializer(serializers.ModelSerializer):
             return []
 
         reasons = []
+
+        if obj.uses_daily_production:
+            prod = obj.get_production()
+            if not prod:
+                reasons.append({
+                    "type": "production",
+                    "message": "Not cooked yet"
+                })
+            elif prod.quantity_remaining <= 0:
+                reasons.append({
+                    "type": "production",
+                    "message": "Sold out",
+                    "produced": prod.quantity_produced,
+                })
+            return reasons
 
         for recipe in obj.ingredients.select_related("ingredient"):
             ingredient = recipe.ingredient
@@ -277,3 +319,17 @@ class PlatterPrintSerializer(serializers.ModelSerializer):
             f"{i.menu_item.name} x{i.quantity}"
             for i in obj.items.select_related("menu_item").all()
         ]
+    
+
+class ProductionSerializer(serializers.ModelSerializer):
+    menu_item_name = serializers.CharField(source='menu_item.name', read_only=True)
+    is_sold_out = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Production
+        fields = [
+            'id', 'menu_item', 'menu_item_name',
+            'quantity_produced', 'quantity_remaining', 'is_sold_out',
+            'notes', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['quantity_remaining', 'created_at', 'updated_at']

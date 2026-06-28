@@ -55,6 +55,10 @@ export default function OrderEditModal({ order, onClose }) {
     }
   };
 
+  const fetchOrder = async () => {
+    const res = await instance.get(`/orders/orders/${order.id}/`);
+    setItems(res.data.items || []);
+  };
   const saveChanges = async () => {
     try {
       await instance.patch(`/orders/orders/${order.id}/bulk-update-items/`, {
@@ -235,6 +239,7 @@ export default function OrderEditModal({ order, onClose }) {
         <AddNewItemModal
           orderId={order.id}
           onClose={() => setAddNewItemDisplay(false)}
+          onItemAdded={fetchOrder}
           //   refetchTables={refetchOrders}
         />
       )}

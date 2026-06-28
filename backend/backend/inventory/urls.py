@@ -13,6 +13,7 @@ from .views import (
     search_ingredient_usage_view
 )
 
+
 urlpatterns = [
     path('ingredients/', IngredientListCreateView.as_view()),
     path('ingredientsPages/',IngredientPaginatedView.as_view()),

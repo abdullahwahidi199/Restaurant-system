@@ -68,6 +68,8 @@ class StockMovement(models.Model):
         ('order', 'Order'),
         ('adjustment', 'Adjustment'),
         ('waste', 'Waste'),
+        ("production", "Production"),                       # 🆕
+        ("production_adjustment", "Production Adjustment")
     ]
     restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='stock_movements', null=True, blank=True)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
@@ -87,7 +89,7 @@ class StockMovement(models.Model):
     )
 
     
-    movement_type = models.CharField(max_length=20, choices=MOVEMENT_TYPES)
+    movement_type = models.CharField(max_length=30, choices=MOVEMENT_TYPES)
     related_order = models.ForeignKey(
         'orders.Order',
         on_delete=models.SET_NULL,

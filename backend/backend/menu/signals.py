@@ -22,7 +22,11 @@ def category_deleted_notification(sender, instance, **kwargs):
             message=f"Category deleted: {instance.name}"
         )
 @receiver(post_save, sender=MenuItem)
-def menu_item_created_notification(sender, instance, created, **kwargs):
+def menu_item_created_notification(sender, instance, created, update_fields=None, **kwargs):
+    
+    print("Signal fired", instance.pk, created)
+    if update_fields and set(update_fields) <= {"is_available"}:
+        return
     if not instance.restaurant:
         return
 

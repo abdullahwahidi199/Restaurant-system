@@ -55,6 +55,11 @@ function Navbar() {
       icon: <Utensils size={18} />,
     },
     {
+      to: "/admin/dashboard/daily_production",
+      label: "Daily Productions",
+      icon: <Utensils size={18} />,
+    },
+    {
       to: "/admin/dashboard/pending-discount-requests",
       label: "Discount Requests",
       icon: <BadgePercent size={18} />,

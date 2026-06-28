@@ -70,6 +70,17 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
   //   refetchTables();
   // };
 
+  const fetchOrder = async () => {
+    if (!current_order?.id) return;
+
+    try {
+      const res = await instance.get(`/orders/orders/${current_order.id}/`);
+      setItems(res.data.items || []);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const handleMarkServed = async () => {
     try {
       const res = await instance.patch(
@@ -347,7 +358,8 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   <AddNewItemModal
                     orderId={current_order.id}
                     onClose={() => setAddNewItemDisplay(false)}
-                    refetchTables={refetchTables}
+                    // refetchTables={refetchTables}
+                    onItemAdded={fetchOrder}
                   />
                 )}
                 {/* this button will mark serve the order, meaning the order has been prepared and now the customers are eating */}

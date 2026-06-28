@@ -79,6 +79,7 @@ import CreateDiscountCard from "./component/Admin/DiscountCards/CreateDiscountCa
 import DiscountCardDetails from "./component/Admin/DiscountCards/DiscountCardDetails";
 import DiscountCardEdit from "./component/Admin/DiscountCards/DiscountCardEdit";
 import ReadyOrders from "./component/kitchen/ReadyOrders";
+import DailyProduction from "./component/Admin/DailyProduction/DailyProduction";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -127,6 +128,7 @@ function App() {
           <Route path="platters" element={<Platters />} />
 
           <Route path="menu/platter/:id" element={<PlatterDetails />} />
+          <Route path="daily_production" element={<DailyProduction />} />
           <Route path="orders" element={<OrderBase />} />
           <Route path="tables" element={<TableBaseModal />} />
           <Route path="expenses" element={<ExpensesMain />} />

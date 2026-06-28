@@ -26,6 +26,7 @@ from decimal import Decimal
 from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from menu.models import Platter
+from menu.production_utils import consume_production
 
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
 
@@ -61,7 +62,38 @@ def get_restaurant_from_user(request):
         return request.user.staff_profile.restaurant
     
     return None
-    
+
+def validate_production_availability(items_data, menu_items):
+    for item in items_data:
+
+        # FIX: normalize menu_item
+        menu_item = item.get("menu_item")
+
+        if isinstance(menu_item, dict):
+            menu_item_id = menu_item.get("id")
+        elif hasattr(menu_item, "id"):
+            menu_item_id = menu_item.id
+        else:
+            menu_item_id = menu_item
+
+        if not menu_item_id:
+            continue
+
+        menu_item_obj = menu_items.get(menu_item_id)
+        if not menu_item_obj:
+            continue
+
+        qty = item.get("quantity") or 1
+
+        if menu_item_obj.uses_daily_production:
+            prod = menu_item_obj.get_production()
+
+            remaining = prod.quantity_remaining if prod else 0
+
+            if int(qty) > int(remaining):
+                raise ValueError(
+                    f"Only {remaining} {menu_item_obj.name} remaining"
+                )
 
 class OrderPagination(PageNumberPagination):
     page_size = 10
@@ -297,25 +329,50 @@ def order_list_create(request):
 
     elif request.method == 'POST':
 
-        serializer = OrderSerializer(data=request.data, context={'request': request,'restaurant': restaurant,})
+        serializer = OrderSerializer(
+            data=request.data,
+            context={'request': request, 'restaurant': restaurant}
+        )
+
         if serializer.is_valid():
-            # 2. Save with Restaurant
+
             try:
-                staff = None
+                with transaction.atomic():
 
-            
+                    staff = None
+                    if request.user.is_authenticated and hasattr(request.user, "staff_profile"):
+                        staff = request.user.staff_profile
 
-            # If authenticated user is staff
-                if request.user.is_authenticated and hasattr(request.user, "staff_profile"):
-                    staff = request.user.staff_profile
+                    # ✅ USE VALIDATED DATA (NOT request.data)
+                    items_data = request.data.get("items", [])
 
-                serializer.save(
-                    restaurant=restaurant,
-                    created_by=staff  
-                )
+
+                    menu_item_ids = [
+                        item.get("menu_item").id if hasattr(item.get("menu_item"), "id")
+                        else item.get("menu_item")
+                        for item in items_data
+                        if item.get("menu_item")
+                    ]
+
+                    menu_items = {
+                        m.id: m for m in MenuItem.objects.filter(
+                            id__in=menu_item_ids,
+                            restaurant=restaurant
+                        )
+                    }
+
+                    validate_production_availability(items_data, menu_items)
+
+                    order = serializer.save(
+                        restaurant=restaurant,
+                        created_by=staff
+                    )
+
             except ValueError as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': str(e)}, status=400)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -477,9 +534,15 @@ class ReservationRetrieveUpdateDestroyView(
             "table", "created_by"
         )
 
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db.models import Q
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def create_online_order(request,slug):
+def create_online_order(request, slug):
+
     restaurant = get_object_or_404(Restaurant, slug=slug)
 
     subscription = getattr(restaurant, "subscription", None)
@@ -494,19 +557,16 @@ def create_online_order(request,slug):
 
     if not is_active:
         raise NotFound("Restaurant not found")
+
     def clean_ip(request):
         ip = (
             request.META.get("HTTP_CF_CONNECTING_IP")
             or request.META.get("HTTP_X_FORWARDED_FOR")
             or request.META.get("REMOTE_ADDR")
         )
-
         if not ip:
             return "0.0.0.0"
-
-        # TAKE ONLY FIRST IP (VERY IMPORTANT)
         return ip.split(",")[0].split("/")[0].strip()
-
 
     limited = is_ratelimited(
         request=request,
@@ -517,16 +577,51 @@ def create_online_order(request,slug):
         method="POST",
         increment=True,
     )
+
     if limited:
         return Response({"error": "Too many online orders."}, status=429)
-    serializer = OrderSerializer(data=request.data, context={"request": request, "restaurant": restaurant})
-    if serializer.is_valid():
-        try:
-            serializer.save(restaurant=restaurant)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = OrderSerializer(
+        data=request.data,
+        context={"request": request, "restaurant": restaurant}
+    )
+
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with transaction.atomic():
+
+            
+            items_data = request.data.get("items", [])
+
+            menu_item_ids = [
+                item.get("menu_item").id
+                if hasattr(item.get("menu_item"), "id")
+                else item.get("menu_item")
+                for item in items_data
+                if item.get("menu_item")
+            ]
+
+            menu_items = {
+                m.id: m for m in MenuItem.objects.filter(
+                    id__in=menu_item_ids,
+                    restaurant=restaurant
+                )
+            }
+
+            # 🔥 IMPORTANT: production validation BEFORE saving
+            validate_production_availability(items_data, menu_items)
+
+            order = serializer.save(restaurant=restaurant)
+
+    except ValueError as e:
+        return Response({"error": str(e)}, status=400)
+
+    return Response(
+        OrderSerializer(order, context={"request": request}).data,
+        status=status.HTTP_201_CREATED
+    )
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -839,6 +934,19 @@ def add_items_to_order(request, pk):
     response_items = []
 
     with transaction.atomic():
+        for item in items_data:
+            quantity = item.get("quantity", 1)
+
+            if item.get("menu_item") and item["menu_item"] in menu_items:
+                menu_item = menu_items[item["menu_item"]]
+
+                if menu_item.uses_daily_production:
+                    prod = menu_item.get_production()
+
+                    if not prod or prod.quantity_remaining < quantity:
+                        return Response({
+                            "error": f"Only {prod.quantity_remaining if prod else 0} {menu_item.name} remaining"
+                        }, status=400)
         # Prepare objects (no DB hit yet)
         for item in items_data:
             quantity = item.get("quantity", 1)
@@ -872,6 +980,7 @@ def add_items_to_order(request, pk):
                 )
 
         # ✅ Bulk create (ONE query)
+        
         created_items = OrderItem.objects.bulk_create(order_items_to_create)
         
         # ✅ BATCH stock deduction (instead of per-item)

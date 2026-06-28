@@ -14,7 +14,12 @@ import {
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
 
-export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
+export default function ManagerAddItem({
+  orderId,
+  onClose,
+  refetchTables,
+  onItemAdded,
+}) {
   const [menuData, setMenuData] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedItems, setSelectedItems] = useState([]);
@@ -113,6 +118,15 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
 
   const handleIncrement = (menuItem) => {
     const existing = selectedItems.find((i) => i.menu_item.id === menuItem.id);
+
+    const remaining = menuItem.production_remaining ?? Infinity;
+    const currentQty = existing?.quantity || 0;
+
+    // HARD BLOCK
+    if (menuItem.uses_daily_production && currentQty >= remaining) {
+      toast.error(`Only ${remaining} available`);
+      return;
+    }
     if (existing) {
       setSelectedItems(
         selectedItems.map((i) =>
@@ -164,9 +178,21 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
   };
 
   const handleChangeQuantity = (menuItemId, qty) => {
+    const item = selectedItems.find((i) => i.menu_item.id === menuItemId);
+
+    if (!item) return;
+
+    const remaining = item.menu_item.production_remaining ?? Infinity;
+
+    if (item.menu_item.uses_daily_production && qty > remaining) {
+      toast.error(`Only ${remaining} available`);
+      qty = remaining;
+    }
+
     if (qty < 1) return;
-    setSelectedItems(
-      selectedItems.map((i) =>
+
+    setSelectedItems((prev) =>
+      prev.map((i) =>
         i.menu_item.id === menuItemId ? { ...i, quantity: qty } : i,
       ),
     );
@@ -199,7 +225,8 @@ export default function ManagerAddItem({ orderId, onClose, refetchTables }) {
     try {
       await instance.patch(`/orders/orders/${orderId}/add-items/`, payload);
       toast.success("Items added successfully!");
-      refetchTables();
+      await refetchTables?.();
+      await onItemAdded?.();
       onClose();
     } catch (err) {
       console.error(err);
