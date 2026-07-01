@@ -83,8 +83,8 @@ class DashboardSummaryAPIView(APIView):
         completed_orders = list(
             Order.objects.filter(
                 restaurant=restaurant,
-                created_at__date__gte=month_start,
-                status="completed",
+                created_at__date__gte=last_30_days,
+                status__in=["completed", "delivered"],
             )
             .select_related("reservation__table")
             .prefetch_related(
@@ -101,15 +101,15 @@ class DashboardSummaryAPIView(APIView):
             Decimal("0.00")
         )
         revenue_week = sum(
-            (self._calculate_order_total(o) for o in completed_orders
-             if o.created_at.date() >= week_start),
-            Decimal("0.00")
-        )
+    self._calculate_order_total(o)
+    for o in completed_orders
+    if o.created_at.date() >= week_start
+)
         revenue_month = sum(
-            (self._calculate_order_total(o) for o in completed_orders),
-            Decimal("0.00")
-        )
-
+    self._calculate_order_total(o)
+    for o in completed_orders
+    if o.created_at.date() >= month_start
+)
         # ── 5. Best selling items ──────────────────────────────────────
         def get_best_selling_items(start_date):
             return (
