@@ -16,7 +16,7 @@ export default function DailySalesChart({ summary }) {
   return (
     <div className="lg:col-span-2">
       <h3 className="text-lg font-semibold mb-4 text-gray-700">
-        This month's daily sales
+        {t("dashboard.charts.daily_sales")}
       </h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={summary.daily_sales}>
