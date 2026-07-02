@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
 import AddReservation from "./AddReservation";
 import ReservationUpdateForm from "./ReservationUpdateForms";
 import ReservationCancellationToast from "./ReservationCancellationToast";
+import { AuthContext } from "../../../api/authforRBC";
+import ReservationPrintModal from "./ReservationPrintModal";
 
 export default function ReservationsList() {
   const [reservations, setReservations] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [reservationToCancel, setReservationToCancel] = useState(null);
+  const { restaurantDetails } = useContext(AuthContext);
+  const [printReservation, setPrintReservation] = useState(null);
   const fetchReservations = async () => {
     try {
       const res = await instance.get("/orders/cashier/reservations/");
@@ -219,6 +223,12 @@ export default function ReservationsList() {
                             Cancelled
                           </span>
                         )}
+                        <button
+                          onClick={() => setPrintReservation(r)}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs"
+                        >
+                          🖨 Print
+                        </button>
                       </td>
                     </tr>
                   );
@@ -257,6 +267,14 @@ export default function ReservationsList() {
             setReservationToCancel(null);
           }}
           onClose={() => setReservationToCancel(null)}
+        />
+      )}
+
+      {printReservation && (
+        <ReservationPrintModal
+          reservation={printReservation}
+          restaurant={restaurantDetails}
+          onClose={() => setPrintReservation(null)}
         />
       )}
     </div>
