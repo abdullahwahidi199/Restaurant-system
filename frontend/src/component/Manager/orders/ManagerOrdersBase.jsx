@@ -68,6 +68,14 @@ export default function ManagerOrderBase() {
     fetchOrders();
   }, []);
 
+  const handleViewOrder = async (orderId) => {
+    try {
+      const response = await instance.get(`/orders/orders/${orderId}/`);
+      setSelectedOrder(response.data);
+    } catch (error) {
+      console.error("Failed to fetch order details:", error);
+    }
+  };
   const handleCancelClick = (order) => {
     setOrderToCancel(order);
     setShowCancelToast(true);
@@ -112,7 +120,7 @@ export default function ManagerOrderBase() {
 
       <ManagerOrdersTable
         orders={orders}
-        onView={(order) => setSelectedOrder(order)}
+        onView={(order) => handleViewOrder(order.id)}
         onCancel={handleCancelClick}
         role={role}
       />

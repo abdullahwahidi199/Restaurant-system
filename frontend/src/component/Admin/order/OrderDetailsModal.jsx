@@ -202,7 +202,7 @@ export default function OrderDetailsModal({ order, onClose }) {
           {/* Items */}
           <Section title={t("modal.items")}>
             <ul className="border rounded-xl divide-y overflow-hidden">
-              {order.items.map((item) => (
+              {(order.items || []).map((item) => (
                 <li
                   key={item.id}
                   className={`px-4 py-3 flex justify-between items-center ${
