@@ -26,7 +26,6 @@ import CustomerSignUpModal from "./component/Customer/CustomerSignupModal";
 import Login from "./component/Customer/CustomerLoginModal";
 import Orders from "./component/Customer/Orders";
 import RestaurantSettings from "./component/Admin/settings/SettingsBaseModal";
-import { useEffect, useState } from "react";
 import Infopage from "./component/Customer/InfoPage";
 import CustomerProfile from "./component/Customer/CustomerProfile";
 import CashierManagement from "./component/Cashier/CashierManagment";
@@ -35,14 +34,14 @@ import AnalyticsBaseModal from "./component/Admin/Analytics/AnalyticsBaseModal";
 import RequireAuth from "./api/ReauireAuth";
 import StaffLogin from "./component/StaffLogin";
 import Feedbacks from "./component/Admin/Feedbacks/FeedbackBase";
-import i18n from "./i18n";
-import RistrictionMessage from "./component/RistrictionMessage";
 import InventoryDashboard from "./component/Admin/Inventory/InventoryDashboard";
 import TakeAwayForm from "./component/Cashier/components/TakeAwayOrderForm";
 import OrderAddModal from "./component/waiter/OrderAddModal";
 import ReportsMainPage from "./component/Admin/Reports/ReportsMainPage";
 import SuperAdminMain from "./superAdmin/SuperAdminMain";
 import SystemLanding from "./SystemLanding";
+import AboutPage from "./pages/AboutPage";
+import FounderPage from "./pages/FounderPage";
 import ExpensesMain from "./component/Admin/Expenses/ExpensesMain";
 import ExpenseHistory from "./component/Admin/Expenses/ExpensesHistory";
 import IndividualExpense from "./component/Admin/Expenses/IndividualExpense";
@@ -53,11 +52,9 @@ import SubscriptionInactive from "./SubscriptionInactive";
 import ReservationsMainPage from "./component/Admin/Reservations/ReservationsMainPage";
 import PublicMenu from "./component/PublicMenu/PublicMenu";
 import MenuItemDetails from "./component/PublicMenu/MenuItemDetails";
-import ManagerDashboard from "./component/Manager/ManagerDashboard";
 import ManagerRootLayout from "./component/Manager/ManagerRootLayout";
 import ManagerOrderBase from "./component/Manager/orders/ManagerOrdersBase";
 import ManagerReservationBase from "./component/Manager/reservations/ManagerReservationsBase";
-import ManagerTablesDisplay from "./component/Manager/tables/ManagerTables";
 import ManagerOrderAddModal from "./component/Manager/tables/ManagerAddOrder";
 import ManagerTablesHome from "./component/Manager/tables/ManagerTablesHome";
 import KitchenManagerStockDashboard from "./component/kitchen/Stock/KitchenManagerStockDashboard";
@@ -88,6 +85,8 @@ function App() {
     createRoutesFromElements(
       <Route path="/" element={<RootLayout />}>
         <Route index element={<SystemLanding />} />
+        <Route path="about" element={<AboutPage />} />
+        <Route path="founder" element={<FounderPage />} />
         <Route path=":slug">
           <Route index element={<CustomerHomepage />} />
           <Route path="info" element={<Infopage />} />

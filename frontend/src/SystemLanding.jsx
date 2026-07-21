@@ -53,16 +53,20 @@ export default function SystemLanding() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
               <img
                 src="/rmsFavicon.png"
-                alt="Pakhlai favicon"
+                alt="Pakhlai restaurant management system icon"
                 className="h-8 w-8 object-contain"
+                width="32"
+                height="32"
               />
             </div>
 
             <div className="flex flex-col">
               <img
                 src="/rmsLogo.png"
-                alt="Pakhlai logo"
+                alt="Pakhlai restaurant management system logo"
                 className="h-8 w-auto object-contain"
+                width="130"
+                height="32"
               />
               <span className="hidden text-xs text-gray-500 sm:block">
                 Restaurant Management & Food Delivery Platform
@@ -71,7 +75,19 @@ export default function SystemLanding() {
           </Link>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-3" aria-label="Primary">
+            <Link
+              to="/about"
+              className="hidden rounded-xl px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-orange-600 sm:inline-flex"
+            >
+              About
+            </Link>
+            <Link
+              to="/founder"
+              className="hidden rounded-xl px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-orange-600 sm:inline-flex"
+            >
+              Founder
+            </Link>
             {customer ? (
               <div ref={dropdownRef} className="relative">
                 <button
@@ -167,7 +183,7 @@ export default function SystemLanding() {
                 </Link>
               </>
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -197,8 +213,11 @@ export default function SystemLanding() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 ring-1 ring-orange-100">
                   <img
                     src="/rmsFavicon.png"
-                    alt="Pakhlai"
+                    alt="Pakhlai restaurant management system icon"
                     className="h-9 w-9 object-contain"
+                    width="36"
+                    height="36"
+                    loading="lazy"
                   />
                 </div>
                 <div>
@@ -243,8 +262,46 @@ export default function SystemLanding() {
               </form>
             </div>
           </div>
+
+          <section className="mt-12 grid gap-4 text-left sm:grid-cols-3">
+            <article className="rounded-lg border border-orange-100 bg-white/80 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-950">
+                Restaurant Management System
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Pakhlai helps restaurants manage menus, orders, tables,
+                billing, kitchen workflow, and daily operations.
+              </p>
+            </article>
+            <article className="rounded-lg border border-orange-100 bg-white/80 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-950">
+                Founded by Abdullah Wahidi
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Pakhlai was founded and developed by Abdullah Wahidi, a
+                software engineer and creator of the platform.
+              </p>
+            </article>
+            <article className="rounded-lg border border-orange-100 bg-white/80 p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-950">
+                Built for Restaurant Teams
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Role-based workflows support owners, managers, cashiers,
+                waiters, kitchen staff, and daily restaurant operations.
+              </p>
+            </article>
+          </section>
         </div>
       </main>
+
+      <footer className="border-t border-orange-100 bg-white/70 px-6 py-6 text-center text-sm text-gray-600">
+        © 2026 Pakhlai.{" "}
+        <Link to="/founder" className="font-semibold text-orange-700">
+          Founded and Developed by Abdullah Wahidi
+        </Link>
+        .
+      </footer>
     </div>
   );
 }
