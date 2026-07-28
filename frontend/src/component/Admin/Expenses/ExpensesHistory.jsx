@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   History as HistoryIcon,
@@ -15,6 +15,11 @@ import { useDebounce, useLatestRequest } from "./hooks";
 import { formatCurrency, formatDateTime, getActionColor } from "./helpers";
 
 function ExpenseHistory() {
+  const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
+
   // Data
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +109,7 @@ function ExpenseHistory() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <Link
-          to="/admin/dashboard/expenses"
+          to={`${dashboardBase}/expenses`}
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 mb-4 transition"
         >
           <ArrowLeft size={16} />

@@ -29,6 +29,7 @@ class Staff(models.Model):
         ('Waiter','Waiter'),
         ('Kitchen_manager','Kitchen Manager'),
         ('DeliveryBoy','Delivery Boy'),
+        ('InventoryManager', 'Inventory Manager'),
         ("Other","Other")
         
     ]

@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from .models import Expenses, ExpenseHistory
 from .serializers import ExpensesSerializer, ExpenseHistorySerializer
 from restaurants.permissions import (
-    IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive,
+    IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive, IsInventoryManager,
 )
 
 
@@ -70,7 +70,7 @@ def _filter_expenses(queryset, params):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive])
 def expensesApi(request):
     staff = request.user.staff_profile
     restaurant = staff.restaurant
@@ -120,7 +120,7 @@ def expensesApi(request):
 
 class ExpenseDetailsView(RetrieveUpdateDestroyAPIView):
     serializer_class = ExpensesSerializer
-    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
     lookup_field = "id"
 
     def get_queryset(self):
@@ -130,7 +130,7 @@ class ExpenseDetailsView(RetrieveUpdateDestroyAPIView):
 
 class ExpenseHistoryApiView(generics.ListAPIView):
     serializer_class = ExpenseHistorySerializer
-    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
     pagination_class = ExpensePagination
 
     def get_queryset(self):

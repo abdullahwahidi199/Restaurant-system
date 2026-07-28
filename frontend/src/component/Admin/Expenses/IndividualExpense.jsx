@@ -1,6 +1,6 @@
 // src/pages/expenses/IndividualExpense.jsx
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
 import {
   Pencil,
   Trash2,
@@ -22,6 +22,11 @@ import {
 export default function IndividualExpense() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
+  const expensesPath = `${dashboardBase}/expenses`;
 
   const [expense, setExpense] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +105,7 @@ export default function IndividualExpense() {
   const handleDelete = async () => {
     try {
       await instance.delete(`/expenses/expenses/${id}/`);
-      navigate("/admin/dashboard/expenses");
+      navigate(expensesPath);
     } catch (err) {
       console.error(err);
       alert("Failed to delete expense");
@@ -126,7 +131,7 @@ export default function IndividualExpense() {
         <FileText className="text-gray-400 mb-3" size={48} />
         <p className="text-gray-600 mb-4">{error || "Expense not found"}</p>
         <Link
-          to="/admin/dashboard/expenses"
+          to={expensesPath}
           className="text-indigo-600 hover:underline"
         >
           Back to expenses
@@ -140,7 +145,7 @@ export default function IndividualExpense() {
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
         <Link
-          to="/admin/dashboard/expenses"
+          to={expensesPath}
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 mb-4 transition"
         >
           <ArrowLeft size={16} />

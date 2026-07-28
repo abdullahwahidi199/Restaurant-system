@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useLocation, useParams, Link } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 import Select from "react-select";
 import {
@@ -15,6 +15,10 @@ import {
 
 export default function PlatterDetails() {
   const { id } = useParams();
+  const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
 
   const [platterDetails, setPlatterDetails] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
@@ -260,7 +264,7 @@ export default function PlatterDetails() {
 
                   {reason.type === "menu_item" && (
                     <Link
-                      to={`/admin/dashboard/menu/item/${reason.id}`}
+                      to={`${dashboardBase}/menu/item/${reason.id}`}
                       className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline whitespace-nowrap"
                     >
                       View Item →
@@ -606,7 +610,7 @@ export default function PlatterDetails() {
                         </div>
 
                         <Link
-                          to={`/admin/dashboard/menu/item/${unavailableReason.id}`}
+                          to={`${dashboardBase}/menu/item/${unavailableReason.id}`}
                           className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-red-200 text-xs font-semibold text-red-700
                          hover:bg-red-50 hover:border-red-300 transition-all duration-200"
                         >

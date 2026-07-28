@@ -11,6 +11,9 @@ export default function IndividualItem() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
   const highlightIngredient = location.state?.highlightIngredient;
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
@@ -125,7 +128,7 @@ export default function IndividualItem() {
       });
 
       await saveIngredients();
-      navigate("/admin/dashboard/menu", { replace: true });
+      navigate(`${dashboardBase}/menu`, { replace: true });
     } finally {
       setLoading(false);
     }
@@ -170,7 +173,7 @@ export default function IndividualItem() {
           <ItemDelete
             itemID={item.id}
             onClose={() => setShowDelete(false)}
-            onDelete={() => navigate("/admin/dashboard/menu")}
+            onDelete={() => navigate(`${dashboardBase}/menu`)}
           />
         )}
 

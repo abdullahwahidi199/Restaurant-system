@@ -18,7 +18,7 @@ from .serializers import (
     StockMovementSerializer
 )
 from .services import edit_stock_movement
-from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive,IsKitchenManager
+from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive,IsKitchenManager,IsInventoryManager
 
 
 
@@ -29,7 +29,7 @@ class IngredientListCreateView(generics.ListCreateAPIView):
 
     serializer_class = IngredientSerializer
     permission_classes = [
-        IsKitchenManager | IsRestaurantAdmin,
+        IsKitchenManager | IsRestaurantAdmin | IsInventoryManager,
         IsSameRestaurant,
         IsRestaurantActive
     ]
@@ -47,7 +47,7 @@ class IngredientListCreateView(generics.ListCreateAPIView):
 
 class IngredientPaginatedView(generics.ListAPIView):
     serializer_class = IngredientSerializer
-    permission_classes = [IsRestaurantAdmin | IsKitchenManager, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsKitchenManager | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
     pagination_class = StockMovementPagination
 
     filter_backends = [filters.SearchFilter]
@@ -63,7 +63,7 @@ class IngredientPaginatedView(generics.ListAPIView):
 class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = [IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager,IsSameRestaurant,IsRestaurantActive]
     def get_queryset(self):
         return Ingredient.objects.filter(
             restaurant=self.request.user.staff_profile.restaurant
@@ -74,7 +74,7 @@ class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 class MenuItemIngredientListCreateView(generics.ListCreateAPIView):
     queryset = MenuItemIngredient.objects.select_related('menu_item', 'ingredient')
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
@@ -91,7 +91,7 @@ class MenuItemIngredientListCreateView(generics.ListCreateAPIView):
 
 class MenuItemIngredientDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MenuItemIngredientSerializer
-    permission_classes = [IsRestaurantAdmin, IsRestaurantActive, IsSameRestaurant]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsRestaurantActive, IsSameRestaurant]
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
@@ -116,7 +116,7 @@ from rest_framework import filters
 class StockMovementListView(generics.ListAPIView):
     serializer_class = StockMovementSerializer
     permission_classes = [
-        IsRestaurantAdmin,
+        IsRestaurantAdmin | IsInventoryManager,
         IsSameRestaurant,
         IsRestaurantActive
     ]
@@ -158,7 +158,7 @@ class StockMovementListView(generics.ListAPIView):
 
 # LOW STOCK
 @api_view(['GET'])
-@permission_classes([IsRestaurantAdmin | IsKitchenManager,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsKitchenManager | IsInventoryManager,IsSameRestaurant,IsRestaurantActive])
 def low_stock_items(request):
     restaurant = request.user.staff_profile.restaurant
 
@@ -178,7 +178,7 @@ from .services import add_stock
 from decimal import Decimal
 
 @api_view(['POST'])
-@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsInventoryManager,IsSameRestaurant,IsRestaurantActive])
 def add_stock_view(request):
     print("DATA RECEIVED:", request.data)
     ingredient_id = request.data.get('ingredient')
@@ -213,7 +213,7 @@ def add_stock_view(request):
 from decimal import Decimal, InvalidOperation
 @api_view(['PUT'])
 @permission_classes([
-    IsRestaurantAdmin,
+    IsRestaurantAdmin | IsInventoryManager,
     IsSameRestaurant,
     IsRestaurantActive
 ])
@@ -298,7 +298,7 @@ from .serializers import IngredientUsageSerializer
 
 @api_view(['GET'])
 @permission_classes([
-    IsRestaurantAdmin | IsKitchenManager,
+    IsRestaurantAdmin | IsKitchenManager | IsInventoryManager,
     IsSameRestaurant,
     IsRestaurantActive
 ])
@@ -336,7 +336,7 @@ def search_ingredient_usage_view(request):
 
     return Response(serializer.data)
 @api_view(['POST'])
-@permission_classes([IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsInventoryManager,IsSameRestaurant,IsRestaurantActive])
 def adjust_stock_view(request):
     ingredient_id = request.data.get('ingredient')
     quantity = Decimal(request.data.get('quantity'))
@@ -376,7 +376,7 @@ def adjust_stock_view(request):
     return Response({'detail': 'Stock adjusted successfully'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsRestaurantAdmin | IsKitchenManager,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsKitchenManager | IsInventoryManager,IsSameRestaurant,IsRestaurantActive])
 
 def inventory_dashboard_summary(request):
     restaurant = request.user.staff_profile.restaurant
@@ -462,6 +462,7 @@ from .models import Ingredient
 from restaurants.permissions import (
     IsRestaurantAdmin,
     IsKitchenManager,
+    IsInventoryManager,
     IsSameRestaurant,
     IsRestaurantActive
 )
@@ -469,7 +470,7 @@ from restaurants.permissions import (
 
 @api_view(['GET'])
 @permission_classes([
-    IsRestaurantAdmin | IsKitchenManager,
+    IsRestaurantAdmin | IsKitchenManager | IsInventoryManager,
     IsSameRestaurant,
     IsRestaurantActive
 ])

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import AddItemModal from "./AddItemModal";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import PlatterAddModal from "./PlatterAddModal";
 
@@ -17,6 +17,10 @@ export default function MenuList({
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   const [searchTerm, setSearchTerm] = useState("");
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
+  const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
 
   const allItems = [
     ...(categoryItems?.menu_items || []),
@@ -80,8 +84,8 @@ export default function MenuList({
             <Link
               to={
                 item.items
-                  ? `/admin/dashboard/menu/platter/${item.id}`
-                  : `/admin/dashboard/menu/item/${item.id}`
+                  ? `${dashboardBase}/menu/platter/${item.id}`
+                  : `${dashboardBase}/menu/item/${item.id}`
               }
               key={item.id}
             >

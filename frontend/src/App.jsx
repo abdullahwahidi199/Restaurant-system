@@ -77,6 +77,7 @@ import DiscountCardDetails from "./component/Admin/DiscountCards/DiscountCardDet
 import DiscountCardEdit from "./component/Admin/DiscountCards/DiscountCardEdit";
 import ReadyOrders from "./component/kitchen/ReadyOrders";
 import DailyProduction from "./component/Admin/DailyProduction/DailyProduction";
+import InventoryManagerRoot from "./component/InventoryManager/InventoryManagerRoot";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -182,6 +183,29 @@ function App() {
             </RequireAuth>
           }
         />
+
+        <Route
+          path="inventory-manager"
+          element={
+            <RequireAuth allowedRoles={["InventoryManager"]}>
+              <RequireActiveRestaurant>
+                <InventoryManagerRoot />
+              </RequireActiveRestaurant>
+            </RequireAuth>
+          }
+        >
+          <Route index element={<InventoryDashboard />} />
+          <Route path="menu" element={<Menu />} />
+          <Route path="tables" element={<TableBaseModal />} />
+          <Route path="menu/item/:id" element={<IndividaulItem />} />
+          <Route path="platters" element={<Platters />} />
+          <Route path="menu/platter/:id" element={<PlatterDetails />} />
+          <Route path="inventory" element={<InventoryDashboard />} />
+          <Route path="daily-production" element={<DailyProduction />} />
+          <Route path="expenses" element={<ExpensesMain />} />
+          <Route path="expenses/history" element={<ExpenseHistory />} />
+          <Route path="expenses/:id" element={<IndividualExpense />} />
+        </Route>
 
         <Route
           path="waiter"

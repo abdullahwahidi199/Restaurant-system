@@ -14,7 +14,7 @@ import {
 import debounce from "lodash/debounce";
 
 import instance from "../../../api/axiosInstance";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function InventorySearch() {
   const [query, setQuery] = useState("");
@@ -22,6 +22,10 @@ export default function InventorySearch() {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const dashboardBase = location.pathname.startsWith("/inventory-manager")
+    ? "/inventory-manager"
+    : "/admin/dashboard";
 
   const searchIngredients = async (value) => {
     if (!value.trim()) {
@@ -298,7 +302,7 @@ export default function InventorySearch() {
                                 "
                                 onClick={() =>
                                   navigate(
-                                    `/admin/dashboard/menu/item/${item.id}`,
+                                    `${dashboardBase}/menu/item/${item.id}`,
                                     {
                                       state: {
                                         highlightIngredient: ingredient.id,
