@@ -11,6 +11,7 @@ def shift_created_notification(sender, instance, created, **kwargs):
     if created and instance.restaurant:
         Notification.objects.create(
             restaurant=instance.restaurant,
+            branch=instance.branch,
             type="system",
             message=f"New Shift added: {instance.shift_type} ({instance.start_time} - {instance.end_time})"
         )
@@ -21,6 +22,7 @@ def shift_deleted_notification(sender, instance, **kwargs):
     if instance.restaurant:
         Notification.objects.create(
             restaurant=instance.restaurant,
+            branch=instance.branch,
             type="system",
             message=f"Shift deleted: {instance.shift_type} ({instance.start_time} - {instance.end_time})"
         )
@@ -59,12 +61,14 @@ def attendance_notification(sender, instance, created, **kwargs):
     if created and instance.restaurant:
         Notification.objects.create(
             restaurant=instance.restaurant,
+            branch=instance.branch,
             type="attendance",
             message="Today's Attendance taken"
         )
     else:
         Notification.objects.create(
             restaurant=instance.restaurant,
+            branch=instance.branch,
             type="attendance",
             message="Today's Attendance updated"
         )

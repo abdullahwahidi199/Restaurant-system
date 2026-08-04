@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
-from restaurants.models import Restaurant
+from restaurants.models import Branch, Restaurant
 
 
 class Expenses(models.Model):
@@ -45,6 +45,13 @@ class Expenses(models.Model):
         Restaurant,
         on_delete=models.CASCADE,
         related_name='expenses'
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="expenses",
+        null=True,
+        blank=True,
     )
 
     def save(self, *args, **kwargs):
@@ -102,6 +109,13 @@ class ExpenseHistory(models.Model):
         Restaurant,
         on_delete=models.CASCADE,
         related_name='expense_histories'
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="expense_histories",
+        null=True,
+        blank=True,
     )
 
     def __str__(self):

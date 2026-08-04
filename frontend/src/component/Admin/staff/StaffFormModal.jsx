@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, X } from "lucide-react";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function StaffFormModal({
   open,
@@ -11,7 +12,9 @@ export default function StaffFormModal({
   editingStaff,
 }) {
   const { t, i18n } = useTranslation();
+  const { auth, activeBranch } = useContext(AuthContext);
   const isRTL = i18n.language !== "en";
+  const canManageAdminRoles = auth?.user?.role === "Admin";
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -75,6 +78,21 @@ export default function StaffFormModal({
     }));
   };
 
+  const formatApiError = (detail) => {
+    if (!detail) return t("staff.errors.save_failed", "Could not save staff.");
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) return detail.join(" ");
+    if (typeof detail === "object") {
+      return Object.entries(detail)
+        .map(([field, messages]) => {
+          const text = Array.isArray(messages) ? messages.join(" ") : messages;
+          return `${field}: ${text}`;
+        })
+        .join(" ");
+    }
+    return t("staff.errors.save_failed", "Could not save staff.");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (
@@ -92,14 +110,18 @@ export default function StaffFormModal({
       if (formData[key]) data.append(key, formData[key]);
     }
 
-    if (editingStaff) await updateStaff(editingStaff.id, data);
-    else await addStaff(data);
-    closeModal();
+    try {
+      if (editingStaff) await updateStaff(editingStaff.id, data);
+      else await addStaff(data);
+      closeModal();
+    } catch (err) {
+      setError(formatApiError(err.response?.data || err.message));
+    }
   };
 
   const getShifts = async () => {
     try {
-      const res = await instance("/users/shift");
+      const res = await instance.get("/users/shift/");
       const data = res.data;
       console.log(data);
       const shiftArray = Array.isArray(data)
@@ -118,42 +140,45 @@ export default function StaffFormModal({
   };
 
   useEffect(() => {
-    getShifts();
-  }, []);
+    if (open) getShifts();
+  }, [open, activeBranch?.id]);
 
   if (!open) return null;
 
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 px-4 py-6 backdrop-blur-sm animate-fade-in ${
         isRTL ? "text-right" : "text-left"
       }`}
     >
-      <div className="relative bg-gray-800 rounded-3xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-6 shadow-2xl sm:p-8">
         {/* Header */}
-        <div className="flex justify-between items-center border-b border-gray-700 pb-4 mb-6">
-          <h2 className="text-3xl font-bold text-gray-100">
+        <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">
             {editingStaff ? t("staff.edit") : t("staff.add")}
           </h2>
           <button
+            type="button"
             onClick={closeModal}
-            className="text-gray-400 hover:text-gray-200 transition text-2xl"
+            className="rounded-lg p-2 text-[0px] text-gray-500 transition hover:bg-white hover:text-gray-900"
+            aria-label={t("common.close", "Close")}
           >
+            <X size={22} />
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 text-gray-100">
+        <form onSubmit={handleSubmit} className="space-y-6 text-gray-900">
           {/* Personal Information Section */}
           <div>
-            <h3 className="text-lg font-semibold text-indigo-400 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
               {t("staff.form.personal_info") || "Personal Information"}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.full_name")}{" "}
                   <span className="text-red-400">*</span>
                 </label>
@@ -162,14 +187,14 @@ export default function StaffFormModal({
                   placeholder={t("staff.form.full_name")}
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.email")}{" "}
                   <span className="text-red-400">*</span>
                 </label>
@@ -179,14 +204,14 @@ export default function StaffFormModal({
                   placeholder={t("staff.form.email")}
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.phone")}{" "}
                   <span className="text-red-400">*</span>
                 </label>
@@ -195,14 +220,14 @@ export default function StaffFormModal({
                   placeholder={t("staff.form.phone")}
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
 
               {/* Hire Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.hire_date") || "Hire Date"}
                 </label>
                 <input
@@ -210,13 +235,13 @@ export default function StaffFormModal({
                   type="date"
                   value={formData.hire_date}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Profile Image */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.profile_image") || "Profile Image"}
                 </label>
                 <input
@@ -224,7 +249,7 @@ export default function StaffFormModal({
                   type="file"
                   accept="image/*"
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-lg bg-gray-700 border border-gray-600 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+                  className="w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-700 outline-none file:mr-4 file:rounded-full file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
                 />
               </div>
             </div>
@@ -232,13 +257,13 @@ export default function StaffFormModal({
 
           {/* Job Details Section */}
           <div>
-            <h3 className="text-lg font-semibold text-indigo-400 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
               {t("staff.form.job_details") || "Job Details"}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Role */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.role") || "Role"}{" "}
                   <span className="text-red-400">*</span>
                 </label>
@@ -246,11 +271,16 @@ export default function StaffFormModal({
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   required
                 >
                   <option value="">{t("staff.form.select_role")}</option>
-                  <option value="Admin">{t("staff.roles.admin")}</option>
+                  {canManageAdminRoles && (
+                    <>
+                      <option value="Admin">{t("staff.roles.admin")}</option>
+                      <option value="BranchAdmin">Branch Admin</option>
+                    </>
+                  )}
                   <option value="Manager">
                     {t("staff.roles.manager") || "Manager"}
                   </option>
@@ -268,14 +298,14 @@ export default function StaffFormModal({
 
               {/* Shift */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.shift") || "Shift"}
                 </label>
                 <select
                   name="shift"
                   value={formData.shift}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">{t("staff.form.select_shift")}</option>
                   {Array.isArray(shifts) &&
@@ -290,14 +320,14 @@ export default function StaffFormModal({
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.status") || "Status"}
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="Active">{t("staff.status.active")}</option>
                   <option value="Inactive">{t("staff.status.inactive")}</option>
@@ -308,7 +338,7 @@ export default function StaffFormModal({
               {/* Custom Role (if Other is selected) */}
               {formData.role === "Other" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t("staff.form.custom_role")}
                   </label>
                   <input
@@ -316,7 +346,7 @@ export default function StaffFormModal({
                     placeholder={t("staff.form.custom_role")}
                     value={formData.custom_role}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               )}
@@ -324,13 +354,13 @@ export default function StaffFormModal({
               {/* Vehicle Number (if DeliveryBoy is selected) */}
               {formData.role === "DeliveryBoy" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t("staff.vehicle") || "Vehicle Number"}
                   </label>
                   <input
                     type="text"
                     placeholder={t("staff.vehicle")}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                     onChange={handleChange}
                     value={formData.vehicle_number}
                     name="vehicle_number"
@@ -342,13 +372,13 @@ export default function StaffFormModal({
 
           {/* Account Credentials Section */}
           <div>
-            <h3 className="text-lg font-semibold text-indigo-400 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
               {t("staff.form.account_credentials") || "Account Credentials"}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Username */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.username")}
                 </label>
                 <input
@@ -357,14 +387,14 @@ export default function StaffFormModal({
                   value={formData.username}
                   placeholder={t("staff.form.username")}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Password */}
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("staff.form.password")}
                   {!editingStaff && <span className="text-red-400"> *</span>}
                 </label>
@@ -381,13 +411,13 @@ export default function StaffFormModal({
                     }
                     onChange={handleChange}
                     type={showPassword ? "text" : "password"}
-                    className="w-full px-4 py-3 pr-12 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-12 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-white ${
+                    className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 ${
                       isRTL ? "left-4" : "right-4"
                     }`}
                   >
@@ -400,17 +430,17 @@ export default function StaffFormModal({
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-900/30 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
               {error}
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-4 border-t border-gray-700">
+          <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={closeModal}
-              className="px-6 py-2.5 rounded-full border border-gray-600 text-gray-300 hover:bg-gray-700 transition font-medium"
+              className="px-6 py-2.5 rounded-full border border-gray-300 text-gray-700 hover:bg-white transition font-medium"
             >
               {t("staff.cancel")}
             </button>

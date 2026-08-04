@@ -20,6 +20,7 @@ from reportlab.lib.units import inch
 from django.http import HttpResponse
 from .services.orders import OrderReportService
 from .services.staff import StaffReportService
+from restaurants.branching import get_requested_branch
 from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
@@ -32,43 +33,76 @@ from decimal import Decimal
 from collections import defaultdict
 
 
+def get_report_branch(request):
+    return get_requested_branch(
+        request,
+        allow_all=True,
+        raise_exception=True,
+    )
+
+
+def report_branch_payload(branch):
+    return {
+        "id": branch.id if branch else None,
+        "name": branch.name if branch else "All Branches",
+        "scope": "current" if branch else "all",
+    }
+
 
 class DashboardSummaryAPIView(APIView):
     permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
 
     def get(self, request):
-        restaurant = request.user.staff_profile.restaurant
+        staff_profile = request.user.staff_profile
+        restaurant = staff_profile.restaurant
+        branch = get_report_branch(request)
         today = timezone.now().date()
         week_start = today - timedelta(days=7)
         month_start = today.replace(day=1)
         last_30_days = today - timedelta(days=30)
 
         # ── 1. Staff & attendance ──────────────────────────────────────
-        total_staff = Staff.objects.filter(restaurant=restaurant).count()
-        attendance_today = Attendance.objects.filter(
+        staff_qs = Staff.objects.filter(restaurant=restaurant)
+        if branch:
+            staff_qs = staff_qs.filter(branches=branch).distinct()
+
+        total_staff = staff_qs.count()
+        attendance_qs = Attendance.objects.filter(
             date=today, status="Present", restaurant=restaurant
-        ).count()
+        )
+        if branch:
+            attendance_qs = attendance_qs.filter(branch=branch)
+        attendance_today = attendance_qs.count()
         attendance_rate = (
             round((attendance_today / total_staff) * 100, 2)
             if total_staff else 0
         )
 
         # ── 2. Menu & reviews ──────────────────────────────────────────
-        menu_items = MenuItem.objects.filter(restaurant=restaurant).count()
+        menu_items_qs = MenuItem.objects.filter(restaurant=restaurant)
+        if branch:
+            menu_items_qs = menu_items_qs.filter(branch=branch)
+        menu_items = menu_items_qs.count()
+        review_qs = Review.objects.filter(restaurant=restaurant)
+        if branch:
+            review_qs = review_qs.filter(branch=branch)
         average_rating = (
-            Review.objects.filter(restaurant=restaurant)
+            review_qs
             .aggregate(avg=Avg("rating"))["avg"]
             or 0
         )
 
         # ── 3. Order counts & delivery counts (1 query) ────────────────
-        order_aggs = Order.objects.filter(
+        month_orders_qs = Order.objects.filter(
             restaurant=restaurant,
             created_at__gte=month_start,
-        ).aggregate(
+        )
+        if branch:
+            month_orders_qs = month_orders_qs.filter(branch=branch)
+        order_aggs = month_orders_qs.aggregate(
             total_orders_month=Count("id"),
             total_orders_week=Count("id", filter=Q(created_at__gte=week_start)),
-            total_orders_today=Count("id", filter=Q(created_at=today)),
+            total_orders_today=Count("id", filter=Q(created_at__date=today)),
             deliveries_this_month_count=Count("id", filter=Q(order_type="delivery")),
             deliveries_this_week_count=Count(
                 "id", filter=Q(created_at__date__gte=week_start, order_type="delivery")
@@ -80,12 +114,16 @@ class DashboardSummaryAPIView(APIView):
 
         # ── 4. Revenue (1 query + Python sum) ──────────────────────────
         # Fetch the whole month once; today & week are subsets.
-        completed_orders = list(
-            Order.objects.filter(
+        completed_orders_qs = Order.objects.filter(
                 restaurant=restaurant,
                 created_at__date__gte=last_30_days,
                 status__in=["completed", "delivered"],
             )
+        if branch:
+            completed_orders_qs = completed_orders_qs.filter(branch=branch)
+
+        completed_orders = list(
+            completed_orders_qs
             .select_related("reservation__table")
             .prefetch_related(
                 Prefetch(
@@ -112,11 +150,14 @@ class DashboardSummaryAPIView(APIView):
 )
         # ── 5. Best selling items ──────────────────────────────────────
         def get_best_selling_items(start_date):
+            qs = OrderItem.objects.filter(
+                order__restaurant=restaurant,
+                order__created_at__gte=start_date,
+            )
+            if branch:
+                qs = qs.filter(order__branch=branch)
             return (
-                OrderItem.objects.filter(
-                    order__restaurant=restaurant,
-                    order__created_at__gte=start_date,
-                )
+                qs
                 .values(item_name=F("menu_item__name"), unit_price=F("menu_item__price"))
                 .annotate(
                     total_sales=Sum("quantity"),
@@ -134,11 +175,15 @@ class DashboardSummaryAPIView(APIView):
             "best_selling_month": get_best_selling_items(month_start),
         }
 
-        total_sold_product_month = (
-            OrderItem.objects.filter(
+        sold_items_qs = OrderItem.objects.filter(
                 order__restaurant=restaurant,
                 order__created_at__gte=month_start,
             )
+        if branch:
+            sold_items_qs = sold_items_qs.filter(order__branch=branch)
+
+        total_sold_product_month = (
+            sold_items_qs
             .aggregate(total_sold=Sum("quantity"))["total_sold"]
             or 0
         )
@@ -174,30 +219,70 @@ class DashboardSummaryAPIView(APIView):
         ]
 
         # ── 7. Delivery boys performance ───────────────────────────────
+        delivery_staff_qs = Staff.objects.filter(restaurant=restaurant, role="DeliveryBoy")
+        if branch:
+            delivery_staff_qs = delivery_staff_qs.filter(branches=branch).distinct()
+
+        delivery_filter = Q(
+            deliveries__created_at__gte=month_start,
+            deliveries__restaurant=restaurant,
+        )
+        if branch:
+            delivery_filter &= Q(deliveries__branch=branch)
+
         delivery_boys_performance = (
-            Staff.objects.filter(restaurant=restaurant, role="DeliveryBoy")
+            delivery_staff_qs
             .annotate(
                 deliveries_count=Count(
                     "deliveries",
-                    filter=Q(
-                        deliveries__created_at__gte=month_start,
-                        deliveries__restaurant=restaurant,
-                    ),
+                    filter=delivery_filter,
                 ),
                 total_revenue=Sum(
                     F("deliveries__items__quantity")
                     * F("deliveries__items__menu_item__price"),
-                    filter=Q(
-                        deliveries__created_at__gte=month_start,
-                        deliveries__restaurant=restaurant,
-                    ),
+                    filter=delivery_filter,
                     output_field=FloatField(),
                 ),
             )
             .values("id", "name", "image", "deliveries_count", "total_revenue")
         )
 
+        comparison_branches = staff_profile.get_available_branches()
+        if branch and not staff_profile.has_all_branch_access:
+            comparison_branches = comparison_branches.filter(id=branch.id)
+
+        branch_performance = []
+        for compare_branch in comparison_branches:
+            branch_orders = Order.objects.filter(
+                restaurant=restaurant,
+                branch=compare_branch,
+                created_at__date__gte=month_start,
+            )
+            branch_completed = list(
+                branch_orders.filter(status__in=["completed", "delivered"])
+                .select_related("reservation__table")
+                .prefetch_related(
+                    Prefetch(
+                        "items",
+                        queryset=OrderItem.objects.select_related("menu_item", "platter"),
+                    )
+                )
+            )
+            branch_revenue = sum(
+                (self._calculate_order_total(order) for order in branch_completed),
+                Decimal("0.00"),
+            )
+            branch_performance.append(
+                {
+                    "branch_id": compare_branch.id,
+                    "branch_name": compare_branch.name,
+                    "orders": branch_orders.count(),
+                    "revenue": round(float(branch_revenue), 2),
+                }
+            )
+
         return Response({
+            "branch": report_branch_payload(branch),
             "total_staff": total_staff,
             "menu_items": menu_items,
             "attendance_rate": attendance_rate,
@@ -215,6 +300,7 @@ class DashboardSummaryAPIView(APIView):
             "deliveries_this_month_count": order_aggs["deliveries_this_month_count"],
             "deliveries_this_week_count": order_aggs["deliveries_this_week_count"],
             "delivery_boys_performance": delivery_boys_performance,
+            "branch_performance": branch_performance,
         })
 
     @staticmethod
@@ -259,14 +345,22 @@ from .serializers import NotificationSerializer
 class NotificationListView(APIView):
     def get(self, request):
         restaurant=request.user.staff_profile.restaurant
-        notifications = Notification.objects.filter(restaurant=restaurant, is_read=False).order_by('-created_at')[:10]  # latest 10
+        branch = get_report_branch(request)
+        notifications = Notification.objects.filter(restaurant=restaurant, is_read=False)
+        if branch:
+            notifications = notifications.filter(Q(branch=branch) | Q(branch__isnull=True))
+        notifications = notifications.order_by('-created_at')[:10]  # latest 10
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 class MarkAsReadView(APIView):
     def post(self, request, pk):
         restaurant=request.user.staff_profile.restaurant
+        branch = get_report_branch(request)
         try:
-            notification = Notification.objects.get(pk=pk, restaurant=restaurant)
+            notifications = Notification.objects.filter(pk=pk, restaurant=restaurant)
+            if branch:
+                notifications = notifications.filter(Q(branch=branch) | Q(branch__isnull=True))
+            notification = notifications.get()
             notification.is_read = True
             notification.save()
             return Response({'message': 'Notification marked as read.'})
@@ -285,26 +379,27 @@ from .services.customers import CustomerReportService
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated, IsSameRestaurant, IsRestaurantActive])
 def generate_report(request):
     restaurant=request.user.staff_profile.restaurant
-    print(restaurant)
+    branch = get_report_branch(request)
     report_type = request.GET.get("type")
     start = request.GET.get("start")
     end = request.GET.get("end")
 
     if report_type == "orders":
-        data = OrderReportService.summary(start, end,restaurant)
+        data = OrderReportService.summary(start, end, restaurant, branch=branch)
 
     elif report_type == "finance":
-        data = FinanceReportService.profit_loss(start, end, restaurant)
+        data = FinanceReportService.profit_loss(start, end, restaurant, branch=branch)
 
     elif report_type == "inventory":
-        data = InventoryReportService.stock_status(restaurant)
+        data = InventoryReportService.stock_status(restaurant, branch=branch)
     elif report_type == "staff":
-        data = StaffReportService.summary(start, end, restaurant)
+        data = StaffReportService.summary(start, end, restaurant, branch=branch)
 
     elif report_type == "stock_movements":
-        data = InventoryReportService.movement_report(start, end, restaurant)
+        data = InventoryReportService.movement_report(start, end, restaurant, branch=branch)
 
     # elif report_type == "staff_attendance":
     #     data = StaffReportService.attendance_report(start, end)
@@ -313,13 +408,14 @@ def generate_report(request):
     #     data = StaffReportService.performance()
 
     elif report_type == "customers":
-        data = CustomerReportService.overview(restaurant=restaurant)
+        data = CustomerReportService.overview(restaurant=restaurant, branch=branch)
 
     else:
         return Response({"error": "Invalid report type"}, status=400)
 
     return Response({
         "type": report_type,
+        "branch": report_branch_payload(branch),
         "start": start,
         "end": end,
         "data": data
@@ -386,7 +482,8 @@ def orders_pdf_report(request):
     start      = request.GET.get("start")
     end        = request.GET.get("end")
     restaurant = request.user.staff_profile.restaurant
-    data       = OrderReportService.summary(start, end, restaurant)
+    branch = get_report_branch(request)
+    data       = OrderReportService.summary(start, end, restaurant, branch=branch)
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="orders_report.pdf"'
@@ -555,7 +652,8 @@ def staff_pdf_report(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     restaurant = request.user.staff_profile.restaurant
-    data = StaffReportService.summary(start, end, restaurant)
+    branch = get_report_branch(request)
+    data = StaffReportService.summary(start, end, restaurant, branch=branch)
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="staff_report.pdf"'
@@ -780,8 +878,8 @@ def orders_pdf_report(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     restaurant=request.user.staff_profile.restaurant
-    data = OrderReportService.summary(start, end,restaurant)
-    print(restaurant)
+    branch = get_report_branch(request)
+    data = OrderReportService.summary(start, end, restaurant, branch=branch)
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="orders_report.pdf"'
@@ -1002,7 +1100,8 @@ def finance_pdf_report(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     restaurant=request.user.staff_profile.restaurant
-    data = FinanceReportService.profit_loss(start, end, restaurant)
+    branch = get_report_branch(request)
+    data = FinanceReportService.profit_loss(start, end, restaurant, branch=branch)
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="finance_report.pdf"'
@@ -1159,6 +1258,7 @@ def inventory_pdf_report(request):
     start = request.GET.get("start")
     end = request.GET.get("end")
     restaurant=request.user.staff_profile.restaurant
+    branch = get_report_branch(request)
     today = timezone.now().date()
     if not start:
         start = (today - timedelta(days=30)).strftime("%Y-%m-%d")
@@ -1166,13 +1266,13 @@ def inventory_pdf_report(request):
         end = today.strftime("%Y-%m-%d")
 
     try:
-        stock = InventoryReportService.stock_status(restaurant)
-        movements = InventoryReportService.movement_report(start, end, restaurant)
-        full_inv = InventoryReportService.full_inventory(restaurant)
-        recent = InventoryReportService.recent_movements(start, end, limit=30, restaurant=restaurant)
+        stock = InventoryReportService.stock_status(restaurant, branch=branch)
+        movements = InventoryReportService.movement_report(start, end, restaurant, branch=branch)
+        full_inv = InventoryReportService.full_inventory(restaurant, branch=branch)
+        recent = InventoryReportService.recent_movements(start, end, limit=30, restaurant=restaurant, branch=branch)
 
-        top_wasted = InventoryReportService.top_wasted_ingredients(start, end, limit=10, restaurant=restaurant)
-        daily = InventoryReportService.daily_movements(start, end,restaurant=restaurant)
+        top_wasted = InventoryReportService.top_wasted_ingredients(start, end, limit=10, restaurant=restaurant, branch=branch)
+        daily = InventoryReportService.daily_movements(start, end, restaurant=restaurant, branch=branch)
         
         
     except Exception as e:

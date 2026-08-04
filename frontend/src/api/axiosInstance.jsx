@@ -23,6 +23,26 @@ instance.interceptors.request.use(
     if (tokens?.access) {
       config.headers["Authorization"] = `Bearer ${tokens.access}`;
     }
+
+    const skipBranchHeader = config.skipBranchHeader;
+    delete config.skipBranchHeader;
+
+    if (!skipBranchHeader) {
+      const activeBranch = JSON.parse(
+        localStorage.getItem("activeBranch") || "null",
+      );
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const branchId =
+        activeBranch?.id ||
+        user?.active_branch?.id ||
+        user?.active_branch_id ||
+        null;
+
+      if (branchId) {
+        config.headers["X-Branch-ID"] = branchId;
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error),

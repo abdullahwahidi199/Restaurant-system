@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer,PlatterSerializer
+from menu.models import MenuItem, Platter
 from customers.serializers import CustomerProfileSerializer
 from .models import OrderItem,Order,Table,Reservation,DiscountRequest,DiscountCard
 from customers.models import Customer
@@ -7,6 +8,18 @@ from users.models import Staff
 from django.utils import timezone
 from decimal import Decimal
 from .utils.distance import calculate_distance_km,calculate_delivery_fee
+from restaurants.branching import get_active_branch
+
+
+def scope_order_menu_queryset(queryset, restaurant, branch):
+    return queryset.filter(branch=branch)
+
+
+def get_branch_decimal(branch, restaurant, field_name):
+    branch_value = getattr(branch, field_name, None) if branch else None
+    if branch_value is not None:
+        return branch_value
+    return getattr(restaurant, field_name)
 
 
 
@@ -23,6 +36,7 @@ class DiscountCardSerializer(serializers.ModelSerializer):
             "used_count",
             "created_at",
             "restaurant",
+            "branch",
         )
         
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -71,6 +85,25 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'description',
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+        request = self.context.get("request")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+        if restaurant:
+            self.fields["menu_item"].queryset = scope_order_menu_queryset(
+                MenuItem.objects.filter(restaurant=restaurant),
+                restaurant,
+                branch,
+            )
+            self.fields["platter"].queryset = scope_order_menu_queryset(
+                Platter.objects.filter(restaurant=restaurant),
+                restaurant,
+                branch,
+            )
+
     def validate(self, data):
         menu_item = data.get("menu_item")
         platter = data.get("platter")
@@ -101,12 +134,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
         return None
 
     def get_item_price(self, obj):
+        branch = getattr(obj.order, "branch", None)
 
         if obj.menu_item:
-            return str(obj.menu_item.price)
+            return str(obj.menu_item.get_effective_price(branch))
 
         if obj.platter:
-            return str(obj.platter.price)
+            return str(obj.platter.get_effective_price(branch))
 
         return "0"
 
@@ -136,14 +170,20 @@ class TableSerializer(serializers.ModelSerializer):
     upcoming_reservation=serializers.SerializerMethodField()
     class Meta:
         model=Table
-        fields=['id','name','capacity','note','status','orders','current_order',"price_per_hour",
+        fields=['id','name','capacity','note','status','branch','orders','current_order',"price_per_hour",
             "allow_free_reservation",
             "current_reservation",
             "upcoming_reservation",
 
 ]   
+        read_only_fields = ["branch"]
     def get_current_order(self, obj):
-        order = obj.current_order
+        request = self.context.get("request")
+        branch = get_active_branch(request, raise_exception=False) if request else None
+        order = obj.orders.filter(
+            status__in=['pending', 'in_progress', 'ready', 'served'],
+            branch=branch,
+        ).first() if branch else obj.current_order
         if order:
             return OrderMiniSerializer(order).data
         return None
@@ -151,20 +191,23 @@ class TableSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         restaurant = getattr(request, "restaurant", None)
 
-        orders = obj.orders.filter(
-            restaurant=restaurant
-        ) if restaurant else obj.orders.none()
+        branch = get_active_branch(request, raise_exception=False) if request else None
+        orders = obj.orders.filter(branch=branch) if branch else obj.orders.none()
 
         return OrderMiniSerializer(orders, many=True).data
     
 
     def get_current_reservation(self, obj):
         now = timezone.now()
+        request = self.context.get("request")
+        branch = get_active_branch(request, raise_exception=False) if request else None
 
         # 1️⃣ Check ARRIVED reservations (but validate time)
         reservation = obj.reservations.filter(
             status="arrived"
         ).order_by("-start_time")
+        if branch:
+            reservation = reservation.filter(branch=branch)
 
         for r in reservation:
             if r.end_time and now <= r.end_time:
@@ -181,6 +224,8 @@ class TableSerializer(serializers.ModelSerializer):
             status="reserved",
             start_time__lte=now
         ).order_by("-start_time")
+        if branch:
+            reservation = reservation.filter(branch=branch)
 
         for r in reservation:
             if r.end_time and now <= r.end_time:
@@ -195,11 +240,16 @@ class TableSerializer(serializers.ModelSerializer):
         return None
     def get_upcoming_reservation(self, obj):
         now = timezone.now()
+        request = self.context.get("request")
+        branch = get_active_branch(request, raise_exception=False) if request else None
 
-        reservation = obj.reservations.filter(
+        reservations = obj.reservations.filter(
             status="reserved",
             start_time__gt=now
-        ).order_by("start_time").first()
+        )
+        if branch:
+            reservations = reservations.filter(branch=branch)
+        reservation = reservations.order_by("start_time").first()
 
         if reservation:
             return {
@@ -249,12 +299,35 @@ class ReservationSerializer(serializers.ModelSerializer):
         model = Reservation
         fields = [
             "id", "table", "table_name", "customer_name", "phone","reservation_number",
+            "branch",
             "guests", "reservation_date", "start_time", "duration_minutes",
             "end_time", "reservation_type", "amount", "paid_amount",
             "total_price", "status", "created_by", "created_by_name",
             "notes", "created_at",
         ]
-        read_only_fields = ["amount", "created_at", "end_time", "total_price"]
+        read_only_fields = [
+            "amount",
+            "created_at",
+            "end_time",
+            "total_price",
+            "branch",
+            "created_by",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+        request = self.context.get("request")
+
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if restaurant:
+            tables = Table.objects.filter(restaurant=restaurant)
+            if branch:
+                tables = tables.filter(branch=branch)
+            self.fields["table"].queryset = tables
 
     def get_end_time(self, obj):
         return obj.end_time
@@ -273,6 +346,13 @@ class ReservationSerializer(serializers.ModelSerializer):
         guests = data.get("guests", 1)
 
         errors = {}
+        branch = self.context.get("branch")
+        if not branch:
+            request = self.context.get("request")
+            branch = get_active_branch(request, raise_exception=False) if request else None
+
+        if branch and table and table.branch_id and table.branch_id != branch.id:
+            errors["table"] = "This table belongs to another branch."
 
         # ── 1. Auto-derive reservation_date from start_time ──
         if start_time and not reservation_date:
@@ -321,6 +401,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         if table and reservation_date and start_time and end_time:
             qs = Reservation.objects.filter(
                 table=table,
+                branch=branch,
                 reservation_date=reservation_date,
                 status__in=["reserved", "arrived"],
             )
@@ -428,10 +509,43 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'customer', 'name', 'phone', 'address','longitude','latitude', 'note','tableName','reservation_payment','remaining_total',"manager_discount_limit",
             "admin_discount_limit",'distance_km',
-            'order_type','table', 'order_type_display', 'status', 'status_display','is_printed','order_number','discount_percent','discount_requests',
+            'order_type','table', 'branch', 'order_type_display', 'status', 'status_display','is_printed','order_number','discount_percent','discount_requests',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
-        read_only_fields = ['created_at', 'updated_at', 'total']
+        read_only_fields = ['created_at', 'updated_at', 'total', 'branch']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+        request = self.context.get("request")
+
+        if not restaurant and request and hasattr(request.user, "staff_profile"):
+            restaurant = request.user.staff_profile.restaurant
+
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if restaurant:
+            tables = Table.objects.filter(restaurant=restaurant)
+            delivery_staff = Staff.objects.filter(
+                role="DeliveryBoy",
+                restaurant=restaurant,
+            )
+            menu_items = MenuItem.objects.filter(restaurant=restaurant)
+            platters = Platter.objects.filter(restaurant=restaurant)
+
+            if branch:
+                tables = tables.filter(branch=branch)
+                delivery_staff = delivery_staff.filter(branches=branch)
+
+            menu_items = scope_order_menu_queryset(menu_items, restaurant, branch)
+            platters = scope_order_menu_queryset(platters, restaurant, branch)
+
+            self.fields["table"].queryset = tables
+            self.fields["delivery_boy"].queryset = delivery_staff
+            self.fields["items"].child.fields["menu_item"].queryset = menu_items
+            self.fields["items"].child.fields["platter"].queryset = platters
 
     def validate(self, data):
         # DINE-IN validation
@@ -439,8 +553,24 @@ class OrderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("A dine-in order must have a table.")
 
         restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+        if not branch:
+            request = self.context.get("request")
+            branch = get_active_branch(request, raise_exception=False) if request else None
         items = data.get("items", [])
         order_type = data.get("order_type")
+
+        table = data.get("table")
+        if branch and table and table.branch_id and table.branch_id != branch.id:
+            raise serializers.ValidationError(
+                {"table": "This table belongs to another branch."}
+            )
+
+        delivery_boy = data.get("delivery_boy")
+        if branch and delivery_boy and not delivery_boy.can_access_branch(branch):
+            raise serializers.ValidationError(
+                {"delivery_boy": "This delivery person cannot access this branch."}
+            )
 
         total = 0
 
@@ -462,15 +592,36 @@ class OrderSerializer(serializers.ModelSerializer):
                 )
 
             if menu_item:
-                total += menu_item.price * quantity
+                if not scope_order_menu_queryset(
+                    MenuItem.objects.filter(pk=menu_item.pk, restaurant=restaurant),
+                    restaurant,
+                    branch,
+                ).exists():
+                    raise serializers.ValidationError(
+                        {"items": "This menu item is not available for the active branch."}
+                    )
+                total += menu_item.get_effective_price(branch) * quantity
 
             if platter:
-                total += platter.price * quantity
+                if not scope_order_menu_queryset(
+                    Platter.objects.filter(pk=platter.pk, restaurant=restaurant),
+                    restaurant,
+                    branch,
+                ).exists():
+                    raise serializers.ValidationError(
+                        {"items": "This platter is not available for the active branch."}
+                    )
+                total += platter.get_effective_price(branch) * quantity
         # MIN ORDER check
         if order_type == "delivery" and restaurant:
-            if total < restaurant.min_order_amount:
+            min_order_amount = get_branch_decimal(
+                branch,
+                restaurant,
+                "min_order_amount",
+            )
+            if total < min_order_amount:
                 raise serializers.ValidationError(
-                    f"Minimum order is {restaurant.min_order_amount} for delivery orders."
+                    f"Minimum order is {min_order_amount} for delivery orders."
                 )
 
         # DELIVERY LOCATION check
@@ -482,6 +633,15 @@ class OrderSerializer(serializers.ModelSerializer):
             and hasattr(request.user, "staff_profile")
         )
         if order_type == "delivery":
+            delivery_available = (
+                branch.delivery_available
+                if branch and branch.delivery_available is not None
+                else restaurant.delivery_available
+            )
+            if not delivery_available:
+                raise serializers.ValidationError(
+                    "Delivery is not available for this branch."
+                )
 
             if is_staff_order:
                 distance = data.get("distance_km")
@@ -514,15 +674,28 @@ class OrderSerializer(serializers.ModelSerializer):
                     float(customer_lng)
                 )
 
-            if distance > restaurant.delivery_radius_km:
+            delivery_radius_km = get_branch_decimal(
+                branch,
+                restaurant,
+                "delivery_radius_km",
+            )
+            if distance > float(delivery_radius_km):
                 raise serializers.ValidationError(
                     f"Delivery not available in your area ({distance:.2f} km too far)"
                 )
 
-            delivery_fee = calculate_delivery_fee(
-                restaurant,
-                distance
-            )
+            if branch and (
+                branch.base_delivery_fee is not None
+                or branch.price_per_km is not None
+            ):
+                base_fee = get_branch_decimal(branch, restaurant, "base_delivery_fee")
+                price_per_km = get_branch_decimal(branch, restaurant, "price_per_km")
+                delivery_fee = float(base_fee) + (distance * float(price_per_km))
+            else:
+                delivery_fee = calculate_delivery_fee(
+                    restaurant,
+                    distance
+                )
 
             self.context["delivery_fee"] = delivery_fee
             self.context["distance"] = distance
@@ -595,6 +768,9 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items = validated_data.pop('items', [])
         request = self.context.get('request')
+        branch = self.context.get("branch")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
 
         # attach customer
         if request and request.user.is_authenticated:
@@ -618,6 +794,7 @@ class OrderSerializer(serializers.ModelSerializer):
             # ✅ ONLY valid time window
             possible_reservation = Reservation.objects.filter(
                 table=table,
+                branch=branch,
                 status__in=["reserved", "arrived"],
                 start_time__lte=now,
             ).order_by("-start_time")
@@ -646,9 +823,9 @@ class OrderSerializer(serializers.ModelSerializer):
                 menu_item = item.get("menu_item")
                 platter = item.get("platter")
                 if menu_item:
-                    item["price_at_order"] = menu_item.price
+                    item["price_at_order"] = menu_item.get_effective_price(branch)
                 elif platter:
-                    item["price_at_order"] = platter.price
+                    item["price_at_order"] = platter.get_effective_price(branch)
 
             OrderItem.objects.create(order=order, **item)
 
@@ -835,8 +1012,9 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
         return None
     
     def get_item_price(self, obj):
+        branch = getattr(obj.order, "branch", None)
         if obj.menu_item:
-            return str(obj.menu_item.price)
+            return str(obj.menu_item.get_effective_price(branch))
         if obj.platter:
-            return str(obj.platter.price)
+            return str(obj.platter.get_effective_price(branch))
         return "0"

@@ -15,7 +15,7 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
     if (["completed", "cancelled"].includes(order.status)) {
       return false;
     }
-    if (role === "Admin") {
+    if (role === "Admin" || role === "BranchAdmin") {
       return true;
     }
     if (role === "Waiter") {

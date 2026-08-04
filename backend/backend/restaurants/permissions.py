@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from .branching import get_active_branch
 
 
 class IsSameRestaurant(BasePermission):
@@ -14,6 +15,9 @@ class IsSameRestaurant(BasePermission):
 
         
         if hasattr(obj, "restaurant"):
+            return obj.restaurant == user_restaurant
+
+        if obj.__class__.__name__ == "Branch":
             return obj.restaurant == user_restaurant
 
         if hasattr(obj, "menu_item"):
@@ -55,7 +59,13 @@ class HasStaffRole(BasePermission):
 
 
 class IsRestaurantAdmin(HasStaffRole):
-    allowed_roles = ["Admin"]
+    allowed_roles = ["Admin", "BranchAdmin"]
+
+
+class IsRestaurantOwnerOrAdmin(HasStaffRole):
+    allowed_roles = ["Admin", "SuperAdmin"]
+
+
 class IsManager(HasStaffRole):
     allowed_roles = ["Manager"]
 
@@ -75,6 +85,34 @@ class IsWaiter(HasStaffRole):
 
 class IsKitchenManager(HasStaffRole):
     allowed_roles = ["Kitchen_manager"]
+
+
+class HasActiveBranch(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+
+        try:
+            return bool(get_active_branch(request))
+        except Exception:
+            return False
+
+
+class CanAccessObjectBranch(BasePermission):
+    branch_field = "branch"
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_superuser:
+            return True
+
+        if not hasattr(request.user, "staff_profile"):
+            return False
+
+        branch = getattr(obj, self.branch_field, None)
+        if not branch:
+            return False
+
+        return request.user.staff_profile.can_access_branch(branch)
 
 from rest_framework.permissions import BasePermission
 from django.utils import timezone

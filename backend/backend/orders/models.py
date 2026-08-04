@@ -3,7 +3,7 @@ from menu.models import MenuItem,Platter
 from users.models import Staff
 from django.utils import timezone
 from datetime import timedelta
-from restaurants.models import Restaurant
+from restaurants.models import Branch, Restaurant
 from inventory.services import deduct_stock_for_order
 import math
 from django.db.models import Max
@@ -22,6 +22,13 @@ class Table(models.Model):
     null=True,
     blank=True
 )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="tables",
+        null=True,
+        blank=True,
+    )
     
     
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -59,6 +66,13 @@ class Reservation(models.Model):
     ]
 
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='reservations')
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="reservations",
+        null=True,
+        blank=True,
+    )
     table = models.ForeignKey(
     Table,
     on_delete=models.CASCADE,  
@@ -134,6 +148,8 @@ class Reservation(models.Model):
         return billed_hours * self.table.price_per_hour
     
     def save(self, *args, **kwargs):
+        if self.branch_id and self.table_id and self.table.branch_id != self.branch_id:
+            raise ValueError("Reservation table belongs to another branch.")
 
         if not self.reservation_number and self.restaurant:
             last_reservation = Reservation.objects.filter(
@@ -158,6 +174,13 @@ class DiscountCard(models.Model):
     on_delete=models.CASCADE,
     related_name="discount_cards"
 )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="discount_cards",
+        null=True,
+        blank=True,
+    )
     card_name = models.CharField(max_length=100)
     card_number = models.CharField(max_length=50, unique=True)
 
@@ -254,6 +277,13 @@ class Order(models.Model):
     null=True,
     blank=True
 )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="orders",
+        null=True,
+        blank=True,
+    )
     reservation = models.ForeignKey(
     "Reservation",
     on_delete=models.SET_NULL,
@@ -367,6 +397,29 @@ class Order(models.Model):
         return None
 
     def save(self, *args, **kwargs):
+        if self.branch_id and self.table_id and self.table.branch_id != self.branch_id:
+            raise ValueError("Order table belongs to another branch.")
+
+        if (
+            self.branch_id
+            and self.reservation_id
+            and self.reservation.branch_id != self.branch_id
+        ):
+            raise ValueError("Order reservation belongs to another branch.")
+
+        if (
+            self.branch_id
+            and self.discount_card_id
+            and self.discount_card.branch_id != self.branch_id
+        ):
+            raise ValueError("Order discount card belongs to another branch.")
+
+        if (
+            self.branch_id
+            and self.delivery_boy_id
+            and not self.delivery_boy.can_access_branch(self.branch)
+        ):
+            raise ValueError("Delivery staff cannot access this branch.")
         
 
         old_status = None
@@ -393,6 +446,7 @@ class Order(models.Model):
         if self.table and self.status not in ['completed', 'cancelled']:
             active_orders = Order.objects.filter(
                 table=self.table,
+                branch=self.branch,
                 status__in=['pending', 'in_progress', 'ready', 'served']
             ).exclude(pk=self.pk)
 
@@ -486,10 +540,11 @@ class OrderItem(models.Model):
     def save(self, *args, **kwargs):
         # Auto-capture price on creation if not manually set
         if self.pk is None and self.price_at_order is None:
+            branch = self.order.branch if self.order_id else None
             if self.menu_item:
-                self.price_at_order = self.menu_item.price
+                self.price_at_order = self.menu_item.get_effective_price(branch)
             elif self.platter:
-                self.price_at_order = self.platter.price
+                self.price_at_order = self.platter.get_effective_price(branch)
         super().save(*args, **kwargs)
     def clean(self):
 

@@ -22,6 +22,7 @@ def order_created_notification(sender, instance, created, **kwargs):
     if created and instance.restaurant:
         transaction.on_commit(lambda: Notification.objects.create(
             restaurant=instance.restaurant,
+            branch=instance.branch,
             type="order",
             message=f"New order placed by {instance.name}"
         ))

@@ -6,10 +6,11 @@ from restaurants.models import Restaurant
 from .models import Category,MenuItem,Review,PlatterItem,Platter,Production
 from .serializers import CategorySerializer,MenuItemSerializer,ReveiwSerializer,PlatterItemSerializer,PlatterSerializer,ProductionSerializer
 from reports.models import Notification
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission, SAFE_METHODS
 from rest_framework.decorators import permission_classes
-from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaurantActive
+from restaurants.permissions import IsSameRestaurant,IsRestaurantActive
 from django.shortcuts import get_object_or_404
+from restaurants.branching import filter_queryset_for_request, get_active_branch
 
 from .production_utils import (
     create_or_replace_production,
@@ -21,22 +22,77 @@ from .production_utils import (
 from django.utils import timezone
 from rest_framework.exceptions import NotFound
 from .permissions import is_restaurant_active
+
+
+class CanReadOrManageMenu(BasePermission):
+    read_roles = {
+        "Admin",
+        "BranchAdmin",
+        "InventoryManager",
+        "Manager",
+        "Cashier",
+        "Waiter",
+        "Kitchen_manager",
+        "Call_operator",
+    }
+    write_roles = {"Admin", "BranchAdmin", "InventoryManager"}
+
+    def has_permission(self, request, view):
+        staff = getattr(request.user, "staff_profile", None)
+        if not staff:
+            return False
+
+        if request.method in SAFE_METHODS:
+            return staff.role in self.read_roles
+
+        return staff.role in self.write_roles
+
+
+def get_menu_scope_branch(request, restaurant):
+    return get_active_branch(request)
+
+
+def filter_menu_queryset(request, queryset, restaurant):
+    branch = get_menu_scope_branch(request, restaurant)
+    return queryset.filter(branch=branch)
+
+
+def get_public_menu_branch(restaurant):
+    return restaurant.branches.filter(is_main_branch=True, is_active=True).first()
 @api_view(['GET', 'POST'])
-@permission_classes([IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsSameRestaurant,IsRestaurantActive,CanReadOrManageMenu])
 def category_list_create(request):
     staff=request.user.staff_profile
     restaurant=staff.restaurant
     if request.method == 'GET':
-        categories = Category.objects.filter(restaurant=restaurant).prefetch_related('menu_items').all() # will also get the related menu_items(optimized version)
-        serializer = CategorySerializer(categories, many=True)
+        categories = filter_menu_queryset(
+            request,
+            Category.objects.filter(restaurant=restaurant),
+            restaurant,
+        ).prefetch_related('menu_items').all() # will also get the related menu_items(optimized version)
+        serializer = CategorySerializer(
+            categories,
+            many=True,
+            context={"request": request, "branch": get_active_branch(request, raise_exception=False)},
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     elif request.method == 'POST':
         if request.user.staff_profile.is_demo:
             return Response({"detail":"Action is restricted in demo mode"},status=403)
-        serializer = CategorySerializer(data=request.data)
+        serializer = CategorySerializer(
+            data=request.data,
+            context={
+                "request": request,
+                "restaurant": restaurant,
+                "branch": get_active_branch(request, raise_exception=False),
+            },
+        )
         if serializer.is_valid():
-            serializer.save(restaurant=restaurant)
+            serializer.save(
+                restaurant=restaurant,
+                branch=get_menu_scope_branch(request, restaurant),
+            )
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -44,11 +100,21 @@ def category_list_create(request):
 
 class CategoryRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CategorySerializer
-    permission_classes = [IsSameRestaurant,IsRestaurantActive]
+    permission_classes = [IsSameRestaurant,IsRestaurantActive,CanReadOrManageMenu]
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
-        return Category.objects.filter(restaurant=restaurant).prefetch_related('menu_items')
+        return filter_menu_queryset(
+            self.request,
+            Category.objects.filter(restaurant=restaurant),
+            restaurant,
+        ).prefetch_related('menu_items')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["restaurant"] = self.request.user.staff_profile.restaurant
+        context["branch"] = get_active_branch(self.request, raise_exception=False)
+        return context
 
     def update(self, request, *args, **kwargs):
         if request.user.staff_profile.is_demo:
@@ -62,20 +128,38 @@ class CategoryRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 
 @api_view(['GET','POST'])
-@permission_classes([IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsSameRestaurant,IsRestaurantActive,CanReadOrManageMenu])
 def menu_item_list_create_view(request):
     staff=request.user.staff_profile
     restaurant=staff.restaurant
     if request.method=="GET":
-        menu_items=MenuItem.objects.filter(restaurant=restaurant).prefetch_related('reviews').prefetch_related('ingredients').select_related('category').all()
-        serializer=MenuItemSerializer(menu_items,many=True)
+        menu_items=filter_menu_queryset(
+            request,
+            MenuItem.objects.filter(restaurant=restaurant),
+            restaurant,
+        ).prefetch_related('reviews').prefetch_related('ingredients').select_related('category').all()
+        serializer=MenuItemSerializer(
+            menu_items,
+            many=True,
+            context={"request": request, "branch": get_active_branch(request, raise_exception=False)},
+        )
         return Response(serializer.data)
     elif request.method=="POST":
         if request.user.staff_profile.is_demo:
             return Response({"detail":"Action is restricted in demo mode"},status=403)
-        serializer=MenuItemSerializer(data=request.data)
+        serializer=MenuItemSerializer(
+            data=request.data,
+            context={
+                "request": request,
+                "restaurant": restaurant,
+                "branch": get_active_branch(request, raise_exception=False),
+            },
+        )
         if serializer.is_valid():
-            serializer.save(restaurant=restaurant)
+            serializer.save(
+                restaurant=restaurant,
+                branch=get_menu_scope_branch(request, restaurant),
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -83,15 +167,23 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 class MenuItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MenuItemSerializer
-    permission_classes = [IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsSameRestaurant, IsRestaurantActive, CanReadOrManageMenu]
 
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
-        return MenuItem.objects.filter(
-            restaurant=restaurant
+        return filter_menu_queryset(
+            self.request,
+            MenuItem.objects.filter(restaurant=restaurant),
+            restaurant,
         ).prefetch_related('reviews')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        context["branch"] = get_active_branch(self.request, raise_exception=False)
+        return context
 
     def update(self, request, *args, **kwargs):
         print(request.data)   # DEBUG
@@ -119,8 +211,12 @@ def review_list_create(request):
     if request.method == "GET":
         restaurant = getattr(request.user, 'staff_profile', None)
         restaurant = restaurant.restaurant if restaurant else None
-        reviews = Review.objects.filter(
-            menu_item__restaurant=restaurant
+        reviews = filter_queryset_for_request(
+            request,
+            Review.objects.filter(
+                restaurant=restaurant
+            ),
+            allow_all_for_admin=True,
         ).select_related('customer', 'menu_item', 'delivery')
 
         serializer = ReveiwSerializer(reviews, many=True)
@@ -130,7 +226,10 @@ def review_list_create(request):
         
         serializer = ReveiwSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(
+                restaurant=request.user.staff_profile.restaurant,
+                branch=get_active_branch(request),
+            )
             return Response(serializer.data, status=201)
 
         return Response(serializer.errors, status=400)
@@ -154,8 +253,12 @@ class ReviewRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
         restaurant = getattr(self.request.user, 'staff_profile', None)
         restaurant = restaurant.restaurant if restaurant else None
 
-        return Review.objects.filter(
-            menu_item__restaurant=restaurant
+        return filter_queryset_for_request(
+            self.request,
+            Review.objects.filter(
+                restaurant=restaurant
+            ),
+            allow_all_for_admin=True,
         ).select_related('customer', 'menu_item')
     
 
@@ -168,11 +271,13 @@ def public_categories(request, slug):
     if not is_restaurant_active(restaurant):
         raise NotFound("Restaurant not found")
 
+    branch = get_public_menu_branch(restaurant)
     categories = Category.objects.filter(
-        restaurant=restaurant
+        restaurant=restaurant,
+        branch=branch,
     ).prefetch_related('menu_items')
 
-    serializer = CategorySerializer(categories, many=True)
+    serializer = CategorySerializer(categories, many=True, context={"branch": branch})
     return Response(serializer.data)
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -182,11 +287,13 @@ def public_menu_items(request, slug):
     if not is_restaurant_active(restaurant):
         raise NotFound("Restaurant not found")
 
+    branch = get_public_menu_branch(restaurant)
     menu_items = MenuItem.objects.filter(
-        restaurant=restaurant
+        restaurant=restaurant,
+        branch=branch,
     ).select_related('category').prefetch_related('reviews', 'ingredients')
 
-    serializer = MenuItemSerializer(menu_items, many=True)
+    serializer = MenuItemSerializer(menu_items, many=True, context={"branch": branch})
     return Response(serializer.data)
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -196,13 +303,15 @@ def public_menu_item_detail(request, slug, pk):
     if not is_restaurant_active(restaurant):
         raise NotFound("Restaurant not found")
 
+    branch = get_public_menu_branch(restaurant)
     item = get_object_or_404(
         MenuItem,
         pk=pk,
-        restaurant=restaurant
+        restaurant=restaurant,
+        branch=branch,
     )
 
-    serializer = MenuItemSerializer(item)
+    serializer = MenuItemSerializer(item, context={"branch": branch})
     return Response(serializer.data)
 
 
@@ -210,7 +319,7 @@ def public_menu_item_detail(request, slug, pk):
 @permission_classes([
     IsSameRestaurant,
     IsRestaurantActive,
-
+    CanReadOrManageMenu,
 ])
 def platter_list_create_view(request):
 
@@ -220,8 +329,10 @@ def platter_list_create_view(request):
     # GET
     if request.method == "GET":
 
-        platters = Platter.objects.filter(
-            restaurant=restaurant
+        platters = filter_menu_queryset(
+            request,
+            Platter.objects.filter(restaurant=restaurant),
+            restaurant,
         ).select_related(
             'category'
         ).prefetch_related(
@@ -231,7 +342,8 @@ def platter_list_create_view(request):
 
         serializer = PlatterSerializer(
             platters,
-            many=True
+            many=True,
+            context={"request": request, "branch": get_active_branch(request, raise_exception=False)},
         )
 
         return Response(serializer.data)
@@ -249,13 +361,16 @@ def platter_list_create_view(request):
             )
 
         serializer = PlatterSerializer(
-            data=request.data
+            data=request.data,
+            context={"request": request, "branch": get_active_branch(request, raise_exception=False)},
         )
 
         if serializer.is_valid():
 
             serializer.save(
                 restaurant=restaurant
+                ,
+                branch=get_menu_scope_branch(request, restaurant),
             )
 
             return Response(
@@ -277,7 +392,8 @@ class PlatterRetrieveUpdateDestroyView(
 
     permission_classes = [
         IsSameRestaurant,
-        IsRestaurantActive
+        IsRestaurantActive,
+        CanReadOrManageMenu,
     ]
 
     def get_queryset(self):
@@ -288,8 +404,10 @@ class PlatterRetrieveUpdateDestroyView(
             .restaurant
         )
 
-        return Platter.objects.filter(
-            restaurant=restaurant
+        return filter_menu_queryset(
+            self.request,
+            Platter.objects.filter(restaurant=restaurant),
+            restaurant,
         ).select_related(
             'category'
         ).prefetch_related(
@@ -314,6 +432,12 @@ class PlatterRetrieveUpdateDestroyView(
             *args,
             **kwargs
         )
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        context["branch"] = get_active_branch(self.request, raise_exception=False)
+        return context
 
     def destroy(self, request, *args, **kwargs):
 
@@ -346,8 +470,10 @@ def public_platters(request, slug):
     if not is_restaurant_active(restaurant):
         raise NotFound("Restaurant not found")
 
+    branch = get_public_menu_branch(restaurant)
     platters = Platter.objects.filter(
         restaurant=restaurant,
+        branch=branch,
         is_available=True
     ).select_related(
         'category'
@@ -358,7 +484,8 @@ def public_platters(request, slug):
 
     serializer = PlatterSerializer(
         platters,
-        many=True
+        many=True,
+        context={"branch": branch},
     )
 
     return Response(serializer.data)
@@ -380,13 +507,15 @@ def public_platter_detail(
     if not is_restaurant_active(restaurant):
         raise NotFound("Restaurant not found")
 
+    branch = get_public_menu_branch(restaurant)
     platter = get_object_or_404(
         Platter,
         pk=pk,
-        restaurant=restaurant
+        restaurant=restaurant,
+        branch=branch,
     )
 
-    serializer = PlatterSerializer(platter)
+    serializer = PlatterSerializer(platter, context={"branch": branch})
 
     return Response(serializer.data)
 
@@ -430,8 +559,11 @@ class MenuPrintView(APIView):
         category_id = request.query_params.get("category")
 
         # ✅ BUILD CATEGORIES QUERY
-        categories = Category.objects.filter(
-            restaurant=restaurant
+        branch = get_active_branch(request, raise_exception=False)
+        categories = filter_menu_queryset(
+            request,
+            Category.objects.filter(restaurant=restaurant),
+            restaurant,
         ).prefetch_related(
             "menu_items__ingredients__ingredient",
             "platters__items__menu_item"
@@ -525,33 +657,34 @@ class MenuPrintView(APIView):
         elements.append(Spacer(1, 4))
 
         # === MENU CONTENT ===
+        from inventory.services import get_recipe_items
+
         for cat in categories:
-            menu_items = cat.menu_items.all()
-            platters = cat.platters.all()
+            menu_items = list(cat.menu_items.all())
+            platters = list(cat.platters.all())
 
             # Apply mode filter
             if mode == "available":
-                menu_items = menu_items.filter(
-        is_available=True,
-        is_manually_available=True,
-    )
-                platters = platters.filter(
-                    is_available=True,
-        is_manually_available=True,
-                )
+                menu_items = [
+                    item for item in menu_items
+                    if item.is_available_for_branch(branch)
+                ]
+                platters = [
+                    platter for platter in platters
+                    if platter.is_available_for_branch(branch)
+                ]
             
 
             elif mode == "unavailable":
-                menu_items = menu_items.filter(
-                    Q(is_available=False) |
-                    Q(is_manually_available=False)
-                )
-
-                platters = platters.filter(
-                    Q(is_available=False) |
-                    Q(is_manually_available=False)
-                )
-            if not menu_items.exists() and not platters.exists():
+                menu_items = [
+                    item for item in menu_items
+                    if not item.is_available_for_branch(branch)
+                ]
+                platters = [
+                    platter for platter in platters
+                    if not platter.is_available_for_branch(branch)
+                ]
+            if not menu_items and not platters:
                 continue
 
             # Category Header
@@ -561,7 +694,7 @@ class MenuPrintView(APIView):
             for item in menu_items:
                 ingredients_list = [
                     f"{i.ingredient.name}({i.quantity_required}{i.ingredient.unit or ''})"
-                    for i in item.ingredients.all()
+                    for i in get_recipe_items(item, branch=branch)
                 ]
                 ingredients_text = " | ".join(ingredients_list) if ingredients_list else "-"
 
@@ -569,7 +702,7 @@ class MenuPrintView(APIView):
                     [
                         Paragraph(item.name, item_name_style),
                         Paragraph(ingredients_text, item_detail_style),
-                        Paragraph(f"AFN{item.price:.2f}", price_style)
+                        Paragraph(f"AFN{item.get_effective_price(branch):.2f}", price_style)
                     ]
                 ]
 
@@ -597,7 +730,7 @@ class MenuPrintView(APIView):
                     [
                         Paragraph(f"{platter.name} (Platter)", item_name_style),
                         Paragraph(items_text, item_detail_style),
-                        Paragraph(f"AFN{platter.price:.2f}", price_style)
+                        Paragraph(f"AFN{platter.get_effective_price(branch):.2f}", price_style)
                     ]
                 ]
 
@@ -627,7 +760,7 @@ class MenuPrintView(APIView):
     
 
 
-from django.db.models import Sum, F, Value, DecimalField, CharField
+from django.db.models import Sum, F, Value, DecimalField, CharField, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -636,7 +769,10 @@ from menu.models import Platter
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated, IsSameRestaurant, IsRestaurantActive])
 def menu_item_sales(request):
+    restaurant = request.user.staff_profile.restaurant
+    branch = get_active_branch(request)
     name = request.GET.get("name")
     start = request.GET.get("start")
     end = request.GET.get("end")
@@ -646,6 +782,8 @@ def menu_item_sales(request):
     # ----------------------------
     menu_qs = OrderItem.objects.filter(
         menu_item__name__icontains=name,
+        order__restaurant=restaurant,
+        order__branch=branch,
         order__created_at__range=[start, end],
         order__status__in=["completed", "delivered"]
     )
@@ -655,7 +793,16 @@ def menu_item_sales(request):
         "menu_item__name"
     ).annotate(
         total_sold=Sum("quantity"),
-        total_revenue=Sum(F("quantity") * F("menu_item__price"))
+        total_revenue=Sum(
+            ExpressionWrapper(
+                F("quantity") * Coalesce(
+                    F("price_at_order"),
+                    F("menu_item__price"),
+                    output_field=DecimalField(),
+                ),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
     ).annotate(
         type=Value("menu_item", output_field=CharField())
     )
@@ -665,6 +812,8 @@ def menu_item_sales(request):
     # ----------------------------
     platter_qs = OrderItem.objects.filter(
         platter__name__icontains=name,
+        order__restaurant=restaurant,
+        order__branch=branch,
         order__created_at__range=[start, end],
         order__status__in=["completed", "delivered"]
     )
@@ -674,7 +823,16 @@ def menu_item_sales(request):
         "platter__name"
     ).annotate(
         total_sold=Sum("quantity"),
-        total_revenue=Sum(F("quantity") * F("platter__price"))
+        total_revenue=Sum(
+            ExpressionWrapper(
+                F("quantity") * Coalesce(
+                    F("price_at_order"),
+                    F("platter__price"),
+                    output_field=DecimalField(),
+                ),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
     ).annotate(
         type=Value("platter", output_field=CharField())
     )
@@ -698,16 +856,21 @@ def production_list_create(request):
     restaurant = request.user.staff_profile.restaurant
     if not restaurant:
         return Response({"error": "No restaurant"}, status=403)
+    branch = get_active_branch(request)
 
     if request.method == 'GET':
-        menu_items = MenuItem.objects.filter(
+        menu_items = filter_menu_queryset(
+            request,
+            MenuItem.objects.filter(
             restaurant=restaurant,
             uses_daily_production=True,
-        ).select_related('category', 'production').order_by('name')
+            ),
+            restaurant,
+        ).select_related('category').prefetch_related('productions').order_by('name')
 
         data = []
         for mi in menu_items:
-            prod = getattr(mi, 'production', None)
+            prod = mi.get_production(branch=branch)
             data.append({
                 'id': mi.id,
                 'name': mi.name,
@@ -738,7 +901,11 @@ def production_list_create(request):
         return Response({'error': 'menu_item and quantity are required'}, status=400)
 
     try:
-        menu_item = MenuItem.objects.get(id=menu_item_id, restaurant=restaurant)
+        menu_item = filter_menu_queryset(
+            request,
+            MenuItem.objects.filter(id=menu_item_id, restaurant=restaurant),
+            restaurant,
+        ).get()
     except MenuItem.DoesNotExist:
         return Response({'error': 'Menu item not found'}, status=404)
 
@@ -748,16 +915,18 @@ def production_list_create(request):
         if action == 'set':
             production = create_or_replace_production(
                 menu_item=menu_item, quantity=quantity,
+                branch=branch,
                 created_by=staff, notes=notes,
             )
         elif action == 'increment':
             production = increment_production(
                 menu_item=menu_item, quantity=quantity,
+                branch=branch,
                 created_by=staff, notes=notes,
             )
         elif action == 'decrement':
             production = decrement_production(
-                menu_item=menu_item, quantity=quantity, notes=notes,
+                menu_item=menu_item, quantity=quantity, branch=branch, notes=notes,
             )
         else:
             return Response({'error': f'Invalid action: {action}'}, status=400)
@@ -777,8 +946,13 @@ def production_detail(request, pk):
     DELETE: Clear production. Query param: ?refund=true to refund unsold ingredients.
     """
     restaurant = request.user.staff_profile.restaurant
+    branch = get_active_branch(request)
     try:
-        production = Production.objects.get(pk=pk, restaurant=restaurant)
+        production = Production.objects.get(
+            pk=pk,
+            restaurant=restaurant,
+            branch=branch,
+        )
     except Production.DoesNotExist:
         return Response({'error': 'Not found'}, status=404)
 
@@ -795,5 +969,5 @@ def production_detail(request, pk):
 
     # DELETE
     refund = request.query_params.get('refund', 'false').lower() == 'true'
-    clear_production(production.menu_item, refund_remaining=refund)
+    clear_production(production.menu_item, branch=production.branch, refund_remaining=refund)
     return Response(status=204)

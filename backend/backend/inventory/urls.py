@@ -6,6 +6,8 @@ from .views import (
     MenuItemIngredientListCreateView,
     MenuItemIngredientDeleteView,
     StockMovementListView,
+    stock_transfer_list_create,
+    stock_transfer_action,
     inventory_pdf,
     low_stock_items,add_stock_view,adjust_stock_view,
     inventory_dashboard_summary,
@@ -21,9 +23,10 @@ urlpatterns = [
 
     path('recipes/', MenuItemIngredientListCreateView.as_view()),
     path('recipes/<int:pk>/', MenuItemIngredientDeleteView.as_view()),
-
     path('stock-movements/', StockMovementListView.as_view()),
     path('stock-movements/<int:pk>/edit/', edit_stock_movement_view),
+    path('stock-transfers/', stock_transfer_list_create),
+    path('stock-transfers/<int:pk>/action/', stock_transfer_action),
 
     path('low-stock/', low_stock_items),
     path('purchases/',add_stock_view),

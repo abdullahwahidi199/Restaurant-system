@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import InventoryManagerNavbar from "./InventoryManagerNavbar";
+import BranchSwitcher from "../branch/BranchSwitcher";
 
 export default function () {
   return (
@@ -9,6 +10,9 @@ export default function () {
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-8">
         <div className="mx-auto max-w-7xl">
+          <div className="mb-4 flex justify-end">
+            <BranchSwitcher />
+          </div>
           <Outlet />
         </div>
       </main>

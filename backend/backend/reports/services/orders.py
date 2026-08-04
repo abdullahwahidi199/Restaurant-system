@@ -71,7 +71,7 @@ class OrderReportService:
     # Main report
     # -------------------------
     @staticmethod
-    def summary(start, end, restaurant=None):
+    def summary(start, end, restaurant=None, branch=None):
         start_dt, end_dt = OrderReportService._parse_range(start, end)
 
         # Base queryset for DB-level aggregations
@@ -79,6 +79,8 @@ class OrderReportService:
             restaurant=restaurant,
             created_at__range=[start_dt, end_dt],
         )
+        if branch:
+            base_qs = base_qs.filter(branch=branch)
 
         # Single query: load everything needed for revenue math into memory
         orders_list = list(
@@ -180,12 +182,16 @@ class OrderReportService:
         )
 
         # ----- DB-level aggregations (unchanged logic) -----
-        top_items = (
-            OrderItem.objects.filter(
+        top_items_qs = OrderItem.objects.filter(
                 order__restaurant=restaurant,
                 order__created_at__range=(start_dt, end_dt),
                 order__status__in=["completed", "served", "ready"],
             )
+        if branch:
+            top_items_qs = top_items_qs.filter(order__branch=branch)
+
+        top_items = (
+            top_items_qs
             .exclude(status="cancelled")
             .values(
                 # ✅ Handle both menu items & platters safely

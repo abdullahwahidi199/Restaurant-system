@@ -59,6 +59,19 @@ const getFriendlyError = (errorMessage) => {
   return "Login failed. Please check your credentials and try again.";
 };
 
+const getRedirectPath = (role) => {
+  if (role === "SuperAdmin") return "/super-admin";
+  if (role === "Admin") return "/admin/dashboard";
+  if (role === "BranchAdmin") return "/admin/dashboard";
+  if (role === "Manager") return "/manager";
+  if (role === "Cashier") return "/cashier";
+  if (role === "InventoryManager") return "/inventory-manager";
+  if (role === "Call_operator") return "/call-operator";
+  if (role === "Waiter") return "/waiter";
+  if (role === "Kitchen_manager") return "/kitchen";
+  return "/";
+};
+
 export default function StaffLogin() {
   const { login } = useContext(AuthContext);
   const [username, setUsername] = useState("");
@@ -78,15 +91,12 @@ export default function StaffLogin() {
 
       toast.success("Welcome back! Redirecting...");
 
-      if (role === "SuperAdmin") nav("/super-admin");
-      else if (role === "Admin") nav("/admin/dashboard");
-      else if (role === "Manager") nav("/manager");
-      else if (role === "Cashier") nav("/cashier");
-      else if (role === "InventoryManager") nav("/inventory-manager");
-      else if (role === "Call_operator") nav("/call-operator");
-      else if (role === "Waiter") nav("/waiter");
-      else if (role === "Kitchen_manager") nav("/kitchen");
-      else nav("/");
+      const redirectPath = getRedirectPath(role);
+      if (data.requires_branch_selection) {
+        nav("/select-branch", { state: { redirectPath } });
+      } else {
+        nav(redirectPath);
+      }
     } catch (err) {
       console.error(err); // Keep technical log for debugging
       const friendlyMessage = getFriendlyError(err.message);

@@ -4,6 +4,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
 import notification from "../../../src/assets/sounds/notification.mp3";
+import BranchSwitcher from "../branch/BranchSwitcher";
 
 export default function ManagerRootLayout() {
   const { t, i18n } = useTranslation();
@@ -60,6 +61,9 @@ export default function ManagerRootLayout() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="mx-auto max-w-7xl">
+          <div className="mb-4 flex justify-end">
+            <BranchSwitcher />
+          </div>
           <Outlet />
         </div>
       </main>

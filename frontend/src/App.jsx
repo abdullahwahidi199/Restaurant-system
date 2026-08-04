@@ -78,6 +78,8 @@ import DiscountCardEdit from "./component/Admin/DiscountCards/DiscountCardEdit";
 import ReadyOrders from "./component/kitchen/ReadyOrders";
 import DailyProduction from "./component/Admin/DailyProduction/DailyProduction";
 import InventoryManagerRoot from "./component/InventoryManager/InventoryManagerRoot";
+import BranchManagement from "./component/Admin/branches/BranchManagement";
+import BranchSelectionPage from "./component/branch/BranchSelectionPage";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -102,6 +104,14 @@ function App() {
 
         <Route path="staff-login" element={<StaffLogin />} />
         <Route
+          path="select-branch"
+          element={
+            <RequireAuth>
+              <BranchSelectionPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="super-admin"
           element={
             <RequireAuth allowedRoles={["SuperAdmin"]}>
@@ -112,7 +122,7 @@ function App() {
         <Route
           path="admin/dashboard"
           element={
-            <RequireAuth allowedRoles={["Admin"]}>
+            <RequireAuth allowedRoles={["Admin", "BranchAdmin"]}>
               <RequireActiveRestaurant>
                 <AdminDashboard />
               </RequireActiveRestaurant>
@@ -122,6 +132,14 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="staff" element={<StaffManagement />} />
+          <Route
+            path="branches"
+            element={
+              <RequireAuth allowedRoles={["Admin"]}>
+                <BranchManagement />
+              </RequireAuth>
+            }
+          />
           <Route path="shifts" element={<Shifts />} />
           <Route path="menu" element={<Menu />} />
           <Route path="menu/item/:id" element={<IndividaulItem />} />
@@ -171,6 +189,16 @@ function App() {
           <Route index element={<ManagerOrderBase />} />
           <Route path="reservations" element={<ManagerReservationBase />} />
           <Route path="tables" element={<ManagerTablesHome />} />
+          <Route
+            path="menu"
+            element={
+              <Menu
+                canManage={false}
+                title="Menu Management"
+                description="Browse menu pricing, visibility and availability for the active branch."
+              />
+            }
+          />
           <Route path="discount-requests" element={<DiscountRequestMain />} />
         </Route>
         <Route

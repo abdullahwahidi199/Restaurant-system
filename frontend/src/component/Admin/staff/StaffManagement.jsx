@@ -16,7 +16,7 @@ export default function StaffManagement() {
   const [loading, setLoading] = useState(true);
   const [showRistiction, setShowRistriction] = useState(false);
 
-  const { auth } = useContext(AuthContext);
+  const { auth, activeBranch } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language !== "en";
@@ -42,7 +42,7 @@ export default function StaffManagement() {
 
   useEffect(() => {
     fetchStaff();
-  }, []);
+  }, [activeBranch?.id]);
 
   const addStaff = async (formData) => {
     if (isDemo) {
@@ -55,7 +55,8 @@ export default function StaffManagement() {
 
       setStaff((prev) => [...prev, res.data]);
     } catch (err) {
-      console.error("Could not add staff", err.res?.data || err.message);
+      console.error("Could not add staff", err.response?.data || err.message);
+      throw err;
     }
   };
 
@@ -69,7 +70,8 @@ export default function StaffManagement() {
 
       setStaff((prev) => prev.map((s) => (s.id === id ? res.data : s)));
     } catch (err) {
-      console.error("Failed to update staff:", err.res?.data || err.message);
+      console.error("Failed to update staff:", err.response?.data || err.message);
+      throw err;
     }
   };
 

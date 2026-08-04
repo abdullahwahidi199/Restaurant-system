@@ -57,6 +57,7 @@ def Review_given_notification(sender, instance, created, **kwargs):
     if created and instance.menu_item and instance.menu_item.restaurant:
         Notification.objects.create(
             restaurant=instance.menu_item.restaurant,
+            branch=instance.branch,
             type="menu",
             message=f"New Review Given on {instance.menu_item}: {instance.comment}"
         )

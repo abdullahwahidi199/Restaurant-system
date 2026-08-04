@@ -18,6 +18,7 @@ def log_expense_save(sender, instance, created, **kwargs):
     if created:
         ExpenseHistory.objects.create(
     restaurant=instance.restaurant,
+    branch=instance.branch,
     name=instance.name,
     amount=instance.amount,
     currency=instance.currency,
@@ -61,6 +62,7 @@ def log_expense_save(sender, instance, created, **kwargs):
             if changes:
                 ExpenseHistory.objects.create(
     restaurant=instance.restaurant,
+    branch=instance.branch,
     name=instance.name,
     amount=instance.amount,
     currency=instance.currency,
@@ -75,6 +77,7 @@ def log_expense_save(sender, instance, created, **kwargs):
 def log_expense_delete(sender, instance, **kwargs):
     ExpenseHistory.objects.create(
     restaurant=instance.restaurant,
+    branch=instance.branch,
     name=instance.name,
     amount=instance.amount,
     currency=instance.currency,

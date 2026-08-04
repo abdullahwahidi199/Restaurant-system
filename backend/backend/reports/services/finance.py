@@ -2,14 +2,14 @@ from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from django.db.models import (
-    DecimalField, ExpressionWrapper, F, Prefetch, Sum
+    DecimalField, Prefetch, Sum
 )
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from expenses.models import Expenses
 from inventory.models import StockMovement
-from menu.models import MenuItem
+from inventory.services import get_effective_cost_per_unit, get_recipe_items
 from orders.models import Order, OrderItem
 
 
@@ -57,18 +57,22 @@ class FinanceReportService:
         return subtotal - discount
 
     @staticmethod
-    def profit_loss(start, end, restaurant):
+    def profit_loss(start, end, restaurant, branch=None):
         SUCCESSFUL_STATUSES = ["completed", "delivered"]
         start_dt, end_dt = FinanceReportService._parse_range(start, end)
         money_field = DecimalField(max_digits=14, decimal_places=2)
 
         # -------- 1. Load every successful order + full item tree ----------
-        orders = list(
-            Order.objects.filter(
+        order_qs = Order.objects.filter(
                 restaurant=restaurant,
                 created_at__range=(start_dt, end_dt),
                 status__in=SUCCESSFUL_STATUSES,
             )
+        if branch:
+            order_qs = order_qs.filter(branch=branch)
+
+        orders = list(
+            order_qs
             .select_related("reservation__table")
             .prefetch_related(
                 Prefetch(
@@ -102,81 +106,81 @@ class FinanceReportService:
                         if pi.menu_item_id:
                             menu_item_ids.add(pi.menu_item_id)
 
-        # -------- 4. Bulk-fetch ingredient costs for ALL menu items (1 query) ----------
-        costs_map = {}
-        if menu_item_ids:
-            costs_data = (
-                MenuItem.objects.filter(id__in=menu_item_ids)
-                .annotate(
-                    _cost=Sum(
-                        ExpressionWrapper(
-                            F("ingredients__quantity_required")
-                            * F("ingredients__ingredient__cost_per_unit"),
-                            output_field=DecimalField(max_digits=10, decimal_places=2),
-                        )
+        # -------- 4. Cache branch-effective recipe costs ----------
+        cost_cache = {}
+
+        def menu_item_cost(menu_item, cost_branch):
+            key = (menu_item.id, cost_branch.id if cost_branch else None)
+            if key not in cost_cache:
+                total = Decimal("0.00")
+                for recipe in get_recipe_items(menu_item, branch=cost_branch):
+                    total += (
+                        Decimal(recipe.quantity_required)
+                        * Decimal(get_effective_cost_per_unit(recipe.ingredient, cost_branch))
                     )
-                )
-                .values("id", "_cost")
-            )
-            costs_map = {c["id"]: c["_cost"] or Decimal("0") for c in costs_data}
+                cost_cache[key] = total
+            return cost_cache[key]
 
         # -------- 5. COGS (pure Python, zero N+1) ----------
         cogs = Decimal("0")
         for item in all_items:
             if item.menu_item_id:
-                unit_cost = costs_map.get(item.menu_item_id, Decimal("0"))
+                unit_cost = menu_item_cost(item.menu_item, item.order.branch)
                 cogs += Decimal(item.quantity) * unit_cost
 
             elif item.platter_id:
                 platter_cost = Decimal("0")
                 for pi in item.platter.items.all():
-                    unit_cost = costs_map.get(pi.menu_item_id, Decimal("0"))
+                    unit_cost = menu_item_cost(pi.menu_item, item.order.branch)
                     platter_cost += Decimal(pi.quantity) * unit_cost
                 cogs += Decimal(item.quantity) * platter_cost
 
         # -------- 6. Stock purchases ----------
-        purchases = (
-            StockMovement.objects.filter(
+        purchases_qs = StockMovement.objects.filter(
                 restaurant=restaurant,
                 created_at__range=(start_dt, end_dt),
                 movement_type="purchase",
             )
-            .aggregate(
-                total=Sum(
-                    ExpressionWrapper(
-                        F("change_quantity") * F("ingredient__cost_per_unit"),
-                        output_field=money_field,
-                    )
-                )
-            )["total"]
-            or Decimal("0")
-        )
+        if branch:
+            purchases_qs = purchases_qs.filter(branch=branch)
+
+        purchases = Decimal("0.00")
+        for movement in purchases_qs.select_related("ingredient", "branch"):
+            unit_cost = (
+                movement.unit_cost
+                if movement.unit_cost is not None
+                else get_effective_cost_per_unit(movement.ingredient, movement.branch)
+            )
+            purchases += Decimal(movement.change_quantity or 0) * Decimal(unit_cost or 0)
 
         # -------- 7. Wastage ----------
-        wastage = (
-            StockMovement.objects.filter(
+        wastage_qs = StockMovement.objects.filter(
                 restaurant=restaurant,
                 created_at__range=(start_dt, end_dt),
                 movement_type="waste",
             )
-            .aggregate(
-                total=Sum(
-                    ExpressionWrapper(
-                        F("change_quantity") * F("ingredient__cost_per_unit"),
-                        output_field=money_field,
-                    )
-                )
-            )["total"]
-            or Decimal("0")
-        )
-        wastage = abs(wastage)
+        if branch:
+            wastage_qs = wastage_qs.filter(branch=branch)
+
+        wastage = Decimal("0.00")
+        for movement in wastage_qs.select_related("ingredient", "branch"):
+            unit_cost = (
+                movement.unit_cost
+                if movement.unit_cost is not None
+                else get_effective_cost_per_unit(movement.ingredient, movement.branch)
+            )
+            wastage += abs(Decimal(movement.change_quantity or 0)) * Decimal(unit_cost or 0)
 
         # -------- 8. Operational Expenses ----------
-        operational_expenses = (
-            Expenses.objects.filter(
+        expenses_qs = Expenses.objects.filter(
                 restaurant=restaurant,
                 date__range=(start_dt.date(), end_dt.date()),
             )
+        if branch:
+            expenses_qs = expenses_qs.filter(branch=branch)
+
+        operational_expenses = (
+            expenses_qs
             .aggregate(total=Sum("amount_afn", output_field=money_field))["total"]
             or Decimal("0")
         )

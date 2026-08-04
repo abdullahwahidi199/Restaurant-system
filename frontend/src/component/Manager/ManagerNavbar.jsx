@@ -42,16 +42,15 @@ export default function ManagerNavbar() {
       icon: <Clock size={18} />,
     },
     {
+      to: "/manager/menu",
+      label: t("nav.menu"),
+      icon: <Utensils size={18} />,
+    },
+    {
       to: "/manager/discount-requests",
       label: "Discount requests",
       icon: <Clock size={18} />,
     },
-
-    // {
-    //   to: "/manager/menu",
-    //   label: t("nav.shifts"),
-    //   icon: <Clock size={18} />,
-    // },
   ];
   return (
     <nav

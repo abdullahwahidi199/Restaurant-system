@@ -1,4 +1,4 @@
-import React, { lazy, useState } from "react";
+import React, { useContext, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -20,13 +20,18 @@ import {
   Package,
   CalendarDays,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { AuthContext } from "../../api/authforRBC";
+
 function Navbar() {
   const [isOpen, setIsOpen] = useState(true);
   const toggleMenu = () => setIsOpen(!isOpen);
   const { t, i18n } = useTranslation();
+  const { auth } = useContext(AuthContext);
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
+  const role = auth?.user?.role;
 
   const navItems = [
     {
@@ -43,6 +48,12 @@ function Navbar() {
       to: "/admin/dashboard/staff",
       label: t("nav.staff"),
       icon: <Users size={18} />,
+    },
+    {
+      to: "/admin/dashboard/branches",
+      label: "Branches",
+      icon: <Building2 size={18} />,
+      adminOnly: true,
     },
     {
       to: "/admin/dashboard/shifts",
@@ -142,7 +153,9 @@ function Navbar() {
       {isOpen && (
         <div className="flex-1 overflow-y-auto">
           <ul className="py-4 space-y-2 md:space-y-1">
-            {navItems.map(({ to, label, icon }) => (
+            {navItems
+              .filter((item) => !(item.adminOnly && role !== "Admin"))
+              .map(({ to, label, icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}

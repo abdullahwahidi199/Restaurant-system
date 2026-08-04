@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { X, AlertTriangle, CheckCircle, CreditCard } from "lucide-react";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
 import notification from "../../../src/assets/sounds/notification.mp3";
+import BranchSwitcher from "../branch/BranchSwitcher";
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
@@ -145,6 +146,9 @@ export default function AdminDashboard() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="mx-auto max-w-7xl">
+          <div className="mb-4 flex justify-end">
+            <BranchSwitcher />
+          </div>
           <Outlet />
         </div>
       </main>

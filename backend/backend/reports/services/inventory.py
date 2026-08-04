@@ -9,6 +9,9 @@ from datetime import datetime, timedelta, time
 from decimal import Decimal
 
 from inventory.models import Ingredient, StockMovement, MenuItemIngredient
+from inventory.services import (
+    get_effective_cost_per_unit,
+)
 
 
 class InventoryReportService:
@@ -25,14 +28,33 @@ class InventoryReportService:
         end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
         return start_dt, end_dt
 
+    @staticmethod
+    def _scope(queryset, branch):
+        return queryset.filter(branch=branch) if branch else queryset
+
+    @staticmethod
+    def _ingredient_rows(restaurant, branch=None):
+        ingredients = InventoryReportService._scope(
+            Ingredient.objects.filter(restaurant=restaurant),
+            branch,
+        ).order_by("name")
+        for ingredient in ingredients:
+            yield {
+                "ingredient": ingredient,
+                "quantity": ingredient.quantity_available,
+                "threshold": ingredient.minimum_threshold,
+                "cost": ingredient.cost_per_unit,
+                "is_active": ingredient.is_active,
+            }
+
     # -------------------------
     # Stock Status (Enhanced)
     # -------------------------
     @staticmethod
-    def stock_status(restaurant):
-        ingredients = Ingredient.objects.filter(restaurant=restaurant).all()
-        active_ingredients = ingredients.filter(is_active=True)
-        inactive_count = ingredients.filter(is_active=False).count()
+    def stock_status(restaurant, branch=None):
+        rows = list(InventoryReportService._ingredient_rows(restaurant, branch))
+        active_rows = [row for row in rows if row["is_active"]]
+        inactive_count = len(rows) - len(active_rows)
 
         low_stock = []
         critical_stock = []
@@ -40,25 +62,29 @@ class InventoryReportService:
         healthy_stock = []
         total_inventory_value = Decimal("0.00")
 
-        for i in active_ingredients:
-            stock_value = (i.quantity_available or 0) * (i.cost_per_unit or 0)
+        for row in active_rows:
+            i = row["ingredient"]
+            quantity = row["quantity"] or 0
+            threshold = row["threshold"] or 0
+            cost = row["cost"] or 0
+            stock_value = quantity * cost
             total_inventory_value += stock_value
 
             entry = {
                 "id": i.id,
-                "name": i.name,
+                "name": row.get("name", i.name),
                 "unit": i.get_unit_display(),
-                "available": float(i.quantity_available or 0),
-                "threshold": float(i.minimum_threshold or 0),
-                "cost_per_unit": float(i.cost_per_unit or 0),
+                "available": float(quantity),
+                "threshold": float(threshold),
+                "cost_per_unit": float(cost),
                 "stock_value": float(stock_value),
             }
 
-            if i.quantity_available <= 0:
+            if quantity <= 0:
                 out_of_stock.append(entry)
-            elif i.quantity_available <= i.minimum_threshold:
+            elif quantity <= threshold:
                 # Critical = below half of threshold
-                if i.quantity_available <= (i.minimum_threshold / 2):
+                if quantity <= (threshold / 2):
                     critical_stock.append(entry)
                 else:
                     low_stock.append(entry)
@@ -66,8 +92,8 @@ class InventoryReportService:
                 healthy_stock.append(entry)
 
         return {
-            "total_items": ingredients.count(),
-            "active_items": active_ingredients.count(),
+            "total_items": len(rows),
+            "active_items": len(active_rows),
             "inactive_items": inactive_count,
             "out_of_stock_count": len(out_of_stock),
             "critical_stock_count": len(critical_stock),
@@ -83,16 +109,16 @@ class InventoryReportService:
     # Full Inventory
     # -------------------------
     @staticmethod
-    def full_inventory(restaurant):
-        ingredients = Ingredient.objects.filter(restaurant=restaurant).all().order_by("name")
+    def full_inventory(restaurant, branch=None):
         result = []
-        for i in ingredients:
-            available = float(i.quantity_available or 0)
-            threshold = float(i.minimum_threshold or 0)
-            cost = float(i.cost_per_unit or 0)
+        for row in InventoryReportService._ingredient_rows(restaurant, branch):
+            i = row["ingredient"]
+            available = float(row["quantity"] or 0)
+            threshold = float(row["threshold"] or 0)
+            cost = float(row["cost"] or 0)
             stock_value = available * cost
 
-            if not i.is_active:
+            if not row["is_active"]:
                 status = "INACTIVE"
             elif available <= 0:
                 status = "OUT OF STOCK"
@@ -105,7 +131,7 @@ class InventoryReportService:
 
             result.append({
                 "id": i.id,
-                "name": i.name,
+                "name": row.get("name", i.name),
                 "unit": i.get_unit_display(),
                 "available": available,
                 "threshold": threshold,
@@ -120,12 +146,15 @@ class InventoryReportService:
     # Movement Report (Enhanced)
     # -------------------------
     @staticmethod
-    def movement_report(start, end, restaurant):
+    def movement_report(start, end, restaurant, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
-        movements = StockMovement.objects.filter(
-    created_at__range=[start_dt, end_dt],
-    restaurant=restaurant
-).exclude(movement_type="order")
+        movements = InventoryReportService._scope(
+            StockMovement.objects.filter(
+                created_at__range=[start_dt, end_dt],
+                restaurant=restaurant,
+            ),
+            branch,
+        ).exclude(movement_type="order")
         # By Type with quantity totals
         by_type = list(
             movements.values("movement_type")
@@ -139,7 +168,12 @@ class InventoryReportService:
         # Total purchase cost (purchases only)
         purchases_cost = Decimal("0.00")
         for m in movements.filter(restaurant=restaurant,movement_type="purchase").select_related("ingredient"):
-            purchases_cost += (m.change_quantity or 0) * (m.ingredient.cost_per_unit or 0)
+            unit_cost = (
+                m.unit_cost
+                if m.unit_cost is not None
+                else get_effective_cost_per_unit(m.ingredient, m.branch)
+            )
+            purchases_cost += (m.change_quantity or 0) * (unit_cost or 0)
 
         # Total waste cost
         waste_cost = Decimal("0.00")
@@ -147,7 +181,12 @@ class InventoryReportService:
         for m in movements.filter(restaurant=restaurant,movement_type="waste").select_related("ingredient"):
             qty = abs(m.change_quantity or 0)
             waste_qty += qty
-            waste_cost += qty * (m.ingredient.cost_per_unit or 0)
+            unit_cost = (
+                m.unit_cost
+                if m.unit_cost is not None
+                else get_effective_cost_per_unit(m.ingredient, m.branch)
+            )
+            waste_cost += qty * (unit_cost or 0)
 
         # Order consumption
         consumption_qty = Decimal("0.00")
@@ -172,10 +211,16 @@ class InventoryReportService:
     # Recent Movements
     # -------------------------
     @staticmethod
-    def recent_movements(start, end, limit=25, restaurant=None):
+    def recent_movements(start, end, limit=25, restaurant=None, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         movements = (
-            StockMovement.objects.filter(restaurant=restaurant, created_at__range=[start_dt, end_dt])
+            InventoryReportService._scope(
+                StockMovement.objects.filter(
+                    restaurant=restaurant,
+                    created_at__range=[start_dt, end_dt],
+                ),
+                branch,
+            )
             .select_related("ingredient", "created_by", "related_order")
             .order_by("-created_at")[:limit]
         )
@@ -196,12 +241,15 @@ class InventoryReportService:
     # Top Moving Ingredients
     # -------------------------
     @staticmethod
-    def top_moving_ingredients(start, end, limit=10,restaurant=None):
+    def top_moving_ingredients(start, end, limit=10,restaurant=None, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
-            StockMovement.objects.filter(
-                restaurant=restaurant,
-                created_at__range=[start_dt, end_dt]
+            InventoryReportService._scope(
+                StockMovement.objects.filter(
+                    restaurant=restaurant,
+                    created_at__range=[start_dt, end_dt],
+                ),
+                branch,
             ).exclude(movement_type="order")
             .values(
                 name=F("ingredient__name"),
@@ -218,13 +266,16 @@ class InventoryReportService:
     # Top Wasted Ingredients
     # -------------------------
     @staticmethod
-    def top_wasted_ingredients(start, end, limit=10, restaurant=None):
+    def top_wasted_ingredients(start, end, limit=10, restaurant=None, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         wastes = (
-            StockMovement.objects.filter(
-                restaurant=restaurant,
-                created_at__range=[start_dt, end_dt],
-                movement_type="waste",
+            InventoryReportService._scope(
+                StockMovement.objects.filter(
+                    restaurant=restaurant,
+                    created_at__range=[start_dt, end_dt],
+                    movement_type="waste",
+                ),
+                branch,
             )
             .select_related("ingredient")
             .values(
@@ -255,13 +306,16 @@ class InventoryReportService:
     # Daily Movement Trend
     # -------------------------
     @staticmethod
-    def daily_movements(start, end, restaurant):
+    def daily_movements(start, end, restaurant, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
-            StockMovement.objects.filter(
-                restaurant=restaurant,
-    created_at__range=[start_dt, end_dt]
-).exclude(movement_type="order")
+            InventoryReportService._scope(
+                StockMovement.objects.filter(
+                    restaurant=restaurant,
+                    created_at__range=[start_dt, end_dt],
+                ),
+                branch,
+            ).exclude(movement_type="order")
             .annotate(date=TruncDate("created_at"))
             .values("date")
             .annotate(
@@ -275,13 +329,16 @@ class InventoryReportService:
     # Top Staff by Movements
     # -------------------------
     @staticmethod
-    def top_staff_movements(start, end, limit=10,restaurant=None):
+    def top_staff_movements(start, end, limit=10,restaurant=None, branch=None):
         start_dt, end_dt = InventoryReportService._parse_range(start, end)
         return list(
-            StockMovement.objects.filter(
-                restaurant=restaurant,
-                created_at__range=[start_dt, end_dt],
-                created_by__isnull=False,
+            InventoryReportService._scope(
+                StockMovement.objects.filter(
+                    restaurant=restaurant,
+                    created_at__range=[start_dt, end_dt],
+                    created_by__isnull=False,
+                ),
+                branch,
             )
             .values(staff_name=F("created_by__name"))
             .annotate(
@@ -295,11 +352,13 @@ class InventoryReportService:
     # Menu Item Ingredient Usage
     # -------------------------
     @staticmethod
-    def menu_item_ingredient_usage(limit=15, restaurant=None):
+    def menu_item_ingredient_usage(limit=15, restaurant=None, branch=None):
         """Which menu items use the most ingredients (recipe complexity)."""
+        qs = MenuItemIngredient.objects.filter(menu_item__restaurant=restaurant)
+        if branch:
+            qs = qs.filter(ingredient__branch=branch)
         return list(
-            MenuItemIngredient.objects.values(
-                restaurant=restaurant,
+            qs.values(
                 menu_item_name=F("menu_item__name")
             )
             .annotate(
@@ -313,12 +372,14 @@ class InventoryReportService:
     # Most Used Ingredients in Recipes
     # -------------------------
     @staticmethod
-    def most_used_in_recipes(limit=10, restaurant=None):
+    def most_used_in_recipes(limit=10, restaurant=None, branch=None):
+        qs = MenuItemIngredient.objects.filter(menu_item__restaurant=restaurant)
+        if branch:
+            qs = qs.filter(ingredient__branch=branch)
         return list(
-            MenuItemIngredient.objects.values(
+            qs.values(
                 ingredient_name=F("ingredient__name"),
                 unit=F("ingredient__unit"),
-                restaurant=restaurant
             )
             .annotate(
                 used_in_items=Count("menu_item", distinct=True),

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import BranchSwitcher from "../branch/BranchSwitcher";
 
 export default function KitchenRootLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -75,6 +76,9 @@ export default function KitchenRootLayout() {
 
       {/* Main */}
       <main className="flex-1 p-6 bg-gray-50">
+        <div className="mb-4 flex justify-end">
+          <BranchSwitcher />
+        </div>
         <Outlet />
       </main>
     </div>

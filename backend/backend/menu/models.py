@@ -2,7 +2,7 @@ from django.db import models
 from customers.models import Customer
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 # from orders.models import Order
-from restaurants.models import Restaurant
+from restaurants.models import Branch, Restaurant
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -21,6 +21,13 @@ class Category(models.Model):
         related_name='categories',
         null=True,
         blank=True
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="categories",
+        null=True,
+        blank=True,
     )
 
     name = models.CharField(max_length=100)
@@ -42,8 +49,18 @@ class Category(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['restaurant', 'rank'],
-                name='unique_rank_per_restaurant'
+                condition=models.Q(branch__isnull=True),
+                name='uniq_shared_category_rank'
+            ),
+            models.UniqueConstraint(
+                fields=['restaurant', 'branch', 'rank'],
+                condition=models.Q(branch__isnull=False),
+                name='uniq_branch_category_rank'
             )
+        ]
+        indexes = [
+            models.Index(fields=["restaurant", "branch"], name="cat_rest_branch_idx"),
+            models.Index(fields=["restaurant", "rank"], name="cat_rest_rank_idx"),
         ]
     def __str__(self):
         return self.name    
@@ -96,6 +113,13 @@ class MenuItem(models.Model):
     description_dari = models.TextField(blank=True, null=True)
     description_pashto = models.TextField(blank=True, null=True)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='menu_items', null=True, blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="menu_items",
+        null=True,
+        blank=True,
+    )
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
     is_available = models.BooleanField(default=True)
@@ -105,11 +129,22 @@ class MenuItem(models.Model):
         default=False
     )
 
-    def get_production(self):
-        """Get current active production, if any."""
+    class Meta:
+        indexes = [
+            models.Index(fields=["restaurant", "branch"], name="item_rest_branch_idx"),
+            models.Index(fields=["restaurant", "category"], name="item_rest_cat_idx"),
+            models.Index(fields=["restaurant", "is_available"], name="item_rest_avail_idx"),
+        ]
+
+    def get_production(self, branch=None):
+        """Get current active production, optionally for a specific branch."""
         if not self.uses_daily_production:
             return None
-        return getattr(self, 'production', None)
+
+        qs = self.productions.all()
+        if branch:
+            qs = qs.filter(branch=branch)
+        return qs.order_by('-created_at').first()
     @property
     def production_remaining(self):
         prod = self.get_production()
@@ -128,6 +163,34 @@ class MenuItem(models.Model):
             return self.is_manually_available
         # Normal items: ingredient-based availability
         return self.is_available and self.is_manually_available
+
+    def get_branch_override(self, branch=None):
+        return None
+
+    def get_effective_price(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.price is not None:
+            return override.price
+        return self.price
+
+    def get_effective_manual_availability(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.is_manually_available is not None:
+            return override.is_manually_available
+        return self.is_manually_available
+
+    def get_effective_stock_availability(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.is_available is not None:
+            return override.is_available
+        return self.is_available
+
+    def is_available_for_branch(self, branch=None):
+        manual = self.get_effective_manual_availability(branch)
+        if self.uses_daily_production:
+            prod = self.get_production(branch=branch)
+            return bool(prod and prod.quantity_remaining > 0 and manual)
+        return self.get_effective_stock_availability(branch) and manual
         
     def __str__(self):
         return self.name
@@ -172,7 +235,7 @@ class MenuItem(models.Model):
 
         
     
-    def mark_unavailable(self):
+    def mark_unavailable(self, branch=None):
         self.is_available = False
         self.save(update_fields=["is_available"])
 
@@ -184,7 +247,7 @@ class MenuItem(models.Model):
             self
         )
 
-    def mark_available(self):
+    def mark_available(self, branch=None):
         self.is_available = True
         self.save(update_fields=["is_available"])
 
@@ -197,25 +260,19 @@ class MenuItem(models.Model):
         )
 
     
-    def get_cost_per_unit(self, restaurant=None):
-        qs = self.ingredients.all()
+    def get_cost_per_unit(self, restaurant=None, branch=None):
+        from inventory.services import get_effective_cost_per_unit, get_recipe_items
 
-        if restaurant:
-            qs = qs.filter(menu_item__restaurant=restaurant)
-
-        return qs.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("quantity_required") * F("ingredient__cost_per_unit"),
-                    output_field=DecimalField(max_digits=10, decimal_places=2)
-                )
+        total = Decimal("0.00")
+        for recipe in get_recipe_items(self, branch=branch):
+            total += (
+                Decimal(recipe.quantity_required)
+                * Decimal(get_effective_cost_per_unit(recipe.ingredient, branch))
             )
-        )["total"] or 0
+        return total
     def get_profit_per_unit(self):
         cost=self.get_cost_per_unit()
         return Decimal(self.price) - Decimal(cost)
-
-# menu/models.py - ADD THIS NEW MODEL
 
 class Production(models.Model):
     """
@@ -223,15 +280,22 @@ class Production(models.Model):
     E.g., Qabuli is cooked in bulk; stays available until sold out or manually cleared.
     No date dependency — one active production per menu item at a time.
     """
-    menu_item = models.OneToOneField(
+    menu_item = models.ForeignKey(
         MenuItem,
         on_delete=models.CASCADE,
-        related_name='production'
+        related_name='productions'
     )
     restaurant = models.ForeignKey(
         Restaurant,
         on_delete=models.CASCADE,
         related_name='productions'
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="productions",
+        null=True,
+        blank=True,
     )
     quantity_produced = models.PositiveIntegerField(
         help_text="Total portions cooked in this batch"
@@ -251,6 +315,12 @@ class Production(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['menu_item', 'branch'],
+                name='unique_production_per_menu_item_branch'
+            )
+        ]
 
     def __str__(self):
         return f"{self.menu_item.name} ({self.quantity_remaining}/{self.quantity_produced})"
@@ -264,6 +334,13 @@ class Review(models.Model):
     menu_item=models.ForeignKey(MenuItem,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
     #every delivery can have reviews
     restaurant=models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name='reviews',null=True,blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        null=True,
+        blank=True,
+    )
     delivery = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, related_name='review', null=True, blank=True)
     rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)])
     comment = models.TextField(blank=True, null=True)
@@ -279,6 +356,13 @@ class Platter(models.Model):
         Restaurant,
         on_delete=models.CASCADE,
         related_name='platters'
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="platters",
+        null=True,
+        blank=True,
     )
 
     name = models.CharField(max_length=150)
@@ -313,11 +397,45 @@ class Platter(models.Model):
         related_name='platters'
     )
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["restaurant", "branch"], name="plat_rest_branch_idx"),
+            models.Index(fields=["restaurant", "category"], name="plat_rest_cat_idx"),
+            models.Index(fields=["restaurant", "is_available"], name="plat_rest_avail_idx"),
+        ]
+
     def __str__(self):
         return self.name
     @property
     def final_availability(self):
         return self.is_available and self.is_manually_available
+
+    def get_branch_override(self, branch=None):
+        return None
+
+    def get_effective_price(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.price is not None:
+            return override.price
+        return self.price
+
+    def get_effective_manual_availability(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.is_manually_available is not None:
+            return override.is_manually_available
+        return self.is_manually_available
+
+    def get_effective_stock_availability(self, branch=None):
+        override = self.get_branch_override(branch)
+        if override and override.is_available is not None:
+            return override.is_available
+        return self.is_available
+
+    def is_available_for_branch(self, branch=None):
+        return (
+            self.get_effective_stock_availability(branch)
+            and self.get_effective_manual_availability(branch)
+        )
     def save(self, *args, **kwargs):
         process_image = False
 

@@ -8,7 +8,7 @@ from .models import Production
 
 
 @transaction.atomic
-def create_or_replace_production(menu_item, quantity, created_by=None, notes=""):
+def create_or_replace_production(menu_item, quantity, branch, created_by=None, notes=""):
     """
     Create a new production batch for a menu item.
     If one already exists, it is REPLACED (old remaining is discarded — manager
@@ -18,18 +18,20 @@ def create_or_replace_production(menu_item, quantity, created_by=None, notes="")
     """
     if not menu_item.uses_daily_production:
         raise ValueError(f"{menu_item.name} does not use production tracking.")
+    if not branch:
+        raise ValueError("An active branch is required for production.")
 
     quantity = int(quantity)
     if quantity <= 0:
         raise ValueError("Quantity must be positive.")
 
     # Remove any existing production for this item
-    Production.objects.filter(menu_item=menu_item).delete()
+    Production.objects.filter(menu_item=menu_item, branch=branch).delete()
 
     # Deduct ingredients for the WHOLE batch (once, not per order)
     recipe_items = MenuItemIngredient.objects.select_related(
         "ingredient"
-    ).filter(menu_item=menu_item)
+    ).filter(menu_item=menu_item, ingredient__branch=branch)
 
     qty_decimal = Decimal(str(quantity))
     insufficient = []
@@ -38,7 +40,8 @@ def create_or_replace_production(menu_item, quantity, created_by=None, notes="")
     for recipe in recipe_items:
         required = recipe.quantity_required * qty_decimal
         ingredient = Ingredient.objects.select_for_update().get(
-            id=recipe.ingredient_id
+            id=recipe.ingredient_id,
+            branch=branch,
         )
         if ingredient.quantity_available < required:
             insufficient.append(
@@ -57,9 +60,11 @@ def create_or_replace_production(menu_item, quantity, created_by=None, notes="")
         )
         movements.append(StockMovement(
             restaurant=ingredient.restaurant,
+            branch=branch,
             ingredient=ingredient,
             change_quantity=-required,
             movement_type="production",
+            created_by=created_by,
         ))
     StockMovement.objects.bulk_create(movements)
 
@@ -67,6 +72,7 @@ def create_or_replace_production(menu_item, quantity, created_by=None, notes="")
     production = Production.objects.create(
         menu_item=menu_item,
         restaurant=menu_item.restaurant,
+        branch=branch,
         quantity_produced=quantity,
         quantity_remaining=quantity,
         notes=notes,
@@ -78,7 +84,7 @@ def create_or_replace_production(menu_item, quantity, created_by=None, notes="")
     menu_item.save(update_fields=["is_available"])
 
     from inventory.utils import update_platter_availability_from_menu_item
-    update_platter_availability_from_menu_item(menu_item)
+    update_platter_availability_from_menu_item(menu_item, branch=branch)
 
     return production
 
@@ -102,9 +108,10 @@ def adjust_production(production, new_quantity, notes=None):
         return production
 
     menu_item = production.menu_item
+    branch = production.branch
     recipe_items = MenuItemIngredient.objects.select_related(
         "ingredient"
-    ).filter(menu_item=menu_item)
+    ).filter(menu_item=menu_item, ingredient__branch=branch)
 
     diff_decimal = Decimal(str(abs(diff)))
 
@@ -113,7 +120,10 @@ def adjust_production(production, new_quantity, notes=None):
         insufficient = []
         for recipe in recipe_items:
             required = recipe.quantity_required * diff_decimal
-            ing = Ingredient.objects.select_for_update().get(id=recipe.ingredient_id)
+            ing = Ingredient.objects.select_for_update().get(
+                id=recipe.ingredient_id,
+                branch=branch,
+            )
             if ing.quantity_available < required:
                 insufficient.append(ing.name)
         if insufficient:
@@ -127,9 +137,11 @@ def adjust_production(production, new_quantity, notes=None):
             )
             movements.append(StockMovement(
                 restaurant=recipe.ingredient.restaurant,
+                branch=branch,
                 ingredient=recipe.ingredient,
                 change_quantity=-required,
                 movement_type="production",
+                created_by=production.created_by,
             ))
         StockMovement.objects.bulk_create(movements)
     else:
@@ -142,9 +154,11 @@ def adjust_production(production, new_quantity, notes=None):
             )
             movements.append(StockMovement(
                 restaurant=recipe.ingredient.restaurant,
+                branch=branch,
                 ingredient=recipe.ingredient,
                 change_quantity=refund,
                 movement_type="production_adjustment",
+                created_by=production.created_by,
             ))
         StockMovement.objects.bulk_create(movements)
 
@@ -155,19 +169,23 @@ def adjust_production(production, new_quantity, notes=None):
     production.save()
 
     from inventory.utils import update_platter_availability_from_menu_item
-    update_platter_availability_from_menu_item(menu_item)
+    update_platter_availability_from_menu_item(menu_item, branch=branch)
 
     return production
 
 
 @transaction.atomic
-def consume_production(menu_item, quantity):
+def consume_production(menu_item, quantity, branch):
     """
     Decrement remaining count when an order is placed.
     Raises ValueError if not enough remaining.
     """
+    if not branch:
+        raise ValueError("An active branch is required for production.")
+
     production = Production.objects.select_for_update().filter(
-        menu_item=menu_item
+        menu_item=menu_item,
+        branch=branch,
     ).first()
 
     if not production:
@@ -191,19 +209,23 @@ def consume_production(menu_item, quantity):
         menu_item.is_available = False
         menu_item.save(update_fields=["is_available"])
         from inventory.utils import update_platter_availability_from_menu_item
-        update_platter_availability_from_menu_item(menu_item)
+        update_platter_availability_from_menu_item(menu_item, branch=branch)
 
     return production
 
 
 @transaction.atomic
-def restore_production(menu_item, quantity):
+def restore_production(menu_item, quantity, branch):
     """
     Increment remaining count (e.g., when an order is cancelled).
     Capped at quantity_produced.
     """
+    if not branch:
+        return None
+
     production = Production.objects.select_for_update().filter(
-        menu_item=menu_item
+        menu_item=menu_item,
+        branch=branch,
     ).first()
 
     if not production:
@@ -221,19 +243,23 @@ def restore_production(menu_item, quantity):
         menu_item.is_available = True
         menu_item.save(update_fields=["is_available"])
         from inventory.utils import update_platter_availability_from_menu_item
-        update_platter_availability_from_menu_item(menu_item)
+        update_platter_availability_from_menu_item(menu_item, branch=branch)
 
     return production
 
 
 @transaction.atomic
-def clear_production(menu_item, refund_remaining=False):
+def clear_production(menu_item, branch, refund_remaining=False):
     """
     Clear current production (e.g., end of service).
     Optionally refund ingredients for the unsold remaining portion.
     """
+    if not branch:
+        return None
+
     production = Production.objects.select_for_update().filter(
-        menu_item=menu_item
+        menu_item=menu_item,
+        branch=branch,
     ).first()
 
     if not production:
@@ -242,7 +268,7 @@ def clear_production(menu_item, refund_remaining=False):
     if refund_remaining and production.quantity_remaining > 0:
         recipe_items = MenuItemIngredient.objects.select_related(
             "ingredient"
-        ).filter(menu_item=menu_item)
+        ).filter(menu_item=menu_item, ingredient__branch=branch)
 
         remaining_decimal = Decimal(str(production.quantity_remaining))
         movements = []
@@ -253,9 +279,11 @@ def clear_production(menu_item, refund_remaining=False):
             )
             movements.append(StockMovement(
                 restaurant=recipe.ingredient.restaurant,
+                branch=branch,
                 ingredient=recipe.ingredient,
                 change_quantity=refund,
                 movement_type="production_adjustment",
+                created_by=production.created_by,
             ))
         StockMovement.objects.bulk_create(movements)
 
@@ -265,28 +293,31 @@ def clear_production(menu_item, refund_remaining=False):
     menu_item.save(update_fields=["is_available"])
 
     from inventory.utils import update_platter_availability_from_menu_item
-    update_platter_availability_from_menu_item(menu_item)
+    update_platter_availability_from_menu_item(menu_item, branch=branch)
 
     return True
 
 @transaction.atomic
-def increment_production(menu_item, quantity, created_by=None, notes=""):
+def increment_production(menu_item, quantity, branch, created_by=None, notes=""):
     """
     Add `quantity` to existing production, or create a new batch if none exists.
     Deducts ingredients for the added amount only.
     """
     if not menu_item.uses_daily_production:
         raise ValueError(f"{menu_item.name} does not use production tracking.")
+    if not branch:
+        raise ValueError("An active branch is required for production.")
 
     quantity = int(quantity)
     if quantity <= 0:
         raise ValueError("Quantity must be positive.")
 
-    existing = Production.objects.filter(menu_item=menu_item).first()
+    existing = Production.objects.filter(menu_item=menu_item, branch=branch).first()
     if not existing:
         return create_or_replace_production(
             menu_item=menu_item,
             quantity=quantity,
+            branch=branch,
             created_by=created_by,
             notes=notes,
         )
@@ -296,7 +327,7 @@ def increment_production(menu_item, quantity, created_by=None, notes=""):
 
 
 @transaction.atomic
-def decrement_production(menu_item, quantity, notes=""):
+def decrement_production(menu_item, quantity, branch, notes=""):
     """
     Reduce produced quantity by `quantity`.
     Cannot go below the number already sold.
@@ -304,12 +335,14 @@ def decrement_production(menu_item, quantity, notes=""):
     """
     if not menu_item.uses_daily_production:
         raise ValueError(f"{menu_item.name} does not use production tracking.")
+    if not branch:
+        raise ValueError("An active branch is required for production.")
 
     quantity = int(quantity)
     if quantity <= 0:
         raise ValueError("Quantity must be positive.")
 
-    existing = Production.objects.filter(menu_item=menu_item).first()
+    existing = Production.objects.filter(menu_item=menu_item, branch=branch).first()
     if not existing:
         raise ValueError(f"No active production for {menu_item.name}")
 
@@ -321,7 +354,7 @@ def decrement_production(menu_item, quantity, notes=""):
         )
     if new_qty == 0:
         # Nothing left to sell; clear it
-        clear_production(menu_item, refund_remaining=False)
+        clear_production(menu_item, branch=branch, refund_remaining=False)
         return None
 
     return adjust_production(existing, new_quantity=new_qty, notes=notes)

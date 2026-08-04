@@ -12,6 +12,7 @@ from .serializers import ExpensesSerializer, ExpenseHistorySerializer
 from restaurants.permissions import (
     IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive, IsInventoryManager,
 )
+from restaurants.branching import filter_queryset_for_request, get_active_branch
 
 
 class ExpensePagination(PageNumberPagination):
@@ -76,7 +77,11 @@ def expensesApi(request):
     restaurant = staff.restaurant
 
     if request.method == "GET":
-        base_qs = Expenses.objects.filter(restaurant=restaurant)
+        base_qs = filter_queryset_for_request(
+            request,
+            Expenses.objects.filter(restaurant=restaurant),
+            allow_all_for_admin=True,
+        )
 
         # Stats are always all-time (independent of filters)
         stats = _calc_expense_stats(base_qs)
@@ -110,7 +115,7 @@ def expensesApi(request):
     if request.method == "POST":
         serializer = ExpensesSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(restaurant=restaurant)
+            serializer.save(restaurant=restaurant, branch=get_active_branch(request))
             return Response(
                 {"message": "New Expense saved!"},
                 status=status.HTTP_201_CREATED,
@@ -125,7 +130,11 @@ class ExpenseDetailsView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         staff = self.request.user.staff_profile
-        return Expenses.objects.filter(restaurant=staff.restaurant)
+        return filter_queryset_for_request(
+            self.request,
+            Expenses.objects.filter(restaurant=staff.restaurant),
+            allow_all_for_admin=True,
+        )
 
 
 class ExpenseHistoryApiView(generics.ListAPIView):
@@ -135,7 +144,11 @@ class ExpenseHistoryApiView(generics.ListAPIView):
 
     def get_queryset(self):
         staff = self.request.user.staff_profile
-        qs = ExpenseHistory.objects.filter(restaurant=staff.restaurant)
+        qs = filter_queryset_for_request(
+            self.request,
+            ExpenseHistory.objects.filter(restaurant=staff.restaurant),
+            allow_all_for_admin=True,
+        )
 
         action = self.request.query_params.get("action", "").strip()
         if action in VALID_ACTIONS:

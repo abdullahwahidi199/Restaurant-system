@@ -4,12 +4,79 @@ from django.db.models import F
 from menu.production_utils import consume_production
 
 from menu.models import MenuItem
-from inventory.models import MenuItemIngredient, Ingredient
+from inventory.models import IngredientStock, MenuItemIngredient, Ingredient
 from .models import StockMovement
 from .utils import update_menu_item_availability
 
 
 # ✅ Recalculate menu item availability after stock changes
+def uses_shared_ingredients(restaurant):
+    return False
+
+
+def get_or_create_ingredient_stock(ingredient, branch):
+    if not branch:
+        return None
+
+    stock, _ = IngredientStock.objects.get_or_create(
+        ingredient=ingredient,
+        branch=branch,
+        defaults={
+            "restaurant": ingredient.restaurant,
+            "quantity_available": ingredient.quantity_available,
+            "minimum_threshold": ingredient.minimum_threshold,
+            "cost_per_unit": ingredient.cost_per_unit,
+            "is_active": ingredient.is_active,
+        },
+    )
+    return stock
+
+
+def get_effective_stock(ingredient, branch):
+    return ingredient
+
+
+def get_effective_quantity(ingredient, branch):
+    stock = get_effective_stock(ingredient, branch)
+    return stock.quantity_available if stock else ingredient.quantity_available
+
+
+def get_effective_minimum_threshold(ingredient, branch):
+    stock = get_effective_stock(ingredient, branch)
+    return stock.minimum_threshold if stock else ingredient.minimum_threshold
+
+
+def get_effective_cost_per_unit(ingredient, branch):
+    stock = get_effective_stock(ingredient, branch)
+    return stock.cost_per_unit if stock else ingredient.cost_per_unit
+
+
+def change_ingredient_stock(ingredient, branch, quantity_delta, cost_per_unit=None):
+    quantity_delta = Decimal(str(quantity_delta))
+
+    if branch and ingredient.branch_id != branch.id:
+        raise ValueError("Ingredient stock belongs to another branch.")
+
+    ingredient.quantity_available += quantity_delta
+    if cost_per_unit is not None:
+        ingredient.cost_per_unit = Decimal(str(cost_per_unit))
+    if ingredient.quantity_available < 0:
+        raise ValueError(f"Insufficient stock for {ingredient.name}")
+    ingredient.save(update_fields=["quantity_available", "cost_per_unit"])
+    return ingredient.quantity_available
+
+
+def get_recipe_items(menu_item, branch=None):
+    recipes = MenuItemIngredient.objects.filter(
+        menu_item=menu_item,
+    ).select_related("ingredient")
+
+    if branch:
+        recipes = recipes.filter(ingredient__branch=branch)
+
+    return recipes
+
+
 def recalc_menu_availability(ingredient_ids):
     if not ingredient_ids:
         return
@@ -21,10 +88,21 @@ def recalc_menu_availability(ingredient_ids):
         .distinct()
     )
 
-    menu_items = MenuItem.objects.filter(id__in=menu_item_ids)
+    ingredients = Ingredient.objects.filter(id__in=ingredient_ids).select_related("branch")
+    branches = {
+        ingredient.branch_id: ingredient.branch
+        for ingredient in ingredients
+        if ingredient.branch_id
+    }
+    for stock in IngredientStock.objects.filter(
+        ingredient_id__in=ingredient_ids,
+    ).select_related("branch"):
+        branches[stock.branch_id] = stock.branch
 
-    for item in menu_items:
-        update_menu_item_availability(item)
+    for branch in branches.values():
+        menu_items = MenuItem.objects.filter(id__in=menu_item_ids)
+        for item in menu_items:
+            update_menu_item_availability(item, branch=branch)
 
 
 from collections import defaultdict
@@ -33,7 +111,7 @@ from django.db import transaction
 from django.db.models import F
 
 from menu.models import MenuItem
-from inventory.models import MenuItemIngredient, Ingredient
+from inventory.models import IngredientStock, MenuItemIngredient, Ingredient
 from .models import StockMovement
 from .utils import update_menu_item_availability
 
@@ -41,13 +119,9 @@ from .utils import update_menu_item_availability
 # ✅ Deduct stock for a single menu item
 def deduct_menu_item_stock(menu_item, quantity, order, ingredient_ids):
     if menu_item.uses_daily_production:
-        consume_production(menu_item, int(quantity))
+        consume_production(menu_item, int(quantity), branch=order.branch)
         return
-    recipe_items = (
-        MenuItemIngredient.objects
-        .select_related("ingredient")
-        .filter(menu_item=menu_item)
-    )
+    recipe_items = get_recipe_items(menu_item, branch=order.branch)
 
     stock_movements = []
 
@@ -66,16 +140,8 @@ def deduct_menu_item_stock(menu_item, quantity, order, ingredient_ids):
 
     # 🔵 STEP 2: Atomically deduct stock
     for ingredient_id, required_qty in ingredient_requirements.items():
-        updated = Ingredient.objects.filter(
-            id=ingredient_id,
-            quantity_available__gte=required_qty
-        ).update(
-            quantity_available=F("quantity_available") - required_qty
-        )
-
-        if updated == 0:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
-            raise ValueError(f"Insufficient stock for {ingredient.name}")
+        ingredient = Ingredient.objects.get(id=ingredient_id)
+        change_ingredient_stock(ingredient, order.branch, -required_qty)
 
     # 🔵 STEP 3: Create stock movement records
     for recipe in recipe_items:
@@ -84,6 +150,7 @@ def deduct_menu_item_stock(menu_item, quantity, order, ingredient_ids):
         stock_movements.append(
             StockMovement(
                 restaurant=recipe.ingredient.restaurant,
+                branch=order.branch,
                 ingredient=recipe.ingredient,
                 change_quantity=-change_qty,
                 movement_type="order",
@@ -135,22 +202,22 @@ from .utils import update_menu_item_availability
 
 
 @transaction.atomic
-def add_stock(ingredient, quantity, created_by=None, cost_per_unit=None):
+def add_stock(ingredient, quantity, created_by=None, cost_per_unit=None, branch=None):
     quantity = Decimal(quantity)
-    
-    # 1. Update Quantity
-    ingredient.quantity_available += quantity
+    branch = branch or ingredient.branch
 
-    # 2. Update Price (Simple: set to new price if provided)
-    if cost_per_unit is not None:
-        ingredient.cost_per_unit = Decimal(cost_per_unit)
-
-    ingredient.save()
+    change_ingredient_stock(
+        ingredient,
+        branch,
+        quantity,
+        cost_per_unit=cost_per_unit,
+    )
 
     # 3. Create Movement
     StockMovement.objects.create(
         ingredient=ingredient,
         restaurant=ingredient.restaurant,
+        branch=branch,
         change_quantity=quantity,
         movement_type="purchase",
         created_by=created_by,
@@ -159,7 +226,7 @@ def add_stock(ingredient, quantity, created_by=None, cost_per_unit=None):
 
     # 4. Update availability
     for recipe in ingredient.menu_items.select_related("menu_item"):
-        update_menu_item_availability(recipe.menu_item)
+        update_menu_item_availability(recipe.menu_item, branch=branch)
 
         
 from django.db import transaction
@@ -201,9 +268,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
             if mi.uses_daily_production:
                 production_consumptions[mi] += int(order_item.quantity)
                 continue
-            recipe_items = MenuItemIngredient.objects.filter(
-                menu_item=order_item.menu_item
-            ).select_related("ingredient")
+            recipe_items = get_recipe_items(order_item.menu_item, branch=order.branch)
             
             quantity = Decimal(str(order_item.quantity))
             
@@ -218,6 +283,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
                 stock_movements.append(
                     StockMovement(
                         restaurant=ingredient.restaurant,
+                        branch=order.branch,
                         ingredient_id=ingredient.id,
                         change_quantity=-required_qty,
                         movement_type="order",
@@ -238,9 +304,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
                         int(platter_item.quantity) * int(order_item.quantity)
                     )
                     continue
-                recipe_items = MenuItemIngredient.objects.filter(
-                    menu_item=platter_item.menu_item
-                ).select_related("ingredient")
+                recipe_items = get_recipe_items(platter_item.menu_item, branch=order.branch)
                 
                 item_quantity = Decimal(str(platter_item.quantity)) * platter_quantity
                 
@@ -254,6 +318,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
                     stock_movements.append(
                         StockMovement(
                             restaurant=ingredient.restaurant,
+                            branch=order.branch,
                             ingredient_id=ingredient.id,
                             change_quantity=-required_qty,
                             movement_type="order",
@@ -261,7 +326,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
                         )
                     )
     for mi, qty in production_consumptions.items():
-        consume_production(mi, qty)
+        consume_production(mi, qty, branch=order.branch)
     
     # Step 2: Batch update ingredients in a single query per ingredient
     if ingredient_requirements:
@@ -276,7 +341,7 @@ def deduct_batch_stock_for_order_items(order_items, order):
         insufficient = []
         for ing_id, required_qty in ingredient_requirements.items():
             ingredient = ingredients.get(ing_id)
-            if ingredient and ingredient.quantity_available < required_qty:
+            if ingredient and get_effective_quantity(ingredient, order.branch) < required_qty:
                 insufficient.append(ingredient.name)
         
         if insufficient:
@@ -284,13 +349,10 @@ def deduct_batch_stock_for_order_items(order_items, order):
         
         # Batch update using CASE WHEN (single query per batch, or individual updates)
         # Option A: For many ingredients, do individual updates (still much better than per-item)
-        update_queries = []
         for ing_id, required_qty in ingredient_requirements.items():
-            update_queries.append(
-                Ingredient.objects.filter(id=ing_id).update(
-                    quantity_available=F("quantity_available") - required_qty
-                )
-            )
+            ingredient = ingredients.get(ing_id)
+            if ingredient:
+                change_ingredient_stock(ingredient, order.branch, -required_qty)
         
         # Option B: Use bulk_update if you prefer (requires fetching all)
         # for ing_id, required_qty in ingredient_requirements.items():
@@ -321,24 +383,22 @@ def recalc_batch_menu_availability(ingredient_ids):
         .distinct()
     )
     
-    # Bulk fetch current ingredient quantities for these menu items
-    # This is more efficient than recalculating one by one
-    menu_items = MenuItem.objects.filter(id__in=menu_item_ids).prefetch_related(
-        'ingredients__ingredient'
-    )
-    
-    for menu_item in menu_items:
-        # Use a single query to check availability
-        required_ingredients = menu_item.ingredients.select_related('ingredient')
-        is_available = all(
-            recipe.ingredient.quantity_available >= recipe.quantity_required
-            for recipe in required_ingredients
-        )
-        
-        # Only update if changed
-        if menu_item.is_available != is_available:
-            menu_item.is_available = is_available
-            menu_item.save(update_fields=['is_available'])
+    ingredients = Ingredient.objects.filter(id__in=ingredient_ids).select_related("branch")
+    branches = {
+        ingredient.branch_id: ingredient.branch
+        for ingredient in ingredients
+        if ingredient.branch_id
+    }
+    for stock in IngredientStock.objects.filter(
+        ingredient_id__in=ingredient_ids,
+    ).select_related("branch"):
+        branches[stock.branch_id] = stock.branch
+
+    menu_items = MenuItem.objects.filter(id__in=menu_item_ids)
+
+    for branch in branches.values():
+        for menu_item in menu_items:
+            update_menu_item_availability(menu_item, branch=branch)
 
 @transaction.atomic
 def deduct_stock_for_order_item(order_item, order):
@@ -404,31 +464,15 @@ def edit_stock_movement(
     else:
         new_effect = new_quantity
 
-    # reverse old movement
-    ingredient.quantity_available -= old_effect
-
-    # apply new movement
-    ingredient.quantity_available += new_effect
-
-    if ingredient.quantity_available < 0:
-        raise ValueError(
-            "Stock cannot become negative"
-        )
-
-    # purchases update ingredient cost
-    if (
-        old_type == "purchase"
-        and new_unit_cost is not None
-    ):
-        ingredient.cost_per_unit = Decimal(
+    change_ingredient_stock(
+        ingredient,
+        movement.branch or ingredient.branch,
+        new_effect - old_effect,
+        cost_per_unit=(
             new_unit_cost
-        )
-
-    ingredient.save(
-        update_fields=[
-            "quantity_available",
-            "cost_per_unit"
-        ]
+            if old_type == "purchase" and new_unit_cost is not None
+            else None
+        ),
     )
 
     # update movement
@@ -451,7 +495,8 @@ def edit_stock_movement(
     ):
 
         update_menu_item_availability(
-            recipe.menu_item
+            recipe.menu_item,
+            branch=movement.branch or ingredient.branch,
         )
 
 

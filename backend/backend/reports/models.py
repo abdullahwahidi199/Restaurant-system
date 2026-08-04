@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from restaurants.models import Restaurant
+from restaurants.models import Branch, Restaurant
 # Create your models here.
 class Notification(models.Model):
     TYPE_CHOICES = [
@@ -11,6 +11,13 @@ class Notification(models.Model):
         ('system', 'System'),
     ]
     restaurant=models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        null=True,
+        blank=True,
+    )
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='system')
     message = models.CharField(max_length=255)
     created_at = models.DateTimeField(default=timezone.now)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -15,14 +15,18 @@ import LowStockItems from "./LowStockItems";
 import StockMovementList from "./StockMovementList";
 import AddStock from "./AddStock";
 import CreateIngredientModal from "./CreateIngredient";
+import StockTransferPanel from "./StockTransferPanel";
 
 import { getInventorySummary } from "../../../api/inventoryApi";
 import InventorySearch from "./InventorySearch";
+import { AuthContext } from "../../../api/authforRBC";
 
 export default function InventoryDashboard() {
+  const { auth } = useContext(AuthContext);
   const [showCreate, setShowCreate] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isBranchAdmin = auth?.user?.role === "BranchAdmin";
 
   useEffect(() => {
     loadSummary();
@@ -115,6 +119,7 @@ export default function InventoryDashboard() {
         {/* ACTIONS */}
         <div className="space-y-6">
           <AddStock />
+          {!isBranchAdmin && <StockTransferPanel />}
           <LowStockItems />
         </div>
       </div>

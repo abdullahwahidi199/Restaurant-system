@@ -9,11 +9,16 @@ from django.db.models import Q
 from django.db import transaction
 from django_ratelimit.core import is_ratelimited
 from orders.signals import broadcast_order_item_update, broadcast_table_items_update
+from restaurants.branching import (
+    filter_queryset_for_request,
+    get_active_branch,
+    get_main_branch,
+)
 from restaurants.models import Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
 from .models import Order, Table, OrderItem,Reservation,DiscountRequest,DiscountCard
-from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer,OrderListSerializer
+from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer,OrderListSerializer, scope_order_menu_queryset
 from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item,deduct_batch_stock_for_order_items,recalc_batch_menu_availability
@@ -63,7 +68,23 @@ def get_restaurant_from_user(request):
     
     return None
 
-def validate_production_availability(items_data, menu_items):
+
+def branch_scoped(request, queryset, branch_field="branch", *, allow_all=False):
+    return filter_queryset_for_request(
+        request,
+        queryset,
+        branch_field,
+        allow_all_for_admin=allow_all,
+    )
+
+
+def get_branch_or_response(request):
+    try:
+        return get_active_branch(request)
+    except Exception as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+
+def validate_production_availability(items_data, menu_items, branch):
     for item in items_data:
 
         # FIX: normalize menu_item
@@ -86,7 +107,7 @@ def validate_production_availability(items_data, menu_items):
         qty = item.get("quantity") or 1
 
         if menu_item_obj.uses_daily_production:
-            prod = menu_item_obj.get_production()
+            prod = menu_item_obj.get_production(branch=branch)
 
             remaining = prod.quantity_remaining if prod else 0
 
@@ -117,8 +138,10 @@ def discount_cards(request):
         )
 
     if request.method == "GET":
-        cards = DiscountCard.objects.filter(
-            restaurant=restaurant
+        cards = branch_scoped(
+            request,
+            DiscountCard.objects.filter(restaurant=restaurant),
+            allow_all=True,
         ).order_by("-created_at")
 
         serializer = DiscountCardSerializer(cards, many=True)
@@ -127,8 +150,12 @@ def discount_cards(request):
     serializer = DiscountCardSerializer(data=request.data)
 
     if serializer.is_valid():
+        branch = get_branch_or_response(request)
+        if isinstance(branch, Response):
+            return branch
         serializer.save(
-            restaurant=restaurant
+            restaurant=restaurant,
+            branch=branch,
         )
         return Response(
             serializer.data,
@@ -150,10 +177,11 @@ def discount_card_actions(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        card = DiscountCard.objects.get(
-            pk=pk,
-            restaurant=restaurant
-        )
+        card = branch_scoped(
+            request,
+            DiscountCard.objects.filter(pk=pk, restaurant=restaurant),
+            allow_all=True,
+        ).get()
     except DiscountCard.DoesNotExist:
         return Response(
             {"error": "Discount card not found"},
@@ -190,14 +218,17 @@ def discount_card_actions(request, pk):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsCashier])
 def apply_discount_card(request, pk):
-    order = get_object_or_404(Order, id=pk)
+    order = get_object_or_404(
+        branch_scoped(request, Order.objects.filter(id=pk))
+    )
 
     card_number = request.data.get("card_number")
     customer_phone = request.data.get("customer_phone")
 
     card = DiscountCard.objects.filter(
         card_number=card_number,
-        restaurant=order.restaurant
+        restaurant=order.restaurant,
+        branch=order.branch,
     ).first()
 
     if not card:
@@ -268,9 +299,11 @@ def discount_card_details(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     card = get_object_or_404(
-        DiscountCard,
-        id=pk,
-        restaurant=restaurant
+        branch_scoped(
+            request,
+            DiscountCard.objects.filter(id=pk, restaurant=restaurant),
+            allow_all=True,
+        )
     )
 
     orders = card.orders.select_related(
@@ -307,6 +340,7 @@ def order_list_create(request):
             .select_related('table')
             .order_by('-created_at')
         )
+        orders = branch_scoped(request, orders, allow_all=True)
       
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -328,10 +362,13 @@ def order_list_create(request):
         return paginator.get_paginated_response(serializer.data)
 
     elif request.method == 'POST':
+        branch = get_branch_or_response(request)
+        if isinstance(branch, Response):
+            return branch
 
         serializer = OrderSerializer(
             data=request.data,
-            context={'request': request, 'restaurant': restaurant}
+            context={'request': request, 'restaurant': restaurant, 'branch': branch}
         )
 
         if serializer.is_valid():
@@ -355,16 +392,21 @@ def order_list_create(request):
                     ]
 
                     menu_items = {
-                        m.id: m for m in MenuItem.objects.filter(
-                            id__in=menu_item_ids,
-                            restaurant=restaurant
+                        m.id: m for m in scope_order_menu_queryset(
+                            MenuItem.objects.filter(
+                                id__in=menu_item_ids,
+                                restaurant=restaurant
+                            ),
+                            restaurant,
+                            branch,
                         )
                     }
 
-                    validate_production_availability(items_data, menu_items)
+                    validate_production_availability(items_data, menu_items, branch)
 
                     order = serializer.save(
                         restaurant=restaurant,
+                        branch=branch,
                         created_by=staff
                     )
 
@@ -387,10 +429,10 @@ def change_order_table(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        order = Order.objects.select_related("table").get(
-            pk=pk,
-            restaurant=restaurant
-        )
+        order = branch_scoped(
+            request,
+            Order.objects.select_related("table").filter(pk=pk, restaurant=restaurant),
+        ).get()
     except Order.DoesNotExist:
         return Response(
             {"error": "Order not found"},
@@ -418,10 +460,13 @@ def change_order_table(request, pk):
         )
 
     try:
-        new_table = Table.objects.get(
+        new_table = branch_scoped(
+            request,
+            Table.objects.filter(
             id=new_table_id,
             restaurant=restaurant
-        )
+            ),
+        ).get()
     except Table.DoesNotExist:
         return Response(
             {"error": "Table not found"},
@@ -493,8 +538,10 @@ def reservation_list_create(request):
 
 
     if request.method == "GET":
-        reservations = Reservation.objects.filter(
-            restaurant=restaurant
+        reservations = branch_scoped(
+            request,
+            Reservation.objects.filter(restaurant=restaurant),
+            allow_all=True,
         ).select_related("table", "created_by").order_by("-start_time", "id")
 
         status_filter = request.query_params.get("status")
@@ -509,10 +556,18 @@ def reservation_list_create(request):
         return Response(serializer.data)
 
     # ---------------- POST ----------------
-    serializer = ReservationSerializer(data=request.data)
+    branch = get_branch_or_response(request)
+    if isinstance(branch, Response):
+        return branch
+
+    serializer = ReservationSerializer(
+        data=request.data,
+        context={"request": request, "restaurant": restaurant, "branch": branch},
+    )
     if serializer.is_valid():
         serializer.save(
             restaurant=restaurant,
+            branch=branch,
             created_by=request.user.staff_profile
         )
         return Response(serializer.data, status=201)
@@ -528,8 +583,10 @@ class ReservationRetrieveUpdateDestroyView(
     def get_queryset(self):
         restaurant = get_restaurant_from_user(self.request)
 
-        return Reservation.objects.filter(
-            restaurant=restaurant
+        return branch_scoped(
+            self.request,
+            Reservation.objects.filter(restaurant=restaurant),
+            allow_all=True,
         ).select_related(
             "table", "created_by"
         )
@@ -544,6 +601,7 @@ from django.db.models import Q
 def create_online_order(request, slug):
 
     restaurant = get_object_or_404(Restaurant, slug=slug)
+    branch = get_main_branch(restaurant)
 
     subscription = getattr(restaurant, "subscription", None)
     today = timezone.now().date()
@@ -583,7 +641,7 @@ def create_online_order(request, slug):
 
     serializer = OrderSerializer(
         data=request.data,
-        context={"request": request, "restaurant": restaurant}
+        context={"request": request, "restaurant": restaurant, "branch": branch}
     )
 
     if not serializer.is_valid():
@@ -604,16 +662,20 @@ def create_online_order(request, slug):
             ]
 
             menu_items = {
-                m.id: m for m in MenuItem.objects.filter(
-                    id__in=menu_item_ids,
-                    restaurant=restaurant
+                m.id: m for m in scope_order_menu_queryset(
+                    MenuItem.objects.filter(
+                        id__in=menu_item_ids,
+                        restaurant=restaurant
+                    ),
+                    restaurant,
+                    branch,
                 )
             }
 
             # 🔥 IMPORTANT: production validation BEFORE saving
-            validate_production_availability(items_data, menu_items)
+            validate_production_availability(items_data, menu_items, branch)
 
-            order = serializer.save(restaurant=restaurant)
+            order = serializer.save(restaurant=restaurant, branch=branch)
 
     except ValueError as e:
         return Response({"error": str(e)}, status=400)
@@ -649,9 +711,12 @@ def kitchen_orders(request):
     )
 
     orders = (
-        Order.objects.filter(
+        branch_scoped(
+            request,
+            Order.objects.filter(
             restaurant=restaurant,
             order_type__in=["dine-in", "takeaway", "delivery"],
+            ),
         )
         .exclude(status__in=["completed", "cancelled","delivered"]) 
         .annotate(has_active_items=Exists(active_items))
@@ -693,8 +758,9 @@ def ready_kitchen_orders(request):
     recent_time = timezone.now() - timedelta(minutes=30)
 
     orders = (
-        Order.objects.filter(
-            restaurant=restaurant
+        branch_scoped(
+            request,
+            Order.objects.filter(restaurant=restaurant),
         ).filter(
             Q(status="ready") |
             Q(status="served", updated_at__gte=recent_time) |
@@ -717,10 +783,13 @@ def mark_items_printed_to_kitchen(request, order_id):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        order = Order.objects.get(
+        order = branch_scoped(
+            request,
+            Order.objects.filter(
             id=order_id,
             restaurant=restaurant
-        )
+            ),
+        ).get()
     except Order.DoesNotExist:
         return Response(
             {"error": "Order not found"},
@@ -744,7 +813,10 @@ def cancel_order(request, pk):
     
     try:
         # Ensure order belongs to user's restaurant
-        order = Order.objects.select_related("table").get(pk=pk, restaurant=restaurant)
+        order = branch_scoped(
+            request,
+            Order.objects.select_related("table").filter(pk=pk, restaurant=restaurant),
+        ).get()
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
     
@@ -771,7 +843,7 @@ def cancel_order(request, pk):
     elif role=='Manager':
         if order.status not in ["pending"]:
             return Response({"error": "Manager cannot cancel this order now"}, status=status.HTTP_403_FORBIDDEN)
-    elif role == "Admin":
+    elif role in ["Admin", "BranchAdmin"]:
         if order.status in ["completed"]:
             return Response({"error":"Order is already completed"}, status=status.HTTP_403_FORBIDDEN)
     else:
@@ -786,9 +858,10 @@ def cancel_order(request, pk):
 @permission_classes([AllowAny])
 def cancel_online_order(request, slug, pk):
     restaurant = get_object_or_404(Restaurant, slug=slug)
+    branch = get_main_branch(restaurant)
     
     try:
-        order = Order.objects.get(pk=pk, restaurant=restaurant)
+        order = Order.objects.get(pk=pk, restaurant=restaurant, branch=branch)
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -816,7 +889,10 @@ def update_order_status(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        order = Order.objects.get(pk=pk, restaurant=restaurant)
+        order = branch_scoped(
+            request,
+            Order.objects.filter(pk=pk, restaurant=restaurant),
+        ).get()
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -841,6 +917,7 @@ def update_order_status(request, pk):
             now = timezone.now()
             reservation = Reservation.objects.filter(
                 restaurant=restaurant,
+                branch=order.branch,
                 table=order.table,
                 status__in=["reserved", "arrived"],
                 start_time__lte=now
@@ -879,7 +956,11 @@ class OrderRetrieveDestroyView(generics.RetrieveDestroyAPIView):
     def get_queryset(self):
         # Filter queryset based on restaurant
         restaurant = get_restaurant_from_user(self.request)
-        return Order.objects.filter(restaurant=restaurant).prefetch_related('items__menu_item', 'customer')
+        return branch_scoped(
+            self.request,
+            Order.objects.filter(restaurant=restaurant),
+            allow_all=True,
+        ).prefetch_related('items__menu_item', 'customer')
 
 
 @api_view(["PATCH"])
@@ -888,10 +969,13 @@ def add_items_to_order(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        order = Order.objects.select_related("restaurant").get(
-            pk=pk,
-            restaurant=restaurant
-        )
+        order = branch_scoped(
+            request,
+            Order.objects.select_related("restaurant").filter(
+                pk=pk,
+                restaurant=restaurant,
+            ),
+        ).get()
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
@@ -916,17 +1000,25 @@ def add_items_to_order(request, pk):
     # Fetch all at once
     menu_items = {
         m.id: m for m in
-        MenuItem.objects.filter(
-            id__in=menu_item_ids,
-            restaurant=restaurant
+        scope_order_menu_queryset(
+            MenuItem.objects.filter(
+                id__in=menu_item_ids,
+                restaurant=restaurant
+            ),
+            restaurant,
+            order.branch,
         )
     }
 
     platters = {
         p.id: p for p in
-        Platter.objects.filter(
-            id__in=platter_ids,
-            restaurant=restaurant
+        scope_order_menu_queryset(
+            Platter.objects.filter(
+                id__in=platter_ids,
+                restaurant=restaurant
+            ),
+            restaurant,
+            order.branch,
         ).prefetch_related("items__menu_item")
     }
 
@@ -941,7 +1033,7 @@ def add_items_to_order(request, pk):
                 menu_item = menu_items[item["menu_item"]]
 
                 if menu_item.uses_daily_production:
-                    prod = menu_item.get_production()
+                    prod = menu_item.get_production(branch=order.branch)
 
                     if not prod or prod.quantity_remaining < quantity:
                         return Response({
@@ -962,7 +1054,7 @@ def add_items_to_order(request, pk):
                         is_new=True,
                         description=description,
                         added_by=staff,
-                        price_at_order=menu_item.price,
+                        price_at_order=menu_item.get_effective_price(order.branch),
                     )
                 )
             elif item.get("platter") and item["platter"] in platters:
@@ -975,7 +1067,7 @@ def add_items_to_order(request, pk):
                         is_new=True,
                         description=description,
                         added_by=staff,
-                        price_at_order=platter.price,
+                        price_at_order=platter.get_effective_price(order.branch),
                     )
                 )
 
@@ -1027,7 +1119,8 @@ def update_order_item_status(request, pk):
             "order"
         ).get(
             pk=pk,
-            order__restaurant=restaurant
+            order__restaurant=restaurant,
+            order__branch=get_active_branch(request),
         )
 
     except OrderItem.DoesNotExist:
@@ -1112,7 +1205,11 @@ def table_list_create(request):
 
     if request.method == 'GET':
         # Filter tables by restaurant
-        tables = Table.objects.filter(restaurant=restaurant).prefetch_related('orders')
+        tables = branch_scoped(
+            request,
+            Table.objects.filter(restaurant=restaurant),
+            allow_all=True,
+        ).prefetch_related('orders')
         serializer = TableSerializer(tables, many=True,context={"request": request})
         return Response(serializer.data)
     
@@ -1120,10 +1217,17 @@ def table_list_create(request):
         if request.user.staff_profile.is_demo:
             return Response({"detail": "Action restricted in demo mode"}, status=403)
         
-        serializer = TableSerializer(data=request.data)
+        branch = get_branch_or_response(request)
+        if isinstance(branch, Response):
+            return branch
+
+        serializer = TableSerializer(
+            data=request.data,
+            context={"request": request, "restaurant": restaurant, "branch": branch},
+        )
         if serializer.is_valid():
             # Save with restaurant
-            serializer.save(restaurant=restaurant)
+            serializer.save(restaurant=restaurant, branch=branch)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1137,7 +1241,11 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         restaurant = get_restaurant_from_user(self.request)
-        return Table.objects.filter(restaurant=restaurant)
+        return branch_scoped(
+            self.request,
+            Table.objects.filter(restaurant=restaurant),
+            allow_all=True,
+        )
 
     def delete(self, request, *args, **kwargs):
         table = self.get_object()
@@ -1160,7 +1268,10 @@ def assign_delivery(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
-        order = Order.objects.get(pk=pk, restaurant=restaurant)
+        order = branch_scoped(
+            request,
+            Order.objects.filter(pk=pk, restaurant=restaurant),
+        ).get()
     except Order.DoesNotExist:
         return Response(
             {"error": "Order not found"},
@@ -1187,6 +1298,7 @@ def assign_delivery(request, pk):
             pk=delivery_boy_id,
             role="DeliveryBoy",
             restaurant=restaurant,
+            branches=order.branch,
         )
     except Staff.DoesNotExist:
         return Response(
@@ -1239,8 +1351,10 @@ def cashier_orders(request):
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
-    orders = Order.objects.filter(
-        restaurant=restaurant 
+    orders = branch_scoped(
+        request,
+        Order.objects.filter(restaurant=restaurant),
+        allow_all=True,
     ).filter(
         Q(order_type='dine-in', status__in=['served','ready']) |
         (Q(order_type='takeaway') & ~Q(status='completed')) |
@@ -1258,7 +1372,9 @@ def handle_order_bill_print(request, pk):
         return Response({"error": "Restaurant not found"}, status=403)
 
     # get order using pk (NOT query_params)
-    order = get_object_or_404(Order, id=pk, restaurant=restaurant)
+    order = get_object_or_404(
+        branch_scoped(request, Order.objects.filter(id=pk, restaurant=restaurant))
+    )
 
     
 
@@ -1284,9 +1400,12 @@ def cashier_reservations(request):
 
     now = timezone.now()
 
-    reservations = Reservation.objects.filter(
-        restaurant=restaurant,
+    reservations = branch_scoped(
+        request,
+        Reservation.objects.filter(
+            restaurant=restaurant,
         status__in=["reserved", "arrived"]
+        ),
     ).select_related("table").order_by("start_time")
 
     serializer = ReservationSerializer(reservations, many=True)
@@ -1297,9 +1416,10 @@ def mark_reservation_arrived(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     reservation = get_object_or_404(
-        Reservation,
-        pk=pk,
-        restaurant=restaurant
+        branch_scoped(
+            request,
+            Reservation.objects.filter(pk=pk, restaurant=restaurant),
+        )
     )
 
     if reservation.status != "reserved":
@@ -1319,9 +1439,10 @@ def mark_reservation_no_show(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     reservation = get_object_or_404(
-        Reservation,
-        pk=pk,
-        restaurant=restaurant
+        branch_scoped(
+            request,
+            Reservation.objects.filter(pk=pk, restaurant=restaurant),
+        )
     )
 
     if reservation.status != "reserved":
@@ -1340,9 +1461,10 @@ def cancel_reservation(request,pk):
     restaurant = get_restaurant_from_user(request)
 
     reservation = get_object_or_404(
-        Reservation,
-        pk=pk,
-        restaurant=restaurant
+        branch_scoped(
+            request,
+            Reservation.objects.filter(pk=pk, restaurant=restaurant),
+        )
     )
 
     if reservation.status!="reserved":
@@ -1361,7 +1483,9 @@ def cancel_reservation(request,pk):
 @permission_classes([IsAuthenticated])
 def bulk_update_order_items(request, pk):
 
-    order = get_object_or_404(Order, pk=pk)
+    order = get_object_or_404(
+        branch_scoped(request, Order.objects.filter(pk=pk))
+    )
     items_data = request.data.get("items", [])
 
     for i in items_data:
@@ -1397,7 +1521,8 @@ def cancel_order_item(request, pk):
             "order"
         ).get(
             pk=pk,
-            order__restaurant=restaurant
+            order__restaurant=restaurant,
+            order__branch=get_active_branch(request),
         )
 
     except OrderItem.DoesNotExist:
@@ -1433,7 +1558,8 @@ from django.db.models import Q
 def all_discount_requests(request):
 
     discounts = DiscountRequest.objects.filter(
-        order__restaurant=request.user.staff_profile.restaurant
+        order__restaurant=request.user.staff_profile.restaurant,
+        order__branch=get_active_branch(request),
     ).select_related(
         "order",
         "requested_by",
@@ -1469,7 +1595,9 @@ def all_discount_requests(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsCashier])
 def request_discount(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
+    order = get_object_or_404(
+        branch_scoped(request, Order.objects.filter(id=order_id))
+    )
     percent = Decimal(request.data.get("discount_percent", 0))
     reason = request.data.get("reason", "")
 
@@ -1492,7 +1620,11 @@ def request_discount(request, order_id):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def approve_discount_or_reject(request, pk):
-    discount = get_object_or_404(DiscountRequest, id=pk)
+    discount = get_object_or_404(
+        DiscountRequest,
+        id=pk,
+        order__branch=get_active_branch(request),
+    )
 
     staff = request.user.staff_profile
     restaurant = staff.restaurant
@@ -1502,14 +1634,14 @@ def approve_discount_or_reject(request, pk):
     admin_limit = restaurant.admin_discount_limit
     restaurant = staff.restaurant
     if percent <= manager_limit:
-        if staff.role not in ["Manager", "Admin"]:
+        if staff.role not in ["Manager", "Admin", "BranchAdmin"]:
             return Response(
                 {"error": "Only Manager/Admin can approve"},
                 status=403
             )
 
     elif percent <= admin_limit:
-        if staff.role != "Admin":
+        if staff.role not in ["Admin", "BranchAdmin"]:
             return Response(
                 {"error": "Only Admin can approve"},
                 status=403
@@ -1556,6 +1688,7 @@ def manager_pending_discount_requests(request):
 
     qs = DiscountRequest.objects.filter(
         order__restaurant=restaurant,
+        order__branch=get_active_branch(request),
         status="pending"
     ).select_related(
         "order",
@@ -1579,6 +1712,7 @@ def admin_pending_discount_requests(request):
 
     qs=DiscountRequest.objects.filter(
         order__restaurant=restaurant,
+        order__branch=get_active_branch(request),
         status="pending"
     ).select_related(
         "order",

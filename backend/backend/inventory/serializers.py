@@ -1,11 +1,44 @@
 from rest_framework import serializers
-from .models import Ingredient,MenuItemIngredient,StockMovement
+from .models import (
+    Ingredient,
+    IngredientStock,
+    MenuItemIngredient,
+    StockMovement,
+    StockTransfer,
+    StockTransferLog,
+)
+from menu.models import MenuItem
+from restaurants.branching import get_active_branch
+from restaurants.models import Branch
+from .services import (
+    get_effective_cost_per_unit,
+    get_effective_minimum_threshold,
+    get_effective_quantity,
+    get_or_create_ingredient_stock,
+)
 
 class IngredientSerializer(serializers.ModelSerializer):
     menu_items_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Ingredient
         fields = '__all__'
+        read_only_fields = ["restaurant", "branch"]
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if branch and obj.branch_id is None:
+            data["stock_branch"] = None
+            data["is_shared_definition"] = False
+            return data
+        data["stock_branch"] = obj.branch_id
+        data["is_shared_definition"] = False
+
+        return data
 
 class MenuItemIngredientSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.ReadOnlyField(source='ingredient.name')
@@ -25,8 +58,63 @@ class MenuItemIngredientSerializer(serializers.ModelSerializer):
             'quantity_required',
             'ingredient_cost',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+
+        if not restaurant and request and hasattr(request.user, "staff_profile"):
+            restaurant = request.user.staff_profile.restaurant
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if restaurant:
+            menu_items = MenuItem.objects.filter(
+                restaurant=restaurant
+            )
+            if branch:
+                menu_items = menu_items.filter(branch=branch)
+            self.fields["menu_item"].queryset = menu_items
+            ingredients = Ingredient.objects.filter(restaurant=restaurant)
+            if branch:
+                ingredients = ingredients.filter(branch=branch)
+            self.fields["ingredient"].queryset = ingredients
+
+    def validate(self, attrs):
+        menu_item = attrs.get("menu_item", getattr(self.instance, "menu_item", None))
+        ingredient = attrs.get("ingredient", getattr(self.instance, "ingredient", None))
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if menu_item and ingredient and menu_item.restaurant_id != ingredient.restaurant_id:
+            raise serializers.ValidationError(
+                {"ingredient": "This ingredient belongs to another restaurant."}
+            )
+
+        if (
+            branch
+            and ingredient
+            and ingredient.branch_id
+            and ingredient.branch_id != branch.id
+        ):
+            raise serializers.ValidationError(
+                {"ingredient": "This ingredient belongs to another branch."}
+            )
+
+        return attrs
     def get_ingredient_cost(self, obj):
-        return obj.quantity_required * obj.ingredient.cost_per_unit
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+        return obj.quantity_required * get_effective_cost_per_unit(obj.ingredient, branch)
+
+
 class StockMovementSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.ReadOnlyField(source='ingredient.name')
     createt_by_name=serializers.ReadOnlyField(source='created_by.name')
@@ -51,7 +139,110 @@ class StockMovementSerializer(serializers.ModelSerializer):
             "restaurant",
             "related_order",
             "created_by",
+            "branch",
         ]
+        read_only_fields = ["restaurant", "branch", "created_by", "related_order"]
+
+
+class StockTransferLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.ReadOnlyField(source="actor.name")
+
+    class Meta:
+        model = StockTransferLog
+        fields = ["id", "action", "message", "actor", "actor_name", "created_at"]
+
+
+class StockTransferSerializer(serializers.ModelSerializer):
+    ingredient_name = serializers.ReadOnlyField(source="ingredient.name")
+    from_branch_name = serializers.ReadOnlyField(source="from_branch.name")
+    to_branch_name = serializers.ReadOnlyField(source="to_branch.name")
+    created_by_name = serializers.ReadOnlyField(source="created_by.name")
+    approved_by_name = serializers.ReadOnlyField(source="approved_by.name")
+    logs = StockTransferLogSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StockTransfer
+        fields = [
+            "id",
+            "restaurant",
+            "ingredient",
+            "ingredient_name",
+            "from_branch",
+            "from_branch_name",
+            "to_branch",
+            "to_branch_name",
+            "quantity",
+            "status",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "approved_by",
+            "approved_by_name",
+            "created_at",
+            "approved_at",
+            "updated_at",
+            "logs",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "status",
+            "created_by",
+            "approved_by",
+            "created_at",
+            "approved_at",
+            "updated_at",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+
+        if not restaurant and request and hasattr(request.user, "staff_profile"):
+            restaurant = request.user.staff_profile.restaurant
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+
+        if restaurant:
+            ingredients = Ingredient.objects.filter(restaurant=restaurant, is_active=True)
+            if branch:
+                ingredients = ingredients.filter(branch=branch)
+            self.fields["ingredient"].queryset = ingredients
+            self.fields["from_branch"].queryset = Branch.objects.filter(
+                restaurant=restaurant,
+                is_active=True,
+            )
+            self.fields["to_branch"].queryset = Branch.objects.filter(
+                restaurant=restaurant,
+                is_active=True,
+            )
+
+    def validate(self, attrs):
+        from_branch = attrs.get("from_branch", getattr(self.instance, "from_branch", None))
+        to_branch = attrs.get("to_branch", getattr(self.instance, "to_branch", None))
+        quantity = attrs.get("quantity", getattr(self.instance, "quantity", None))
+        ingredient = attrs.get("ingredient", getattr(self.instance, "ingredient", None))
+
+        if from_branch and to_branch and from_branch.id == to_branch.id:
+            raise serializers.ValidationError(
+                {"to_branch": "Destination branch must be different."}
+            )
+
+        if quantity is not None and quantity <= 0:
+            raise serializers.ValidationError(
+                {"quantity": "Quantity must be greater than zero."}
+            )
+
+        if ingredient and from_branch and ingredient.branch_id and ingredient.branch_id != from_branch.id:
+            raise serializers.ValidationError(
+                {"ingredient": "This ingredient does not belong to the source branch."}
+            )
+
+        if ingredient and from_branch and ingredient.branch_id is None:
+            get_or_create_ingredient_stock(ingredient, from_branch)
+
+        return attrs
 
 
 from rest_framework import serializers
@@ -61,6 +252,8 @@ from .models import Ingredient
 class IngredientUsageSerializer(serializers.ModelSerializer):
 
     menu_items = serializers.SerializerMethodField()
+    quantity_available = serializers.SerializerMethodField()
+    minimum_threshold = serializers.SerializerMethodField()
 
     class Meta:
         model = Ingredient
@@ -73,7 +266,21 @@ class IngredientUsageSerializer(serializers.ModelSerializer):
             "menu_items"
         ]
 
+    def _branch(self):
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+        return branch
+
+    def get_quantity_available(self, obj):
+        return get_effective_quantity(obj, self._branch())
+
+    def get_minimum_threshold(self, obj):
+        return get_effective_minimum_threshold(obj, self._branch())
+
     def get_menu_items(self, obj):
+        branch = self._branch()
 
         recipes = obj.menu_items.select_related(
             "menu_item"
@@ -83,9 +290,9 @@ class IngredientUsageSerializer(serializers.ModelSerializer):
             {
                 "id": recipe.menu_item.id,
                 "name": recipe.menu_item.name,
-                "price": recipe.menu_item.price,
+                "price": recipe.menu_item.get_effective_price(branch),
                 "quantity_required": recipe.quantity_required,
-                "is_available": recipe.menu_item.is_available
+                "is_available": recipe.menu_item.is_available_for_branch(branch)
             }
             for recipe in recipes
         ]

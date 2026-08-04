@@ -37,34 +37,44 @@ class StaffReportService:
         return round(float(value or 0), 2)
 
     @staticmethod
-    def summary(start, end, restaurant=None):
+    def summary(start, end, restaurant=None, branch=None):
         start_dt, end_dt = StaffReportService._parse_range(start, end)
         start_date = start_dt.date()
         end_date = end_dt.date()
 
         # ── Base querysets ──────────────────────────────────────────────────
         staff_qs = Staff.objects.filter(restaurant=restaurant)
+        if branch:
+            staff_qs = staff_qs.filter(branches=branch).distinct()
 
         orders_qs = Order.objects.filter(
             restaurant=restaurant,
             created_at__range=[start_dt, end_dt],
         )
+        if branch:
+            orders_qs = orders_qs.filter(branch=branch)
 
         attendance_qs = Attendance.objects.filter(
             restaurant=restaurant,
             date__range=[start_date, end_date],
         )
+        if branch:
+            attendance_qs = attendance_qs.filter(branch=branch)
 
         payroll_qs = Payroll.objects.filter(
             restaurant=restaurant,
             period_start__lte=end_date,
             period_end__gte=start_date,
         )
+        if branch:
+            payroll_qs = payroll_qs.filter(branch=branch)
 
         reservation_qs = Reservation.objects.filter(
             restaurant=restaurant,
             created_at__range=[start_dt, end_dt],
         )
+        if branch:
+            reservation_qs = reservation_qs.filter(branch=branch)
 
         # ── Staff counts ────────────────────────────────────────────────────
         total_staff = staff_qs.count()

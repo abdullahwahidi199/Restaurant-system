@@ -1,6 +1,6 @@
 # services.py or utils.py - Add this function
 from .models import Production
-def adjust_production_quantity(menu_item, action, amount, staff=None):
+def adjust_production_quantity(menu_item, action, amount, branch, staff=None):
     """
     Increment or decrement production for a menu item.
     
@@ -15,8 +15,10 @@ def adjust_production_quantity(menu_item, action, amount, staff=None):
     """
     if action not in ['increment', 'decrement']:
         raise ValueError("Action must be 'increment' or 'decrement'")
+    if not branch:
+        raise ValueError("An active branch is required")
 
-    production = getattr(menu_item, 'production', None)
+    production = menu_item.get_production(branch=branch)
 
     if action == 'increment':
         if production:
@@ -28,6 +30,7 @@ def adjust_production_quantity(menu_item, action, amount, staff=None):
             production = Production.objects.create(
                 menu_item=menu_item,
                 restaurant=menu_item.restaurant,
+                branch=branch,
                 quantity_produced=amount,
                 quantity_remaining=amount,
                 created_by=staff

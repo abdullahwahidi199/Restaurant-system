@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from restaurants.models import Restaurant
+from restaurants.models import Restaurant, Branch
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -10,6 +10,13 @@ from django.core.files.base import ContentFile
 class Shift(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="shifts",null=True,
     blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="shifts",
+        null=True,
+        blank=True,
+    )
 
     shift_type = models.CharField(max_length=50)
     start_time = models.TimeField()
@@ -20,9 +27,13 @@ class Shift(models.Model):
     
 
 class Staff(models.Model):
+    BRANCH_ADMIN_ROLE = "BranchAdmin"
+    ALL_BRANCH_ACCESS_ROLES = {"Admin", "SuperAdmin"}
+
     ROLE_CHOICES=[
         ('SuperAdmin','Super Admin'),
         ('Admin','Admin'),
+        ('BranchAdmin','Branch Admin'),
         ('Manager','Manager'),
         ('Cashier','Cashier'),
         ('Call_operator','Call Operator'),
@@ -39,6 +50,18 @@ class Staff(models.Model):
     email=models.EmailField(unique=True)
     role=models.CharField(max_length=20,choices=ROLE_CHOICES)
     restaurant=models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name="staff",null=True,blank=True)
+    branches = models.ManyToManyField(
+        Branch,
+        related_name="staff_members",
+        blank=True
+    )
+    active_branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        related_name="active_staff",
+        null=True,
+        blank=True
+    )
     custom_role=models.CharField(max_length=50,null=True,blank=True)
     shift=models.ForeignKey(Shift,on_delete=models.SET_NULL,related_name="staff",null=True,blank=True)
     phone=models.CharField(max_length=15,unique=True)
@@ -56,6 +79,73 @@ class Staff(models.Model):
         if self.role=="Other" and self.custom_role:
             return f"{self.name} ({self.custom_role})"
         return f"{self.name} ({self.role})"
+
+    @property
+    def has_all_branch_access(self):
+        return self.role in self.ALL_BRANCH_ACCESS_ROLES
+
+    @property
+    def is_branch_admin(self):
+        return self.role == self.BRANCH_ADMIN_ROLE
+
+    @property
+    def can_switch_branches(self):
+        return self.has_all_branch_access
+
+    def get_assigned_branch(self):
+        if not self.restaurant_id:
+            return None
+
+        assigned = self.branches.filter(
+            is_active=True,
+            restaurant=self.restaurant,
+        )
+
+        if self.active_branch_id and assigned.filter(id=self.active_branch_id).exists():
+            return self.active_branch
+
+        return assigned.order_by("id").first()
+
+    def get_available_branches(self):
+        if not self.restaurant:
+            return Branch.objects.none()
+
+        if self.has_all_branch_access:
+            return self.restaurant.branches.filter(is_active=True)
+
+        if self.is_branch_admin:
+            assigned_branch = self.get_assigned_branch()
+            if assigned_branch:
+                return Branch.objects.filter(id=assigned_branch.id)
+            return Branch.objects.none()
+
+        return self.branches.filter(is_active=True, restaurant=self.restaurant)
+
+    def can_access_branch(self, branch):
+        if not branch or branch.restaurant_id != self.restaurant_id:
+            return False
+
+        if self.has_all_branch_access:
+            return True
+
+        if self.is_branch_admin:
+            assigned_branch = self.get_assigned_branch()
+            return bool(assigned_branch and assigned_branch.id == branch.id)
+
+        return self.branches.filter(id=branch.id).exists()
+
+    def get_or_set_active_branch(self):
+        branches = self.get_available_branches()
+
+        if self.active_branch and branches.filter(id=self.active_branch_id).exists():
+            return self.active_branch
+
+        branch = branches.first()
+        if branch:
+            self.active_branch = branch
+            self.save(update_fields=["active_branch"])
+
+        return branch
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -96,8 +186,24 @@ class Attendance(models.Model):
     date=models.DateField() 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Present')
     restaurant=models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name="attendances",null=True,blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="attendances",
+        null=True,
+        blank=True,
+    )
     class Meta:
         unique_together = ('staff', 'date','shift')
+
+    def save(self, *args, **kwargs):
+        if self.branch_id and self.staff_id and not self.staff.can_access_branch(self.branch):
+            raise ValueError("Attendance staff cannot access this branch.")
+
+        if self.branch_id and self.shift_id and self.shift.branch_id != self.branch_id:
+            raise ValueError("Attendance shift belongs to another branch.")
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.staff.name} - {self.date} - {self.status}"
@@ -112,6 +218,13 @@ class Payroll(models.Model):
     bonuses=models.DecimalField(max_digits=10, decimal_places=2,default=0)
     generated_at=models.DateTimeField(default=timezone.now)
     restaurant=models.ForeignKey(Restaurant,on_delete=models.CASCADE,related_name="payrolls",null=True,blank=True)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name="payrolls",
+        null=True,
+        blank=True,
+    )
     class Meta:
         unique_together=('staff','period_start','period_end')
 
@@ -122,6 +235,9 @@ class Payroll(models.Model):
         return self.net_salary
 
     def save(self,*args,**kwargs):
+        if self.branch_id and self.staff_id and not self.staff.can_access_branch(self.branch):
+            raise ValueError("Payroll staff cannot access this branch.")
+
         self.calculate_net_salary()
         super().save(*args,**kwargs)
 

@@ -59,8 +59,8 @@ export default function useOrdersSocket(onMessage) {
     console.log("🔗 Connecting to WS...");
 
     const socket = new WebSocket(
-      `wss://pakhlai.com/ws/orders/${restaurantId}/`,
-      // `ws://127.0.0.1:8001/ws/orders/${restaurantId}/`,
+      // `wss://pakhlai.com/ws/orders/${restaurantId}/`,
+      `ws://127.0.0.1:8001/ws/orders/${restaurantId}/`,
     );
 
     socketRef.current = socket;

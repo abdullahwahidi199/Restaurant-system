@@ -4,7 +4,7 @@ class ExpensesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expenses
         fields = '__all__'
-        read_only_fields = ['restaurant']
+        read_only_fields = ['restaurant', 'branch']
     
 class ExpenseHistorySerializer(serializers.ModelSerializer):
     class Meta:

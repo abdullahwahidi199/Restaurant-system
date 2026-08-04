@@ -66,7 +66,7 @@ class HasStaffRole(BasePermission):
 # ===== Specific Roles =====
 
 class IsRestaurantAdmin(HasStaffRole):
-    allowed_roles = ["Admin"]
+    allowed_roles = ["Admin", "BranchAdmin"]
 
 
 class IsCashier(HasStaffRole):

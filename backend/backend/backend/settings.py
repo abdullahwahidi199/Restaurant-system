@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from pathlib import Path
 import dj_database_url
+from corsheaders.defaults import default_headers
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -91,6 +92,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://restaurant-frontend-git-main-rmss-projects-a596e3ee.vercel.app",
     "https://restaurant-frontend-gamma-nine.vercel.app"
 ]
+
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-branch-id",
+)
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
