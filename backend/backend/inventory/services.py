@@ -310,7 +310,7 @@ def post_purchase_invoice_inventory(invoice, created_by=None):
     invoice = (
         PurchaseInvoice.objects
         .select_for_update()
-        .select_related("branch", "supplier")
+        .select_related("branch")
         .prefetch_related("lines__ingredient")
         .get(pk=invoice.pk)
     )
@@ -412,6 +412,10 @@ def create_purchase_invoice(data, restaurant, branch, created_by=None):
                 branch=branch,
                 created_by=created_by,
             )
+        elif not supplier:
+            invoice.amount_paid = initial_paid
+            invoice.status = _invoice_status(invoice.total_amount, initial_paid)
+            invoice.save(update_fields=["amount_paid", "status", "updated_at"])
         else:
             invoice.refresh_totals_and_status(save=True)
 

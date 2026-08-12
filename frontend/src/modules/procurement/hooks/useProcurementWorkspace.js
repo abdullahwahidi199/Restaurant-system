@@ -84,12 +84,8 @@ export default function useProcurementWorkspace({
     (sum, line) => sum + Number(line.total_price || 0),
     0,
   );
-  const paidInitially = invoiceForm.supplier
-    ? Number(invoiceForm.amount_paid || 0)
-    : invoiceTotal;
-  const remainingBalance = invoiceForm.supplier
-    ? Math.max(invoiceTotal - paidInitially, 0)
-    : 0;
+  const paidInitially = Number(invoiceForm.amount_paid || 0);
+  const remainingBalance = Math.max(invoiceTotal - paidInitially, 0);
   const stats = useMemo(
     () => getProcurementStats({ invoices, suppliers, payments }),
     [invoices, suppliers, payments],
@@ -246,7 +242,7 @@ export default function useProcurementWorkspace({
         setError("Add at least one valid ingredient line.");
         return;
       }
-      if (invoiceForm.supplier && Number(invoiceForm.amount_paid || 0) > invoiceTotal) {
+      if (Number(invoiceForm.amount_paid || 0) > invoiceTotal) {
         setError("Initial payment cannot be more than the invoice total.");
         return;
       }
@@ -255,7 +251,7 @@ export default function useProcurementWorkspace({
         invoice_number: invoiceForm.invoice_number,
         purchase_date: invoiceForm.purchase_date,
         due_date: invoiceForm.due_date || null,
-        amount_paid: invoiceForm.supplier ? invoiceForm.amount_paid || 0 : invoiceTotal,
+        amount_paid: invoiceForm.amount_paid || 0,
         payment_method: invoiceForm.payment_method,
         notes: invoiceForm.notes,
         status,

@@ -72,20 +72,18 @@ export default function CreatePurchaseInvoice({
             <SummaryRow label="Amount Paid" value={money(paidInitially)} />
             <SummaryRow label="Remaining" value={money(remainingBalance)} strong />
           </div>
-          {form.supplier && (
-            <div className="mt-5 space-y-4">
-              <Field label="Amount Paid Initially">
-                <input type="number" step="0.01" value={form.amount_paid} onChange={(event) => onField("amount_paid", event.target.value)} className={inputClass} />
-              </Field>
-              <Field label="Payment Method">
-                <select value={form.payment_method} onChange={(event) => onField("payment_method", event.target.value)} className={inputClass}>
-                  {paymentMethods.map((method) => (
-                    <option key={method.value} value={method.value}>{method.label}</option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          )}
+          <div className="mt-5 space-y-4">
+            <Field label="Amount Paid Initially">
+              <input type="number" step="0.01" value={form.amount_paid} onChange={(event) => onField("amount_paid", event.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Payment Method">
+              <select value={form.payment_method} onChange={(event) => onField("payment_method", event.target.value)} className={inputClass}>
+                {paymentMethods.map((method) => (
+                  <option key={method.value} value={method.value}>{method.label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
         </Panel>
         <div className="sticky bottom-4 grid gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-xl shadow-slate-200/60 backdrop-blur">
           <ActionButton type="button" variant="primary" icon={Check} loading={saving} onClick={() => onSubmit("unpaid")}>

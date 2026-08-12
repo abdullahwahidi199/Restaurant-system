@@ -381,8 +381,13 @@ class PurchaseInvoice(models.Model):
             else:
                 status = self.STATUS_PAID
         else:
-            paid = total
-            status = self.STATUS_PAID
+            paid = Decimal(self.amount_paid or 0)
+            if paid <= 0:
+                status = self.STATUS_UNPAID
+            elif paid < total:
+                status = self.STATUS_PARTIALLY_PAID
+            else:
+                status = self.STATUS_PAID
 
         self.total_amount = total
         self.amount_paid = min(paid, total) if total else Decimal("0.00")
