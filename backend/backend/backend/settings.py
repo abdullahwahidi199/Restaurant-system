@@ -139,25 +139,25 @@ TRUSTED_PROXY_IPS = [
     for ip in os.environ.get("TRUSTED_PROXY_IPS", "").split(",")
     if ip.strip()
 ]
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rms_db',
-        'USER':'rms_user',
-        'PASSWORD':'AbdullahWahidi123',
-        'HOST':'localhost',
-        'PORT':'5432'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'rms_db',
+#         'USER':'rms_user',
+#         'PASSWORD':'AbdullahWahidi123',
+#         'HOST':'localhost',
+#         'PORT':'5432'
+#     }
+# }
 
 RATELIMIT_IP_META_KEY = "HTTP_CF_CONNECTING_IP"
 BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 from datetime import timedelta

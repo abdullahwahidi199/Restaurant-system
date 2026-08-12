@@ -185,11 +185,21 @@ export default function useProcurementWorkspace({
   }, [loadPayments]);
 
   const updateInvoiceField = (field, value) => {
-    setInvoiceForm((current) => ({
-      ...current,
-      [field]: value,
-      amount_paid: field === "supplier" && !value ? "" : current.amount_paid,
-    }));
+    setInvoiceForm((current) => {
+      if (field === "amount_paid") {
+        const amount = value.replace(",", ".");
+        if (amount && !/^\d*(\.\d{0,2})?$/.test(amount)) {
+          return current;
+        }
+        return { ...current, amount_paid: amount };
+      }
+
+      const next = { ...current, [field]: value };
+      if (field === "supplier" && !value) {
+        next.amount_paid = "";
+      }
+      return next;
+    });
   };
 
   const updateLine = (key, field, value) => {
@@ -242,7 +252,12 @@ export default function useProcurementWorkspace({
         setError("Add at least one valid ingredient line.");
         return;
       }
-      if (Number(invoiceForm.amount_paid || 0) > invoiceTotal) {
+      const amountPaid = Number(invoiceForm.amount_paid || 0);
+      if (!Number.isFinite(amountPaid)) {
+        setError("Enter a valid initial payment amount.");
+        return;
+      }
+      if (amountPaid > invoiceTotal) {
         setError("Initial payment cannot be more than the invoice total.");
         return;
       }
@@ -251,7 +266,7 @@ export default function useProcurementWorkspace({
         invoice_number: invoiceForm.invoice_number,
         purchase_date: invoiceForm.purchase_date,
         due_date: invoiceForm.due_date || null,
-        amount_paid: invoiceForm.amount_paid || 0,
+        amount_paid: amountPaid,
         payment_method: invoiceForm.payment_method,
         notes: invoiceForm.notes,
         status,

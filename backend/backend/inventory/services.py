@@ -196,7 +196,7 @@ def deduct_stock_for_order(order):
     # ✅ Recalculate availability only once at the end
     recalc_menu_availability(ingredient_ids)
 from django.db import transaction
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from .models import (
     Ingredient,
@@ -215,7 +215,10 @@ MONEY_QUANT = Decimal("0.01")
 def _decimal(value, default="0"):
     if value in [None, ""]:
         return Decimal(default)
-    return Decimal(str(value))
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError("Enter a valid amount.") from exc
 
 
 def _money(value):
@@ -310,7 +313,6 @@ def post_purchase_invoice_inventory(invoice, created_by=None):
     invoice = (
         PurchaseInvoice.objects
         .select_for_update()
-        .select_related("branch")
         .prefetch_related("lines__ingredient")
         .get(pk=invoice.pk)
     )

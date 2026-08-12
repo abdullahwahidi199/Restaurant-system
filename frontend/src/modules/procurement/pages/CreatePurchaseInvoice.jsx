@@ -74,7 +74,7 @@ export default function CreatePurchaseInvoice({
           </div>
           <div className="mt-5 space-y-4">
             <Field label="Amount Paid Initially">
-              <input type="number" step="0.01" value={form.amount_paid} onChange={(event) => onField("amount_paid", event.target.value)} className={inputClass} />
+              <input type="text" inputMode="decimal" value={form.amount_paid} onChange={(event) => onField("amount_paid", event.target.value)} className={inputClass} />
             </Field>
             <Field label="Payment Method">
               <select value={form.payment_method} onChange={(event) => onField("payment_method", event.target.value)} className={inputClass}>
