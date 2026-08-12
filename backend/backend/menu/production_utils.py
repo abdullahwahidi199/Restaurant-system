@@ -1,10 +1,28 @@
 # menu/production_utils.py
 from decimal import Decimal
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 
 from inventory.models import MenuItemIngredient, Ingredient, StockMovement
 from .models import Production
+
+
+def _recipe_items_for_branch(menu_item, branch):
+    recipes = MenuItemIngredient.objects.select_related("ingredient").filter(
+        menu_item=menu_item,
+    )
+    if branch:
+        recipes = recipes.filter(
+            Q(ingredient__branch=branch) | Q(ingredient__branch__isnull=True)
+        )
+    return recipes
+
+
+def _locked_recipe_ingredient(recipe, branch):
+    ingredient = Ingredient.objects.select_for_update().get(id=recipe.ingredient_id)
+    if branch and ingredient.branch_id and ingredient.branch_id != branch.id:
+        raise ValueError("Ingredient stock belongs to another branch.")
+    return ingredient
 
 
 @transaction.atomic
@@ -29,9 +47,7 @@ def create_or_replace_production(menu_item, quantity, branch, created_by=None, n
     Production.objects.filter(menu_item=menu_item, branch=branch).delete()
 
     # Deduct ingredients for the WHOLE batch (once, not per order)
-    recipe_items = MenuItemIngredient.objects.select_related(
-        "ingredient"
-    ).filter(menu_item=menu_item, ingredient__branch=branch)
+    recipe_items = _recipe_items_for_branch(menu_item, branch)
 
     qty_decimal = Decimal(str(quantity))
     insufficient = []
@@ -39,10 +55,7 @@ def create_or_replace_production(menu_item, quantity, branch, created_by=None, n
 
     for recipe in recipe_items:
         required = recipe.quantity_required * qty_decimal
-        ingredient = Ingredient.objects.select_for_update().get(
-            id=recipe.ingredient_id,
-            branch=branch,
-        )
+        ingredient = _locked_recipe_ingredient(recipe, branch)
         if ingredient.quantity_available < required:
             insufficient.append(
                 f"{ingredient.name} (need {required}, have {ingredient.quantity_available})"
@@ -109,9 +122,7 @@ def adjust_production(production, new_quantity, notes=None):
 
     menu_item = production.menu_item
     branch = production.branch
-    recipe_items = MenuItemIngredient.objects.select_related(
-        "ingredient"
-    ).filter(menu_item=menu_item, ingredient__branch=branch)
+    recipe_items = _recipe_items_for_branch(menu_item, branch)
 
     diff_decimal = Decimal(str(abs(diff)))
 
@@ -120,10 +131,7 @@ def adjust_production(production, new_quantity, notes=None):
         insufficient = []
         for recipe in recipe_items:
             required = recipe.quantity_required * diff_decimal
-            ing = Ingredient.objects.select_for_update().get(
-                id=recipe.ingredient_id,
-                branch=branch,
-            )
+            ing = _locked_recipe_ingredient(recipe, branch)
             if ing.quantity_available < required:
                 insufficient.append(ing.name)
         if insufficient:
@@ -266,9 +274,7 @@ def clear_production(menu_item, branch, refund_remaining=False):
         return None
 
     if refund_remaining and production.quantity_remaining > 0:
-        recipe_items = MenuItemIngredient.objects.select_related(
-            "ingredient"
-        ).filter(menu_item=menu_item, ingredient__branch=branch)
+        recipe_items = _recipe_items_for_branch(menu_item, branch)
 
         remaining_decimal = Decimal(str(production.quantity_remaining))
         movements = []

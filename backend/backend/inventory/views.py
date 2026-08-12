@@ -322,16 +322,27 @@ class MenuItemIngredientListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsRestaurantAdmin | IsInventoryManager |IsOperationsManager , IsSameRestaurant, IsRestaurantActive]
 
     def get_queryset(self):
-        restaurant = self.request.user.staff_profile.restaurant
+        staff = self.request.user.staff_profile
+        restaurant = staff.restaurant
         qs = MenuItemIngredient.objects.filter(
             menu_item__restaurant=restaurant,
         )
-        qs = filter_queryset_for_request(
+        branch = get_requested_branch(
             self.request,
-            qs,
-            branch_field="ingredient__branch",
-            allow_all_for_admin=True,
+            allow_all=True,
+            raise_exception=False,
         )
+        if branch:
+            qs = qs.filter(
+                Q(menu_item__branch=branch) | Q(menu_item__branch__isnull=True),
+                Q(ingredient__branch=branch) | Q(ingredient__branch__isnull=True),
+            )
+        elif not staff.has_all_branch_access:
+            branches = staff.get_available_branches()
+            qs = qs.filter(
+                Q(menu_item__branch__in=branches) | Q(menu_item__branch__isnull=True),
+                Q(ingredient__branch__in=branches) | Q(ingredient__branch__isnull=True),
+            )
         return qs.select_related('menu_item', 'ingredient')
 
     def get_serializer_context(self):
@@ -368,16 +379,27 @@ class MenuItemIngredientDeleteView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsRestaurantAdmin | IsInventoryManager |IsOperationsManager, IsRestaurantActive, IsSameRestaurant]
 
     def get_queryset(self):
-        restaurant = self.request.user.staff_profile.restaurant
+        staff = self.request.user.staff_profile
+        restaurant = staff.restaurant
         qs = MenuItemIngredient.objects.filter(
             menu_item__restaurant=restaurant,
         )
-        qs = filter_queryset_for_request(
+        branch = get_requested_branch(
             self.request,
-            qs,
-            branch_field="ingredient__branch",
-            allow_all_for_admin=True,
+            allow_all=True,
+            raise_exception=False,
         )
+        if branch:
+            qs = qs.filter(
+                Q(menu_item__branch=branch) | Q(menu_item__branch__isnull=True),
+                Q(ingredient__branch=branch) | Q(ingredient__branch__isnull=True),
+            )
+        elif not staff.has_all_branch_access:
+            branches = staff.get_available_branches()
+            qs = qs.filter(
+                Q(menu_item__branch__in=branches) | Q(menu_item__branch__isnull=True),
+                Q(ingredient__branch__in=branches) | Q(ingredient__branch__isnull=True),
+            )
         return qs
 
     def get_serializer_context(self):

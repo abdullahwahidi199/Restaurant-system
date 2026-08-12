@@ -17,7 +17,10 @@ import {
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
+import {
+  PUBLIC_MENU_DARK_THEME,
+  buildThemedImagePlaceholder,
+} from "../../theme/themeRuntime";
 
 /* ═══════════════════════════════════════════
    IMAGE WRAPPER (Luxury style)
@@ -165,7 +168,10 @@ export default function MenuItemDetails() {
   /* ────── LOADING ────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden">
+      <div
+        className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden"
+        style={PUBLIC_MENU_DARK_THEME}
+      >
         <style>{`
           @keyframes shimmerText {
             0% { background-position: 200% center; }
@@ -208,7 +214,10 @@ export default function MenuItemDetails() {
   /* ────── ERROR ────── */
   if (error || !itemDetails) {
     return (
-      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden">
+      <div
+        className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden"
+        style={PUBLIC_MENU_DARK_THEME}
+      >
         <style>{`
           @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
@@ -258,7 +267,10 @@ export default function MenuItemDetails() {
   const totalPrice = (parseFloat(itemDetails.price) * quantity).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-[var(--theme-text-primary)] pb-32 md:pb-8 relative overflow-x-hidden">
+    <div
+      className="min-h-screen bg-[var(--theme-text-primary)] pb-32 md:pb-8 relative overflow-x-hidden"
+      style={PUBLIC_MENU_DARK_THEME}
+    >
       {/* Global Keyframes */}
       <style>{`
         @keyframes fadeInUp {
@@ -301,7 +313,10 @@ export default function MenuItemDetails() {
 
         .btn-gold {
           background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
-          color: var(--theme-text-primary);
+          background: linear-gradient(135deg, var(--theme-secondary), color-mix(in srgb, var(--theme-secondary) 75%, white));
+          color: #05070a;
+          font-weight: 700;
+          text-shadow: 0 1px 0 rgb(255 255 255 / 0.18);
           transition: all 0.3s ease;
         }
         .btn-gold:hover {

@@ -22,7 +22,10 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import { useTranslation } from "react-i18next";
-import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
+import {
+  PUBLIC_MENU_DARK_THEME,
+  buildThemedImagePlaceholder,
+} from "../../theme/themeRuntime";
 
 /* ═══════════════════════════════════════════
    LANGUAGE CONFIG
@@ -219,6 +222,66 @@ const ShimmerText = ({ children, className = "" }) => (
 /* ═══════════════════════════════════════════
    LANGUAGE SWITCHER COMPONENT
 ═══════════════════════════════════════════ */
+const normalizeMenuCollection = (items, type, categoryId = null) => {
+  const seen = new Set();
+
+  return (items || []).reduce((acc, item) => {
+    const itemCategoryId = item.category ?? item.category_id ?? null;
+
+    if (
+      categoryId !== null &&
+      itemCategoryId !== null &&
+      String(itemCategoryId) !== String(categoryId)
+    ) {
+      return acc;
+    }
+
+    const key = `${type}:${item.id}`;
+    if (seen.has(key)) return acc;
+
+    seen.add(key);
+    acc.push({
+      ...item,
+      category: itemCategoryId,
+      type,
+      cartKey: key,
+    });
+    return acc;
+  }, []);
+};
+
+const normalizePublicCategories = (categoriesData) => {
+  const realCategories = (categoriesData || []).map((category) => ({
+    ...category,
+    menu_items: normalizeMenuCollection(
+      category.menu_items,
+      "menu_item",
+      category.id,
+    ),
+    platters: normalizeMenuCollection(category.platters, "platter", category.id),
+  }));
+
+  const allItems = normalizeMenuCollection(
+    realCategories.flatMap((category) => category.menu_items || []),
+    "menu_item",
+  );
+  const allPlatters = normalizeMenuCollection(
+    realCategories.flatMap((category) => category.platters || []),
+    "platter",
+  );
+
+  return [
+    {
+      id: "all",
+      name: "All",
+      description: "Explore our complete curated collection",
+      menu_items: allItems,
+      platters: allPlatters,
+    },
+    ...realCategories,
+  ];
+};
+
 const LanguageSwitcher = ({ i18n }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -412,16 +475,7 @@ export default function PublicMenu() {
       setError(null);
       const res = await instance.get(`/menu/public/${slug}/categories/`);
       const categoriesData = res.data || [];
-
-      const allCategory = {
-        id: "all",
-        name: "All",
-        description: "Explore our complete curated collection",
-        menu_items: categoriesData.flatMap((c) => c.menu_items || []),
-        platters: categoriesData.flatMap((c) => c.platters || []),
-      };
-
-      setCategories([allCategory, ...categoriesData]);
+      setCategories(normalizePublicCategories(categoriesData));
     } catch (err) {
       console.error("Error fetching menu:", err);
       setError("Unable to load menu. Please try again later.");
@@ -473,18 +527,29 @@ export default function PublicMenu() {
     }
   }, [selectedCategory, categories]);
 
+  const getCartKey = (item) =>
+    item.cartKey || `${item.type || "menu_item"}:${item.id}`;
+
   const addToCart = useCallback((item) => {
+    const cartKey = getCartKey(item);
+
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const existing = prev.find(
+        (i) => (i.cartKey || `${i.type || "menu_item"}:${i.id}`) === cartKey,
+      );
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
+          (i.cartKey || `${i.type || "menu_item"}:${i.id}`) === cartKey
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
         );
       }
       return [
         ...prev,
         {
           id: item.id,
+          type: item.type || "menu_item",
+          cartKey,
           name: item.name,
           name_dari: item.name_dari,
           name_pashto: item.name_pashto,
@@ -494,7 +559,7 @@ export default function PublicMenu() {
         },
       ];
     });
-    setAddedItemId(item.id);
+    setAddedItemId(cartKey);
     setTimeout(() => setAddedItemId(null), 600);
   }, []);
   const menuItems = useMemo(() => {
@@ -504,23 +569,27 @@ export default function PublicMenu() {
       ...(cat.menu_items || []).map((i) => ({
         ...i,
         type: "menu_item",
+        cartKey: i.cartKey || `menu_item:${i.id}`,
       })),
       ...(cat.platters || []).map((p) => ({
         ...p,
         type: "platter",
+        cartKey: p.cartKey || `platter:${p.id}`,
       })),
     ]);
   }, [categories]);
-  const getMenuItem = (id) => {
-    return menuItems.find((i) => i.id === id);
+  const getMenuItem = (cartKey) => {
+    return menuItems.find((i) => getCartKey(i) === cartKey);
   };
-  const incrementItem = (id) => {
-    const item = getMenuItem(id);
+  const incrementItem = (cartKey) => {
+    const item = getMenuItem(cartKey);
     if (!item) return;
 
     setCart((prev) =>
       prev.map((i) => {
-        if (i.id !== id) return i;
+        if ((i.cartKey || `${i.type || "menu_item"}:${i.id}`) !== cartKey) {
+          return i;
+        }
 
         // apply limit ONLY if item uses daily production
         if (
@@ -536,16 +605,24 @@ export default function PublicMenu() {
     );
   };
 
-  const decrementItem = (id) => {
+  const decrementItem = (cartKey) => {
     setCart((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .map((i) =>
+          (i.cartKey || `${i.type || "menu_item"}:${i.id}`) === cartKey
+            ? { ...i, quantity: i.quantity - 1 }
+            : i,
+        )
         .filter((i) => i.quantity > 0),
     );
   };
 
-  const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
+  const removeFromCart = (cartKey) => {
+    setCart((prev) =>
+      prev.filter(
+        (i) => (i.cartKey || `${i.type || "menu_item"}:${i.id}`) !== cartKey,
+      ),
+    );
   };
 
   const clearCart = () => setCart([]);
@@ -553,7 +630,15 @@ export default function PublicMenu() {
   const getCategoryCount = (category) =>
     (category.menu_items?.length || 0) + (category.platters?.length || 0);
 
-  const getItemQuantity = (id) => cart.find((i) => i.id === id)?.quantity || 0;
+  const formatCategoryCount = (count) => String(count).padStart(2, "0");
+
+  const getItemQuantity = (item) => {
+    const cartKey = getCartKey(item);
+    return (
+      cart.find((i) => (i.cartKey || `${i.type || "menu_item"}:${i.id}`) === cartKey)
+        ?.quantity || 0
+    );
+  };
 
   const cartTotals = useMemo(() => {
     const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -571,8 +656,16 @@ export default function PublicMenu() {
     const platters = selectedCategory.platters || [];
 
     const allItems = [
-      ...menuItems.map((i) => ({ ...i, type: "menu_item" })),
-      ...platters.map((p) => ({ ...p, type: "platter" })),
+      ...menuItems.map((i) => ({
+        ...i,
+        type: "menu_item",
+        cartKey: i.cartKey || `menu_item:${i.id}`,
+      })),
+      ...platters.map((p) => ({
+        ...p,
+        type: "platter",
+        cartKey: p.cartKey || `platter:${p.id}`,
+      })),
     ];
 
     if (!searchQuery.trim()) return allItems;
@@ -601,10 +694,38 @@ export default function PublicMenu() {
       : `${import.meta.env.VITE_MEDIA_URL || ""}${logo}`;
   };
 
+  const getLocalizedCategoryName = (category) => {
+    if (!category) return "";
+    if (i18n.language === "fa") return category.name_dari || category.name;
+    if (i18n.language === "ps") return category.name_pashto || category.name;
+    return category.name;
+  };
+
+  const getLocalizedItemName = (item) => {
+    if (!item) return "";
+    if (i18n.language === "fa") return item.name_dari || item.name;
+    if (i18n.language === "ps") return item.name_pashto || item.name;
+    return item.name;
+  };
+
+  const getLocalizedItemDescription = (item) => {
+    if (!item) return "";
+    if (i18n.language === "fa") {
+      return item.description_dari || item.description;
+    }
+    if (i18n.language === "ps") {
+      return item.description_pashto || item.description;
+    }
+    return item.description;
+  };
+
   /* ────── LOADING ────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden">
+      <div
+        className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden"
+        style={PUBLIC_MENU_DARK_THEME}
+      >
         <FloatingParticles />
         <div
           className="text-center relative z-10"
@@ -637,7 +758,10 @@ export default function PublicMenu() {
   /* ────── ERROR ────── */
   if (error) {
     return (
-      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden">
+      <div
+        className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden"
+        style={PUBLIC_MENU_DARK_THEME}
+      >
         <FloatingParticles />
         <div
           className="bg-[var(--theme-text-primary)]/80 backdrop-blur-xl rounded-3xl border border-[var(--theme-secondary)]/10 p-8 sm:p-12 max-w-md w-full text-center relative z-10"
@@ -663,7 +787,10 @@ export default function PublicMenu() {
 
   /* ────── MAIN RENDER ────── */
   return (
-    <div className="min-h-screen bg-[var(--theme-text-primary)] pb-28 sm:pb-8 relative overflow-x-hidden">
+    <div
+      className="public-menu-page min-h-screen bg-[var(--theme-text-primary)] pb-28 sm:pb-8 relative overflow-x-hidden"
+      style={PUBLIC_MENU_DARK_THEME}
+    >
       {/* Global CSS Keyframes */}
       <style>{`
         @keyframes floatParticle {
@@ -736,15 +863,197 @@ export default function PublicMenu() {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+        .public-menu-page {
+          --menu-gold: #d4af6a;
+          --menu-gold-rgb: 212 175 106;
+          --menu-champagne: #e6d3a3;
+          --menu-muted-gold: #a98b52;
+          --menu-ink: rgb(250 247 239);
+          --menu-ink-soft: rgb(232 223 207 / 0.76);
+          --menu-ink-muted: rgb(216 204 184 / 0.58);
+          --menu-ink-faint: rgb(216 204 184 / 0.38);
+          --menu-panel: rgb(11 15 22 / 0.74);
+          --menu-panel-strong: rgb(13 18 26 / 0.9);
+          --menu-serif: "Cormorant Garamond", "Playfair Display", Georgia, "Times New Roman", serif;
+          --menu-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          color: var(--menu-ink);
+          font-family: var(--menu-sans);
+          font-variant-numeric: lining-nums tabular-nums;
+        }
+
+        .menu-wordmark {
+          color: var(--menu-ink);
+          font-family: var(--menu-serif);
+          font-size: clamp(2.75rem, 9vw, 6.6rem);
+          font-weight: 400;
+          letter-spacing: clamp(0.22em, 1.1vw, 0.42em);
+          line-height: 0.92;
+          text-transform: uppercase;
+        }
+
+        .menu-kicker {
+          color: rgb(var(--menu-gold-rgb) / 0.82);
+          font-family: var(--menu-serif);
+          font-size: clamp(0.84rem, 1.8vw, 1.08rem);
+          font-weight: 400;
+          letter-spacing: clamp(0.34em, 1.1vw, 0.62em);
+          line-height: 1.6;
+          text-transform: uppercase;
+        }
+
+        .menu-editorial-heading {
+          display: inline-flex;
+          align-items: center;
+          gap: clamp(0.8rem, 2vw, 1.4rem);
+          color: var(--menu-champagne);
+          font-family: var(--menu-serif);
+          font-size: clamp(1.55rem, 4.2vw, 3.1rem);
+          font-weight: 400;
+          letter-spacing: clamp(0.08em, 0.55vw, 0.18em);
+          line-height: 1;
+          text-transform: capitalize;
+        }
+
+        .menu-editorial-heading::before,
+        .menu-editorial-heading::after {
+          content: "";
+          width: clamp(1.8rem, 8vw, 5.8rem);
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgb(var(--menu-gold-rgb) / 0.5));
+        }
+
+        .menu-editorial-heading::after {
+          background: linear-gradient(90deg, rgb(var(--menu-gold-rgb) / 0.5), transparent);
+        }
+
+        .menu-editorial-mark {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.8rem;
+          margin-bottom: 1rem;
+        }
+
+        .menu-editorial-mark::before,
+        .menu-editorial-mark::after {
+          content: "";
+          width: clamp(2.4rem, 9vw, 6.5rem);
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgb(var(--menu-gold-rgb) / 0.34));
+        }
+
+        .menu-editorial-mark::after {
+          background: linear-gradient(90deg, rgb(var(--menu-gold-rgb) / 0.34), transparent);
+        }
+
+        .menu-editorial-diamond {
+          width: 0.34rem;
+          height: 0.34rem;
+          border: 1px solid rgb(var(--menu-gold-rgb) / 0.58);
+          transform: rotate(45deg);
+        }
+
+        .menu-compact-brand {
+          color: var(--menu-ink);
+          font-family: var(--menu-serif);
+          font-size: 0.98rem;
+          font-weight: 500;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
+
+        .menu-compact-subtitle {
+          color: rgb(var(--theme-secondary-rgb) / 0.56);
+          font-size: 0.62rem;
+          font-weight: 650;
+          letter-spacing: 0.24em;
+          text-transform: uppercase;
+        }
+
+        .menu-search-input {
+          color: var(--menu-ink);
+          font-size: 0.82rem;
+          font-weight: 400;
+          letter-spacing: 0.035em;
+        }
+
+        .menu-search-input::placeholder {
+          color: var(--menu-ink-faint);
+          font-size: 0.76rem;
+          font-style: italic;
+          letter-spacing: 0.06em;
+        }
+
+        .menu-section-title {
+          color: var(--menu-champagne);
+          font-family: var(--menu-serif);
+          font-size: clamp(2rem, 5vw, 3.5rem);
+          font-weight: 400;
+          letter-spacing: clamp(0.08em, 0.5vw, 0.16em);
+          line-height: 0.95;
+          text-transform: uppercase;
+        }
+
+        .menu-section-description {
+          color: var(--menu-ink-muted);
+          font-size: clamp(0.78rem, 1.5vw, 0.92rem);
+          font-weight: 400;
+          letter-spacing: 0.055em;
+          line-height: 1.7;
+        }
+
+        .menu-item-title {
+          color: var(--menu-ink);
+          font-family: var(--menu-serif);
+          font-size: clamp(1.05rem, 2vw, 1.42rem);
+          font-weight: 500;
+          letter-spacing: 0.025em;
+          line-height: 1.08;
+        }
+
+        .menu-item-description {
+          color: var(--menu-ink-soft);
+          font-size: clamp(0.76rem, 1.3vw, 0.9rem);
+          font-weight: 350;
+          letter-spacing: 0.01em;
+          line-height: 1.58;
+        }
+
+        .menu-price {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 0.32rem;
+          color: var(--menu-champagne);
+          font-family: var(--menu-serif);
+          font-size: clamp(1.05rem, 2vw, 1.55rem);
+          font-weight: 500;
+          letter-spacing: 0.03em;
+        }
+
+        .menu-price-currency {
+          color: rgb(var(--menu-gold-rgb) / 0.82);
+          font-family: var(--menu-sans);
+          font-size: 0.58em;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+        }
+
+        .menu-meta-label {
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
         .glass-card {
-          background: rgb(var(--theme-text-primary-rgb) / 0.6);
+          background: var(--menu-panel);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border: 1px solid rgb(var(--theme-secondary-rgb) / 0.08);
         }
         .glass-card:hover {
           border-color: rgb(var(--theme-secondary-rgb) / 0.2);
-          background: rgb(var(--theme-text-primary-rgb) / 0.8);
+          background: var(--menu-panel-strong);
         }
         .gold-glow {
           box-shadow: 0 0 30px rgb(var(--theme-secondary-rgb) / 0.1), 0 0 60px rgb(var(--theme-secondary-rgb) / 0.05);
@@ -770,11 +1079,27 @@ export default function PublicMenu() {
 
         .category-pill {
           transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+          border-radius: 0.58rem;
+          color: var(--menu-ink-muted);
+          font-family: var(--menu-sans);
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
         }
         .category-pill.active {
-          background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
-          color: var(--theme-text-primary);
-          box-shadow: 0 4px 20px rgb(var(--theme-secondary-rgb) / 0.3);
+          background: rgb(var(--menu-gold-rgb) / 0.1);
+          color: var(--menu-ink);
+          box-shadow: inset 0 -2px 0 rgb(var(--menu-gold-rgb) / 0.72);
+        }
+        .category-count {
+          color: rgb(var(--menu-gold-rgb) / 0.76);
+          font-size: 0.64rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+        }
+        .category-pill.active .category-count {
+          color: var(--menu-champagne);
         }
 
         .hero-section {
@@ -791,16 +1116,37 @@ export default function PublicMenu() {
         }
 
         .btn-gold {
-          background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
-          color: var(--theme-text-primary);
-          transition: all 0.3s ease;
+          background: rgb(8 11 16 / 0.52);
+          border: 1px solid rgb(var(--menu-gold-rgb) / 0.62);
+          color: var(--menu-champagne);
+          font-weight: 700;
+          letter-spacing: 0.09em;
+          text-shadow: none;
+          transition:
+            background-color 240ms ease,
+            border-color 240ms ease,
+            color 240ms ease,
+            box-shadow 240ms ease,
+            transform 240ms ease;
         }
         .btn-gold:hover {
-          box-shadow: 0 4px 25px rgb(var(--theme-secondary-rgb) / 0.4);
+          background: linear-gradient(135deg, var(--menu-gold), var(--menu-champagne));
+          border-color: var(--menu-champagne);
+          color: #080b10;
+          box-shadow: 0 10px 26px rgb(var(--menu-gold-rgb) / 0.18);
           transform: translateY(-1px);
         }
         .btn-gold:active {
-          transform: scale(0.97);
+          transform: translateY(0);
+        }
+        .order-unavailable {
+          background: rgb(255 255 255 / 0.025);
+          border: 1px solid rgb(216 204 184 / 0.16);
+          color: rgb(216 204 184 / 0.36);
+          font-size: 0.66rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
         }
 
         .availability-dot {
@@ -822,6 +1168,27 @@ export default function PublicMenu() {
         .stagger-2 { animation-delay: 0.2s; }
         .stagger-3 { animation-delay: 0.3s; }
         .stagger-4 { animation-delay: 0.4s; }
+
+        @media (max-width: 640px) {
+          .menu-wordmark {
+            letter-spacing: 0.2em;
+          }
+          .menu-kicker,
+          .menu-editorial-heading {
+            letter-spacing: 0.22em;
+          }
+          .category-pill {
+            font-size: 0.66rem;
+            letter-spacing: 0.12em;
+          }
+          .menu-item-title {
+            letter-spacing: 0.015em;
+          }
+          .menu-item-description {
+            font-size: 0.74rem;
+            line-height: 1.48;
+          }
+        }
       `}</style>
 
       <FloatingParticles />
@@ -829,7 +1196,7 @@ export default function PublicMenu() {
       {/* ══════════════════════════════════════
           HERO / RESTAURANT INFO SECTION
       ══════════════════════════════════════ */}
-      <section className="hero-section relative pt-8 sm:pt-12 pb-6 sm:pb-10 px-4">
+      <section className="hero-section relative pt-10 sm:pt-14 pb-8 sm:pb-12 px-4">
         {/* Language switcher – top-right corner of the hero */}
         <div
           className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20"
@@ -849,7 +1216,7 @@ export default function PublicMenu() {
             }}
           >
             {/* Restaurant Logo */}
-            <div className="mb-6 flex justify-center">
+            <div className="mb-8 flex justify-center">
               <div
                 className="relative"
                 style={{ animation: "float 6s ease-in-out infinite" }}
@@ -877,7 +1244,7 @@ export default function PublicMenu() {
             </div>
 
             {/* Restaurant Name */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-light tracking-[0.15em] uppercase mb-3 text-white text-shadow-gold">
+            <h1 className="menu-wordmark mb-5 text-shadow-gold">
               {restaurantInfo?.name || (
                 <ShimmerText>
                   {slug
@@ -887,25 +1254,22 @@ export default function PublicMenu() {
               )}
             </h1>
 
-            {/* Slogan */}
-            {restaurantInfo?.slogan && (
-              <p
-                className="text-[var(--theme-secondary)]/60 text-sm sm:text-base tracking-[0.3em] uppercase font-light mb-2"
-                style={{ animation: "fadeIn 1.5s ease-out 0.5s both" }}
-              >
-                {restaurantInfo.slogan}
-              </p>
-            )}
+            <p
+              className="menu-kicker mb-2"
+              style={{ animation: "fadeIn 1.5s ease-out 0.5s both" }}
+            >
+              Fine Dining
+            </p>
 
             <OrnamentalDivider />
 
             {/* Subtitle */}
-            <p
-              className="text-gray-500 text-xs sm:text-sm tracking-[0.2em] uppercase"
+            <div
+              className="menu-editorial-heading mx-auto"
               style={{ animation: "fadeIn 1.5s ease-out 0.8s both" }}
             >
               {t("labels.our_curated_menu")}
-            </p>
+            </div>
           </div>
         </div>
       </section>
@@ -930,11 +1294,11 @@ export default function PublicMenu() {
                 )}
               </div>
               <div className="hidden sm:flex flex-col min-w-0">
-                <span className="text-white text-sm font-light tracking-[0.1em] truncate">
+                <span className="menu-compact-brand truncate">
                   {restaurantInfo?.name || slug?.replace(/-/g, " ")}
                 </span>
-                <span className="text-[var(--theme-secondary)]/40 text-[10px] tracking-[0.2em] uppercase truncate">
-                  {restaurantInfo?.slogan || "Menu"}
+                <span className="menu-compact-subtitle truncate">
+                  Fine Dining
                 </span>
               </div>
             </div>
@@ -950,10 +1314,10 @@ export default function PublicMenu() {
               <input
                 type="text"
                 dir={isRTL ? "rtl" : "ltr"}
-                placeholder={t("labels.search_menu")}
+                placeholder={t("labels.search_menu") || "Search our menu..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`input-luxury w-full py-2 sm:py-2.5 bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full text-white placeholder-gray-600 text-sm focus:outline-none transition-all duration-300 ${
+                className={`menu-search-input input-luxury w-full py-2.5 sm:py-3 bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full focus:outline-none transition-all duration-300 ${
                   isRTL
                     ? "pr-9 sm:pr-11 pl-10 text-right"
                     : "pl-9 sm:pl-11 pr-10 text-left"
@@ -1040,28 +1404,16 @@ export default function PublicMenu() {
                   key={category.id}
                   ref={(el) => (categoryRefs.current[category.id] = el)}
                   onClick={() => setSelectedCategory(category)}
-                  className={`category-pill snap-start flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full whitespace-nowrap text-xs sm:text-sm font-light tracking-wide border ${
+                  className={`category-pill snap-start flex items-center gap-3 px-4 sm:px-5 py-2.5 sm:py-3 whitespace-nowrap border ${
                     isActive
                       ? "active border-[var(--theme-secondary)]/40"
                       : "bg-transparent text-gray-500 border-[var(--theme-secondary)]/5 hover:border-[var(--theme-secondary)]/15 hover:text-gray-300"
                   }`}
                 >
-                  <span>
-                    {i18n.language === "fa"
-                      ? category.name_dari || category.name
-                      : i18n.language === "ps"
-                        ? category.name_pashto || category.name
-                        : category.name}
-                  </span>
+                  <span>{getLocalizedCategoryName(category)}</span>
                   {getCategoryCount(category) > 0 && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        isActive
-                          ? "bg-[var(--theme-text-primary)]/20 text-[var(--theme-text-primary)]/70"
-                          : "bg-[var(--theme-secondary)]/5 text-gray-600"
-                      }`}
-                    >
-                      {getCategoryCount(category)}
+                    <span className="category-count">
+                      {formatCategoryCount(getCategoryCount(category))}
                     </span>
                   )}
                 </button>
@@ -1087,21 +1439,17 @@ export default function PublicMenu() {
         {/* Category Title */}
         {selectedCategory && (
           <div
-            className="mb-6 sm:mb-8"
+            className="mb-8 sm:mb-10"
             style={{ animation: "fadeInUp 0.5s ease-out" }}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl sm:text-3xl font-light text-white tracking-wide">
-                {i18n.language === "fa"
-                  ? selectedCategory.name_dari || selectedCategory.name
-                  : i18n.language === "ps"
-                    ? selectedCategory.name_pashto || selectedCategory.name
-                    : selectedCategory.name}
+            <div className="flex items-end gap-4 mb-3">
+              <h2 className="menu-section-title">
+                {getLocalizedCategoryName(selectedCategory)}
               </h2>
               <div className="flex-1 h-[1px] bg-gradient-to-r from-[var(--theme-secondary)]/20 to-transparent" />
             </div>
             {selectedCategory.description && (
-              <p className="text-gray-500 text-sm font-light tracking-wide">
+              <p className="menu-section-description max-w-xl">
                 {selectedCategory.description}
               </p>
             )}
@@ -1140,10 +1488,10 @@ export default function PublicMenu() {
             /* ────── GRID VIEW ────── */
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
               {filteredItems.map((item, index) => {
-                const qty = getItemQuantity(item.id);
-                const justAdded = addedItemId === item.id;
+                const qty = getItemQuantity(item);
+                const justAdded = addedItemId === getCartKey(item);
                 return (
-                  <RevealCard key={item.id} delay={Math.min(index * 0.05, 0.3)}>
+                  <RevealCard key={getCartKey(item)} delay={Math.min(index * 0.05, 0.3)}>
                     <div
                       onClick={() => {
                         if (item.type === "platter") {
@@ -1178,7 +1526,7 @@ export default function PublicMenu() {
                         {/* Availability badge */}
                         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
                           <span
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wide backdrop-blur-md ${
+                            className={`menu-meta-label flex items-center gap-1.5 px-2.5 py-1 rounded-md backdrop-blur-md ${
                               item.final_availability
                                 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
                                 : "bg-gray-500/15 text-gray-400 border border-gray-500/20"
@@ -1200,7 +1548,7 @@ export default function PublicMenu() {
                         {/* Type badge */}
                         {item.type === "platter" && (
                           <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
-                            <span className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wide bg-[var(--theme-secondary)]/15 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/20 backdrop-blur-md">
+                            <span className="menu-meta-label px-2.5 py-1 rounded-md bg-[var(--theme-secondary)]/15 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/20 backdrop-blur-md">
                               {t("labels.platter")}
                             </span>
                           </div>
@@ -1208,10 +1556,8 @@ export default function PublicMenu() {
 
                         {/* Price on image */}
                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
-                          <span className="text-white text-base sm:text-xl md:text-2xl font-light tracking-wide">
-                            <span className="text-[var(--theme-secondary)] text-xs sm:text-sm mr-1">
-                              AFN
-                            </span>
+                          <span className="menu-price">
+                            <span className="menu-price-currency">AFN</span>
                             {parseFloat(item.price).toFixed(2)}
                           </span>
                         </div>
@@ -1219,13 +1565,15 @@ export default function PublicMenu() {
 
                       {/* Content */}
                       <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col">
-                        <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 mb-3 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
-                          {i18n.language === "fa"
-                            ? item.name_dari || item.name
-                            : i18n.language === "ps"
-                              ? item.name_pashto || item.name
-                              : item.name}
+                        <h3 className="menu-item-title line-clamp-2 mb-2 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
+                          {getLocalizedItemName(item)}
                         </h3>
+
+                        {getLocalizedItemDescription(item) && (
+                          <p className="menu-item-description line-clamp-2 mb-5">
+                            {getLocalizedItemDescription(item)}
+                          </p>
+                        )}
 
                         <div className="mt-auto">
                           {qty === 0 ? (
@@ -1251,7 +1599,7 @@ export default function PublicMenu() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  decrementItem(item.id);
+                                  decrementItem(getCartKey(item));
                                 }}
                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg hover:bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] flex items-center justify-center transition-all active:scale-90"
                               >
@@ -1270,7 +1618,7 @@ export default function PublicMenu() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  incrementItem(item.id);
+                                  incrementItem(getCartKey(item));
                                 }}
                                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg btn-gold flex items-center justify-center active:scale-90"
                               >
@@ -1297,10 +1645,10 @@ export default function PublicMenu() {
             /* ────── LIST VIEW ────── */
             <div className="flex flex-col gap-3 sm:gap-4">
               {filteredItems.map((item, index) => {
-                const qty = getItemQuantity(item.id);
-                const justAdded = addedItemId === item.id;
+                const qty = getItemQuantity(item);
+                const justAdded = addedItemId === getCartKey(item);
                 return (
-                  <RevealCard key={item.id} delay={Math.min(index * 0.04, 0.2)}>
+                  <RevealCard key={getCartKey(item)} delay={Math.min(index * 0.04, 0.2)}>
                     <div
                       onClick={() => {
                         if (item.type === "platter") {
@@ -1346,32 +1694,26 @@ export default function PublicMenu() {
                       {/* Content */}
                       <div className="flex-1 p-3 sm:p-4 md:p-5 flex flex-col min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
-                            {i18n.language === "fa"
-                              ? item.name_dari || item.name
-                              : i18n.language === "ps"
-                                ? item.name_pashto || item.name
-                                : item.name}
+                          <h3 className="menu-item-title line-clamp-2 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
+                            {getLocalizedItemName(item)}
                           </h3>
                           {item.type === "platter" && (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/15 flex-shrink-0">
+                            <span className="menu-meta-label px-2 py-0.5 rounded-md bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/15 flex-shrink-0">
                               {t("labels.platter")}
                             </span>
                           )}
                         </div>
 
-                        {item.description && (
-                          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-1 sm:line-clamp-2 mb-2 font-light">
-                            {item.description}
+                        {getLocalizedItemDescription(item) && (
+                          <p className="menu-item-description line-clamp-1 sm:line-clamp-2 mb-3">
+                            {getLocalizedItemDescription(item)}
                           </p>
                         )}
 
                         <div className="mt-auto flex items-center justify-between pt-2 border-t border-[var(--theme-secondary)]/5">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-[var(--theme-secondary)] text-[10px] sm:text-xs tracking-wider">
-                              AFN
-                            </span>
-                            <span className="text-white text-base sm:text-lg md:text-xl font-light">
+                          <div className="menu-price">
+                            <span className="menu-price-currency">AFN</span>
+                            <span>
                               {parseFloat(item.price).toFixed(2)}
                             </span>
                           </div>
@@ -1383,10 +1725,10 @@ export default function PublicMenu() {
                                 e.stopPropagation();
                                 addToCart(item);
                               }}
-                              className="btn-gold px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-medium tracking-wide flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
+                              className="btn-gold px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-[10px] sm:text-xs flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               {item.final_availability
-                                ? t("labels.add")
+                                ? t("labels.add_to_order")
                                 : "N/A"}
                               {item.final_availability && (
                                 <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -1397,7 +1739,7 @@ export default function PublicMenu() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  decrementItem(item.id);
+                                  decrementItem(getCartKey(item));
                                 }}
                                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] flex items-center justify-center transition-all active:scale-90"
                               >
@@ -1409,7 +1751,7 @@ export default function PublicMenu() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  incrementItem(item.id);
+                                  incrementItem(getCartKey(item));
                                 }}
                                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-full btn-gold flex items-center justify-center active:scale-90"
                               >
@@ -1560,7 +1902,7 @@ export default function PublicMenu() {
             <ul className="space-y-3">
               {cart.map((item, index) => (
                 <li
-                  key={item.id}
+                  key={item.cartKey || `${item.type || "menu_item"}:${item.id}`}
                   className="flex gap-3 p-3 bg-[var(--theme-text-primary)]/60 rounded-2xl border border-[var(--theme-secondary)]/5 hover:border-[var(--theme-secondary)]/15 transition-all duration-300"
                   style={{
                     animation: `slideInRight 0.4s ease-out ${index * 0.05}s both`,
@@ -1583,7 +1925,11 @@ export default function PublicMenu() {
                             : item.name}
                       </h4>
                       <button
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() =>
+                          removeFromCart(
+                            item.cartKey || `${item.type || "menu_item"}:${item.id}`,
+                          )
+                        }
                         className="text-gray-600 hover:text-red-400 transition-colors p-1 flex-shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1596,7 +1942,11 @@ export default function PublicMenu() {
                     <div className="mt-auto flex items-center justify-between">
                       <div className="flex items-center bg-[var(--theme-text-primary)] border border-[var(--theme-secondary)]/10 rounded-full">
                         <button
-                          onClick={() => decrementItem(item.id)}
+                          onClick={() =>
+                            decrementItem(
+                              item.cartKey || `${item.type || "menu_item"}:${item.id}`,
+                            )
+                          }
                           className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-[var(--theme-secondary)]/10 rounded-full text-[var(--theme-secondary)] transition-colors"
                         >
                           <Minus className="w-3 h-3" />
@@ -1605,7 +1955,11 @@ export default function PublicMenu() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => incrementItem(item.id)}
+                          onClick={() =>
+                            incrementItem(
+                              item.cartKey || `${item.type || "menu_item"}:${item.id}`,
+                            )
+                          }
                           className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--theme-secondary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-secondary-hover)] rounded-full transition-colors"
                         >
                           <Plus className="w-3 h-3" />

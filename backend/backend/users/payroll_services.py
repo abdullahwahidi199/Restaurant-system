@@ -85,8 +85,18 @@ def generate_payroll(data, restaurant, branch, created_by=None):
     default_regular_hours = data.get("regular_hours")
     notes = (data.get("notes") or "").strip()
 
+    staff_ids_to_lock = list(
+        staff_qs.order_by("id").values_list("id", flat=True)
+    )
+
     created = []
-    for staff in staff_qs.select_for_update():
+    locked_staff = (
+        Staff.objects
+        .filter(id__in=staff_ids_to_lock)
+        .select_for_update()
+        .order_by("id")
+    )
+    for staff in locked_staff:
         base_salary = salary_base_for_period(
             staff,
             period_start,

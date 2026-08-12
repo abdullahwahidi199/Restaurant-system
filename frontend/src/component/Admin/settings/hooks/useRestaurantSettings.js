@@ -64,7 +64,7 @@ const nullableBranchFields = new Set([
 
 const fallbackPublicUrl = (slug) => {
   if (!slug) return "";
-  return `${window.location.origin}/${slug}`;
+  return `${window.location.origin}/menu/${slug}`;
 };
 
 const normalizeRestaurant = (restaurant = {}) => ({

@@ -85,7 +85,7 @@ class MenuItemMiniSerializer(serializers.ModelSerializer):
         model = MenuItem
         fields = ['id', 'name','name_dari','name_pashto', 'price','image','is_available',
             'is_manually_available',
-            'final_availability','reviews','uses_daily_production', 'production_remaining','station','station_name'] 
+            'final_availability','category','reviews','uses_daily_production', 'production_remaining','station','station_name'] 
     def get_image(self, obj):
         return obj.image.url if obj.image else None
 

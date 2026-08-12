@@ -23,3 +23,10 @@ export const buildThemedImagePlaceholder = ({
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
+
+export const PUBLIC_MENU_DARK_THEME = {
+  "--theme-text-primary": "#090d13",
+  "--theme-text-primary-rgb": "9 13 19",
+  "--theme-elevated": "#101721",
+  "--theme-shadow-color": "0 0 0",
+};

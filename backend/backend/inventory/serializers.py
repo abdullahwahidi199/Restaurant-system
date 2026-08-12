@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Q
 from .models import (
     Ingredient,
     IngredientStock,
@@ -80,11 +81,11 @@ class MenuItemIngredientSerializer(serializers.ModelSerializer):
                 restaurant=restaurant
             )
             if branch:
-                menu_items = menu_items.filter(branch=branch)
+                menu_items = menu_items.filter(Q(branch=branch) | Q(branch__isnull=True))
             self.fields["menu_item"].queryset = menu_items
             ingredients = Ingredient.objects.filter(restaurant=restaurant)
             if branch:
-                ingredients = ingredients.filter(branch=branch)
+                ingredients = ingredients.filter(Q(branch=branch) | Q(branch__isnull=True))
             self.fields["ingredient"].queryset = ingredients
 
     def validate(self, attrs):
@@ -99,6 +100,16 @@ class MenuItemIngredientSerializer(serializers.ModelSerializer):
         if menu_item and ingredient and menu_item.restaurant_id != ingredient.restaurant_id:
             raise serializers.ValidationError(
                 {"ingredient": "This ingredient belongs to another restaurant."}
+            )
+
+        if (
+            branch
+            and menu_item
+            and menu_item.branch_id
+            and menu_item.branch_id != branch.id
+        ):
+            raise serializers.ValidationError(
+                {"menu_item": "This menu item belongs to another branch."}
             )
 
         if (

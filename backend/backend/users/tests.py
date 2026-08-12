@@ -2,7 +2,9 @@ import shutil
 import tempfile
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.db.models.query import QuerySet
 from django.test import TestCase, override_settings
 from django.test.client import RequestFactory
 from django.contrib.auth.models import User
@@ -244,6 +246,67 @@ class PayrollGenerationTests(TestCase):
 
         self.assertEqual(len(payrolls), 1)
         self.assertEqual(payrolls[0].base_salary, Decimal("5000.00"))
+
+    def test_staff_lock_query_is_not_distinct(self):
+        restaurant = Restaurant.objects.create(
+            name="Payroll Lock Restaurant",
+            email="payroll-lock@example.com",
+            phone="0710000010",
+            address="Test address",
+        )
+        Subscription.objects.create(
+            restaurant=restaurant,
+            starts_at=date.today() - timedelta(days=1),
+            expires_at=date.today() + timedelta(days=30),
+            max_branches=3,
+            is_active=True,
+        )
+        branch = Branch.objects.create(
+            restaurant=restaurant,
+            name="Main Branch",
+            code="LOCK-MAIN",
+            is_main_branch=True,
+            is_active=True,
+        )
+        other_branch = Branch.objects.create(
+            restaurant=restaurant,
+            name="Other Branch",
+            code="LOCK-OTHER",
+            is_active=True,
+        )
+        staff = Staff.objects.create(
+            restaurant=restaurant,
+            active_branch=branch,
+            name="Payroll Cook",
+            role="Kitchen_manager",
+            email="payroll-cook@example.com",
+            phone="0710000011",
+            status="Active",
+            payroll_base_salary=Decimal("6000.00"),
+            salary_type=Staff.SALARY_MONTHLY,
+            is_payroll_active=True,
+        )
+        staff.branches.add(branch, other_branch)
+
+        original_select_for_update = QuerySet.select_for_update
+
+        def assert_staff_lock_is_not_distinct(queryset, *args, **kwargs):
+            if queryset.model is Staff:
+                self.assertFalse(queryset.query.distinct)
+            return original_select_for_update(queryset, *args, **kwargs)
+
+        with patch.object(QuerySet, "select_for_update", assert_staff_lock_is_not_distinct):
+            payrolls = generate_payroll(
+                {
+                    "period_type": Payroll.PERIOD_MONTHLY,
+                    "period_start": date(2026, 8, 1),
+                    "period_end": date(2026, 8, 31),
+                },
+                restaurant=restaurant,
+                branch=branch,
+            )
+
+        self.assertEqual(len(payrolls), 1)
 
 
 RATE_LIMIT_TEST_CACHES = {

@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                             ("categories", "Menu Categories"),
                             ("menu_items", "Menu Items"),
                             ("platters", "Platters"),
-                            ("modifiers", "Modifiers"),
+                            ("modifiers", "Modificers"),
                             ("everything", "Everything"),
                         ],
                         max_length=30,

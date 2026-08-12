@@ -177,7 +177,7 @@ class Restaurant(models.Model):
 
     
     def get_public_path(self):
-        return f"/{self.slug}"
+        return f"/menu/{self.slug}"
 
     def get_public_url(self):
         return build_public_url(self.get_public_path())
@@ -396,7 +396,7 @@ class Branch(models.Model):
                 raise ValidationError("A restaurant can only have one main branch.")
 
     def get_public_path(self):
-        return f"/{self.restaurant.slug}/{self.slug}"
+        return f"/menu/{self.restaurant.slug}"
 
     def get_public_url(self):
         return build_public_url(self.get_public_path())

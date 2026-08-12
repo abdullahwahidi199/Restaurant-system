@@ -1,6 +1,6 @@
 from collections import defaultdict
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from menu.production_utils import consume_production
 
 from menu.models import MenuItem
@@ -54,7 +54,7 @@ def get_effective_cost_per_unit(ingredient, branch):
 def change_ingredient_stock(ingredient, branch, quantity_delta, cost_per_unit=None):
     quantity_delta = Decimal(str(quantity_delta))
 
-    if branch and ingredient.branch_id != branch.id:
+    if branch and ingredient.branch_id and ingredient.branch_id != branch.id:
         raise ValueError("Ingredient stock belongs to another branch.")
 
     ingredient.quantity_available += quantity_delta
@@ -72,7 +72,9 @@ def get_recipe_items(menu_item, branch=None):
     ).select_related("ingredient")
 
     if branch:
-        recipes = recipes.filter(ingredient__branch=branch)
+        recipes = recipes.filter(
+            Q(ingredient__branch=branch) | Q(ingredient__branch__isnull=True)
+        )
 
     return recipes
 
