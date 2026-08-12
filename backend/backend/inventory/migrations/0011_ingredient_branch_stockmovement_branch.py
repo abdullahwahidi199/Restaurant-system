@@ -2,40 +2,48 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models import OuterRef, Subquery
 
 
 def assign_branches(apps, schema_editor):
     Branch = apps.get_model("restaurants", "Branch")
     Ingredient = apps.get_model("inventory", "Ingredient")
     StockMovement = apps.get_model("inventory", "StockMovement")
+    Order = apps.get_model("orders", "Order")
 
-    for ingredient in Ingredient.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ):
-        branch = Branch.objects.filter(
-            restaurant_id=ingredient.restaurant_id,
-            is_main_branch=True,
-        ).first()
-        if branch:
-            Ingredient.objects.filter(pk=ingredient.pk).update(branch=branch)
+    main_branch = Branch.objects.filter(
+        restaurant_id=OuterRef("restaurant_id"),
+        is_main_branch=True,
+    ).values("id")[:1]
 
-    for movement in StockMovement.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ).select_related("related_order", "ingredient"):
-        branch = None
-        if movement.related_order_id:
-            branch = getattr(movement.related_order, "branch", None)
-        if not branch and movement.ingredient_id:
-            branch = getattr(movement.ingredient, "branch", None)
-        if not branch:
-            branch = Branch.objects.filter(
-                restaurant_id=movement.restaurant_id,
-                is_main_branch=True,
-            ).first()
-        if branch:
-            StockMovement.objects.filter(pk=movement.pk).update(branch=branch)
+    Ingredient.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
+
+    order_branch = Order.objects.filter(
+        pk=OuterRef("related_order_id"),
+    ).values("branch_id")[:1]
+    ingredient_branch = Ingredient.objects.filter(
+        pk=OuterRef("ingredient_id"),
+    ).values("branch_id")[:1]
+
+    StockMovement.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        related_order_id__isnull=False,
+    ).update(branch_id=Subquery(order_branch))
+
+    StockMovement.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        ingredient_id__isnull=False,
+    ).update(branch_id=Subquery(ingredient_branch))
+
+    StockMovement.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
 
 
 def clear_branch(apps, schema_editor):
