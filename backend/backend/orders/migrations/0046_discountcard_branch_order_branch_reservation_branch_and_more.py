@@ -2,19 +2,22 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models import OuterRef, Subquery
 
 
 def assign_main_branch(apps, schema_editor):
     Branch = apps.get_model("restaurants", "Branch")
+    main_branch = Branch.objects.filter(
+        restaurant_id=OuterRef("restaurant_id"),
+        is_main_branch=True,
+    ).values("id")[:1]
+
     for model_name in ["DiscountCard", "Order", "Reservation", "Table"]:
         Model = apps.get_model("orders", model_name)
-        for obj in Model.objects.filter(restaurant__isnull=False, branch__isnull=True):
-            branch = Branch.objects.filter(
-                restaurant_id=obj.restaurant_id,
-                is_main_branch=True,
-            ).first()
-            if branch:
-                Model.objects.filter(pk=obj.pk).update(branch=branch)
+        Model.objects.filter(
+            restaurant_id__isnull=False,
+            branch_id__isnull=True,
+        ).update(branch_id=Subquery(main_branch))
 
 
 def clear_branch(apps, schema_editor):

@@ -2,6 +2,7 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models import OuterRef, Subquery
 
 
 def assign_branches(apps, schema_editor):
@@ -9,40 +10,42 @@ def assign_branches(apps, schema_editor):
     Shift = apps.get_model("users", "Shift")
     Attendance = apps.get_model("users", "Attendance")
     Payroll = apps.get_model("users", "Payroll")
+    Staff = apps.get_model("users", "Staff")
 
-    for shift in Shift.objects.filter(restaurant__isnull=False, branch__isnull=True):
-        branch = Branch.objects.filter(
-            restaurant_id=shift.restaurant_id,
-            is_main_branch=True,
-        ).first()
-        if branch:
-            Shift.objects.filter(pk=shift.pk).update(branch=branch)
+    main_branch = Branch.objects.filter(
+        restaurant_id=OuterRef("restaurant_id"),
+        is_main_branch=True,
+    ).values("id")[:1]
+    staff_active_branch = Staff.objects.filter(
+        pk=OuterRef("staff_id"),
+    ).values("active_branch_id")[:1]
 
-    for attendance in Attendance.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ).select_related("staff"):
-        branch = getattr(attendance.staff, "active_branch", None)
-        if not branch:
-            branch = Branch.objects.filter(
-                restaurant_id=attendance.restaurant_id,
-                is_main_branch=True,
-            ).first()
-        if branch:
-            Attendance.objects.filter(pk=attendance.pk).update(branch=branch)
+    Shift.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
 
-    for payroll in Payroll.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ).select_related("staff"):
-        branch = getattr(payroll.staff, "active_branch", None)
-        if not branch:
-            branch = Branch.objects.filter(
-                restaurant_id=payroll.restaurant_id,
-                is_main_branch=True,
-            ).first()
-        if branch:
-            Payroll.objects.filter(pk=payroll.pk).update(branch=branch)
+    Attendance.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        staff_id__isnull=False,
+    ).update(branch_id=Subquery(staff_active_branch))
+
+    Attendance.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
+
+    Payroll.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        staff_id__isnull=False,
+    ).update(branch_id=Subquery(staff_active_branch))
+
+    Payroll.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
 
 
 def clear_branch(apps, schema_editor):

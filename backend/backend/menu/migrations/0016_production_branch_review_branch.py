@@ -2,38 +2,48 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models import OuterRef, Subquery
 
 
 def assign_branches(apps, schema_editor):
     Branch = apps.get_model("restaurants", "Branch")
     Production = apps.get_model("menu", "Production")
     Review = apps.get_model("menu", "Review")
+    Staff = apps.get_model("users", "Staff")
+    Order = apps.get_model("orders", "Order")
 
-    for production in Production.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ).select_related("created_by"):
-        branch = getattr(production.created_by, "active_branch", None)
-        if not branch:
-            branch = Branch.objects.filter(
-                restaurant_id=production.restaurant_id,
-                is_main_branch=True,
-            ).first()
-        if branch:
-            Production.objects.filter(pk=production.pk).update(branch=branch)
+    main_branch = Branch.objects.filter(
+        restaurant_id=OuterRef("restaurant_id"),
+        is_main_branch=True,
+    ).values("id")[:1]
+    staff_active_branch = Staff.objects.filter(
+        pk=OuterRef("created_by_id"),
+    ).values("active_branch_id")[:1]
+    delivery_branch = Order.objects.filter(
+        pk=OuterRef("delivery_id"),
+    ).values("branch_id")[:1]
 
-    for review in Review.objects.filter(
-        restaurant__isnull=False,
-        branch__isnull=True,
-    ).select_related("delivery"):
-        branch = getattr(review.delivery, "branch", None)
-        if not branch:
-            branch = Branch.objects.filter(
-                restaurant_id=review.restaurant_id,
-                is_main_branch=True,
-            ).first()
-        if branch:
-            Review.objects.filter(pk=review.pk).update(branch=branch)
+    Production.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        created_by_id__isnull=False,
+    ).update(branch_id=Subquery(staff_active_branch))
+
+    Production.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
+
+    Review.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+        delivery_id__isnull=False,
+    ).update(branch_id=Subquery(delivery_branch))
+
+    Review.objects.filter(
+        restaurant_id__isnull=False,
+        branch_id__isnull=True,
+    ).update(branch_id=Subquery(main_branch))
 
 
 def clear_branch(apps, schema_editor):
@@ -47,6 +57,7 @@ class Migration(migrations.Migration):
         ('menu', '0015_menuitem_uses_daily_production_production'),
         ('orders', '0046_discountcard_branch_order_branch_reservation_branch_and_more'),
         ('restaurants', '0009_branch'),
+        ('users', '0020_staff_branches_active_branch'),
     ]
 
     operations = [
