@@ -11,7 +11,7 @@ from rest_framework.decorators import permission_classes
 from restaurants.permissions import IsSameRestaurant,IsRestaurantActive,IsRestaurantAdmin,IsKitchenManager,IsInventoryManager,IsOperationsManager
 from django.shortcuts import get_object_or_404
 from restaurants.branching import filter_queryset_for_request, get_active_branch
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 
 from .production_utils import (
     create_or_replace_production,
@@ -110,7 +110,15 @@ def get_menu_scope_branch(request, restaurant):
 
 def filter_menu_queryset(request, queryset, restaurant):
     branch = get_menu_scope_branch(request, restaurant)
-    return queryset.filter(branch=branch)
+    if branch:
+        return queryset.filter(Q(branch=branch) | Q(branch__isnull=True))
+    return queryset.filter(branch__isnull=True)
+
+
+def filter_public_menu_queryset(queryset, branch):
+    if branch:
+        return queryset.filter(Q(branch=branch) | Q(branch__isnull=True))
+    return queryset.filter(branch__isnull=True)
 
 
 def get_public_menu_branch(restaurant, branch_slug=None):
@@ -141,9 +149,9 @@ def get_public_menu_context(restaurant_slug, branch_slug=None):
 
 
 def public_menu_item_queryset(restaurant, branch):
-    return MenuItem.objects.filter(
-        restaurant=restaurant,
-        branch=branch,
+    return filter_public_menu_queryset(
+        MenuItem.objects.filter(restaurant=restaurant),
+        branch,
     ).select_related(
         "category",
     ).prefetch_related(
@@ -154,30 +162,46 @@ def public_menu_item_queryset(restaurant, branch):
 
 
 def public_platter_queryset(restaurant, branch):
-    return Platter.objects.filter(
-        restaurant=restaurant,
-        branch=branch,
+    return filter_public_menu_queryset(
+        Platter.objects.filter(restaurant=restaurant),
+        branch,
     ).select_related(
         "category",
     ).prefetch_related(
         "items__menu_item",
         "items__menu_item__productions",
     )
+
+
+def get_category_menu_prefetches(restaurant, branch):
+    return (
+        Prefetch(
+            "menu_items",
+            queryset=public_menu_item_queryset(restaurant, branch),
+        ),
+        Prefetch(
+            "platters",
+            queryset=public_platter_queryset(restaurant, branch),
+        ),
+    )
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsSameRestaurant,IsRestaurantActive,CanReadOrManageMenu])
 def category_list_create(request):
     staff=request.user.staff_profile
     restaurant=staff.restaurant
     if request.method == 'GET':
+        branch = get_active_branch(request, raise_exception=False)
         categories = filter_menu_queryset(
             request,
             Category.objects.filter(restaurant=restaurant),
             restaurant,
-        ).prefetch_related('menu_items').all() # will also get the related menu_items(optimized version)
+        ).prefetch_related(*get_category_menu_prefetches(restaurant, branch)).all()
         serializer = CategorySerializer(
             categories,
             many=True,
-            context={"request": request, "branch": get_active_branch(request, raise_exception=False)},
+            context={"request": request, "branch": branch},
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -215,11 +239,12 @@ class CategoryRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         restaurant = self.request.user.staff_profile.restaurant
+        branch = get_active_branch(self.request, raise_exception=False)
         return filter_menu_queryset(
             self.request,
             Category.objects.filter(restaurant=restaurant),
             restaurant,
-        ).prefetch_related('menu_items')
+        ).prefetch_related(*get_category_menu_prefetches(restaurant, branch))
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -523,10 +548,8 @@ def send_review(request, slug=None, restaurant_slug=None, branch_slug=None):
     menu_item_id = request.data.get("menu_item")
     if menu_item_id:
         get_object_or_404(
-            MenuItem,
+            public_menu_item_queryset(restaurant, branch),
             id=menu_item_id,
-            restaurant=restaurant,
-            branch=branch,
         )
 
     serializer = ReveiwSerializer(data=request.data)
@@ -558,19 +581,10 @@ class ReviewRetrieveDestroyView(generics.RetrieveUpdateDestroyAPIView):
 @permission_classes([AllowAny])
 def public_categories(request, slug=None, restaurant_slug=None, branch_slug=None):
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
-    categories = Category.objects.filter(
-        restaurant=restaurant,
-        branch=branch,
-    ).prefetch_related(
-        Prefetch(
-            "menu_items",
-            queryset=public_menu_item_queryset(restaurant, branch),
-        ),
-        Prefetch(
-            "platters",
-            queryset=public_platter_queryset(restaurant, branch),
-        ),
-    )
+    categories = filter_public_menu_queryset(
+        Category.objects.filter(restaurant=restaurant),
+        branch,
+    ).prefetch_related(*get_category_menu_prefetches(restaurant, branch))
 
     serializer = CategorySerializer(
         categories,
@@ -877,8 +891,7 @@ class MenuPrintView(APIView):
             Category.objects.filter(restaurant=restaurant),
             restaurant,
         ).prefetch_related(
-            "menu_items__ingredients__ingredient",
-            "platters__items__menu_item"
+            *get_category_menu_prefetches(restaurant, branch),
         )
 
         if category_id:

@@ -30,6 +30,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG =False
 
+
 ALLOWED_HOSTS = [
     '185.197.249.94',
     'pakhlai.com',
