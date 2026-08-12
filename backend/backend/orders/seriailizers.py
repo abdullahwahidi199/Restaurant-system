@@ -7,12 +7,15 @@ from customers.models import Customer
 from users.models import Staff
 from django.utils import timezone
 from decimal import Decimal
+from django.db.models import Q
 from .utils.distance import calculate_distance_km,calculate_delivery_fee
 from restaurants.branching import get_active_branch
 
 
 def scope_order_menu_queryset(queryset, restaurant, branch):
-    return queryset.filter(branch=branch)
+    if branch:
+        return queryset.filter(Q(branch=branch) | Q(branch__isnull=True))
+    return queryset.filter(branch__isnull=True)
 
 
 def get_branch_decimal(branch, restaurant, field_name):
