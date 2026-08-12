@@ -6,14 +6,17 @@ import RestrictedToast from "../../RistrictedAction";
 import { AuthContext } from "../../../api/authforRBC";
 import { useTranslation } from "react-i18next";
 import Select from "react-select";
+import { Utensils, CheckCircle2 } from "lucide-react";
 
 export default function IndividualItem() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const dashboardBase = location.pathname.startsWith("/inventory-manager")
-    ? "/inventory-manager"
-    : "/admin/dashboard";
+  const dashboardBase = location.pathname.startsWith("/operations-manager")
+    ? "/operations-manager"
+    : location.pathname.startsWith("/inventory-manager")
+      ? "/inventory-manager"
+      : "/admin/dashboard";
   const highlightIngredient = location.state?.highlightIngredient;
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
@@ -24,6 +27,7 @@ export default function IndividualItem() {
   const [item, setItem] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [allIngredients, setAllIngredients] = useState([]);
+  const [stations, setStations] = useState([]);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -31,12 +35,34 @@ export default function IndividualItem() {
 
   const ingredientRefs = useRef({});
 
+  const fetchStations = async (currentItemStation) => {
+    try {
+      const res = await instance.get("/menu/stations/");
+      const data = res.data?.results || res.data || [];
+      const stationList = Array.isArray(data) ? data : [];
+      setStations(stationList);
+
+      // Automatically select default station if item doesn't have one assigned
+      if (!currentItemStation && stationList.length > 0) {
+        const defaultSt =
+          stationList.find((st) => st.is_default) || stationList[0];
+        if (defaultSt) {
+          setItem((prev) => (prev ? { ...prev, station: defaultSt.id } : prev));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load kitchen stations:", err);
+      setStations([]);
+    }
+  };
+
   const fetchItem = async () => {
     const res = await instance.get(`/menu/menu-items/${id}/`);
     setItem(res.data);
     console.log(res.data);
     setIngredients(res.data.ingredients || []);
     setPreview(res.data.image ? `${BASE_URL}${res.data.image}` : null);
+    fetchStations(res.data.station);
   };
 
   const fetchIngredients = async () => {
@@ -119,6 +145,12 @@ export default function IndividualItem() {
       formData.append("price", item.price);
       formData.append("is_manually_available", item.is_manually_available);
       formData.append("uses_daily_production", item.uses_daily_production);
+
+      // Send assigned kitchen station ID
+      if (item.station) {
+        formData.append("station", item.station);
+      }
+
       if (item.image instanceof File) {
         formData.append("image", item.image);
       }
@@ -156,14 +188,19 @@ export default function IndividualItem() {
     !item.final_availability && unavailableReasons.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center p-6">
-      <div className="bg-white w-full max-w-2xl rounded-xl p-6 space-y-6 border">
+    <div
+      className="min-h-screen bg-[var(--theme-background)] flex justify-center p-6"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      <div className="bg-[var(--theme-surface)] w-full max-w-2xl rounded-xl p-6 space-y-6 border border-[var(--theme-border)] shadow-sm">
         {/* HEADER */}
-        <div className="flex justify-between items-center border-b pb-3">
-          <h2 className="text-xl font-semibold">{t("edit_menu_item")}</h2>
+        <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-3">
+          <h2 className="text-xl font-semibold text-[var(--theme-text-primary)]">
+            {t("edit_menu_item")}
+          </h2>
           <button
             onClick={() => setShowDelete(true)}
-            className="px-4 py-1.5 bg-red-500 text-white rounded-lg"
+            className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
           >
             {t("delete")}
           </button>
@@ -282,37 +319,101 @@ export default function IndividualItem() {
             <img
               src={preview}
               alt="preview"
-              className="w-36 h-36 object-cover rounded border mb-2"
+              className="w-36 h-36 object-cover rounded border border-[var(--theme-border)] mb-2"
             />
           )}
-          <input type="file" onChange={handleChange} />
+          <input type="file" onChange={handleChange} className="text-sm" />
         </div>
 
-        <form onSubmit={handleUpdate} className="space-y-4">
+        <form onSubmit={handleUpdate} className="space-y-6">
+          {/* KITCHEN STATION ROUTING BOXES */}
+          <div className="border border-[var(--theme-border)] rounded-xl p-4 bg-[var(--theme-card)] space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm font-bold text-[var(--theme-text-primary)]">
+                <Utensils className="h-4 w-4 text-[var(--theme-primary)]" />
+                <span>{t("kitchen_station", "Kitchen Station Routing")}</span>
+              </label>
+              <span className="text-xs font-semibold text-[var(--theme-text-muted)]">
+                Where should orders go?
+              </span>
+            </div>
+            <p className="text-xs text-[var(--theme-text-secondary)]">
+              Select which station prepares this item. When ordered, it will
+              automatically route to this station screen:
+            </p>
+            {stations.length === 0 ? (
+              <p className="text-xs text-[var(--theme-text-muted)] italic py-2">
+                No stations available. Using default Main Kitchen.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+                {stations.map((st) => {
+                  const isSelected = Number(item.station) === st.id;
+                  console.log(item);
+                  return (
+                    <div
+                      key={st.id}
+                      onClick={() => setItem({ ...item, station: st.id })}
+                      className={`cursor-pointer rounded-lg border p-3 flex flex-col justify-between transition-all duration-200 ${
+                        isSelected
+                          ? "border-[var(--theme-primary)] bg-[var(--theme-primary-subtle)] shadow-sm ring-1 ring-[var(--theme-primary)]"
+                          : "border-[var(--theme-border)] bg-[var(--theme-surface)] hover:border-[var(--theme-border-strong)] hover:bg-[var(--theme-hover)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-sm text-[var(--theme-text-primary)] truncate">
+                          {st.name}
+                        </span>
+                        <span
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            isSelected
+                              ? "border-[var(--theme-primary)] bg-[var(--theme-primary)]"
+                              : "border-[var(--theme-border-strong)]"
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                          )}
+                        </span>
+                      </div>
+                      {st.is_default && (
+                        <div className="mt-2 flex justify-start">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] uppercase shrink-0">
+                            Default
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* English name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               Name (English)
             </label>
             <input
               name="name"
               value={item.name || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               placeholder="Name"
             />
           </div>
 
           {/* Dari name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               نام (دری)
             </label>
             <input
               name="name_dari"
               value={item.name_dari || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               placeholder="نام آیتم به دری"
               dir="rtl"
             />
@@ -320,14 +421,14 @@ export default function IndividualItem() {
 
           {/* Pashto name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               نوم (پښتو)
             </label>
             <input
               name="name_pashto"
               value={item.name_pashto || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               placeholder="د آیتم نوم په پښتو"
               dir="rtl"
             />
@@ -335,14 +436,14 @@ export default function IndividualItem() {
 
           {/* English description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               Description (English)
             </label>
             <textarea
               name="description"
               value={item.description || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               rows={3}
               placeholder="Description"
             />
@@ -350,14 +451,14 @@ export default function IndividualItem() {
 
           {/* Dari description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               توضیحات (دری)
             </label>
             <textarea
               name="description_dari"
               value={item.description_dari || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               rows={3}
               placeholder="توضیحات به دری"
               dir="rtl"
@@ -366,61 +467,71 @@ export default function IndividualItem() {
 
           {/* Pashto description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
               توضیحات (پښتو)
             </label>
             <textarea
               name="description_pashto"
               value={item.description_pashto || ""}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               rows={3}
               placeholder="توضیحات په پښتو"
               dir="rtl"
             />
           </div>
 
-          <input
-            type="number"
-            name="price"
-            value={item.price || ""}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-            placeholder="Price"
-          />
+          <div>
+            <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
+              Price
+            </label>
+            <input
+              type="number"
+              name="price"
+              value={item.price || ""}
+              onChange={handleChange}
+              className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
+              placeholder="Price"
+            />
+          </div>
 
-          <div className="border p-3 rounded bg-gray-100">
-            <p>
-              <b>Total Cost:</b> {item.cost_per_unit.toFixed(2)}
+          <div className="border border-[var(--theme-border)] p-3 rounded-lg bg-[var(--theme-card)]">
+            <p className="text-[var(--theme-text-primary)]">
+              <b>Total Cost:</b> {Number(item.cost_per_unit || 0).toFixed(2)}
             </p>
-            <p className="text-green-600">
-              <b>Profit:</b> {item.profit_per_unit.toFixed(2)}
+            <p className="text-[var(--theme-success)]">
+              <b>Profit:</b> {Number(item.profit_per_unit || 0).toFixed(2)}
             </p>
           </div>
+
           <div className="space-y-2">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[var(--theme-text-primary)]">
               <input
                 type="checkbox"
                 name="is_manually_available"
                 checked={item.is_manually_available}
                 onChange={handleChange}
+                className="rounded border-[var(--theme-border-strong)] text-[var(--theme-primary)]"
               />
               {t("available")}
             </label>
 
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[var(--theme-text-primary)]">
               <input
                 type="checkbox"
                 name="uses_daily_production"
                 checked={item.uses_daily_production || false}
                 onChange={handleChange}
+                className="rounded border-[var(--theme-border-strong)] text-[var(--theme-primary)]"
               />
               Uses Daily Production
             </label>
           </div>
 
-          <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Recipe Ingredients</h3>
+          <div className="border-t border-[var(--theme-border)] pt-4">
+            <h3 className="font-medium mb-3 text-[var(--theme-text-primary)]">
+              Recipe Ingredients
+            </h3>
 
             {ingredients.map((ing, index) => {
               const isHighlighted = ing.ingredient === highlightIngredient;
@@ -435,12 +546,12 @@ export default function IndividualItem() {
                   ref={(el) => {
                     ingredientRefs.current[ing.ingredient] = el;
                   }}
-                  className={`flex flex-col gap-1 mb-3 border p-2 rounded transition-all duration-500 ${
+                  className={`flex flex-col gap-1 mb-3 border p-2 rounded-lg transition-all duration-500 ${
                     isHighlighted
                       ? "border-yellow-400 bg-yellow-50 shadow-lg"
                       : unavailableReason
                         ? "border-red-300 bg-red-50"
-                        : ""
+                        : "border-[var(--theme-border)] bg-[var(--theme-surface)]"
                   }`}
                 >
                   <div className="flex gap-2">
@@ -472,23 +583,23 @@ export default function IndividualItem() {
                           e.target.value,
                         )
                       }
-                      className="w-28 border rounded px-2 py-1"
+                      className="w-28 border border-[var(--theme-input-border)] rounded px-2 py-1 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
                       placeholder="Qty"
                     />
 
                     <button
                       type="button"
                       onClick={() => removeIngredient(index)}
-                      className="bg-red-500 text-white px-3 rounded"
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 rounded transition"
                     >
                       ✕
                     </button>
                   </div>
 
-                  <div className="text-sm text-gray-600 pl-1">
+                  <div className="text-sm text-[var(--theme-text-secondary)] pl-1">
                     <p>
                       Cost contribution:{" "}
-                      <span className="font-medium text-black">
+                      <span className="font-medium text-[var(--theme-text-primary)]">
                         {ing.ingredient_cost ?? 0}
                       </span>
                     </p>
@@ -528,7 +639,7 @@ export default function IndividualItem() {
             <button
               type="button"
               onClick={addIngredientRow}
-              className="mt-2 px-4 py-1 bg-gray-200 rounded"
+              className="mt-2 px-4 py-1.5 bg-[var(--theme-muted)] hover:bg-[var(--theme-muted-hover)] text-[var(--theme-text-primary)] rounded-lg transition"
             >
               + Add Ingredient
             </button>
@@ -537,7 +648,7 @@ export default function IndividualItem() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg"
+            className="w-full bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] font-bold py-2.5 rounded-lg shadow-sm transition"
           >
             {loading ? t("updating") : t("update_item")}
           </button>

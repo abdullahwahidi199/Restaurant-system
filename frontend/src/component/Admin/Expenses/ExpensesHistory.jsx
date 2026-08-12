@@ -16,9 +16,11 @@ import { formatCurrency, formatDateTime, getActionColor } from "./helpers";
 
 function ExpenseHistory() {
   const location = useLocation();
-  const dashboardBase = location.pathname.startsWith("/inventory-manager")
-    ? "/inventory-manager"
-    : "/admin/dashboard";
+  const dashboardBase = location.pathname.startsWith("/operations-manager")
+    ? "/operations-manager"
+    : location.pathname.startsWith("/inventory-manager")
+      ? "/inventory-manager"
+      : "/admin/dashboard";
 
   // Data
   const [history, setHistory] = useState([]);

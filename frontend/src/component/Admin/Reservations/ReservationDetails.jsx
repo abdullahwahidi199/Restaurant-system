@@ -9,6 +9,7 @@ import {
   FileText,
   User,
 } from "lucide-react";
+import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
 
 export default function ReservationDetails({ reservation, onClose }) {
   if (!reservation) return null;
@@ -205,6 +206,17 @@ export default function ReservationDetails({ reservation, onClose }) {
               </span>
             </div>
           )}
+
+          <div className="mt-6 rounded-lg border border-slate-200 p-4">
+            <h3 className="mb-3 text-sm font-bold text-slate-900">
+              Audit History
+            </h3>
+            <AuditTimeline
+              module="RESERVATIONS"
+              objectType="Reservation"
+              objectId={reservation.id}
+            />
+          </div>
         </div>
 
         {/* Footer */}

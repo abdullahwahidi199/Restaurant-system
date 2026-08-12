@@ -3,8 +3,81 @@ from django.utils import timezone
 from django.utils.text import slugify
 import qrcode
 from io import BytesIO
-from django.core.files import File
+from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
+
+
+def build_public_url(path):
+    base_url = getattr(settings, "BASE_URL", "https://pakhlai.com").rstrip("/")
+    return f"{base_url}{path}"
+
+
+def build_qr_png(url):
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=12,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return ContentFile(buffer.getvalue())
+
+
+def replace_field_file(field_file, file_name, content):
+    generated_name = field_file.field.generate_filename(field_file.instance, file_name)
+    storage = field_file.storage
+
+    if field_file.name and field_file.name != generated_name:
+        try:
+            storage.delete(field_file.name)
+        except Exception:
+            pass
+
+    if storage.exists(generated_name):
+        storage.delete(generated_name)
+
+    field_file.save(file_name, content, save=False)
+
+
+def invalidate_public_restaurant_cache(slug):
+    if not slug:
+        return
+    from django.core.cache import cache
+
+    cache.delete(f"public_restaurant_entry:{slug}")
+
+
+def make_unique_restaurant_slug(name, pk=None):
+    base_slug = slugify(name) or "restaurant"
+    candidate = base_slug
+    counter = 1
+
+    while Restaurant.objects.filter(slug=candidate).exclude(pk=pk).exists():
+        candidate = f"{base_slug}-{counter}"
+        counter += 1
+
+    return candidate
+
+
+def make_unique_branch_slug(restaurant, name, pk=None):
+    base_slug = slugify(name) or "branch"
+    candidate = base_slug
+    counter = 2
+
+    while Branch.objects.filter(
+        restaurant=restaurant,
+        slug=candidate,
+    ).exclude(pk=pk).exists():
+        candidate = f"{base_slug}-{counter}"
+        counter += 1
+
+    return candidate
 
 
 
@@ -24,6 +97,11 @@ class Restaurant(models.Model):
     address = models.TextField()
 
     logo = models.ImageField(upload_to='restaurant_logos/', null=True, blank=True)
+    cover_image = models.ImageField(
+        upload_to='restaurant_covers/',
+        null=True,
+        blank=True,
+    )
     slogan=models.TextField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
@@ -98,37 +176,68 @@ class Restaurant(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     
+    def get_public_path(self):
+        return f"/{self.slug}"
+
+    def get_public_url(self):
+        return build_public_url(self.get_public_path())
+
+    def regenerate_brand_qr_code(self, force=False):
+        if not self.pk or not self.slug:
+            return False
+
+        file_name = f"{self.slug}_brand_qr.png"
+        expected_name = self.qr_code.field.generate_filename(self, file_name)
+
+        if not force and self.qr_code and self.qr_code.name == expected_name:
+            return False
+
+        replace_field_file(
+            self.qr_code,
+            file_name,
+            build_qr_png(self.get_public_url()),
+        )
+        Restaurant.objects.filter(pk=self.pk).update(qr_code=self.qr_code.name)
+        return True
+
     def save(self, *args, **kwargs):
-    # Always regenerate slug when name changes
-        base_slug = slugify(self.name)
-        slug = base_slug
-        counter = 1
+        old_slug = None
+        if self.pk:
+            old_slug = Restaurant.objects.filter(pk=self.pk).values_list(
+                "slug",
+                flat=True,
+            ).first()
 
-        while Restaurant.objects.filter(slug=slug).exclude(pk=self.pk).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
+        self.slug = make_unique_restaurant_slug(self.name, self.pk)
 
-        self.slug = slug
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "name" in update_fields and "slug" not in update_fields:
+            kwargs["update_fields"] = set(update_fields) | {"slug"}
 
         super().save(*args, **kwargs)
-        from django.conf import settings
-        qr_url = f"{settings.BASE_URL}/menu/{self.slug}"
-        print("QR URL:", qr_url)
 
-        qr = qrcode.make(qr_url)
+        slug_changed = old_slug != self.slug
+        self.regenerate_brand_qr_code(force=slug_changed or not self.qr_code)
 
-        buffer = BytesIO()
-        
-        qr.save(buffer, format='PNG')
+        if old_slug and slug_changed:
+            invalidate_public_restaurant_cache(old_slug)
 
-        file_name = f"{self.slug}_qr.png"
+        invalidate_public_restaurant_cache(self.slug)
 
-        self.qr_code.save(file_name, File(buffer), save=False)
+        if slug_changed:
+            for branch in self.branches.all():
+                branch.regenerate_qr_code(force=True)
 
         
 
     def __str__(self):
         return self.name
+
+    def delete(self, *args, **kwargs):
+        old_slug = self.slug
+        result = super().delete(*args, **kwargs)
+        invalidate_public_restaurant_cache(old_slug)
+        return result
     
 class Subscription(models.Model):
     restaurant = models.OneToOneField(
@@ -138,6 +247,10 @@ class Subscription(models.Model):
     )
     starts_at = models.DateField()
     expires_at = models.DateField()
+
+    max_branches = models.PositiveIntegerField(default=1)
+
+   
     is_active = models.BooleanField(default=True)
 
     @property
@@ -147,6 +260,14 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} Subscription"
+    
+    @property
+    def branches_used(self):
+        return self.restaurant.branches.count()
+
+    @property
+    def branches_remaining(self):
+        return max(0, self.max_branches - self.branches_used)
     @property
     def days_left(self):
         today = timezone.now().date()
@@ -165,9 +286,12 @@ class Branch(models.Model):
     )
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=50)
+    slug = models.SlugField(max_length=255, blank=True)
     address = models.TextField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     receipt_header = models.CharField(max_length=255, blank=True)
     receipt_footer = models.TextField(blank=True)
     receipt_template = models.TextField(blank=True)
@@ -213,6 +337,7 @@ class Branch(models.Model):
     cash_drawer_enabled = models.BooleanField(default=True)
     cash_drawer_name = models.CharField(max_length=120, blank=True)
     logo = models.ImageField(upload_to="branch_logos/", null=True, blank=True)
+    qr_code = models.ImageField(upload_to="branch_qr_codes/", blank=True, null=True)
     settings = models.JSONField(default=dict, blank=True)
     is_main_branch = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
@@ -226,6 +351,10 @@ class Branch(models.Model):
                 fields=["restaurant"],
                 condition=models.Q(is_main_branch=True),
                 name="unique_main_branch_per_restaurant",
+            ),
+            models.UniqueConstraint(
+                fields=["restaurant", "slug"],
+                name="unique_branch_slug_per_restaurant",
             )
         ]
         ordering = ["-is_main_branch", "name"]
@@ -234,6 +363,27 @@ class Branch(models.Model):
         return f"{self.restaurant.name} - {self.name}"
 
     def clean(self):
+        super().clean()
+        if not self.pk:
+            subscription = getattr(self.restaurant, "subscription", None)
+
+            if not subscription:
+                raise ValidationError(
+                    "This restaurant does not have an active subscription."
+                )
+
+            if not subscription.is_valid:
+                raise ValidationError(
+                    "The restaurant subscription has expired."
+                )
+
+            current = self.restaurant.branches.count()
+
+            if current >= subscription.max_branches:
+                raise ValidationError(
+                    f"This subscription allows a maximum of, please contact the system owner to upgrade the subscription."
+                    f"{subscription.max_branches} branches."
+                )
         if self.is_main_branch:
             if not self.is_active:
                 raise ValidationError("Main branch must remain active.")
@@ -245,9 +395,64 @@ class Branch(models.Model):
             if existing.exists():
                 raise ValidationError("A restaurant can only have one main branch.")
 
+    def get_public_path(self):
+        return f"/{self.restaurant.slug}/{self.slug}"
+
+    def get_public_url(self):
+        return build_public_url(self.get_public_path())
+
+    def regenerate_qr_code(self, force=False):
+        if not self.pk or not self.slug or not self.restaurant_id:
+            return False
+
+        target_url = self.get_public_url()
+        settings_data = dict(self.settings or {})
+        previous_url = settings_data.get("_public_qr_url")
+        file_name = f"{self.restaurant.slug}_{self.slug}_qr.png"
+        expected_name = self.qr_code.field.generate_filename(self, file_name)
+
+        if (
+            not force
+            and self.qr_code
+            and self.qr_code.name == expected_name
+            and previous_url == target_url
+        ):
+            return False
+
+        replace_field_file(
+            self.qr_code,
+            file_name,
+            build_qr_png(target_url),
+        )
+        settings_data["_public_qr_url"] = target_url
+        self.settings = settings_data
+        Branch.objects.filter(pk=self.pk).update(
+            qr_code=self.qr_code.name,
+            settings=settings_data,
+        )
+        invalidate_public_restaurant_cache(self.restaurant.slug)
+        return True
+
     def save(self, *args, **kwargs):
+        old_slug = None
+        old_name = None
+        if self.pk:
+            old_branch = Branch.objects.filter(pk=self.pk).only("name", "slug").first()
+            if old_branch:
+                old_name = old_branch.name
+                old_slug = old_branch.slug
+
+        if not self.slug or old_name != self.name:
+            self.slug = make_unique_branch_slug(self.restaurant, self.name, self.pk)
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "name" in update_fields and "slug" not in update_fields:
+            kwargs["update_fields"] = set(update_fields) | {"slug"}
+
         self.full_clean()
         result = super().save(*args, **kwargs)
+        self.regenerate_qr_code(force=old_slug != self.slug or not self.qr_code)
+        invalidate_public_restaurant_cache(self.restaurant.slug)
         from .branching import sync_all_branch_access_staff
 
         sync_all_branch_access_staff(self.restaurant)
@@ -267,6 +472,7 @@ class Branch(models.Model):
         return False
 
     def delete(self, *args, **kwargs):
+        restaurant_slug = self.restaurant.slug
         if self.is_main_branch:
             raise ValidationError("Main branch cannot be deleted.")
 
@@ -292,7 +498,9 @@ class Branch(models.Model):
                 staff.active_branch = replacement
                 staff.save(update_fields=["active_branch"])
 
-        return super().delete(*args, **kwargs)
+        result = super().delete(*args, **kwargs)
+        invalidate_public_restaurant_cache(restaurant_slug)
+        return result
 
 
 class BranchDataMigrationLog(models.Model):

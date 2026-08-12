@@ -1,8 +1,57 @@
 import { useEffect, useState } from "react";
+
 import { CheckCircle, Coffee, Ban, Calendar } from "lucide-react";
+
 import TableActionModal from "./TableActionModal";
+
 import OrderCancellationToast from "../OrderCancellationToast";
+
 import instance from "../../api/axiosInstance";
+
+// Color palettes — multiple shades per status for visual variety
+const PALETTES = {
+  available: [
+    {
+      bg: "bg-emerald-200",
+      border: "border-emerald-400",
+      icon: "text-emerald-600",
+    },
+  ],
+  occupied: [
+    {
+      bg: "bg-yellow-100",
+      border: "border-orange-500",
+      icon: "text-orange-600",
+    },
+  ],
+  reserved: [
+    {
+      bg: "bg-purple-200",
+      border: "border-purple-500",
+      hover: "hover:bg-purple-200",
+      icon: "text-purple-600",
+    },
+  ],
+  unavailable: [
+    {
+      bg: "bg-gray-200",
+      border: "border-gray-400",
+      hover: "",
+      icon: "text-gray-600",
+    },
+  ],
+};
+
+// Stable index derived from table id so colors don't shuffle on re-render
+const pickPalette = (status, tableId) => {
+  const key = hasReservationOverride(status) ? "reserved" : status;
+  const list = PALETTES[key] || PALETTES.available;
+  // use tableId to get a stable but varied index
+  const idx = typeof tableId === "number" ? tableId : String(tableId).length;
+  return list[idx % list.length];
+};
+
+const hasReservationOverride = (status) => status === "reserved";
 
 export default function TablesDisplayModal({ tables, refetchTables }) {
   const [filter, setFilter] = useState("all");
@@ -67,33 +116,32 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
     }
   };
 
-  const getStatusIcon = (status, hasReservation) => {
-    if (hasReservation) return <Calendar className="text-purple-600 w-5 h-5" />;
+  const getStatusIcon = (status, hasReservation, tableId) => {
+    if (hasReservation) {
+      const p = pickPalette("reserved", tableId);
+      return <Calendar className={`${p.icon} w-5 h-5`} />;
+    }
+    const p = pickPalette(status, tableId);
     switch (status) {
       case "available":
-        return <CheckCircle className="text-green-600 w-5 h-5" />;
+        return <CheckCircle className={`${p.icon} w-5 h-5`} />;
       case "occupied":
-        return <Coffee className="text-orange-600 w-5 h-5" />;
+        return <Coffee className={`${p.icon} w-5 h-5`} />;
       case "unavailable":
-        return <Ban className="text-gray-600 w-5 h-5" />;
+        return <Ban className={`${p.icon} w-5 h-5`} />;
       default:
         return null;
     }
   };
 
-  const getCardStyle = (status, hasReservation) => {
-    if (hasReservation)
-      return "bg-purple-100 border-purple-500 hover:bg-purple-200";
-    switch (status) {
-      case "available":
-        return "bg-green-100 border-green-500 hover:bg-green-200";
-      case "occupied":
-        return "bg-orange-100 border-orange-500 hover:bg-orange-200";
-      case "unavailable":
-        return "bg-gray-200 border-gray-400 opacity-70 cursor-not-allowed";
-      default:
-        return "";
+  const getCardStyle = (status, hasReservation, tableId) => {
+    const key = hasReservation ? "reserved" : status;
+    const p = pickPalette(key, tableId);
+
+    if (key === "unavailable") {
+      return `${p.bg} ${p.border} opacity-70 cursor-not-allowed`;
     }
+    return `${p.bg} ${p.border} ${p.hover}`;
   };
 
   const formatReservationTime = (isoString) => {
@@ -177,7 +225,6 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
         ) : (
           sortedTables.map((table) => {
             const order = table.current_order;
-            console.log(order);
             const hasReservation = !!table.current_reservation;
 
             const canCancel = order && order.status === "pending";
@@ -186,11 +233,11 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                 key={table.id}
                 onClick={() => handleTableClick(table)}
                 className={`p-4 rounded-2xl shadow-md border transition cursor-pointer relative
-                  ${getCardStyle(table.status, hasReservation)}`}
+                  ${getCardStyle(table.status, hasReservation, table.id)}`}
               >
                 <div className="flex items-start justify-between mb-3 gap-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    {getStatusIcon(table.status, hasReservation)}
+                    {getStatusIcon(table.status, hasReservation, table.id)}
                     <h2 className="text-lg font-bold truncate">
                       Table {table.name}
                     </h2>

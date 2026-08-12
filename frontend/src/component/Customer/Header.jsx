@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { logoutCustomer, getProfile } from "../../api/auth";
+import { logoutCustomer } from "../../api/auth";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./LanguageSwitcher";
 import toast from "react-hot-toast";
+import { getBranchPath, getMediaUrl } from "../../api/publicOrdering";
 
-export default function Header({ restaurantInfo }) {
+export default function Header({
+  restaurantInfo,
+  branchInfo,
+  restaurantSlug,
+  branchSlug,
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { slug } = useParams();
+  const params = useParams();
+  const slug = restaurantSlug || params.restaurantSlug || params.slug;
+  const activeBranchSlug = branchSlug || params.branchSlug;
   const isRTL = document.documentElement.dir === "rtl";
-  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
+  const homePath = activeBranchSlug
+    ? getBranchPath({ restaurantSlug: slug, branchSlug: activeBranchSlug })
+    : `/${slug}`;
 
   const handleLogout = () => {
     logoutCustomer();
@@ -27,12 +37,12 @@ export default function Header({ restaurantInfo }) {
         {/* Brand Section */}
         <div
           className="flex items-center gap-3 cursor-pointer group"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(homePath)}
         >
           {restaurantInfo?.logo && (
             <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex-shrink-0">
               <img
-                src={`${BASE_URL}${restaurantInfo.logo}`}
+                src={getMediaUrl(restaurantInfo.logo)}
                 alt={restaurantInfo.name}
                 className="w-full h-full object-cover"
               />
@@ -45,6 +55,11 @@ export default function Header({ restaurantInfo }) {
             <h2 className="text-lg font-bold text-gray-900 leading-tight group-hover:text-red-600 transition-colors">
               {restaurantInfo?.name || "Restaurant"}
             </h2>
+            {branchInfo?.name && (
+              <span className="max-w-[160px] truncate text-xs font-medium text-gray-500">
+                {branchInfo.name}
+              </span>
+            )}
           </div>
         </div>
 

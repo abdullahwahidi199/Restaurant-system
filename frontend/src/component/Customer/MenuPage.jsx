@@ -19,15 +19,27 @@ import CheckoutForm from "./CheckoutForm";
 import ReviewItemModel from "./ReviewPage";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
+import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
+import {
+  getMenuApiBase,
+  getMenuItemPath,
+  getOnlineOrderApiPath,
+  getPlatterPath,
+  getPublicCartKey,
+  getPublicContextFromParams,
+  persistPublicOrderingContext,
+} from "../../api/publicOrdering";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
       <div
-        className={`${className} bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center`}
+        className={`${className} bg-gradient-to-br from-[var(--theme-muted)] to-[var(--theme-border)] flex items-center justify-center`}
       >
-        <span className="text-gray-400 text-xs sm:text-sm">No Image</span>
+        <span className="text-[var(--theme-text-muted)] text-xs sm:text-sm">
+          No Image
+        </span>
       </div>
     );
   }
@@ -44,15 +56,51 @@ const ImageWrapper = ({ src, alt, className }) => {
       loading="lazy"
       onError={(e) => {
         e.target.onerror = null;
-        e.target.src =
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='16' fill='%239ca3af' text-anchor='middle'%3EImage not available%3C/text%3E%3C/svg%3E";
+        e.target.src = buildThemedImagePlaceholder({
+          width: 400,
+          height: 300,
+          fontSize: 16,
+          label: "Image not available",
+        });
       }}
     />
   );
 };
 
-export default function MenuPage({ orderingClosed }) {
-  const { slug } = useParams();
+export default function MenuPage({
+  orderingClosed,
+  restaurantInfo,
+  branchInfo,
+  restaurantSlug,
+  branchSlug,
+}) {
+  const params = useParams();
+  const routeRestaurantSlug = params.restaurantSlug || params.slug;
+  const routeBranchSlug = params.branchSlug || "";
+  const publicContext = useMemo(
+    () => ({
+      ...getPublicContextFromParams({
+        restaurantSlug: routeRestaurantSlug,
+        branchSlug: routeBranchSlug,
+      }),
+      restaurantSlug: restaurantSlug || routeRestaurantSlug,
+      branchSlug: branchSlug || routeBranchSlug,
+    }),
+    [branchSlug, restaurantSlug, routeBranchSlug, routeRestaurantSlug],
+  );
+  const slug = publicContext.restaurantSlug;
+  const menuApiBase = useMemo(
+    () => getMenuApiBase(publicContext),
+    [publicContext],
+  );
+  const orderApiPath = useMemo(
+    () => getOnlineOrderApiPath(publicContext),
+    [publicContext],
+  );
+  const cartKey = useMemo(
+    () => getPublicCartKey(publicContext),
+    [publicContext],
+  );
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
@@ -79,7 +127,7 @@ export default function MenuPage({ orderingClosed }) {
 
   const [cart, setCart] = useState(() => {
     try {
-      const saved = localStorage.getItem(`online_cart_${slug}`);
+      const saved = localStorage.getItem(cartKey);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -91,22 +139,29 @@ export default function MenuPage({ orderingClosed }) {
   }, [viewMode]);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`online_cart_${slug}`);
+    const saved = localStorage.getItem(cartKey);
     if (saved) {
       setCart(JSON.parse(saved));
     } else {
       setCart([]);
     }
-  }, [slug]);
+  }, [cartKey]);
 
   useEffect(() => {
-    localStorage.setItem(`online_cart_${slug}`, JSON.stringify(cart));
-  }, [cart, slug]);
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+  }, [cart, cartKey]);
+
+  useEffect(() => {
+    persistPublicOrderingContext({
+      restaurant: restaurantInfo,
+      branch: branchInfo,
+    });
+  }, [branchInfo, restaurantInfo]);
 
   const fetchMenuData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/menu/public/${slug}/categories/`);
+      const res = await fetch(`${BASE_URL}${menuApiBase}/categories/`);
       if (!res.ok) throw new Error("Failed to fetch menu data");
       const data = await res.json();
 
@@ -151,7 +206,7 @@ export default function MenuPage({ orderingClosed }) {
     fetchMenuData();
     const storedFavs = JSON.parse(localStorage.getItem("favorites")) || [];
     setFavorites(storedFavs);
-  }, []);
+  }, [menuApiBase]);
 
   useEffect(() => {
     localStorage.setItem("favorites", JSON.stringify(favorites));
@@ -173,7 +228,7 @@ export default function MenuPage({ orderingClosed }) {
   const toastRef = useRef(false);
 
   const addToCart = (item) => {
-    const exists = cart.find((i) => i.id === item.id);
+    const exists = cart.find((i) => i.id === item.id && i.type === item.type);
 
     if (!exists && !toastRef.current) {
       toast.success(`${item.name} ${t("menu.messages.added")}`);
@@ -182,10 +237,14 @@ export default function MenuPage({ orderingClosed }) {
     }
 
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const existing = prev.find(
+        (i) => i.id === item.id && i.type === item.type,
+      );
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.id === item.id && i.type === item.type
+            ? { ...i, quantity: i.quantity + 1 }
+            : i,
         );
       }
       return [
@@ -196,19 +255,22 @@ export default function MenuPage({ orderingClosed }) {
           price: parseFloat(item.price),
           image: item.image,
           type: item.type,
+          restaurant_slug: publicContext.restaurantSlug,
+          branch_slug: publicContext.branchSlug,
+          branch_id: branchInfo?.id || null,
           quantity: 1,
         },
       ];
     });
   };
 
-  const incrementItem = (id) => {
-    const item = getMenuItem(id);
+  const incrementItem = (id, type) => {
+    const item = menuItems.find((i) => i.id === id && i.type === type);
     if (!item) return;
 
     setCart((prev) =>
       prev.map((i) => {
-        if (i.id !== id) return i;
+        if (i.id !== id || i.type !== type) return i;
 
         // apply limit ONLY if item uses daily production
         if (
@@ -224,22 +286,26 @@ export default function MenuPage({ orderingClosed }) {
     );
   };
 
-  const decrementItem = (id) => {
+  const decrementItem = (id, type) => {
     setCart((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .map((i) =>
+          i.id === id && i.type === type
+            ? { ...i, quantity: i.quantity - 1 }
+            : i,
+        )
         .filter((i) => i.quantity > 0),
     );
   };
 
-  const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
+  const removeFromCart = (id, type) => {
+    setCart((prev) => prev.filter((i) => i.id !== id || i.type !== type));
   };
 
   const clearCart = () => setCart([]);
 
-  const getItemQuantity = (id) => {
-    const item = cart.find((i) => i.id === id);
+  const getItemQuantity = (id, type) => {
+    const item = cart.find((i) => i.id === id && i.type === type);
     return item ? item.quantity : 0;
   };
 
@@ -268,7 +334,7 @@ export default function MenuPage({ orderingClosed }) {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/orders/online-orders/${slug}/`, {
+      const res = await fetch(`${BASE_URL}${orderApiPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -442,7 +508,7 @@ export default function MenuPage({ orderingClosed }) {
             // ===== GRID VIEW (Mobile-first: 2 columns) =====
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
               {filteredItems.map((item) => {
-                const qty = getItemQuantity(item.id);
+                const qty = getItemQuantity(item.id, item.type);
                 const avgRating =
                   item.reviews?.length > 0
                     ? item.reviews.reduce((sum, r) => sum + r.rating, 0) /
@@ -454,9 +520,9 @@ export default function MenuPage({ orderingClosed }) {
                     key={item.id}
                     onClick={() => {
                       if (item.type === "platter") {
-                        navigate(`/${slug}/menu/platter/${item.id}/`);
+                        navigate(getPlatterPath(publicContext, item.id));
                       } else {
-                        navigate(`/${slug}/menu/item/${item.id}/`);
+                        navigate(getMenuItemPath(publicContext, item.id));
                       }
                     }}
                     className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-lg sm:hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col cursor-pointer active:scale-[0.98] sm:active:scale-100"
@@ -540,7 +606,7 @@ export default function MenuPage({ orderingClosed }) {
                       </div>
 
                       {/* Rate Button */}
-                      {user && (
+                      {user && item.type === "menu_item" && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -588,7 +654,7 @@ export default function MenuPage({ orderingClosed }) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                decrementItem(item.id);
+                                decrementItem(item.id, item.type);
                               }}
                               className="w-7 h-7 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors active:scale-95"
                             >
@@ -600,7 +666,7 @@ export default function MenuPage({ orderingClosed }) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                incrementItem(item.id);
+                                incrementItem(item.id, item.type);
                               }}
                               className="w-7 h-7 sm:w-10 sm:h-10 rounded-md sm:rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center transition-colors active:scale-95"
                             >
@@ -618,7 +684,7 @@ export default function MenuPage({ orderingClosed }) {
             // ===== LIST VIEW =====
             <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4">
               {filteredItems.map((item) => {
-                const qty = getItemQuantity(item.id);
+                const qty = getItemQuantity(item.id, item.type);
                 const avgRating =
                   item.reviews?.length > 0
                     ? item.reviews.reduce((sum, r) => sum + r.rating, 0) /
@@ -630,9 +696,9 @@ export default function MenuPage({ orderingClosed }) {
                     key={item.id}
                     onClick={() => {
                       if (item.type === "platter") {
-                        navigate(`/${slug}/menu/platter/${item.id}/`);
+                        navigate(getPlatterPath(publicContext, item.id));
                       } else {
-                        navigate(`/${slug}/menu/item/${item.id}/`);
+                        navigate(getMenuItemPath(publicContext, item.id));
                       }
                     }}
                     className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 cursor-pointer overflow-hidden flex active:scale-[0.99] sm:active:scale-100"
@@ -709,7 +775,7 @@ export default function MenuPage({ orderingClosed }) {
                             {t("menu.no_reviews")}
                           </span>
                         )}
-                        {user && (
+                        {user && item.type === "menu_item" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -756,7 +822,7 @@ export default function MenuPage({ orderingClosed }) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                decrementItem(item.id);
+                                decrementItem(item.id, item.type);
                               }}
                               className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors active:scale-95"
                             >
@@ -768,7 +834,7 @@ export default function MenuPage({ orderingClosed }) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                incrementItem(item.id);
+                                incrementItem(item.id, item.type);
                               }}
                               className="w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center transition-colors active:scale-95"
                             >
@@ -903,7 +969,7 @@ export default function MenuPage({ orderingClosed }) {
                         {item.name}
                       </h4>
                       <button
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item.id, item.type)}
                         className="text-gray-400 hover:text-red-500 transition-colors p-1 flex-shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -916,7 +982,7 @@ export default function MenuPage({ orderingClosed }) {
                     <div className="mt-auto flex items-center justify-between gap-1">
                       <div className="flex items-center bg-white border border-gray-200 rounded-full">
                         <button
-                          onClick={() => decrementItem(item.id)}
+                          onClick={() => decrementItem(item.id, item.type)}
                           className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
                         >
                           <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-700" />
@@ -925,7 +991,7 @@ export default function MenuPage({ orderingClosed }) {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => incrementItem(item.id)}
+                          onClick={() => incrementItem(item.id, item.type)}
                           className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-900 text-white hover:bg-orange-600 rounded-full transition-colors"
                         >
                           <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -986,6 +1052,8 @@ export default function MenuPage({ orderingClosed }) {
         <ReviewItemModel
           user={JSON.parse(user)?.id}
           itemId={reviewItemId}
+          restaurantSlug={publicContext.restaurantSlug}
+          branchSlug={publicContext.branchSlug}
           onClose={() => setReviewItemId(null)}
         />
       )}

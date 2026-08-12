@@ -16,7 +16,8 @@ const parseStoredJson = (key, fallback) => {
   }
 };
 
-const normalizeBranches = (branches) => (Array.isArray(branches) ? branches : []);
+const normalizeBranches = (branches) =>
+  Array.isArray(branches) ? branches : [];
 
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
@@ -48,7 +49,9 @@ export function AuthProvider({ children }) {
     const requiresSelection =
       role === "BranchAdmin"
         ? false
-        : payload.requires_selection ?? payload.requires_branch_selection ?? false;
+        : (payload.requires_selection ??
+          payload.requires_branch_selection ??
+          false);
 
     setBranches(nextBranches);
     setActiveBranchState(nextActiveBranch);
@@ -85,6 +88,14 @@ export function AuthProvider({ children }) {
       active_branch: data.active_branch,
       branches: data.branches || [],
       requires_branch_selection: data.requires_branch_selection,
+      stations: data.stations || [],
+      station_names: data.station_names || [],
+      staff_profile: {
+        id: data.staff_id,
+        role: data.role,
+        stations: data.stations || [],
+        station_names: data.station_names || [],
+      },
     };
     localStorage.setItem("authTokens", JSON.stringify(tokens));
     localStorage.setItem("user", JSON.stringify(user));

@@ -29,7 +29,7 @@ export default function CustomerProfile() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-b from-black via-[#111] to-[#1a1a1a] text-white flex flex-col items-center py-12 px-4"
+      className="min-h-screen bg-gradient-to-b from-black via-[var(--theme-text-primary)] to-[var(--theme-secondary)] text-white flex flex-col items-center py-12 px-4"
       dir={isRTL ? "rtl" : "ltr"}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -38,7 +38,7 @@ export default function CustomerProfile() {
       <Toaster />
 
       <motion.div
-        className="w-full max-w-md bg-[#1e1e1e] rounded-2xl shadow-xl p-8 border border-gray-800"
+        className="w-full max-w-md bg-[var(--theme-secondary)] rounded-2xl shadow-xl p-8 border border-gray-800"
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}

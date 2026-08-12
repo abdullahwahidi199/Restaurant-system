@@ -28,9 +28,12 @@ urlpatterns = [
     path('api/users/',include('users.urls')),
     path('api/system/',include('system.urls')),
     path('api/inventory/', include('inventory.urls')),
+    path('api/procurement/', include('procurement.urls')),
+    path('api/contractors/', include('contractors.urls')),
     path('api/otp/', include('otp.urls')),
     path('api/restaurant/', include('restaurants.urls')),
     path('api/expenses/', include('expenses.urls')),
+    path('api/audit-logs/', include('audit.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

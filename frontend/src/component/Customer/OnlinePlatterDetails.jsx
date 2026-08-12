@@ -13,15 +13,21 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
+import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
+import {
+  getMenuApiBase,
+  getPublicCartKey,
+  getPublicContextFromParams,
+} from "../../api/publicOrdering";
 
 // Reuse the same ImageWrapper
 const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
       <div
-        className={`${className} bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center`}
+        className={`${className} bg-gradient-to-br from-[var(--theme-primary-subtle)] to-[var(--theme-danger-soft)] flex items-center justify-center`}
       >
-        <Utensils className="w-16 h-16 text-orange-200" />
+        <Utensils className="w-16 h-16 text-[var(--theme-primary)]/30" />
       </div>
     );
   }
@@ -38,15 +44,22 @@ const ImageWrapper = ({ src, alt, className }) => {
       loading="lazy"
       onError={(e) => {
         e.target.onerror = null;
-        e.target.src =
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Crect width='600' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle'%3EImage not available%3C/text%3E%3C/svg%3E";
+        e.target.src = buildThemedImagePlaceholder({
+          fontSize: 18,
+          label: "Image not available",
+        });
       }}
     />
   );
 };
 
 export default function OnlinePlatterDetails() {
-  const { id, slug } = useParams();
+  const params = useParams();
+  const { id } = params;
+  const publicContext = getPublicContextFromParams(params);
+  const slug = publicContext.branchSlug || publicContext.restaurantSlug;
+  const menuApiBase = getMenuApiBase(publicContext);
+  const cartKey = getPublicCartKey(publicContext);
   const [platter, setPlatter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,7 +71,7 @@ export default function OnlinePlatterDetails() {
     try {
       setLoading(true);
       setError(null);
-      const res = await instance.get(`/menu/public/${slug}/platters/${id}/`);
+      const res = await instance.get(`${menuApiBase}/platters/${id}/`);
       setPlatter(res.data);
     } catch (err) {
       console.error(err);
@@ -71,17 +84,18 @@ export default function OnlinePlatterDetails() {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchPlatterDetails();
-  }, [id]);
+  }, [id, menuApiBase]);
 
   const handleAddToCart = () => {
-    const cartKey = `online_cart_${slug}`;
     let cart = [];
     try {
       const saved = localStorage.getItem(cartKey);
       if (saved) cart = JSON.parse(saved);
     } catch {}
 
-    const existing = cart.find((i) => i.id === platter.id);
+    const existing = cart.find(
+      (i) => i.id === platter.id && i.type === "platter",
+    );
 
     if (existing) {
       existing.quantity += quantity;
@@ -93,6 +107,8 @@ export default function OnlinePlatterDetails() {
         image: platter.image,
         quantity,
         type: "platter", // distinguish from regular menu item
+        restaurant_slug: publicContext.restaurantSlug,
+        branch_slug: publicContext.branchSlug,
       });
     }
 

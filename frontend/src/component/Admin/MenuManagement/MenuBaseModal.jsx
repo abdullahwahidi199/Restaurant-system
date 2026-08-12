@@ -18,6 +18,7 @@ export default function Menu({
   const isManagerPanel = location.pathname.startsWith("/manager");
   const isKitchenPanel = location.pathname.startsWith("/kitchen");
   const isInventoryPanel = location.pathname.startsWith("/inventory-manager");
+  const isOperationsPanel = location.pathname.startsWith("/operations-manager");
   const resolvedCanManage =
     canManage ?? (!isManagerPanel && !isKitchenPanel);
 
@@ -25,6 +26,8 @@ export default function Menu({
     ? "/kitchen"
     : isInventoryPanel
       ? "/inventory-manager"
+      : isOperationsPanel
+        ? "/operations-manager"
       : isManagerPanel
         ? null
         : "/admin/dashboard";

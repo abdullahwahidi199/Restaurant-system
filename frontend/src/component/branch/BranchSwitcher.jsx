@@ -3,7 +3,8 @@ import { Building2 } from "lucide-react";
 import { AuthContext } from "../../api/authforRBC";
 
 export default function BranchSwitcher({ compact = false }) {
-  const { auth, branches, activeBranch, switchActiveBranch } = useContext(AuthContext);
+  const { auth, branches, activeBranch, switchActiveBranch } =
+    useContext(AuthContext);
   const [switching, setSwitching] = useState(false);
 
   if (auth?.user?.role === "BranchAdmin") return null;
@@ -23,11 +24,22 @@ export default function BranchSwitcher({ compact = false }) {
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm">
-      <Building2 size={16} className="shrink-0 text-gray-500" />
-      {!compact && <span className="font-medium text-gray-500">Branch</span>}
+    <div
+      className={`branch-switcher ${
+        compact ? "branch-switcher-compact" : ""
+      } flex items-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm text-[var(--theme-text-secondary)] shadow-[var(--theme-shadow-sm)]`}
+    >
+      <Building2
+        size={16}
+        className="branch-switcher-icon shrink-0 text-[var(--theme-text-muted)]"
+      />
+      {!compact && (
+        <span className="branch-switcher-label font-medium text-[var(--theme-text-muted)]">
+          Branch
+        </span>
+      )}
       {branches.length === 1 ? (
-        <span className="font-semibold text-gray-900">
+        <span className="branch-switcher-current font-semibold text-[var(--theme-text-primary)]">
           {activeBranch?.name || branches[0].name}
         </span>
       ) : (
@@ -35,7 +47,7 @@ export default function BranchSwitcher({ compact = false }) {
           value={activeBranch?.id || ""}
           onChange={handleChange}
           disabled={switching}
-          className="min-w-36 bg-transparent font-semibold text-gray-900 outline-none disabled:opacity-60"
+          className="branch-switcher-select min-w-36 bg-transparent font-semibold text-[var(--theme-text-primary)] outline-none disabled:opacity-60"
           aria-label="Active branch"
         >
           {branches.map((branch) => (

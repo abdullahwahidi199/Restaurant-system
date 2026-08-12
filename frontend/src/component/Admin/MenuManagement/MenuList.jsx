@@ -4,6 +4,8 @@ import AddItemModal from "./AddItemModal";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import PlatterAddModal from "./PlatterAddModal";
+import { useContext } from "react";
+import { AuthContext } from "../../api/authforRBC";
 
 export default function MenuList({
   categoryItems,
@@ -18,9 +20,48 @@ export default function MenuList({
   const [searchTerm, setSearchTerm] = useState("");
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const location = useLocation();
-  const dashboardBase = location.pathname.startsWith("/inventory-manager")
-    ? "/inventory-manager"
-    : "/admin/dashboard";
+  const { auth } = useContext(AuthContext);
+
+  // Determine the correct base path based on the current URL or user role
+  const getDashboardBase = () => {
+    const pathname = location.pathname;
+
+    // Check URL patterns first (most reliable)
+    if (pathname.startsWith("/operations-manager")) {
+      return "/operations-manager";
+    }
+    if (pathname.startsWith("/inventory-manager")) {
+      return "/inventory-manager";
+    }
+    if (pathname.startsWith("/finance-manager")) {
+      return "/finance-manager";
+    }
+    if (pathname.startsWith("/admin/dashboard")) {
+      return "/admin/dashboard";
+    }
+    if (pathname.startsWith("/manager")) {
+      return "/manager";
+    }
+
+    // Fallback to user role if URL doesn't match
+    const userRole = auth?.user?.role;
+    switch (userRole) {
+      case "OperationsManager":
+        return "/operations-manager";
+      case "InventoryManager":
+        return "/inventory-manager";
+      case "FinanceManager":
+        return "/finance-manager";
+      case "Manager":
+        return "/manager";
+      case "Admin":
+      case "BranchAdmin":
+      default:
+        return "/admin/dashboard";
+    }
+  };
+
+  const dashboardBase = getDashboardBase();
 
   const allItems = [
     ...(categoryItems?.menu_items || []),

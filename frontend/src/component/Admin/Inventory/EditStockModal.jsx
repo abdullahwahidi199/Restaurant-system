@@ -1,9 +1,11 @@
 // src/components/inventory/EditStockMovement.jsx
 
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 
 export default function EditStockMovement({ movement, onClose, onSuccess }) {
+  const { t } = useTranslation();
   const ingredientUnit = movement.ingredient_unit || "pcs";
 
   // Convert DB quantity back to display quantity
@@ -79,16 +81,25 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
     } catch (err) {
       console.log(err);
 
-      setError(err.response?.data?.detail || "Failed to update movement");
+      setError(
+        err.response?.data?.detail ||
+          t("inventory_manager.stock_movements.update_failed", {
+            defaultValue: "Failed to update movement",
+          }),
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-96 shadow-xl">
-        <h2 className="text-xl font-bold mb-4">Edit Stock Movement</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-xl sm:p-6">
+        <h2 className="text-xl font-bold mb-4">
+          {t("inventory_manager.stock_movements.edit_title", {
+            defaultValue: "Edit Stock Movement",
+          })}
+        </h2>
 
         {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
 
@@ -96,13 +107,15 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
           {/* Movement Type */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Movement Type
+              {t("inventory_manager.stock_movements.movement_type", {
+                defaultValue: "Movement Type",
+              })}
             </label>
 
             {movement.movement_type === "purchase" ? (
               <input
                 type="text"
-                value="Purchase"
+                value={t("inventory_manager.types.purchase", { defaultValue: "Purchase" })}
                 disabled
                 className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
               />
@@ -117,14 +130,18 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
                 }
                 className="w-full border rounded px-3 py-2"
               >
-                <option value="adjustment">Adjustment</option>
-                <option value="waste">Waste</option>
+                <option value="adjustment">
+                  {t("inventory_manager.types.adjustment", { defaultValue: "Adjustment" })}
+                </option>
+                <option value="waste">
+                  {t("inventory_manager.types.waste", { defaultValue: "Waste" })}
+                </option>
               </select>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
-              Quantity ({getInputUnit(ingredientUnit)})
+              {t("inventory_manager.common.quantity", { defaultValue: "Quantity" })} ({getInputUnit(ingredientUnit)})
             </label>
 
             <input
@@ -147,7 +164,9 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
               {/* Total Price */}
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Total Purchase Price
+                  {t("inventory_manager.stock_movements.total_purchase_price", {
+                    defaultValue: "Total Purchase Price",
+                  })}
                 </label>
 
                 <input
@@ -168,7 +187,7 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
               {/* Preview */}
               <div className="bg-gray-50 p-3 rounded text-sm">
                 <p>
-                  Unit Cost:{" "}
+                  {t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" })}:{" "}
                   {formData.quantity && formData.total_price
                     ? (
                         parseFloat(formData.total_price) /
@@ -180,13 +199,13 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
             </>
           )}
 
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="grid grid-cols-2 gap-2 pt-4 sm:flex sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 border rounded"
             >
-              Cancel
+              {t("inventory_manager.common.cancel", { defaultValue: "Cancel" })}
             </button>
 
             <button
@@ -194,7 +213,11 @@ export default function EditStockMovement({ movement, onClose, onSuccess }) {
               disabled={loading}
               className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Changes"}
+              {loading
+                ? t("inventory_manager.common.saving", { defaultValue: "Saving..." })
+                : t("inventory_manager.common.save_changes", {
+                    defaultValue: "Save Changes",
+                  })}
             </button>
           </div>
         </form>

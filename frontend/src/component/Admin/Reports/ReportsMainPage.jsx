@@ -13,9 +13,11 @@ const REPORT_OPTIONS = [
 ];
 
 export default function ReportsMainPage() {
+  const today = new Date().toISOString().split("T")[0];
+
   const [reportType, setReportType] = useState("orders");
-  const [startDate, setStartDate] = useState("2026-04-01");
-  const [endDate, setEndDate] = useState("2026-04-30");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
 
   return (
     <div className="p-6 space-y-6">
@@ -29,6 +31,7 @@ export default function ReportsMainPage() {
             <label htmlFor="report-type" className="text-sm font-medium">
               Report Type:
             </label>
+
             <select
               id="report-type"
               value={reportType}
@@ -43,11 +46,12 @@ export default function ReportsMainPage() {
             </select>
           </div>
 
-          {/* Date Filters (UI-only for now) */}
+          {/* Date Filters */}
           <div className="flex items-center gap-2">
             <label htmlFor="start" className="text-sm font-medium">
               From:
             </label>
+
             <input
               id="start"
               type="date"
@@ -55,9 +59,11 @@ export default function ReportsMainPage() {
               onChange={(e) => setStartDate(e.target.value)}
               className="border rounded px-3 py-2"
             />
+
             <label htmlFor="end" className="text-sm font-medium">
               To:
             </label>
+
             <input
               id="end"
               type="date"
@@ -67,13 +73,12 @@ export default function ReportsMainPage() {
             />
           </div>
 
-          {/* Placeholder button (no action yet) */}
+          {/* Generate */}
           <button
             type="button"
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
             onClick={() => {
-              // Intentionally left empty for now
-              console.log("Generate clicked (placeholder):", {
+              console.log("Generate clicked:", {
                 reportType,
                 startDate,
                 endDate,
@@ -89,20 +94,18 @@ export default function ReportsMainPage() {
         {reportType === "orders" && (
           <OrdersReport startDate={startDate} endDate={endDate} />
         )}
+
         {reportType === "finance" && (
           <FinanceReport startDate={startDate} endDate={endDate} />
         )}
+
         {reportType === "inventory" && (
           <InventoryReport startDate={startDate} endDate={endDate} />
         )}
-        {/* Staff Performance */}
+
         {reportType === "staff_performance" && (
           <StaffReport startDate={startDate} endDate={endDate} />
         )}
-        {/* Customers
-        {reportType === "customers" && (
-          <CustomersReport startDate={startDate} endDate={endDate} />
-        )} */}
       </div>
     </div>
   );

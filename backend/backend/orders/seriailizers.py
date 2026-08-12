@@ -43,6 +43,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     item_name = serializers.SerializerMethodField()
     item_price = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
+    station_id = serializers.SerializerMethodField()
+    station_name = serializers.SerializerMethodField()
 
     menu_item_details = MenuItemSerializer(
         source='menu_item',
@@ -70,7 +72,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
             'menu_item_details',
             'platter_details',
-
+             "station_id", "station_name",
             'item_name',
             'item_price',
             'price_at_order',
@@ -103,6 +105,14 @@ class OrderItemSerializer(serializers.ModelSerializer):
                 restaurant,
                 branch,
             )
+
+    def get_station_id(self, obj):
+        station = getattr(obj, "target_station", None)
+        return station.id if station else None
+
+    def get_station_name(self, obj):
+        station = getattr(obj, "target_station", None)
+        return station.name if station else "Main Kitchen"
 
     def validate(self, data):
         menu_item = data.get("menu_item")
@@ -259,6 +269,170 @@ class TableSerializer(serializers.ModelSerializer):
                 "duration":reservation.duration_minutes
             }
 
+        return None
+
+
+class TablePanelOrderItemSerializer(serializers.ModelSerializer):
+    item_name = serializers.SerializerMethodField()
+    added_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "item_name",
+            "status",
+            "quantity",
+            "is_new",
+            "added_by_name",
+        ]
+
+    def get_item_name(self, obj):
+        if obj.menu_item:
+            return obj.menu_item.name
+        if obj.platter:
+            return obj.platter.name
+        return None
+
+    def get_added_by_name(self, obj):
+        if obj.is_new and obj.added_by:
+            return obj.added_by.name
+        return None
+
+
+class TablePanelOrderSerializer(serializers.ModelSerializer):
+    items = TablePanelOrderItemSerializer(many=True)
+    total = serializers.SerializerMethodField()
+    item_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "name",
+            "phone",
+            "items",
+            "item_count",
+            "total",
+            "order_number",
+            "status",
+            "created_at",
+        ]
+
+    def get_total(self, obj):
+        return str(obj.get_total())
+
+    def get_item_count(self, obj):
+        prefetched_items = getattr(obj, "_prefetched_objects_cache", {}).get("items")
+        if prefetched_items is not None:
+            return len([item for item in prefetched_items if item.status != "cancelled"])
+        return obj.items.exclude(status="cancelled").count()
+
+
+class TablePanelSerializer(serializers.ModelSerializer):
+    current_order = serializers.SerializerMethodField()
+    current_reservation = serializers.SerializerMethodField()
+    upcoming_reservation = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Table
+        fields = [
+            "id",
+            "name",
+            "capacity",
+            "note",
+            "status",
+            "branch",
+            "current_order",
+            "price_per_hour",
+            "allow_free_reservation",
+            "current_reservation",
+            "upcoming_reservation",
+        ]
+        read_only_fields = ["branch"]
+
+    def get_current_order(self, obj):
+        orders = getattr(obj, "prefetched_active_orders", None)
+        if orders is None:
+            request = self.context.get("request")
+            branch = get_active_branch(request, raise_exception=False) if request else None
+            query = obj.orders.filter(
+                status__in=["pending", "in_progress", "ready", "served"]
+            )
+            if branch:
+                query = query.filter(branch=branch)
+            orders = query.prefetch_related(
+                "items__menu_item",
+                "items__platter",
+                "items__added_by",
+            )
+
+        order = orders[0] if orders else None
+        return TablePanelOrderSerializer(order).data if order else None
+
+    def get_current_reservation(self, obj):
+        now = timezone.now()
+        reservations = getattr(obj, "prefetched_panel_reservations", None)
+
+        if reservations is None:
+            request = self.context.get("request")
+            branch = get_active_branch(request, raise_exception=False) if request else None
+            reservations = obj.reservations.filter(status__in=["arrived", "reserved"])
+            if branch:
+                reservations = reservations.filter(branch=branch)
+            reservations = reservations.order_by("-start_time")
+
+        arrived = sorted([
+            r for r in reservations
+            if r.status == "arrived" and r.end_time and now <= r.end_time
+        ], key=lambda r: r.start_time or now, reverse=True)
+        current_reserved = sorted([
+            r for r in reservations
+            if (
+                r.status == "reserved"
+                and r.start_time
+                and r.start_time <= now
+                and r.end_time
+                and now <= r.end_time
+            )
+        ], key=lambda r: r.start_time or now, reverse=True)
+        reservation = arrived[0] if arrived else (current_reserved[0] if current_reserved else None)
+
+        if reservation:
+            return {
+                "id": reservation.id,
+                "customer_name": reservation.customer_name,
+                "customer_phone": reservation.phone,
+                "time": reservation.start_time,
+                "duration": reservation.duration_minutes,
+            }
+        return None
+
+    def get_upcoming_reservation(self, obj):
+        now = timezone.now()
+        reservations = getattr(obj, "prefetched_panel_reservations", None)
+
+        if reservations is None:
+            request = self.context.get("request")
+            branch = get_active_branch(request, raise_exception=False) if request else None
+            reservations = obj.reservations.filter(status="reserved", start_time__gt=now)
+            if branch:
+                reservations = reservations.filter(branch=branch)
+            reservation = reservations.order_by("start_time").first()
+        else:
+            upcoming = [
+                r for r in reservations
+                if r.status == "reserved" and r.start_time and r.start_time > now
+            ]
+            reservation = upcoming[0] if upcoming else None
+
+        if reservation:
+            return {
+                "id": reservation.id,
+                "customer_name": reservation.customer_name,
+                "time": reservation.start_time,
+                "duration": reservation.duration_minutes,
+            }
         return None
         
 
@@ -656,20 +830,30 @@ class OrderSerializer(serializers.ModelSerializer):
             else:
                 customer_lat = data.get("latitude")
                 customer_lng = data.get("longitude")
+                origin_lat = (
+                    branch.latitude
+                    if branch and branch.latitude is not None
+                    else restaurant.latitude
+                )
+                origin_lng = (
+                    branch.longitude
+                    if branch and branch.longitude is not None
+                    else restaurant.longitude
+                )
 
-                if not restaurant or not restaurant.latitude or not restaurant.longitude:
+                if origin_lat is None or origin_lng is None:
                     raise serializers.ValidationError(
-                        "Restaurant location not set"
+                        "Branch location not set"
                     )
 
-                if not customer_lat or not customer_lng:
+                if customer_lat is None or customer_lng is None:
                     raise serializers.ValidationError(
                         "Customer location is required for delivery"
                     )
 
                 distance = calculate_distance_km(
-                    restaurant.latitude,
-                    restaurant.longitude,
+                    origin_lat,
+                    origin_lng,
                     float(customer_lat),
                     float(customer_lng)
                 )
@@ -985,6 +1169,8 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
     item_name = serializers.SerializerMethodField()
     item_price = serializers.SerializerMethodField()
     added_by_name = serializers.SerializerMethodField()
+    station_id = serializers.SerializerMethodField()
+    station_name = serializers.SerializerMethodField()
     class Meta:
         model = OrderItem
         fields = [
@@ -999,7 +1185,16 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
             'description',
             'is_new',
             'added_by_name',
+            "station_id", "station_name",
         ]
+    
+    def get_station_id(self, obj):
+        station = getattr(obj, "target_station", None)
+        return station.id if station else None
+
+    def get_station_name(self, obj):
+        station = getattr(obj, "target_station", None)
+        return station.name if station else "Main Kitchen"
     def get_added_by_name(self, obj):
         if obj.is_new and obj.added_by:
             return obj.added_by.name

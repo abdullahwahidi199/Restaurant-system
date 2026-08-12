@@ -106,7 +106,7 @@ const Signup = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-[#111] to-[#0a0a0a] text-white px-6"
+      className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-[var(--theme-text-primary)] to-[var(--theme-text-primary)] text-white px-6"
       dir={isRTL ? "rtl" : "ltr"}
     >
       <Toaster position="bottom-center" />
@@ -115,7 +115,7 @@ const Signup = () => {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
-        className="bg-[#121212] border border-[#1f1f1f] shadow-xl rounded-3xl w-full max-w-md p-8"
+        className="bg-[var(--theme-elevated)] border border-[var(--theme-border)] shadow-xl rounded-3xl w-full max-w-md p-8"
       >
         <h2 className="text-3xl font-bold text-center mb-6">
           {t("signup.title")}
@@ -131,7 +131,7 @@ const Signup = () => {
             placeholder={t("signup.username")}
             value={formData.username}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
             required
           />
 
@@ -142,7 +142,7 @@ const Signup = () => {
             placeholder={t("signup.email")}
             value={formData.email}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
           />
 
           <div className="relative">
@@ -153,7 +153,7 @@ const Signup = () => {
               placeholder={t("signup.password")}
               value={formData.password}
               onChange={handleChange}
-              className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+              className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
               required
             />
             <span
@@ -171,7 +171,7 @@ const Signup = () => {
               placeholder={t("signup.confirmPassword")}
               value={formData.confirm_password}
               onChange={handleChange}
-              className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+              className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
               required
             />
             <span
@@ -189,7 +189,7 @@ const Signup = () => {
             placeholder={t("signup.phone")}
             value={formData.phone}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
             required
           />
 
@@ -200,7 +200,7 @@ const Signup = () => {
             placeholder={t("signup.address")}
             value={formData.address}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
             required
           />
 
@@ -210,7 +210,7 @@ const Signup = () => {
             name="date_of_birth"
             value={formData.date_of_birth}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
             required
           />
 
@@ -219,7 +219,7 @@ const Signup = () => {
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className="w-full p-3 bg-[#1a1a1a] border border-gray-700 text-white rounded-full"
+            className="w-full p-3 bg-[var(--theme-secondary)] border border-gray-700 text-white rounded-full"
             required
           >
             <option value="">{t("signup.gender")}</option>

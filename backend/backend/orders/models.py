@@ -537,6 +537,15 @@ class OrderItem(models.Model):
     is_printed_to_kitchen=models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
 
+    @property
+    def target_station(self):
+        """Returns the Station responsible for this order item."""
+        if self.menu_item and self.menu_item.station:
+            return self.menu_item.station
+        if self.platter and self.platter.station:
+            return self.platter.station
+        return None
+
     def save(self, *args, **kwargs):
         # Auto-capture price on creation if not manually set
         if self.pk is None and self.price_at_order is None:

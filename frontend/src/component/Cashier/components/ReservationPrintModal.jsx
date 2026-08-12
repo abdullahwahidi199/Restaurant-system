@@ -4,10 +4,19 @@ import { AuthContext } from "../../../api/authforRBC";
 const ReservationPrintModal = ({ reservation, onClose }) => {
   const printRef = useRef();
   const { restaurantDetails } = useContext(AuthContext);
+  const receiptFooter = "Powered by Pakhlai - pakhlai.com";
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const logo = restaurantDetails?.logo
     ? `${BASE_URL}${restaurantDetails.logo}`
     : "";
+
+  React.useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   if (!reservation) return null;
 
@@ -22,7 +31,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
   const escapeHtml = (str) => {
     if (typeof str !== "string") return str;
-    return str.replace(/[&<>"'`=\/]/g, function (s) {
+    return str.replace(/[&<>"'`=/]/g, function (s) {
       return {
         "&": "&amp;",
         "<": "&lt;",
@@ -57,14 +66,14 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
               font-family: 'Courier New', 'Segoe UI', system-ui, sans-serif; 
               font-size: 11px; 
               line-height: 1.35; 
-              color: #000; 
+              color: var(--theme-text-primary); 
             }
             table { width: 100%; border-collapse: collapse; }
             td { padding: 2px 0; }
             .center { text-align: center; }
             .right { text-align: right; }
             .bold { font-weight: bold; }
-            .dashed { border-bottom: 1px dashed #ccc; }
+            .dashed { border-bottom: 1px dashed var(--theme-border-strong); }
             .mt-1 { margin-top: 4px; }
             .mt-2 { margin-top: 8px; }
             .mb-1 { margin-bottom: 4px; }
@@ -95,7 +104,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
           ${
             restaurantDetails?.phone || restaurantDetails?.address
               ? `
-            <div class="center" style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed #ccc;font-size:10px">
+            <div class="center" style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed var(--theme-border-strong);font-size:10px">
               ${restaurantDetails?.phone ? `<p style="margin:0 0 1px"><strong>Phone:</strong> ${escapeHtml(restaurantDetails.phone)}</p>` : ""}
               ${restaurantDetails?.address ? `<p style="margin:0"><strong>Address:</strong> ${escapeHtml(restaurantDetails.address)}</p>` : ""}
             </div>
@@ -192,9 +201,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
           <div class="dashed" style="margin:8px 0"></div>
 
-          <p class="center" style="margin:0;font-size:10px;color:#666">
-            Thank you for choosing ${escapeHtml(restaurantDetails?.name || "our restaurant")}
-          </p>
+          <p class="center" style="margin:0;font-size:10px;color:var(--theme-text-muted);white-space:pre-line">${escapeHtml(receiptFooter)}</p>
         </body>
       </html>
     `;
@@ -222,15 +229,6 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
       alert("Could not open print window.");
     }
   };
-
-  // --- Close on Escape ---
-  React.useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   // --- Modal Render ---
   return (
@@ -387,8 +385,8 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             </>
           )}
 
-          <div className="border-t border-dashed border-gray-300 mt-3 pt-2 text-center text-[10px] text-gray-500">
-            Thank you for choosing {restaurantDetails?.name}
+          <div className="border-t border-dashed border-gray-300 mt-3 pt-2 text-center text-[10px] text-gray-500 whitespace-pre-line">
+            {receiptFooter}
           </div>
         </div>
 

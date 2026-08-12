@@ -13,7 +13,6 @@ import TopConsumedChart from "../../Admin/Inventory/TopConsumedChart";
 import KichenManagerIngredientList from "./IngredientList";
 import LowStockItems from "../../Admin/Inventory/LowStockItems";
 // import StockMovementList from "./StockMovementList";
-// import AddStock from "./AddStock";
 // import CreateIngredientModal from "./CreateIngredient";
 
 import { getInventorySummary } from "../../../api/inventoryApi";
@@ -108,7 +107,6 @@ export default function KitchenManagerStockDashboard() {
         </div>
 
         <div className="space-y-6">
-          {/* <AddStock /> */}
           <LowStockItems />
         </div>
       </div>

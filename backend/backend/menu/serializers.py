@@ -6,6 +6,7 @@ from .models import (
     Platter,
     PlatterItem,
     Production,
+    Station
 )
 from customers.models import Customer
 from django.utils import timezone
@@ -16,6 +17,21 @@ from inventory.services import get_effective_quantity, get_recipe_items
 # from .serializers import PlatterSerializer
 
 
+class StationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Station
+        fields = [
+            "id",
+            "restaurant",
+            "branch",
+            "name",
+            "name_dari",
+            "name_pashto",
+            "description",
+            "is_default",
+            "is_active",
+        ]
+        read_only_fields = ["id", "restaurant"]
 def get_serializer_branch(serializer):
     branch = serializer.context.get("branch")
     if branch:
@@ -39,9 +55,12 @@ def get_serializer_restaurant(serializer):
 
     return None
 
-
+from django.db.models import Q
 def scope_menu_related_queryset(queryset, restaurant, branch):
-    return queryset.filter(branch=branch)
+    if branch:
+        # Include BOTH branch-specific items AND restaurant-wide items (where branch is NULL)
+        return queryset.filter(Q(branch=branch) | Q(branch__isnull=True))
+    return queryset
 
 class ReveiwMiniSerializer(serializers.ModelSerializer):
     customer=serializers.CharField(source="customer.user.username",read_only=True)
@@ -55,11 +74,18 @@ class MenuItemMiniSerializer(serializers.ModelSerializer):
     image=serializers.SerializerMethodField()
     production_remaining = serializers.SerializerMethodField()
     final_availability = serializers.SerializerMethodField()
+    station = serializers.PrimaryKeyRelatedField(
+        queryset=Station.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    station_name = serializers.CharField(source="station.name", read_only=True) 
+    
     class Meta:
         model = MenuItem
         fields = ['id', 'name','name_dari','name_pashto', 'price','image','is_available',
             'is_manually_available',
-            'final_availability','reviews','uses_daily_production', 'production_remaining'] 
+            'final_availability','reviews','uses_daily_production', 'production_remaining','station','station_name'] 
     def get_image(self, obj):
         return obj.image.url if obj.image else None
 
@@ -91,6 +117,12 @@ class PlatterItemSerializer(serializers.ModelSerializer):
     menu_item_name = serializers.ReadOnlyField(
         source='menu_item.name'
     )
+    quantity = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        coerce_to_string=False,
+        help_text="Supports float quantities like 0.2 or 0.5."
+    )
 
     class Meta:
         model = PlatterItem
@@ -101,6 +133,10 @@ class PlatterItemSerializer(serializers.ModelSerializer):
             'quantity'
         ]
 
+    def validate_quantity(self, value):
+        if value <= Decimal('0'):
+            raise serializers.ValidationError("Quantity must be greater than zero.")
+        return value
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         restaurant = get_serializer_restaurant(self)
@@ -121,7 +157,12 @@ class PlatterSerializer(serializers.ModelSerializer):
     )
 
     total_cost = serializers.SerializerMethodField()
-
+    station = serializers.PrimaryKeyRelatedField(
+    queryset=Station.objects.all(),
+    required=False,
+    allow_null=True
+)
+    station_name = serializers.CharField(source="station.name", read_only=True)
     class Meta:
         model = Platter
 
@@ -144,7 +185,9 @@ class PlatterSerializer(serializers.ModelSerializer):
             'final_availability',
             'unavailable_reasons',
             'items',
-            'total_cost'
+            'total_cost',
+            'station',
+            'station_name',
         ]
 
         read_only_fields = [
@@ -169,6 +212,12 @@ class PlatterSerializer(serializers.ModelSerializer):
                     branch,
                 )
             )
+            if "station" in self.fields:
+                self.fields["station"].queryset = scope_menu_related_queryset(
+                    Station.objects.filter(restaurant=restaurant),
+                    restaurant,
+                    branch,
+                )
     def to_internal_value(self, data):
         import json
 
@@ -361,6 +410,12 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     production_remaining = serializers.SerializerMethodField()
     production_produced = serializers.SerializerMethodField()
+    station = serializers.PrimaryKeyRelatedField(
+        queryset=Station.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    station_name = serializers.CharField(source="station.name", read_only=True) 
     class Meta:
         model = MenuItem
         fields = ['id', 'branch', 'name','name_dari','name_pashto', 'description','description_dari','description_pashto', 'price', 'image', 'is_available',
@@ -368,7 +423,8 @@ class MenuItemSerializer(serializers.ModelSerializer):
             'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit',
             'uses_daily_production',         # 🆕
             'production_remaining',          # 🆕
-            'production_produced', ]
+            'production_produced',
+             'station','station_name' ]
         read_only_fields = ['branch']
 
     def __init__(self, *args, **kwargs):
@@ -381,6 +437,13 @@ class MenuItemSerializer(serializers.ModelSerializer):
                 restaurant,
                 branch,
             )
+            if "station" in self.fields:
+                self.fields["station"].queryset = scope_menu_related_queryset(
+                    Station.objects.filter(restaurant=restaurant),
+                    restaurant,
+                    branch,
+                )
+
     
     def get_cost_per_unit(self, obj):
         return obj.get_cost_per_unit(branch=get_serializer_branch(self))

@@ -14,22 +14,24 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import RestaurantNotFound from "../../RestaurantNotFoundPage";
+import { getMediaUrl } from "../../api/publicOrdering";
 
 export default function Info() {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const { t, i18n } = useTranslation();
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
   const BASE_URL = import.meta.env.VITE_API_URL;
-  const MEDIA_URL = import.meta.env.VITE_MEDIA_URL;
   const { slug } = useParams();
 
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
         const res = await fetch(
-          `${BASE_URL}/system/restaurant-info/slug/${slug}/`,
+          `${BASE_URL}/restaurant/public/${slug}/`,
         );
 
         if (!res.ok) {
@@ -40,8 +42,7 @@ export default function Info() {
         }
 
         const data = await res.json();
-        console.log(data);
-        setRestaurantInfo(data);
+        setRestaurantInfo(data.restaurant);
       } catch (error) {
         console.log(error);
         setNotFound(true);
@@ -57,24 +58,30 @@ export default function Info() {
     return <div className="p-10 text-center">Loading...</div>;
   }
 
+  if (notFound) {
+    return <RestaurantNotFound />;
+  }
+
   return (
     <div
-      className="min-h-screen bg-gray-50 dark:bg-[#111] flex flex-col items-center py-12 px-4"
+      className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="max-w-3xl bg-white dark:bg-gray-900 shadow-xl rounded-2xl p-8">
+      <div className="max-w-3xl bg-white shadow-xl rounded-2xl p-8">
         <div className="flex flex-col items-center mb-6">
-          <img
-            src={`${MEDIA_URL}${restaurantInfo?.logo}`}
-            alt="Logo"
-            className="h-18 w-auto object-contain mb-3"
-          />
+          {restaurantInfo?.logo && (
+            <img
+              src={getMediaUrl(restaurantInfo.logo)}
+              alt="Logo"
+              className="h-18 w-auto object-contain mb-3"
+            />
+          )}
           <h1 className="text-3xl font-bold text-red-600">
             {restaurantInfo?.name}
           </h1>
         </div>
 
-        <p className="text-gray-600 dark:text-gray-300 text-center mb-8">
+        <p className="text-gray-600 text-center mb-8">
           {t("info.description", { name: restaurantInfo?.name })}
         </p>
 
@@ -141,7 +148,7 @@ export default function Info() {
 
           {restaurantInfo?.x && (
             <SocialIcon
-              href={restaurantInfo?.twitter}
+              href={restaurantInfo?.x}
               icon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -162,10 +169,10 @@ export default function Info() {
 
 function InfoItem({ icon, label, value, isLink }) {
   return (
-    <div className="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+    <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-3">
       <div className="text-red-500">{icon}</div>
       <div>
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+        <h3 className="font-semibold text-gray-700">
           {label}
         </h3>
         {isLink ? (
@@ -178,7 +185,7 @@ function InfoItem({ icon, label, value, isLink }) {
             {value}
           </a>
         ) : (
-          <p className="text-gray-600 dark:text-gray-400 break-all">{value}</p>
+          <p className="text-gray-600 break-all">{value}</p>
         )}
       </div>
     </div>
@@ -191,7 +198,7 @@ function SocialIcon({ href, icon, hoverColor }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className={`p-3 bg-gray-100 dark:bg-gray-800 rounded-full transition flex items-center justify-center ${hoverColor} hover:text-white`}
+      className={`p-3 bg-gray-100 rounded-full transition flex items-center justify-center ${hoverColor} hover:text-white`}
     >
       {icon}
     </a>

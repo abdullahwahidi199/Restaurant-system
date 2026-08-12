@@ -1,0 +1,20 @@
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext } from "react";
+
+const SettingsContext = createContext(null);
+
+export function SettingsProvider({ value, children }) {
+  return (
+    <SettingsContext.Provider value={value}>
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (!context) {
+    throw new Error("useSettings must be used inside SettingsProvider");
+  }
+  return context;
+}

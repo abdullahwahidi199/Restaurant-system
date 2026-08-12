@@ -14,6 +14,7 @@ import {
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
 
 /* ═══════════════════════════════════════════
    IMAGE WRAPPER (Luxury style)
@@ -24,9 +25,9 @@ const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
       <div
-        className={`${className} bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] flex items-center justify-center`}
+        className={`${className} bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-text-primary)] flex items-center justify-center`}
       >
-        <UtensilsCrossed className="w-16 h-16 text-[#d4a853]/20" />
+        <UtensilsCrossed className="w-16 h-16 text-[var(--theme-secondary)]/20" />
       </div>
     );
   }
@@ -38,7 +39,7 @@ const ImageWrapper = ({ src, alt, className }) => {
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-text-primary)] animate-pulse" />
       )}
       <img
         src={fullUrl}
@@ -51,8 +52,7 @@ const ImageWrapper = ({ src, alt, className }) => {
         onError={(e) => {
           e.target.onerror = null;
           setLoaded(true);
-          e.target.src =
-            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Crect width='600' height='400' fill='%23111'/%3E%3Ctext x='50%25' y='50%25' font-family='serif' font-size='16' fill='%23d4a85344' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+          e.target.src = buildThemedImagePlaceholder();
         }}
       />
     </div>
@@ -64,7 +64,7 @@ const ImageWrapper = ({ src, alt, className }) => {
 ═══════════════════════════════════════════ */
 const ShimmerText = ({ children, className = "" }) => (
   <span
-    className={`inline-block bg-gradient-to-r from-[#d4a853] via-[#f5e6a3] to-[#d4a853] bg-[length:200%_100%] bg-clip-text text-transparent ${className}`}
+    className={`inline-block bg-gradient-to-r from-[var(--theme-secondary)] via-[var(--theme-warning-soft)] to-[var(--theme-secondary)] bg-[length:200%_100%] bg-clip-text text-transparent ${className}`}
     style={{ animation: "shimmerText 4s linear infinite" }}
   >
     {children}
@@ -172,7 +172,7 @@ export default function PublicPlatterDetails() {
   /* ────── LOADING ────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden">
         <style>{`
           @keyframes shimmerText {
             0% { background-position: 200% center; }
@@ -193,15 +193,15 @@ export default function PublicPlatterDetails() {
         >
           <div className="relative mx-auto mb-8 w-20 h-20">
             <div
-              className="absolute inset-0 rounded-full border-2 border-[#d4a853]/20"
+              className="absolute inset-0 rounded-full border-2 border-[var(--theme-secondary)]/20"
               style={{ animation: "spinSlow 3s linear infinite" }}
             />
             <div
-              className="absolute inset-2 rounded-full border-2 border-t-[#d4a853] border-r-transparent border-b-transparent border-l-transparent"
+              className="absolute inset-2 rounded-full border-2 border-t-[var(--theme-secondary)] border-r-transparent border-b-transparent border-l-transparent"
               style={{ animation: "spinSlow 1.5s linear infinite" }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-[#d4a853]" />
+              <Sparkles className="w-6 h-6 text-[var(--theme-secondary)]" />
             </div>
           </div>
           <ShimmerText className="text-lg sm:text-xl font-light tracking-[0.3em] uppercase">
@@ -215,7 +215,7 @@ export default function PublicPlatterDetails() {
   /* ────── ERROR ────── */
   if (error || !platter) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden">
         <style>{`
           @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
@@ -223,7 +223,7 @@ export default function PublicPlatterDetails() {
           }
         `}</style>
         <div
-          className="bg-[#111]/80 backdrop-blur-xl rounded-3xl border border-[#d4a853]/10 p-8 sm:p-12 max-w-md w-full text-center relative z-10"
+          className="bg-[var(--theme-text-primary)]/80 backdrop-blur-xl rounded-3xl border border-[var(--theme-secondary)]/10 p-8 sm:p-12 max-w-md w-full text-center relative z-10"
           style={{ animation: "fadeInUp 0.6s ease-out" }}
         >
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -238,13 +238,13 @@ export default function PublicPlatterDetails() {
           <div className="flex gap-3 justify-center">
             <button
               onClick={fetchPlatterDetails}
-              className="px-8 py-3 bg-gradient-to-r from-[#d4a853] to-[#b8922e] text-[#0a0a0a] rounded-full font-medium text-sm tracking-wide hover:shadow-lg hover:shadow-[#d4a853]/20 transition-all active:scale-95"
+              className="px-8 py-3 bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-hover)] text-[var(--theme-text-primary)] rounded-full font-medium text-sm tracking-wide hover:shadow-lg hover:shadow-[var(--theme-secondary)]/20 transition-all active:scale-95"
             >
               {t("labels.try_again")}
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="px-8 py-3 border border-[#d4a853]/20 text-gray-400 rounded-full font-medium text-sm tracking-wide hover:bg-[#d4a853]/5 hover:text-[#d4a853] transition-all active:scale-95"
+              className="px-8 py-3 border border-[var(--theme-secondary)]/20 text-gray-400 rounded-full font-medium text-sm tracking-wide hover:bg-[var(--theme-secondary)]/5 hover:text-[var(--theme-secondary)] transition-all active:scale-95"
             >
               {t("labels.go_back")}
             </button>
@@ -257,7 +257,7 @@ export default function PublicPlatterDetails() {
   const totalPrice = (parseFloat(platter.price) * quantity).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-32 md:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--theme-text-primary)] pb-32 md:pb-8 relative overflow-x-hidden">
       {/* Global Keyframes */}
       <style>{`
         @keyframes fadeInUp {
@@ -297,18 +297,18 @@ export default function PublicPlatterDetails() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
         .glass-morphism {
-          background: rgba(17, 17, 17, 0.6);
+          background: rgb(var(--theme-text-primary-rgb) /  0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
         }
 
         .btn-gold {
-          background: linear-gradient(135deg, #d4a853, #b8922e);
-          color: #0a0a0a;
+          background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
+          color: var(--theme-text-primary);
           transition: all 0.3s ease;
         }
         .btn-gold:hover {
-          box-shadow: 0 4px 25px rgba(212, 168, 83, 0.4);
+          box-shadow: 0 4px 25px rgb(var(--theme-secondary-rgb) /  0.4);
           transform: translateY(-1px);
         }
         .btn-gold:active {
@@ -316,15 +316,15 @@ export default function PublicPlatterDetails() {
         }
 
         .gold-glow {
-          box-shadow: 0 0 30px rgba(212,168,83,0.1), 0 0 60px rgba(212,168,83,0.05);
+          box-shadow: 0 0 30px rgb(var(--theme-secondary-rgb) / 0.1), 0 0 60px rgb(var(--theme-secondary-rgb) / 0.05);
         }
 
         .platter-item-card {
           transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .platter-item-card:hover {
-          border-color: rgba(212, 168, 83, 0.25);
-          background: rgba(212, 168, 83, 0.03);
+          border-color: rgb(var(--theme-secondary-rgb) /  0.25);
+          background: rgb(var(--theme-secondary-rgb) /  0.03);
           transform: translateX(4px);
         }
         [dir="rtl"] .platter-item-card:hover {
@@ -340,7 +340,7 @@ export default function PublicPlatterDetails() {
             top: "-5%",
             right: "-5%",
             background:
-              "radial-gradient(circle, rgba(212,168,83,0.04) 0%, transparent 70%)",
+              "radial-gradient(circle, rgb(var(--theme-secondary-rgb) / 0.04) 0%, transparent 70%)",
             animation: "pulseGlow 8s ease-in-out infinite",
           }}
         />
@@ -350,7 +350,7 @@ export default function PublicPlatterDetails() {
             bottom: "-10%",
             left: "-10%",
             background:
-              "radial-gradient(circle, rgba(139,90,43,0.03) 0%, transparent 70%)",
+              "radial-gradient(circle, rgb(var(--theme-primary-rgb) / 0.03) 0%, transparent 70%)",
             animation: "pulseGlow 12s ease-in-out 3s infinite",
           }}
         />
@@ -359,25 +359,25 @@ export default function PublicPlatterDetails() {
       {/* ══════════════════════════════════════
           STICKY HEADER
       ══════════════════════════════════════ */}
-      <header className="sticky top-0 z-30 bg-[#0a0a0a]/80 backdrop-blur-2xl border-b border-[#d4a853]/5">
+      <header className="sticky top-0 z-30 bg-[var(--theme-text-primary)]/80 backdrop-blur-2xl border-b border-[var(--theme-secondary)]/5">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full border border-[#d4a853]/10 hover:border-[#d4a853]/30 hover:bg-[#d4a853]/5 flex items-center justify-center transition-all group"
+            className="w-10 h-10 rounded-full border border-[var(--theme-secondary)]/10 hover:border-[var(--theme-secondary)]/30 hover:bg-[var(--theme-secondary)]/5 flex items-center justify-center transition-all group"
             aria-label={t("labels.go_back")}
           >
-            <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-[#d4a853] transition-colors rtl:rotate-180" />
+            <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-[var(--theme-secondary)] transition-colors rtl:rotate-180" />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-base sm:text-lg font-light text-white truncate tracking-wide">
               {getLocalizedName(platter)}
             </h1>
-            <p className="text-[10px] text-[#d4a853]/40 tracking-[0.2em] uppercase">
+            <p className="text-[10px] text-[var(--theme-secondary)]/40 tracking-[0.2em] uppercase">
               {t("labels.back_to_menu")}
             </p>
           </div>
           {/* Platter badge in header */}
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#d4a853]/15 bg-[#d4a853]/5 text-[#d4a853] text-[10px] sm:text-xs font-medium tracking-wider uppercase">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--theme-secondary)]/15 bg-[var(--theme-secondary)]/5 text-[var(--theme-secondary)] text-[10px] sm:text-xs font-medium tracking-wider uppercase">
             <UtensilsCrossed className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             {t("labels.platter")}
           </span>
@@ -388,7 +388,7 @@ export default function PublicPlatterDetails() {
           HERO IMAGE
       ══════════════════════════════════════ */}
       <div className="relative" style={{ animation: "fadeIn 0.8s ease-out" }}>
-        <div className="relative h-64 sm:h-80 md:h-[28rem] overflow-hidden bg-[#111]">
+        <div className="relative h-64 sm:h-80 md:h-[28rem] overflow-hidden bg-[var(--theme-text-primary)]">
           <ImageWrapper
             src={platter.image}
             alt={getLocalizedName(platter)}
@@ -396,8 +396,8 @@ export default function PublicPlatterDetails() {
           />
 
           {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--theme-text-primary)] via-[var(--theme-text-primary)]/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--theme-text-primary)]/30 to-transparent" />
 
           {/* Availability Badge */}
           <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
@@ -411,8 +411,8 @@ export default function PublicPlatterDetails() {
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   platter.final_availability
-                    ? "bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.5)]"
-                    : "bg-gray-500"
+                    ? "theme-dot-success"
+                    : "theme-dot-muted"
                 }`}
                 style={
                   platter.final_availability
@@ -429,11 +429,11 @@ export default function PublicPlatterDetails() {
           {/* Price floating on image */}
           <div className="absolute bottom-6 left-4 sm:bottom-8 sm:left-6">
             <div style={{ animation: "slideUp 0.8s ease-out 0.3s both" }}>
-              <p className="text-[#d4a853]/50 text-[10px] sm:text-xs tracking-[0.2em] uppercase mb-1">
+              <p className="text-[var(--theme-secondary)]/50 text-[10px] sm:text-xs tracking-[0.2em] uppercase mb-1">
                 {t("labels.per_platter")}
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-[#d4a853] text-sm sm:text-base tracking-wider">
+                <span className="text-[var(--theme-secondary)] text-sm sm:text-base tracking-wider">
                   {t("labels.afn")}
                 </span>
                 <span className="text-white text-3xl sm:text-4xl md:text-5xl font-light tracking-wide">
@@ -447,10 +447,10 @@ export default function PublicPlatterDetails() {
           {platter.items && platter.items.length > 0 && (
             <div className="absolute bottom-6 right-4 sm:bottom-8 sm:right-6">
               <div
-                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#111]/70 backdrop-blur-md border border-[#d4a853]/15"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-[var(--theme-text-primary)]/70 backdrop-blur-md border border-[var(--theme-secondary)]/15"
                 style={{ animation: "slideUp 0.8s ease-out 0.5s both" }}
               >
-                <ListChecks className="w-4 h-4 text-[#d4a853]" />
+                <ListChecks className="w-4 h-4 text-[var(--theme-secondary)]" />
                 <span className="text-white text-xs sm:text-sm font-light">
                   {platter.items.length}{" "}
                   {platter.items.length === 1
@@ -476,7 +476,7 @@ export default function PublicPlatterDetails() {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-white tracking-wide mb-4">
               {getLocalizedName(platter)}
             </h2>
-            <div className="h-[1px] w-20 bg-gradient-to-r from-[#d4a853]/50 to-transparent mb-4" />
+            <div className="h-[1px] w-20 bg-gradient-to-r from-[var(--theme-secondary)]/50 to-transparent mb-4" />
             {getLocalizedDescription(platter) ? (
               <p className="text-gray-400 text-sm sm:text-base leading-relaxed font-light max-w-2xl">
                 {getLocalizedDescription(platter)}
@@ -492,8 +492,8 @@ export default function PublicPlatterDetails() {
           {platter.items && platter.items.length > 0 && (
             <div>
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 rounded-full bg-[#d4a853]/10 flex items-center justify-center">
-                  <ListChecks className="w-4 h-4 text-[#d4a853]" />
+                <div className="w-8 h-8 rounded-full bg-[var(--theme-secondary)]/10 flex items-center justify-center">
+                  <ListChecks className="w-4 h-4 text-[var(--theme-secondary)]" />
                 </div>
                 <h3 className="text-lg sm:text-xl font-light text-white tracking-wide">
                   {t("labels.whats_inside")}
@@ -504,15 +504,15 @@ export default function PublicPlatterDetails() {
                 {platter.items.map((item, index) => (
                   <div
                     key={item.id}
-                    className="platter-item-card flex items-center justify-between glass-morphism border border-[#d4a853]/5 rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4"
+                    className="platter-item-card flex items-center justify-between glass-morphism border border-[var(--theme-secondary)]/5 rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4"
                     style={{
                       animation: `slideInRight 0.5s ease-out ${0.08 * index}s both`,
                     }}
                   >
                     <div className="flex items-center gap-3 sm:gap-4">
                       {/* Quantity circle */}
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#d4a853] to-[#8b5a2b] flex items-center justify-center flex-shrink-0">
-                        <span className="text-[#0a0a0a] font-medium text-xs sm:text-sm">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-primary-hover)] flex items-center justify-center flex-shrink-0">
+                        <span className="text-[var(--theme-text-primary)] font-medium text-xs sm:text-sm">
                           {item.quantity}×
                         </span>
                       </div>
@@ -521,7 +521,7 @@ export default function PublicPlatterDetails() {
                         {getLocalizedItemName(item)}
                       </span>
                     </div>
-                    <UtensilsCrossed className="w-4 h-4 text-[#d4a853]/25 flex-shrink-0" />
+                    <UtensilsCrossed className="w-4 h-4 text-[var(--theme-secondary)]/25 flex-shrink-0" />
                   </div>
                 ))}
               </div>
@@ -529,11 +529,11 @@ export default function PublicPlatterDetails() {
               {/* Individual cost note */}
               {platter.total_cost && (
                 <div className="mt-5 text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#d4a853]/5 bg-[#111]/40">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--theme-secondary)]/5 bg-[var(--theme-text-primary)]/40">
                     <span className="text-[10px] sm:text-xs text-gray-500 tracking-wide">
                       {t("labels.individual_cost")}:
                     </span>
-                    <span className="text-[10px] sm:text-xs text-[#d4a853]/60 font-light">
+                    <span className="text-[10px] sm:text-xs text-[var(--theme-secondary)]/60 font-light">
                       {t("labels.afn")}{" "}
                       {parseFloat(platter.total_cost).toFixed(2)}
                     </span>
@@ -545,12 +545,12 @@ export default function PublicPlatterDetails() {
 
           {/* Bottom decorative divider */}
           <div className="flex items-center justify-center gap-3 py-2 select-none">
-            <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-[#d4a853]/20" />
+            <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-[var(--theme-secondary)]/20" />
             <Sparkles
-              className="w-4 h-4 text-[#d4a853]/30"
+              className="w-4 h-4 text-[var(--theme-secondary)]/30"
               style={{ animation: "float 4s ease-in-out infinite" }}
             />
-            <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-[#d4a853]/20" />
+            <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-[var(--theme-secondary)]/20" />
           </div>
         </div>
       </div>
@@ -559,14 +559,14 @@ export default function PublicPlatterDetails() {
           STICKY ADD-TO-CART BAR
       ══════════════════════════════════════ */}
       {platter.final_availability && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-2xl border-t border-[#d4a853]/10">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[var(--theme-text-primary)]/95 backdrop-blur-2xl border-t border-[var(--theme-secondary)]/10">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3 sm:gap-4">
             {/* Quantity Selector */}
-            <div className="flex items-center bg-[#111] border border-[#d4a853]/10 rounded-full p-1">
+            <div className="flex items-center bg-[var(--theme-text-primary)] border border-[var(--theme-secondary)]/10 rounded-full p-1">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#d4a853]/10 hover:bg-[#d4a853]/10 flex items-center justify-center transition-all text-[#d4a853] disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[var(--theme-secondary)]/10 hover:bg-[var(--theme-secondary)]/10 flex items-center justify-center transition-all text-[var(--theme-secondary)] disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -590,7 +590,7 @@ export default function PublicPlatterDetails() {
               className={`flex-1 py-3.5 sm:py-4 rounded-2xl font-medium text-sm sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all duration-500 active:scale-[0.98] ${
                 added
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
-                  : "btn-gold shadow-lg shadow-[#d4a853]/10"
+                  : "btn-gold shadow-lg shadow-[var(--theme-secondary)]/10"
               }`}
               style={added ? { animation: "cartBounce 0.4s ease-out" } : {}}
             >
@@ -619,7 +619,7 @@ export default function PublicPlatterDetails() {
           UNAVAILABLE NOTICE
       ══════════════════════════════════════ */}
       {!platter.final_availability && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#111]/95 backdrop-blur-2xl border-t border-[#d4a853]/10">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[var(--theme-text-primary)]/95 backdrop-blur-2xl border-t border-[var(--theme-secondary)]/10">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
             <p className="text-gray-400 font-light text-sm tracking-wide">
               {t("labels.platter_unavailable_notice")}

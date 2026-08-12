@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q,Prefetch
 from django.db import transaction
 from django_ratelimit.core import is_ratelimited
 from orders.signals import broadcast_order_item_update, broadcast_table_items_update
@@ -14,16 +14,16 @@ from restaurants.branching import (
     get_active_branch,
     get_main_branch,
 )
-from restaurants.models import Restaurant
+from restaurants.models import Branch, Restaurant
 from menu.serializers import CategorySerializer,MenuItemSerializer
 from datetime import timedelta
 from .models import Order, Table, OrderItem,Reservation,DiscountRequest,DiscountCard
-from .seriailizers import OrderSerializer, TableSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer,OrderListSerializer, scope_order_menu_queryset
+from .seriailizers import OrderSerializer, TableSerializer, TablePanelSerializer,ReservationSerializer,DiscountRequestSerializer,DiscountCardSerializer,OrderListSerializer, scope_order_menu_queryset
 from menu.models import Category, MenuItem
 from users.models import Staff
 from inventory.services import deduct_stock_for_order_item,deduct_batch_stock_for_order_items,recalc_batch_menu_availability
 from rest_framework.pagination import PageNumberPagination
-from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin,IsCallOperator
+from restaurants.permissions import IsCashier,IsKitchenManager,IsRestaurantAdmin,IsCallOperator,IsOperationsManager
 from restaurants.permissions import IsSameRestaurant,IsWaiter,IsRestaurantAdmin,IsRestaurantActive,IsManager
 from rest_framework.exceptions import NotFound
 from django.utils import timezone
@@ -34,6 +34,60 @@ from menu.models import Platter
 from menu.production_utils import consume_production
 
 from django.db.models import Sum, F, DecimalField, ExpressionWrapper
+from audit.constants import AuditAction, AuditModule
+from audit.services import (
+    actor_name,
+    create_audit_log,
+    record_instance_create,
+    record_instance_delete,
+    record_instance_update,
+    snapshot_instance,
+)
+
+TABLE_AUDIT_FIELDS = [
+    "name",
+    "capacity",
+    "price_per_hour",
+    "allow_free_reservation",
+    "note",
+    "branch",
+]
+
+RESERVATION_AUDIT_FIELDS = [
+    "table",
+    "reservation_number",
+    "customer_name",
+    "phone",
+    "guests",
+    "reservation_date",
+    "start_time",
+    "duration_minutes",
+    "reservation_type",
+    "amount",
+    "paid_amount",
+    "status",
+    "notes",
+    "branch",
+]
+
+
+class OrdersListPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+def paginated_response(request, queryset, serializer_class, *, context=None):
+    paginator = OrdersListPagination()
+    page = paginator.paginate_queryset(queryset, request)
+    serializer = serializer_class(page, many=True, context=context or {})
+    return paginator.get_paginated_response(serializer.data)
+
+
+def numeric_search_value(value):
+    value = str(value or "").strip()
+    return int(value) if value.isdigit() else None
+
 
 # def recalc_order_total(order):
 #     total = order.items.aggregate(
@@ -68,6 +122,18 @@ def get_restaurant_from_user(request):
     
     return None
 
+
+def get_staff_assigned_stations(user):
+    """
+    Returns queryset of Stations assigned to user if they are a Kitchen_manager.
+    Returns None if user is Admin/SuperAdmin/BranchAdmin (can see all stations).
+    """
+    staff = getattr(user, "staff_profile", None)
+    if not staff:
+        return None
+    if staff.role == "Kitchen_manager":
+        return staff.stations.filter(is_active=True)
+    return None
 
 def branch_scoped(request, queryset, branch_field="branch", *, allow_all=False):
     return filter_queryset_for_request(
@@ -552,8 +618,34 @@ def reservation_list_create(request):
         if date_filter:
             reservations = reservations.filter(reservation_date=date_filter)
 
-        serializer = ReservationSerializer(reservations, many=True)
-        return Response(serializer.data)
+        table_filter = request.query_params.get("table")
+        if table_filter:
+            reservations = reservations.filter(table_id=table_filter)
+
+        search = request.query_params.get("search")
+        if search:
+            search_filter = (
+                Q(customer_name__icontains=search)
+                | Q(phone__icontains=search)
+                | Q(table__name__icontains=search)
+            )
+            numeric_search = numeric_search_value(search)
+            if numeric_search is not None:
+                search_filter |= Q(reservation_number=numeric_search)
+            reservations = reservations.filter(search_filter)
+
+        start_date = request.query_params.get("start")
+        end_date = request.query_params.get("end")
+        if start_date:
+            reservations = reservations.filter(reservation_date__gte=start_date)
+        if end_date:
+            reservations = reservations.filter(reservation_date__lte=end_date)
+
+        if request.query_params.get("paginate") == "false":
+            serializer = ReservationSerializer(reservations, many=True)
+            return Response(serializer.data)
+
+        return paginated_response(request, reservations, ReservationSerializer)
 
     # ---------------- POST ----------------
     branch = get_branch_or_response(request)
@@ -565,10 +657,20 @@ def reservation_list_create(request):
         context={"request": request, "restaurant": restaurant, "branch": branch},
     )
     if serializer.is_valid():
-        serializer.save(
+        reservation = serializer.save(
             restaurant=restaurant,
             branch=branch,
             created_by=request.user.staff_profile
+        )
+        record_instance_create(
+            request=request,
+            instance=reservation,
+            module=AuditModule.RESERVATIONS,
+            fields=RESERVATION_AUDIT_FIELDS,
+            description=(
+                f"{actor_name(request)} created reservation "
+                f"#{reservation.reservation_number} for {reservation.customer_name}."
+            ),
         )
         return Response(serializer.data, status=201)
 
@@ -591,17 +693,50 @@ class ReservationRetrieveUpdateDestroyView(
             "table", "created_by"
         )
 
+    def update(self, request, *args, **kwargs):
+        reservation = self.get_object()
+        old_values = snapshot_instance(reservation, fields=RESERVATION_AUDIT_FIELDS)
+        response = super().update(request, *args, **kwargs)
+        reservation.refresh_from_db()
+        record_instance_update(
+            request=request,
+            instance=reservation,
+            old_values=old_values,
+            module=AuditModule.RESERVATIONS,
+            fields=RESERVATION_AUDIT_FIELDS,
+            description=(
+                f"{actor_name(request)} updated reservation "
+                f"#{reservation.reservation_number}."
+            ),
+            severity="WARNING",
+        )
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        reservation = self.get_object()
+        record_instance_delete(
+            request=request,
+            instance=reservation,
+            module=AuditModule.RESERVATIONS,
+            fields=RESERVATION_AUDIT_FIELDS,
+            description=(
+                f"{actor_name(request)} deleted reservation "
+                f"#{reservation.reservation_number}."
+            ),
+            severity="WARNING",
+        )
+        return super().destroy(request, *args, **kwargs)
+
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def create_online_order(request, slug):
-
-    restaurant = get_object_or_404(Restaurant, slug=slug)
-    branch = get_main_branch(restaurant)
+def get_public_order_context(restaurant_slug, branch_slug=None):
+    restaurant = get_object_or_404(
+        Restaurant.objects.select_related("subscription"),
+        slug=restaurant_slug,
+    )
 
     subscription = getattr(restaurant, "subscription", None)
     today = timezone.now().date()
@@ -616,6 +751,30 @@ def create_online_order(request, slug):
     if not is_active:
         raise NotFound("Restaurant not found")
 
+    active_branches = Branch.objects.filter(
+        restaurant=restaurant,
+        is_active=True,
+    )
+    if branch_slug:
+        branch = get_object_or_404(active_branches, slug=branch_slug)
+    else:
+        branch = (
+            active_branches.filter(is_main_branch=True).first()
+            or active_branches.order_by("-is_main_branch", "name").first()
+        )
+
+    if not branch:
+        raise NotFound("Branch not found")
+
+    return restaurant, branch
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_online_order(request, slug=None, restaurant_slug=None, branch_slug=None):
+
+    restaurant, branch = get_public_order_context(restaurant_slug or slug, branch_slug)
+
     def clean_ip(request):
         ip = (
             request.META.get("HTTP_CF_CONNECTING_IP")
@@ -626,11 +785,14 @@ def create_online_order(request, slug):
             return "0.0.0.0"
         return ip.split(",")[0].split("/")[0].strip()
 
+    def rate_limit_key(group, request):
+        return clean_ip(request)
+
     limited = is_ratelimited(
         request=request,
-        group=f"online_orders_{slug}",
+        group=f"online_orders_{restaurant.slug}_{branch.slug}",
         fn=None,
-        key=lambda r: clean_ip(r),
+        key=rate_limit_key,
         rate="5/20m",
         method="POST",
         increment=True,
@@ -681,7 +843,10 @@ def create_online_order(request, slug):
         return Response({"error": str(e)}, status=400)
 
     return Response(
-        OrderSerializer(order, context={"request": request}).data,
+        OrderSerializer(
+            order,
+            context={"request": request, "restaurant": restaurant, "branch": branch},
+        ).data,
         status=status.HTTP_201_CREATED
     )
 from django.db.models import Q
@@ -704,25 +869,45 @@ def kitchen_orders(request):
         return Response({"error": "Restaurant not found"}, status=403)
 
     ACTIVE_STATUSES = ["pending", "approved", "in_progress"]
+    assigned_stations = get_staff_assigned_stations(request.user)
+    item_filter = Q(status__in=ACTIVE_STATUSES)
+    if assigned_stations is not None:
+        station_filter = (
+            Q(menu_item__station__in=assigned_stations) |
+            Q(platter__station__in=assigned_stations)
+        )
+        item_filter = item_filter & station_filter
 
     active_items = OrderItem.objects.filter(
-        order=OuterRef("pk"),
-        status__in=ACTIVE_STATUSES
-    )
+        order=OuterRef("pk")
+    ).filter(item_filter)
+    
+    items_queryset = OrderItem.objects.all()
+    if assigned_stations is not None:
+        items_queryset = items_queryset.filter(
+            Q(menu_item__station__in=assigned_stations) |
+            Q(platter__station__in=assigned_stations)
+        )
 
     orders = (
         branch_scoped(
             request,
             Order.objects.filter(
-            restaurant=restaurant,
-            order_type__in=["dine-in", "takeaway", "delivery"],
+                restaurant=restaurant,
+                order_type__in=["dine-in", "takeaway", "delivery"],
             ),
         )
-        .exclude(status__in=["completed", "cancelled","delivered"]) 
+        .exclude(status__in=["completed", "cancelled", "delivered"])
         .annotate(has_active_items=Exists(active_items))
         .filter(has_active_items=True)
         .select_related("table")
-        .prefetch_related("items__menu_item", "customer")
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=items_queryset.select_related("menu_item__station", "platter__station")
+            ),
+            "customer",
+        )
         .order_by("-created_at")
     )
             # optional filters
@@ -744,30 +929,50 @@ from django.utils import timezone
 from django.db.models import Q
 
 @api_view(["GET"])
-@permission_classes([
-    IsAuthenticated,
-    IsRestaurantActive,
-    IsKitchenManager | IsRestaurantAdmin
-])
+@permission_classes([IsAuthenticated, IsRestaurantActive, IsKitchenManager | IsRestaurantAdmin])
 def ready_kitchen_orders(request):
     restaurant = get_restaurant_from_user(request)
+    assigned_stations = get_staff_assigned_stations(request.user)
 
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
     recent_time = timezone.now() - timedelta(minutes=30)
 
+    # 🔥 CRITICAL: MUST DEFINE items_queryset BEFORE USING .filter():
+    items_queryset = OrderItem.objects.all()
+    if assigned_stations is not None:
+        items_queryset = items_queryset.filter(
+            Q(menu_item__station__in=assigned_stations) |
+            Q(platter__station__in=assigned_stations)
+        )
+
+    orders_query = Order.objects.filter(restaurant=restaurant)
+    if assigned_stations is not None:
+        station_items = OrderItem.objects.filter(
+            order=OuterRef("pk"),
+            menu_item__station__in=assigned_stations
+        ) | OrderItem.objects.filter(
+            order=OuterRef("pk"),
+            platter__station__in=assigned_stations
+        )
+        orders_query = orders_query.annotate(has_station_items=Exists(station_items)).filter(has_station_items=True)
+
     orders = (
-        branch_scoped(
-            request,
-            Order.objects.filter(restaurant=restaurant),
-        ).filter(
+        branch_scoped(request, orders_query)
+        .filter(
             Q(status="ready") |
             Q(status="served", updated_at__gte=recent_time) |
             Q(status="out_for_delivery", updated_at__gte=recent_time)
         )
         .select_related("table")
-        .prefetch_related("items__menu_item", "customer")
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=items_queryset.select_related("menu_item__station", "platter__station")
+            ),
+            "customer",
+        )
         .order_by("-updated_at")
     )
 
@@ -856,9 +1061,8 @@ def cancel_order(request, pk):
 
 @api_view(['PATCH'])
 @permission_classes([AllowAny])
-def cancel_online_order(request, slug, pk):
-    restaurant = get_object_or_404(Restaurant, slug=slug)
-    branch = get_main_branch(restaurant)
+def cancel_online_order(request, pk, slug=None, restaurant_slug=None, branch_slug=None):
+    restaurant, branch = get_public_order_context(restaurant_slug or slug, branch_slug)
     
     try:
         order = Order.objects.get(pk=pk, restaurant=restaurant, branch=branch)
@@ -887,7 +1091,6 @@ from django.utils import timezone
 @permission_classes([IsAuthenticated])
 def update_order_status(request, pk):
     restaurant = get_restaurant_from_user(request)
-
     try:
         order = branch_scoped(
             request,
@@ -902,17 +1105,52 @@ def update_order_status(request, pk):
     if new_status not in validated_statuses:
         return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
-    order.status = new_status
+    # 1️⃣ Get logged-in user's assigned stations (if they are a Kitchen Manager)
+    assigned_stations = get_staff_assigned_stations(request.user)
+
+    # 2️⃣ Build queryset of non-cancelled order items targeted by this user's stations
+    target_items = order.items.exclude(status="cancelled")
+    if assigned_stations is not None:
+        target_items = target_items.filter(
+            Q(menu_item__station__in=assigned_stations) |
+            Q(platter__station__in=assigned_stations)
+        )
+
+    # 3️⃣ If "in_progress" (Start button clicked):
+    if new_status == "in_progress":
+        # Only update items belonging to this station to "approved"
+        target_items.filter(status="pending").update(status="approved")
+        # Ensure overall order status is in_progress
+        order.status = "in_progress"
+
+    # 4️⃣ If "ready" (Mark Ready button clicked):
+    elif new_status == "ready":
+        # Only update items belonging to this station to "ready"
+        target_items.filter(status__in=["pending", "approved"]).update(status="ready")
+
+        # Check if ANY non-cancelled items across ANY station on this order are still not ready
+        remaining_not_ready = order.items.exclude(
+            status__in=["ready", "cancelled", "served", "completed", "delivered"]
+        ).exists()
+
+        if remaining_not_ready:
+            # Other stations are still working on their items! Keep overall status active:
+            order.status = "in_progress"
+        else:
+            # All items across all stations are finished! Order is 100% ready:
+            order.status = "ready"
+
+    # 5️⃣ Other statuses (completed, delivered, etc.):
+    else:
+        order.status = new_status
 
     # ✅ Capture completion payment info
-    if new_status in ["completed", "delivered"]:
+    if order.status in ["completed", "delivered"]:
         staff = getattr(request.user, "staff_profile", None)
-
         order.received_by = staff
         order.paid_at = timezone.now()
 
         reservation = order.reservation
-
         if not reservation and order.table:
             now = timezone.now()
             reservation = Reservation.objects.filter(
@@ -929,20 +1167,7 @@ def update_order_status(request, pk):
         if reservation and reservation.status != "completed":
             reservation.status = "completed"
             reservation.save(update_fields=["status"])
-    if new_status == "in_progress":
 
-        order.items.exclude(
-            status="cancelled"
-        ).update(
-            status="approved"
-        )
-    if new_status == "ready":
-
-        order.items.exclude(
-            status="cancelled"
-        ).update(
-            status="ready"
-        )
     order.save()
 
     serializer = OrderSerializer(order)
@@ -1197,19 +1422,64 @@ def update_order_item_status(request, pk):
 
 
 @api_view(['GET', "POST"])
-@permission_classes([IsAuthenticated,IsSameRestaurant,IsRestaurantActive])
+@permission_classes([IsAuthenticated,IsSameRestaurant,IsRestaurantActive,IsRestaurantAdmin | IsManager | IsWaiter | IsCashier | IsOperationsManager])
 def table_list_create(request):
     restaurant = get_restaurant_from_user(request)
     if not restaurant:
         return Response({"error": "Restaurant not found"}, status=403)
 
     if request.method == 'GET':
-        # Filter tables by restaurant
+        branch = get_active_branch(request, raise_exception=False)
         tables = branch_scoped(
             request,
             Table.objects.filter(restaurant=restaurant),
             allow_all=True,
-        ).prefetch_related('orders')
+        )
+
+        if request.query_params.get("view") == "panel":
+            active_orders = Order.objects.filter(
+                restaurant=restaurant,
+                status__in=["pending", "in_progress", "ready", "served"],
+            ).order_by("-created_at")
+            reservations = Reservation.objects.filter(
+                restaurant=restaurant,
+                status__in=["arrived", "reserved"],
+            ).order_by("start_time")
+
+            if branch:
+                active_orders = active_orders.filter(branch=branch)
+                reservations = reservations.filter(branch=branch)
+
+            tables = tables.prefetch_related(
+                Prefetch(
+                    "orders",
+                    queryset=active_orders.prefetch_related(
+                        Prefetch(
+                            "items",
+                            queryset=OrderItem.objects.select_related(
+                                "menu_item",
+                                "platter",
+                                "added_by",
+                            ),
+                        ),
+                    ),
+                    to_attr="prefetched_active_orders",
+                ),
+                Prefetch(
+                    "reservations",
+                    queryset=reservations,
+                    to_attr="prefetched_panel_reservations",
+                ),
+            )
+            serializer = TablePanelSerializer(
+                tables,
+                many=True,
+                context={"request": request},
+            )
+            return Response(serializer.data)
+
+        # Filter tables by restaurant
+        tables = tables.prefetch_related('orders')
         serializer = TableSerializer(tables, many=True,context={"request": request})
         return Response(serializer.data)
     
@@ -1227,7 +1497,14 @@ def table_list_create(request):
         )
         if serializer.is_valid():
             # Save with restaurant
-            serializer.save(restaurant=restaurant, branch=branch)
+            table = serializer.save(restaurant=restaurant, branch=branch)
+            record_instance_create(
+                request=request,
+                instance=table,
+                module=AuditModule.TABLES,
+                fields=TABLE_AUDIT_FIELDS,
+                description=f"{actor_name(request)} created table {table.name}.",
+            )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1237,7 +1514,7 @@ from rest_framework import status
 
 class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TableSerializer
-    permission_classes = [IsAuthenticated, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsAuthenticated, IsSameRestaurant, IsRestaurantActive, IsRestaurantAdmin | IsManager | IsWaiter | IsCashier | IsOperationsManager]
 
     def get_queryset(self):
         restaurant = get_restaurant_from_user(self.request)
@@ -1246,6 +1523,21 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             Table.objects.filter(restaurant=restaurant),
             allow_all=True,
         )
+
+    def update(self, request, *args, **kwargs):
+        table = self.get_object()
+        old_values = snapshot_instance(table, fields=TABLE_AUDIT_FIELDS)
+        response = super().update(request, *args, **kwargs)
+        table.refresh_from_db()
+        record_instance_update(
+            request=request,
+            instance=table,
+            old_values=old_values,
+            module=AuditModule.TABLES,
+            fields=TABLE_AUDIT_FIELDS,
+            description=f"{actor_name(request)} updated table {table.name}.",
+        )
+        return response
 
     def delete(self, request, *args, **kwargs):
         table = self.get_object()
@@ -1260,6 +1552,13 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        record_instance_delete(
+            request=request,
+            instance=table,
+            module=AuditModule.TABLES,
+            fields=TABLE_AUDIT_FIELDS,
+            description=f"{actor_name(request)} deleted table {table.name}.",
+        )
         return super().delete(request, *args, **kwargs)
 
 @api_view(["PATCH"])
@@ -1408,8 +1707,30 @@ def cashier_reservations(request):
         ),
     ).select_related("table").order_by("start_time")
 
-    serializer = ReservationSerializer(reservations, many=True)
-    return Response(serializer.data)
+    search = request.query_params.get("search")
+    if search:
+        search_filter = (
+            Q(customer_name__icontains=search)
+            | Q(phone__icontains=search)
+            | Q(table__name__icontains=search)
+        )
+        numeric_search = numeric_search_value(search)
+        if numeric_search is not None:
+            search_filter |= Q(reservation_number=numeric_search)
+        reservations = reservations.filter(search_filter)
+
+    status_filter = request.query_params.get("status")
+    if status_filter and status_filter.lower() != "all":
+        reservations = reservations.filter(status=status_filter)
+
+    start_date = request.query_params.get("start")
+    end_date = request.query_params.get("end")
+    if start_date:
+        reservations = reservations.filter(reservation_date__gte=start_date)
+    if end_date:
+        reservations = reservations.filter(reservation_date__lte=end_date)
+
+    return paginated_response(request, reservations, ReservationSerializer)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated,IsRestaurantActive,IsManager| IsCashier | IsRestaurantAdmin])
 def mark_reservation_arrived(request, pk):
@@ -1451,8 +1772,22 @@ def mark_reservation_no_show(request, pk):
             status=400
         )
 
+    old_values = snapshot_instance(reservation, fields=RESERVATION_AUDIT_FIELDS)
     reservation.status = "no_show"
     reservation.save(update_fields=["status"])
+    record_instance_update(
+        request=request,
+        instance=reservation,
+        old_values=old_values,
+        module=AuditModule.RESERVATIONS,
+        fields=RESERVATION_AUDIT_FIELDS,
+        action=AuditAction.STATUS_CHANGE,
+        description=(
+            f"{actor_name(request)} marked reservation "
+            f"#{reservation.reservation_number} as no-show."
+        ),
+        severity="WARNING",
+    )
 
     return Response({"message": "Customer marked as no shoiw"})
 @api_view(["PATCH"])
@@ -1472,8 +1807,22 @@ def cancel_reservation(request,pk):
             {"error": "Cannot cancel reservation now"},
             status=400
         )
+    old_values = snapshot_instance(reservation, fields=RESERVATION_AUDIT_FIELDS)
     reservation.status="cancelled"
     reservation.save(update_fields=["status"])
+    record_instance_update(
+        request=request,
+        instance=reservation,
+        old_values=old_values,
+        module=AuditModule.RESERVATIONS,
+        fields=RESERVATION_AUDIT_FIELDS,
+        action=AuditAction.CANCEL,
+        description=(
+            f"{actor_name(request)} cancelled reservation "
+            f"#{reservation.reservation_number}."
+        ),
+        severity="WARNING",
+    )
 
     return Response({"message": "Reservation ancelled successfully"})
 
@@ -1573,6 +1922,21 @@ def all_discount_requests(request):
     if status_filter and status_filter.lower() != "all":
         discounts = discounts.filter(status=status_filter.lower())
 
+    search = request.GET.get("search")
+    if search:
+        search_filter = (
+            Q(reason__icontains=search)
+            | Q(order__name__icontains=search)
+            | Q(order__phone__icontains=search)
+            | Q(order__table__name__icontains=search)
+            | Q(requested_by__name__icontains=search)
+            | Q(approved_by__name__icontains=search)
+        )
+        numeric_search = numeric_search_value(search)
+        if numeric_search is not None:
+            search_filter |= Q(order__order_number=numeric_search)
+        discounts = discounts.filter(search_filter)
+
     # start and end date filter
     start_date = request.GET.get("start")
     end_date = request.GET.get("end")
@@ -1587,9 +1951,7 @@ def all_discount_requests(request):
         if parsed_end:
             discounts = discounts.filter(created_at__date__lte=parsed_end)
 
-    serializer = DiscountRequestSerializer(discounts, many=True)
-
-    return Response(serializer.data)
+    return paginated_response(request, discounts, DiscountRequestSerializer)
 
 
 @api_view(["POST"])
@@ -1700,9 +2062,21 @@ def manager_pending_discount_requests(request):
     if staff.role == "Manager":
         qs = qs.filter(discount_percent__lte=manager_limit)
 
-    serializer = DiscountRequestSerializer(qs, many=True)
+    search = request.query_params.get("search")
+    if search:
+        search_filter = (
+            Q(reason__icontains=search)
+            | Q(order__name__icontains=search)
+            | Q(order__phone__icontains=search)
+            | Q(order__table__name__icontains=search)
+            | Q(requested_by__name__icontains=search)
+        )
+        numeric_search = numeric_search_value(search)
+        if numeric_search is not None:
+            search_filter |= Q(order__order_number=numeric_search)
+        qs = qs.filter(search_filter)
 
-    return Response(serializer.data)
+    return paginated_response(request, qs, DiscountRequestSerializer)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,IsSameRestaurant,IsRestaurantAdmin])
@@ -1719,5 +2093,17 @@ def admin_pending_discount_requests(request):
         "requested_by",
         "order__table"
     ).order_by("-created_at")
-    serializer = DiscountRequestSerializer(qs, many=True)
-    return Response(serializer.data)
+    search = request.query_params.get("search")
+    if search:
+        search_filter = (
+            Q(reason__icontains=search)
+            | Q(order__name__icontains=search)
+            | Q(order__phone__icontains=search)
+            | Q(order__table__name__icontains=search)
+            | Q(requested_by__name__icontains=search)
+        )
+        numeric_search = numeric_search_value(search)
+        if numeric_search is not None:
+            search_filter |= Q(order__order_number=numeric_search)
+        qs = qs.filter(search_filter)
+    return paginated_response(request, qs, DiscountRequestSerializer)

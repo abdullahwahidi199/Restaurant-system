@@ -1,6 +1,6 @@
 # users/serializers.py
 from rest_framework import serializers
-from .models import Staff,Shift,Attendance,Payroll
+from .models import Attendance, LoginRateLimitConfig, Payroll, PayrollPayment, SalaryAdvance, Staff, Shift
 from orders.seriailizers import OrderMiniSerializer
 from django.contrib.auth.models import User
 from orders.models import Reservation
@@ -8,6 +8,7 @@ from orders.seriailizers import ReservationSerializer,ReservationMiniSerializer
 from restaurants.branching import ensure_staff_branch_assignment, get_active_branch
 from restaurants.models import Branch
 from rest_framework.exceptions import PermissionDenied
+from menu.models import Station
 
 
 GLOBAL_STAFF_ROLES = {"Admin", "SuperAdmin"}
@@ -27,6 +28,178 @@ class StaffMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model=Staff
         fields=['id','name','role','image','custom_role']
+
+
+class LoginRateLimitConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoginRateLimitConfig
+        fields = [
+            "enabled",
+            "max_failed_attempts",
+            "window_minutes",
+            "lockout_minutes",
+            "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+    def validate_max_failed_attempts(self, value):
+        if value < 1 or value > 100:
+            raise serializers.ValidationError("Must be between 1 and 100.")
+        return value
+
+    def validate_window_minutes(self, value):
+        if value < 1 or value > 1440:
+            raise serializers.ValidationError("Must be between 1 and 1440.")
+        return value
+
+    def validate_lockout_minutes(self, value):
+        if value < 1 or value > 1440:
+            raise serializers.ValidationError("Must be between 1 and 1440.")
+        return value
+# class ShiftMiniserializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=Shift
+#         fields='__all__'
+
+class ShiftSerializer(serializers.ModelSerializer):
+    staff=StaffMiniSerializer(many=True,read_only=True)
+    class Meta:
+        model=Shift
+        fields="__all__"
+        read_only_fields = ["restaurant", "branch"]
+class AttendanceSerializer(serializers.ModelSerializer):
+    staff = StaffMiniSerializer(read_only=True)
+    shift = ShiftSerializer(read_only=True)
+
+    class Meta:
+        model = Attendance
+        fields = "__all__"
+        read_only_fields = ["restaurant", "branch"]
+
+
+class PayrollPaymentSerializer(serializers.ModelSerializer):
+    staff = StaffMiniSerializer(read_only=True)
+    staff_id = serializers.ReadOnlyField(source="staff.id")
+    staff_name = serializers.ReadOnlyField(source="staff.name")
+    payroll_period = serializers.SerializerMethodField()
+    remaining_balance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PayrollPayment
+        fields = [
+            "id",
+            "payroll",
+            "payroll_period",
+            "staff",
+            "staff_id",
+            "staff_name",
+            "date",
+            "amount",
+            "payment_method",
+            "reference_number",
+            "notes",
+            "restaurant",
+            "branch",
+            "created_by",
+            "remaining_balance",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "remaining_balance",
+        ]
+
+    def get_payroll_period(self, obj):
+        if not obj.payroll_id:
+            return ""
+        return f"{obj.payroll.period_start} - {obj.payroll.period_end}"
+
+    def get_remaining_balance(self, obj):
+        if not obj.payroll_id:
+            return "0.00"
+        return obj.payroll.remaining_balance
+
+
+class SalaryAdvanceSerializer(serializers.ModelSerializer):
+    staff = StaffMiniSerializer(read_only=True)
+    staff_id = serializers.PrimaryKeyRelatedField(
+        source="staff",
+        queryset=Staff.objects.none(),
+        write_only=True,
+    )
+    staff_name = serializers.ReadOnlyField(source="staff.name")
+    applied_payroll_period = serializers.SerializerMethodField()
+    is_applied = serializers.ReadOnlyField()
+
+    class Meta:
+        model = SalaryAdvance
+        fields = [
+            "id",
+            "staff",
+            "staff_id",
+            "staff_name",
+            "date",
+            "amount",
+            "reason",
+            "notes",
+            "applied_to",
+            "applied_payroll_period",
+            "is_applied",
+            "restaurant",
+            "branch",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "created_by",
+            "created_at",
+            "applied_to",
+            "applied_payroll_period",
+            "is_applied",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        restaurant = self.context.get("restaurant")
+        branch = self.context.get("branch")
+        if not restaurant and request and hasattr(request.user, "staff_profile"):
+            restaurant = request.user.staff_profile.restaurant
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+        if restaurant:
+            staff = Staff.objects.filter(restaurant=restaurant, is_payroll_active=True)
+            if branch:
+                staff = staff.filter(branches=branch)
+            self.fields["staff_id"].queryset = staff.distinct()
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+        if not branch and request:
+            branch = get_active_branch(request, raise_exception=False)
+        staff = attrs.get("staff", getattr(self.instance, "staff", None))
+        if branch and staff and not staff.can_access_branch(branch):
+            raise serializers.ValidationError(
+                {"staff_id": "This staff member cannot access this branch."}
+            )
+        if attrs.get("amount") is not None and attrs["amount"] <= 0:
+            raise serializers.ValidationError({"amount": "Amount must be greater than zero."})
+        return attrs
+
+    def get_applied_payroll_period(self, obj):
+        if not obj.applied_to_id:
+            return None
+        return f"{obj.applied_to.period_start} - {obj.applied_to.period_end}"
+
+
 class PayrollSerializer(serializers.ModelSerializer):
     staff=StaffMiniSerializer(read_only=True)
     staff_id = serializers.PrimaryKeyRelatedField(
@@ -34,6 +207,21 @@ class PayrollSerializer(serializers.ModelSerializer):
         queryset=Staff.objects.none(),
         write_only=True,
     )
+    staff_name = serializers.ReadOnlyField(source="staff.name")
+    branch_name = serializers.ReadOnlyField(source="branch.name")
+    salary_type = serializers.ReadOnlyField(source="staff.salary_type")
+    remaining_balance = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
+    expense_amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
+    payments = PayrollPaymentSerializer(many=True, read_only=True)
+    applied_advances = SalaryAdvanceSerializer(many=True, read_only=True)
 
     class Meta:
         model=Payroll
@@ -41,17 +229,50 @@ class PayrollSerializer(serializers.ModelSerializer):
             "id",
             "staff",
             "staff_id",
+            "staff_name",
+            "salary_type",
+            "period_type",
             "period_start",
             "period_end",
             "base_salary",
-            "deductions",
-            "net_salary",
+            "allowances",
             "bonuses",
+            "overtime_hours",
+            "overtime_rate",
+            "overtime_amount",
+            "deductions",
+            "advance_deductions",
+            "gross_salary",
+            "net_salary",
+            "expense_amount",
+            "amount_paid",
+            "remaining_balance",
+            "status",
+            "notes",
             "generated_at",
+            "approved_at",
+            "paid_at",
             "restaurant",
             "branch",
+            "branch_name",
+            "created_by",
+            "payments",
+            "applied_advances",
         ]
-        read_only_fields = ["restaurant", "branch", "net_salary", "generated_at"]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "net_salary",
+            "gross_salary",
+            "overtime_amount",
+            "amount_paid",
+            "remaining_balance",
+            "expense_amount",
+            "generated_at",
+            "approved_at",
+            "paid_at",
+            "created_by",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,33 +312,18 @@ class PayrollSerializer(serializers.ModelSerializer):
 
         return attrs
 
-# class ShiftMiniserializer(serializers.ModelSerializer):
-#     class Meta:
-#         model=Shift
-#         fields='__all__'
-
-class ShiftSerializer(serializers.ModelSerializer):
-    staff=StaffMiniSerializer(many=True,read_only=True)
-    class Meta:
-        model=Shift
-        fields="__all__"
-        read_only_fields = ["restaurant", "branch"]
-class AttendanceSerializer(serializers.ModelSerializer):
-    staff = StaffMiniSerializer(read_only=True)
-    shift = ShiftSerializer(read_only=True)
-
-    class Meta:
-        model = Attendance
-        fields = "__all__"
-        read_only_fields = ["restaurant", "branch"]
-
 
 class StaffListSerializer(serializers.ModelSerializer):
     shift_name = serializers.SerializerMethodField()
     branches = BranchMiniSerializer(many=True, read_only=True)
     active_branch = BranchMiniSerializer(read_only=True)
     branch_ids = serializers.SerializerMethodField()
-
+    stations = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Station.objects.all(),
+        required=False
+    )
+    station_names = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Staff
         fields = [
@@ -136,8 +342,27 @@ class StaffListSerializer(serializers.ModelSerializer):
             'branches',
             'active_branch',
             'branch_ids',
+            'salary_type',
+            'payroll_base_salary',
+            'payment_day',
+            'payroll_allowances',
+            'payroll_deductions',
+            'overtime_rate',
+            'payroll_notes',
+            'is_payroll_active',
+            'stations',
+            'station_names'
         ]
     
+    def get_station_names(self, obj):
+        return [s.name for s in obj.stations.all()]
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        # 🔥 CRITICAL: FORCE DRF TO RETURN THE EXACT INTEGER IDs FROM DATABASE:
+        data["stations"] = [s.id for s in obj.stations.all()]
+        data["station_names"] = [s.name for s in obj.stations.all()]
+        return data
     def get_shift_name(self, obj):
         return obj.shift.shift_type if obj.shift else None
 
@@ -152,6 +377,13 @@ class StaffSerializer(serializers.ModelSerializer):
     queryset=Shift.objects.all(), 
     required=False
 )   
+    stations = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Station.objects.all(),
+        required=False
+    )
+    station_names = serializers.SerializerMethodField(read_only=True)
+
     created_orders=OrderMiniSerializer(many=True,read_only=True)
     shift_name = serializers.SerializerMethodField()
     branches = BranchMiniSerializer(many=True, read_only=True)
@@ -174,8 +406,17 @@ class StaffSerializer(serializers.ModelSerializer):
         fields = ['id','name','shift','is_demo','phone','email','shift_name'
                   ,'hire_date','role','custom_role','deliveries','created_orders','reservations',
                   'image','status','attendances','payrolls','vehicle_number',
-                  'username','password','branches','branch_ids','active_branch']
+                  'username','password','branches','branch_ids','active_branch',
+                  'salary_type','payroll_base_salary','payment_day',
+                  'payroll_allowances','payroll_deductions','overtime_rate', "stations", "station_names",
+                  'payroll_notes','is_payroll_active']
 
+    def get_station_names(self, obj):
+        return [s.name for s in obj.stations.all()]
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        data["stations"] = [s.id for s in obj.stations.all()]
+        return data
     def _request_staff(self):
         request = self.context.get("request")
         if request and hasattr(request.user, "staff_profile"):
@@ -361,17 +602,24 @@ class StaffSerializer(serializers.ModelSerializer):
         return attrs
     
     
+    
+    
     def create(self,validated_data):
         username = validated_data.pop('username', None)
         password = validated_data.pop('password', None)
         branch_ids = validated_data.pop("branch_ids", None)
+        stations = validated_data.pop("stations", None)
         branch = self.context.get("branch")
         request = self.context.get("request")
+        
 
         if not branch and request:
             branch = get_active_branch(request, raise_exception=False)
+        
 
         staff=Staff.objects.create(**validated_data)
+        if stations is not None:
+            staff.stations.set(stations)
         if username and password:
             user=User.objects.create(username=username,email=staff.email,first_name=staff.name)
             user.set_password(password)
@@ -391,6 +639,7 @@ class StaffSerializer(serializers.ModelSerializer):
         username = validated_data.pop('username', None)
         password = validated_data.pop('password', None)
         branch_ids = validated_data.pop("branch_ids", None)
+        stations = validated_data.pop("stations", None)
         previous_role = instance.role
         branch = self.context.get("branch")
         request = self.context.get("request")
@@ -401,6 +650,8 @@ class StaffSerializer(serializers.ModelSerializer):
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
         instance.save()
+        if stations is not None:
+            instance.stations.set(stations)
 
         if username or password:
             user = instance.user
@@ -423,7 +674,6 @@ class StaffSerializer(serializers.ModelSerializer):
             branch_ids = [branch]
         ensure_staff_branch_assignment(instance, branch_ids)
         return instance
-
 
 
 

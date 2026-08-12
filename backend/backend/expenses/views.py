@@ -9,8 +9,17 @@ from rest_framework.response import Response
 
 from .models import Expenses, ExpenseHistory
 from .serializers import ExpensesSerializer, ExpenseHistorySerializer
+from audit.constants import AuditAction, AuditModule
+from audit.services import (
+    calculate_field_changes,
+    changed_new_values,
+    changed_old_values,
+    create_audit_log,
+    normalize_audit_value,
+    snapshot_instance,
+)
 from restaurants.permissions import (
-    IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive, IsInventoryManager,
+    IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive, IsInventoryManager,IsFinanceManager,IsOperationsManager
 )
 from restaurants.branching import filter_queryset_for_request, get_active_branch
 
@@ -27,6 +36,26 @@ VALID_EXPENSE_SORTS = [
     "date", "-date", "name", "-name",
     "amount", "-amount", "amount_afn", "-amount_afn",
 ]
+
+EXPENSE_AUDIT_FIELDS = [
+    "name",
+    "amount",
+    "currency",
+    "exchange_rate",
+    "amount_afn",
+    "date",
+    "description",
+    "branch",
+]
+
+
+def _expense_audit_values(expense):
+    return snapshot_instance(expense, fields=EXPENSE_AUDIT_FIELDS)
+
+
+def _actor_name(request):
+    staff = getattr(request.user, "staff_profile", None)
+    return getattr(staff, "name", None) or request.user.get_username()
 
 
 def _calc_expense_stats(queryset):
@@ -71,7 +100,7 @@ def _filter_expenses(queryset, params):
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive])
+@permission_classes([IsRestaurantAdmin | IsInventoryManager |IsOperationsManager |IsFinanceManager, IsSameRestaurant, IsRestaurantActive])
 def expensesApi(request):
     staff = request.user.staff_profile
     restaurant = staff.restaurant
@@ -115,7 +144,22 @@ def expensesApi(request):
     if request.method == "POST":
         serializer = ExpensesSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(restaurant=restaurant, branch=get_active_branch(request))
+            expense = serializer.save(restaurant=restaurant, branch=get_active_branch(request))
+            create_audit_log(
+                request=request,
+                restaurant=expense.restaurant,
+                branch=expense.branch,
+                action=AuditAction.CREATE,
+                module=AuditModule.EXPENSES,
+                object_type="Expenses",
+                object_id=expense.id,
+                object_repr=expense.name,
+                description=(
+                    f"{_actor_name(request)} created expense {expense.name} "
+                    f"for {expense.amount_afn} AFN."
+                ),
+                new_values=_expense_audit_values(expense),
+            )
             return Response(
                 {"message": "New Expense saved!"},
                 status=status.HTTP_201_CREATED,
@@ -125,7 +169,7 @@ def expensesApi(request):
 
 class ExpenseDetailsView(RetrieveUpdateDestroyAPIView):
     serializer_class = ExpensesSerializer
-    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager |IsOperationsManager |IsFinanceManager, IsSameRestaurant, IsRestaurantActive]
     lookup_field = "id"
 
     def get_queryset(self):
@@ -136,10 +180,52 @@ class ExpenseDetailsView(RetrieveUpdateDestroyAPIView):
             allow_all_for_admin=True,
         )
 
+    def perform_update(self, serializer):
+        old_values = _expense_audit_values(self.get_object())
+        expense = serializer.save()
+        new_values = _expense_audit_values(expense)
+        changes = calculate_field_changes(old_values, new_values)
+        if not changes:
+            return
+        create_audit_log(
+            request=self.request,
+            restaurant=expense.restaurant,
+            branch=expense.branch,
+            action=AuditAction.UPDATE,
+            module=AuditModule.EXPENSES,
+            object_type="Expenses",
+            object_id=expense.id,
+            object_repr=expense.name,
+            description=f"{_actor_name(self.request)} updated expense {expense.name}.",
+            old_values=changed_old_values(changes),
+            new_values=changed_new_values(changes),
+            metadata={"changes": changes},
+        )
+
+    def perform_destroy(self, instance):
+        old_values = _expense_audit_values(instance)
+        create_audit_log(
+            request=self.request,
+            restaurant=instance.restaurant,
+            branch=instance.branch,
+            action=AuditAction.DELETE,
+            module=AuditModule.EXPENSES,
+            object_type="Expenses",
+            object_id=instance.id,
+            object_repr=instance.name,
+            description=f"{_actor_name(self.request)} deleted expense {instance.name}.",
+            old_values=old_values,
+            metadata={
+                "amount_afn": normalize_audit_value(instance.amount_afn),
+                "date": normalize_audit_value(instance.date),
+            },
+        )
+        instance.delete()
+
 
 class ExpenseHistoryApiView(generics.ListAPIView):
     serializer_class = ExpenseHistorySerializer
-    permission_classes = [IsRestaurantAdmin | IsInventoryManager, IsSameRestaurant, IsRestaurantActive]
+    permission_classes = [IsRestaurantAdmin | IsInventoryManager |IsOperationsManager |IsFinanceManager, IsSameRestaurant, IsRestaurantActive]
     pagination_class = ExpensePagination
 
     def get_queryset(self):

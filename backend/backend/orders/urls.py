@@ -46,6 +46,8 @@ path(
     "admin/discount-requests/pending/",
     admin_pending_discount_requests
 ),
+    path('online-orders/<slug:restaurant_slug>/<slug:branch_slug>/', create_online_order, name='create_online_order_branch'),
+    path('online-orders/<slug:restaurant_slug>/<slug:branch_slug>/<int:pk>/cancel/', cancel_online_order, name='cancel_online_order_branch'),
     path('online-orders/<slug:slug>/', create_online_order, name='create_online_order'),
     path('online-orders/<slug:slug>/<int:pk>/cancel/', cancel_online_order, name='cancel_online_order'),
 

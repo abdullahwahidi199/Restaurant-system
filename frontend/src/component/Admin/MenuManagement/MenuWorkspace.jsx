@@ -330,14 +330,16 @@ function CategoryRail({
           type="button"
           onClick={() => onSelect("all")}
           className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
-            selectedCategoryId === "all"
+            String(selectedCategoryId) === "all"
               ? "bg-gray-950 text-white shadow-sm"
               : "text-gray-700 hover:bg-gray-50"
           }`}
         >
           <span
             className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-              selectedCategoryId === "all" ? "bg-white/15" : "bg-gray-100"
+              String(selectedCategoryId) === "all"
+                ? "bg-white/15"
+                : "bg-gray-100"
             }`}
           >
             <Utensils className="h-4 w-4" />
@@ -348,7 +350,9 @@ function CategoryRail({
             </span>
             <span
               className={`block text-xs ${
-                selectedCategoryId === "all" ? "text-white/70" : "text-gray-500"
+                String(selectedCategoryId) === "all"
+                  ? "text-white/70"
+                  : "text-gray-500"
               }`}
             >
               Complete menu
@@ -357,7 +361,7 @@ function CategoryRail({
         </button>
 
         {categories.map((category) => {
-          const isSelected = selectedCategoryId === category.id;
+          const isSelected = String(selectedCategoryId) === String(category.id);
           const count = getCategoryItemCount(category);
 
           return (
@@ -758,7 +762,6 @@ export default function MenuWorkspace({
   showPrintActions = true,
   isRTL = false,
 }) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showAddPlatter, setShowAddPlatter] = useState(false);
@@ -767,35 +770,77 @@ export default function MenuWorkspace({
   const [searchTerm, setSearchTerm] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [stationFilter, setStationFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [printMode, setPrintMode] = useState("all");
   const [printing, setPrinting] = useState(false);
+  const [stations, setStations] = useState([]);
 
   const queryClient = useQueryClient();
 
+  // 1️⃣ Initialize from localStorage safely (handling string, number, and "all")
+  const [selectedCategoryId, setSelectedCategoryIdState] = useState(() => {
+    const saved = localStorage.getItem("selectedMenuCategoryId");
+    if (!saved) return null;
+    if (saved === "all") return "all";
+    const num = Number(saved);
+    return !Number.isNaN(num) ? num : saved;
+  });
+
+  // 2️⃣ Wrapper setter that saves to localStorage whenever the user clicks a category
+  const setSelectedCategoryId = (id) => {
+    setSelectedCategoryIdState(id);
+    if (id !== null && id !== undefined) {
+      localStorage.setItem("selectedMenuCategoryId", String(id));
+    } else {
+      localStorage.removeItem("selectedMenuCategoryId");
+    }
+  };
+
+  // 3️⃣ SINGLE authoritative useEffect: synchronizes selected category without overwriting user's saved choice
   useEffect(() => {
-    if (!categories.length) {
-      setSelectedCategoryId(null);
+    if (!categories || !categories.length) return;
+
+    const saved = localStorage.getItem("selectedMenuCategoryId");
+
+    // Case A: Saved selection is "all"
+    if (saved === "all") {
+      if (String(selectedCategoryId) !== "all") {
+        setSelectedCategoryIdState("all");
+      }
       return;
     }
 
-    if (!selectedCategoryId) {
-      setSelectedCategoryId(categories[0].id);
+    // Case B: A specific category ID is saved in localStorage and exists in our categories array
+    if (saved && categories.some((c) => String(c.id) === String(saved))) {
+      const targetCategory = categories.find(
+        (c) => String(c.id) === String(saved),
+      );
+      if (String(selectedCategoryId) !== String(targetCategory.id)) {
+        setSelectedCategoryIdState(targetCategory.id);
+      }
       return;
     }
 
+    // Case C: No valid saved category found -> default to first category without clobbering localStorage
     if (
-      selectedCategoryId !== "all" &&
-      !categories.some((category) => category.id === selectedCategoryId)
+      !selectedCategoryId ||
+      (String(selectedCategoryId) !== "all" &&
+        !categories.some((c) => String(c.id) === String(selectedCategoryId)))
     ) {
-      setSelectedCategoryId(categories[0].id);
+      const fallbackId = categories[0].id;
+      setSelectedCategoryIdState(fallbackId);
+      localStorage.setItem("selectedMenuCategoryId", String(fallbackId));
     }
-  }, [categories, selectedCategoryId]);
+  }, [categories]);
 
   const selectedCategory = useMemo(
-    () => categories.find((category) => category.id === selectedCategoryId),
+    () =>
+      categories.find(
+        (category) => String(category.id) === String(selectedCategoryId),
+      ),
     [categories, selectedCategoryId],
   );
 
@@ -851,6 +896,13 @@ export default function MenuWorkspace({
         if (availabilityFilter === "available" && !item.final_availability) {
           return false;
         }
+        if (stationFilter !== "all") {
+          const itemStationId =
+            item.station?.id ?? item.station ?? item.station_id ?? null;
+          if (String(itemStationId) !== String(stationFilter)) {
+            return false;
+          }
+        }
         if (availabilityFilter === "unavailable" && item.final_availability) {
           return false;
         }
@@ -886,13 +938,23 @@ export default function MenuWorkspace({
         }
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
-  }, [availabilityFilter, scopedItems, searchTerm, sortBy, statusFilter]);
+  }, [
+    availabilityFilter,
+    scopedItems,
+    searchTerm,
+    sortBy,
+    statusFilter,
+    stationFilter,
+  ]);
 
   const selectedItems = useMemo(
     () => allItems.filter((item) => selectedKeys.includes(item.stableKey)),
     [allItems, selectedKeys],
   );
 
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["categoryItems"] });
+  }, []);
   useEffect(() => {
     setSelectedKeys((current) =>
       current.filter((key) => allItems.some((item) => item.stableKey === key)),
@@ -904,6 +966,18 @@ export default function MenuWorkspace({
       ? selectedCategoryId
       : categories[0]?.id;
 
+  const fetchStations = async () => {
+    try {
+      const response = await instance.get("/menu/stations/");
+      setStations(response.data);
+    } catch (error) {
+      console.error("Failed to fetch stations:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStations();
+  }, []);
   const handleCategoryAdded = () => {
     setShowAddCategory(false);
     onRefresh?.();
@@ -919,7 +993,9 @@ export default function MenuWorkspace({
   const handleCategoryUpdated = (updatedCategory) => {
     setCategories?.((previous) =>
       previous.map((category) =>
-        category.id === updatedCategory.id ? updatedCategory : category,
+        String(category.id) === String(updatedCategory.id)
+          ? updatedCategory
+          : category,
       ),
     );
     queryClient.invalidateQueries({
@@ -978,12 +1054,14 @@ export default function MenuWorkspace({
     setAvailabilityFilter("all");
     setStatusFilter("all");
     setSortBy("name");
+    setStationFilter("all");
   };
 
   const filtersActive =
     searchTerm ||
     availabilityFilter !== "all" ||
     statusFilter !== "all" ||
+    stationFilter !== "all" ||
     sortBy !== "name";
 
   return (
@@ -1097,6 +1175,22 @@ export default function MenuWorkspace({
                   />
                 </label>
 
+                <label className="relative">
+                  <Utensils className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <select
+                    value={stationFilter}
+                    onChange={(event) => setStationFilter(event.target.value)}
+                    className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                  >
+                    <option value="all">All stations</option>
+                    {stations.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.name} {st.is_default ? "(Default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </label>
                 <label className="relative">
                   <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <select
@@ -1219,7 +1313,7 @@ export default function MenuWorkspace({
                 <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-950">
-                      {selectedCategoryId === "all"
+                      {String(selectedCategoryId) === "all"
                         ? "All menu records"
                         : selectedCategory?.name || "Menu items"}
                     </h2>
@@ -1237,7 +1331,8 @@ export default function MenuWorkspace({
                       <SecondaryButton
                         onClick={() => setShowDeleteCategory(true)}
                         disabled={
-                          !selectedCategory || selectedCategoryId === "all"
+                          !selectedCategory ||
+                          String(selectedCategoryId) === "all"
                         }
                         className="text-rose-700 hover:text-rose-800"
                       >
@@ -1255,7 +1350,7 @@ export default function MenuWorkspace({
                   )}
                 </div>
 
-                {isFetching && selectedCategoryId !== "all" ? (
+                {isFetching && String(selectedCategoryId) !== "all" ? (
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {Array.from({ length: 6 }).map((_, index) => (
                       <div

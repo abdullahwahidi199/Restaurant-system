@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useParams, Link } from "react-router-dom";
+import { useLocation, useParams, Link, useNavigate } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 import Select from "react-select";
 import {
@@ -10,23 +10,29 @@ import {
   Plus,
   Loader2,
   CheckCircle,
-  XSquare,
+  Utensils,
 } from "lucide-react";
 
 export default function PlatterDetails() {
   const { id } = useParams();
   const location = useLocation();
-  const dashboardBase = location.pathname.startsWith("/inventory-manager")
-    ? "/inventory-manager"
-    : "/admin/dashboard";
+  const dashboardBase = location.pathname.startsWith("/operations-manager")
+    ? "/operations-manager"
+    : location.pathname.startsWith("/inventory-manager")
+      ? "/inventory-manager"
+      : "/admin/dashboard";
 
   const [platterDetails, setPlatterDetails] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
+  const [stations, setStations] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const navigate = useNavigate();
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -37,10 +43,45 @@ export default function PlatterDetails() {
     description_pashto: "",
     price: "",
     category: "",
+    station: "",
     is_manually_available: true,
     items: [],
     image: "",
   });
+
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      await instance.delete(`/menu/platters/${id}/`);
+      navigate(`${dashboardBase}/menu`, { replace: true });
+    } catch (err) {
+      console.error("Failed to delete platter:", err);
+      setError("Failed to delete platter.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const fetchStations = async (currentPlatterStation) => {
+    try {
+      const res = await instance.get("/menu/stations/");
+      const data = res.data?.results || res.data || [];
+      const stationList = Array.isArray(data) ? data : [];
+      setStations(stationList);
+
+      // Automatically turn ON the default station if platter doesn't have one assigned
+      if (!currentPlatterStation && stationList.length > 0) {
+        const defaultSt =
+          stationList.find((st) => st.is_default) || stationList[0];
+        if (defaultSt) {
+          setFormData((prev) => ({ ...prev, station: Number(defaultSt.id) }));
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      setStations([]);
+    }
+  };
 
   const fetchPlatterDetails = async () => {
     try {
@@ -51,6 +92,8 @@ export default function PlatterDetails() {
 
       setPlatterDetails(res.data);
 
+      const currentStationId = res.data.station?.id || res.data.station || "";
+
       setFormData({
         name: res.data.name || "",
         name_dari: res.data.name_dari || "",
@@ -60,10 +103,13 @@ export default function PlatterDetails() {
         description_pashto: res.data.description_pashto || "",
         price: res.data.price || "",
         category: res.data.category || "",
+        station: currentStationId ? Number(currentStationId) : "",
         is_manually_available: res.data.is_manually_available,
         image: res.data.image || null,
         items: res.data.items || [],
       });
+
+      fetchStations(currentStationId);
     } catch (error) {
       console.log(error);
       setError("Failed to fetch platter details");
@@ -143,6 +189,7 @@ export default function PlatterDetails() {
         description_pashto: formData.description_pashto,
         price: formData.price,
         category: formData.category,
+        station: formData.station ? Number(formData.station) : null,
         is_manually_available: formData.is_manually_available,
 
         items: formData.items.map((item) => ({
@@ -158,7 +205,7 @@ export default function PlatterDetails() {
           if (key === "items") {
             fd.append("items", JSON.stringify(value));
           } else {
-            fd.append(key, value);
+            fd.append(key, value ?? "");
           }
         });
 
@@ -195,7 +242,9 @@ export default function PlatterDetails() {
   }));
 
   if (loading) {
-    return <div className="p-5">Loading...</div>;
+    return (
+      <div className="p-5 text-[var(--theme-text-primary)]">Loading...</div>
+    );
   }
 
   const unavailableReasons = platterDetails?.unavailable_reasons || [];
@@ -205,8 +254,65 @@ export default function PlatterDetails() {
     !finalAvailability && unavailableReasons.length > 0;
 
   return (
-    <div className="max-w-4xl mx-auto p-5">
-      <h1 className="text-3xl font-bold mb-6">Update Platter</h1>
+    <div className="max-w-4xl mx-auto p-5 bg-[var(--theme-background)] min-h-screen">
+      {/* HEADER WITH DELETE BUTTON */}
+      <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4 mb-6">
+        <h1 className="text-3xl font-bold text-[var(--theme-text-primary)]">
+          Update Platter
+        </h1>
+        <button
+          type="button"
+          onClick={() => setShowDelete(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm transition"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Platter
+        </button>
+      </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Delete Platter
+                </h3>
+                <p className="text-xs text-gray-500">Confirmation Required</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-gray-900">
+                "{formData.name || "this platter"}"
+              </strong>
+              ? This action cannot be undone and will remove it from all menus.
+            </p>
+            <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowDelete(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting ? "Deleting..." : "Delete Platter"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-100 text-red-600 p-3 rounded mb-4">{error}</div>
@@ -287,15 +393,80 @@ export default function PlatterDetails() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* KITCHEN STATION ROUTING BOXES */}
+        <div className="border border-[var(--theme-border)] rounded-xl p-4 bg-[var(--theme-surface)] space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm font-bold text-[var(--theme-text-primary)]">
+              <Utensils className="h-4 w-4 text-[var(--theme-primary)]" />
+              <span>Platter Station Routing</span>
+            </label>
+            <span className="text-xs font-semibold text-[var(--theme-text-muted)]">
+              Where should this platter be prepared?
+            </span>
+          </div>
+          <p className="text-xs text-[var(--theme-text-secondary)]">
+            Select which kitchen station prepares this entire platter when
+            ordered:
+          </p>
+          {stations.length === 0 ? (
+            <p className="text-xs text-[var(--theme-text-muted)] italic py-2">
+              No stations available. Using default Main Kitchen.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
+              {stations.map((st) => {
+                const isSelected = Number(formData.station) === st.id;
+                return (
+                  <div
+                    key={st.id}
+                    onClick={() => setFormData({ ...formData, station: st.id })}
+                    className={`cursor-pointer rounded-lg border p-3 flex flex-col justify-between transition-all duration-200 ${
+                      isSelected
+                        ? "border-[var(--theme-primary)] bg-[var(--theme-primary-subtle)] shadow-sm ring-1 ring-[var(--theme-primary)]"
+                        : "border-[var(--theme-border)] bg-[var(--theme-card)] hover:border-[var(--theme-border-strong)] hover:bg-[var(--theme-hover)]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm text-[var(--theme-text-primary)] truncate">
+                        {st.name}
+                      </span>
+                      <span
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected
+                            ? "border-[var(--theme-primary)] bg-[var(--theme-primary)]"
+                            : "border-[var(--theme-border-strong)]"
+                        }`}
+                      >
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                        )}
+                      </span>
+                    </div>
+                    {st.is_default && (
+                      <div className="mt-2 flex justify-start">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] uppercase shrink-0">
+                          Default
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* image */}
         <div>
-          <label className="block mb-2 font-semibold">Platter Image</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            Platter Image
+          </label>
 
           {formData.image && !selectedImage && (
             <img
               src={formData.image}
               alt="platter"
-              className="w-40 h-40 object-cover rounded mb-3 border"
+              className="w-40 h-40 object-cover rounded mb-3 border border-[var(--theme-border)]"
             />
           )}
 
@@ -303,7 +474,7 @@ export default function PlatterDetails() {
             <img
               src={URL.createObjectURL(selectedImage)}
               alt="preview"
-              className="w-40 h-40 object-cover rounded mb-3 border"
+              className="w-40 h-40 object-cover rounded mb-3 border border-[var(--theme-border)]"
             />
           )}
 
@@ -316,31 +487,35 @@ export default function PlatterDetails() {
                 setSelectedImage(file);
               }
             }}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
           />
         </div>
 
         {/* English Name */}
         <div>
-          <label className="block mb-2 font-semibold">Name (English)</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            Name (English)
+          </label>
           <input
             type="text"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
           />
         </div>
 
         {/* Dari Name */}
         <div>
-          <label className="block mb-2 font-semibold">نام (دری)</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            نام (دری)
+          </label>
           <input
             type="text"
             name="name_dari"
             value={formData.name_dari}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
             dir="rtl"
             placeholder="نام پلاتر به دری"
           />
@@ -348,13 +523,15 @@ export default function PlatterDetails() {
 
         {/* Pashto Name */}
         <div>
-          <label className="block mb-2 font-semibold">نوم (پښتو)</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            نوم (پښتو)
+          </label>
           <input
             type="text"
             name="name_pashto"
             value={formData.name_pashto}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
             dir="rtl"
             placeholder="د پلاتر نوم په پښتو"
           />
@@ -362,26 +539,28 @@ export default function PlatterDetails() {
 
         {/* English Description */}
         <div>
-          <label className="block mb-2 font-semibold">
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
             Description (English)
           </label>
           <textarea
             name="description"
             value={formData.description}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
             rows={4}
           />
         </div>
 
         {/* Dari Description */}
         <div>
-          <label className="block mb-2 font-semibold">توضیحات (دری)</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            توضیحات (دری)
+          </label>
           <textarea
             name="description_dari"
             value={formData.description_dari}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
             rows={4}
             dir="rtl"
             placeholder="توضیحات پلاتر به دری..."
@@ -390,12 +569,14 @@ export default function PlatterDetails() {
 
         {/* Pashto Description */}
         <div>
-          <label className="block mb-2 font-semibold">توضیحات (پښتو)</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            توضیحات (پښتو)
+          </label>
           <textarea
             name="description_pashto"
             value={formData.description_pashto}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
             rows={4}
             dir="rtl"
             placeholder="د پلاتر توضیحات په پښتو..."
@@ -404,7 +585,9 @@ export default function PlatterDetails() {
 
         {/* price */}
         <div>
-          <label className="block mb-2 font-semibold">Price</label>
+          <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
+            Price
+          </label>
 
           <input
             type="number"
@@ -412,16 +595,16 @@ export default function PlatterDetails() {
             name="price"
             value={formData.price}
             onChange={handleChange}
-            className="w-full border p-3 rounded"
+            className="w-full border border-[var(--theme-input-border)] p-3 rounded-lg bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
           />
 
-          <div className="mt-3 space-y-1 text-sm">
+          <div className="mt-3 space-y-1 text-sm text-[var(--theme-text-primary)]">
             <p>
               <span className="font-semibold">Total Cost:</span>{" "}
               {totalCost.toFixed(2)}
             </p>
 
-            <p>
+            <p className="text-[var(--theme-success)]">
               <span className="font-semibold">Profit:</span> {profit.toFixed(2)}
             </p>
           </div>
@@ -434,20 +617,25 @@ export default function PlatterDetails() {
             name="is_manually_available"
             checked={formData.is_manually_available}
             onChange={handleChange}
+            className="rounded border-[var(--theme-border-strong)] text-[var(--theme-primary)]"
           />
 
-          <label className="font-semibold">Available</label>
+          <label className="font-semibold text-[var(--theme-text-primary)]">
+            Available
+          </label>
         </div>
 
         {/* platter items */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Platter Items</h2>
+            <h2 className="text-2xl font-bold text-[var(--theme-text-primary)]">
+              Platter Items
+            </h2>
 
             <button
               type="button"
               onClick={addItem}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded"
+              className="flex items-center gap-2 bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] px-4 py-2 rounded-lg font-semibold transition"
             >
               <Plus className="h-4 w-4" />
               Add Item
@@ -471,7 +659,7 @@ export default function PlatterDetails() {
                   className={`rounded-xl border transition-all duration-300 ${
                     unavailableReason
                       ? "border-red-300 shadow-sm shadow-red-100"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-[var(--theme-border)] hover:border-[var(--theme-border-strong)]"
                   }`}
                 >
                   {/* Card Header */}
@@ -479,15 +667,15 @@ export default function PlatterDetails() {
                     className={`flex items-center justify-between px-4 py-2.5 rounded-t-xl ${
                       unavailableReason
                         ? "bg-red-50 border-b border-red-200"
-                        : "bg-gray-50 border-b border-gray-100"
+                        : "bg-[var(--theme-muted)] border-b border-[var(--theme-border)]"
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-gray-500">
+                      <span className="text-sm font-semibold text-[var(--theme-text-muted)]">
                         #{index + 1}
                       </span>
                       {selectedMenuItem && (
-                        <span className="text-sm font-medium text-gray-800">
+                        <span className="text-sm font-medium text-[var(--theme-text-primary)]">
                           {selectedMenuItem.name}
                         </span>
                       )}
@@ -511,11 +699,11 @@ export default function PlatterDetails() {
                   </div>
 
                   {/* Card Body */}
-                  <div className="p-4 bg-white rounded-b-xl">
+                  <div className="p-4 bg-[var(--theme-card)] rounded-b-xl">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                       {/* Menu Item Select */}
                       <div className="md:col-span-6">
-                        <label className="block mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <label className="block mb-1.5 text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
                           Menu Item
                         </label>
                         <Select
@@ -541,39 +729,40 @@ export default function PlatterDetails() {
                             control: (base, state) => ({
                               ...base,
                               borderColor: unavailableReason
-                                ? "#fca5a5"
+                                ? "var(--theme-danger)"
                                 : state.isFocused
-                                  ? "#6366f1"
-                                  : "#d1d5db",
+                                  ? "var(--theme-input-focus)"
+                                  : "var(--theme-input-border)",
                               boxShadow: state.isFocused
-                                ? "0 0 0 1px #6366f1"
+                                ? "0 0 0 4px var(--theme-input-ring)"
                                 : "none",
                               "&:hover": {
                                 borderColor: unavailableReason
-                                  ? "#f87171"
-                                  : "#6366f1",
+                                  ? "var(--theme-danger-hover)"
+                                  : "var(--theme-input-focus)",
                               },
                             }),
                           }}
                         />
                       </div>
 
-                      {/* Quantity */}
+                      {/* Quantity (Supports fractional floats like 0.2, 0.5) */}
                       <div className="md:col-span-3">
-                        <label className="block mb-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <label className="block mb-1.5 text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
                           Quantity
                         </label>
                         <input
                           type="number"
-                          min="1"
+                          min="0.01"
+                          step="any"
                           value={item.quantity}
                           onChange={(e) =>
                             handleItemChange(index, "quantity", e.target.value)
                           }
-                          className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors ${
+                          className={`w-full border rounded-lg px-3 py-2 text-sm bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 transition-colors ${
                             unavailableReason
                               ? "border-red-300 focus:ring-red-300"
-                              : "border-gray-300 focus:ring-indigo-300"
+                              : "border-[var(--theme-input-border)] focus:ring-[var(--theme-input-ring)]"
                           }`}
                         />
                       </div>
@@ -583,8 +772,7 @@ export default function PlatterDetails() {
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium
-                         hover:bg-red-50 hover:border-red-300 active:bg-red-100 transition-all duration-200"
+                          className="w-full flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium hover:bg-red-50 hover:border-red-300 active:bg-red-100 transition-all duration-200"
                         >
                           <Trash2 className="h-4 w-4" />
                           Remove
@@ -611,8 +799,7 @@ export default function PlatterDetails() {
 
                         <Link
                           to={`${dashboardBase}/menu/item/${unavailableReason.id}`}
-                          className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-red-200 text-xs font-semibold text-red-700
-                         hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+                          className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-red-200 text-xs font-semibold text-red-700 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
                         >
                           View Details
                           <ArrowRight className="h-3.5 w-3.5" />
@@ -629,7 +816,7 @@ export default function PlatterDetails() {
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded disabled:opacity-50"
+          className="flex items-center gap-2 bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] font-bold px-6 py-3 rounded-lg shadow-sm disabled:opacity-50 transition"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {saving ? "Updating..." : "Update Platter"}

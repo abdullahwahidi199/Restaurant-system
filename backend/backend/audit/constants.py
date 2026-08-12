@@ -1,0 +1,40 @@
+from django.db import models
+
+
+class AuditAction(models.TextChoices):
+    CREATE = "CREATE", "Create"
+    UPDATE = "UPDATE", "Update"
+    DELETE = "DELETE", "Delete"
+    APPROVE = "APPROVE", "Approve"
+    REJECT = "REJECT", "Reject"
+    CANCEL = "CANCEL", "Cancel"
+    RESTORE = "RESTORE", "Restore"
+    PAYMENT = "PAYMENT", "Payment"
+    STATUS_CHANGE = "STATUS_CHANGE", "Status Change"
+    ASSIGNMENT_CHANGE = "ASSIGNMENT_CHANGE", "Assignment Change"
+    CONFIG_CHANGE = "CONFIG_CHANGE", "Configuration Change"
+    EXPORT = "EXPORT", "Export"
+    LOGIN_SUCCESS = "LOGIN_SUCCESS", "Login Success"
+    LOGIN_FAILED = "LOGIN_FAILED", "Login Failed"
+    MIGRATION = "MIGRATION", "Migration"
+
+
+class AuditModule(models.TextChoices):
+    PROCUREMENT = "PROCUREMENT", "Procurement"
+    EXPENSES = "EXPENSES", "Expenses"
+    CONTRACTORS = "CONTRACTORS", "Contractors"
+    SECURITY = "SECURITY", "Security"
+    USERS = "USERS", "Users / Staff"
+    ROLES = "ROLES", "Roles / Permissions"
+    RESTAURANT = "RESTAURANT", "Restaurant"
+    BRANCHES = "BRANCHES", "Branches"
+    MENU = "MENU", "Menu"
+    TABLES = "TABLES", "Table Management"
+    RESERVATIONS = "RESERVATIONS", "Reservations"
+    INVENTORY = "INVENTORY", "Inventory"
+    PAYROLL = "PAYROLL", "Payroll"
+    ATTENDANCE = "ATTENDANCE", "Attendance"
+    KITCHEN_CONFIG = "KITCHEN_CONFIG", "Kitchen Configuration"
+    REPORTS = "REPORTS", "Reports"
+    SETTINGS = "SETTINGS", "Settings"
+    MIGRATIONS = "MIGRATIONS", "Migrations / Transfers"

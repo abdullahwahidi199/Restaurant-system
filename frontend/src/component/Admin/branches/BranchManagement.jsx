@@ -4,13 +4,17 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
+  Copy,
   ClipboardList,
   Database,
+  Download,
+  ExternalLink,
   Layers3,
   PackageOpen,
   Pencil,
   Plus,
   Power,
+  QrCode,
   RefreshCw,
   Save,
   Trash2,
@@ -22,24 +26,32 @@ import {
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import ConfirmationDialog from "../../ui/ConfirmationDialog";
+import {
+  copyText,
+  downloadFile,
+  getMediaUrl,
+} from "../../../api/publicOrdering";
 
 const MIGRATION_CARDS = [
   {
     type: "ingredients",
     title: "Migrate Ingredients",
-    description: "Copy ingredient master data, units, costs, thresholds, and status. Stock starts at zero.",
+    description:
+      "Copy ingredient master data, units, costs, thresholds, and status. Stock starts at zero.",
     icon: Database,
   },
   {
     type: "categories",
     title: "Migrate Menu Categories",
-    description: "Copy category names, localized names, rank, descriptions, and images.",
+    description:
+      "Copy category names, localized names, rank, descriptions, and images.",
     icon: ClipboardList,
   },
   {
     type: "menu_items",
     title: "Migrate Menu Items",
-    description: "Copy items, pricing, availability, images, categories, and recipes.",
+    description:
+      "Copy items, pricing, availability, images, categories, and recipes.",
     icon: Utensils,
   },
   {
@@ -51,13 +63,15 @@ const MIGRATION_CARDS = [
   {
     type: "modifiers",
     title: "Migrate Modifiers",
-    description: "Reserved for modifier data when a modifier model is configured.",
+    description:
+      "Reserved for modifier data when a modifier model is configured.",
     icon: Layers3,
   },
   {
     type: "everything",
     title: "Migrate Everything",
-    description: "Copy configuration and menu structure only. Inventory stock and purchase history are excluded.",
+    description:
+      "Copy configuration and menu structure only. Inventory stock and purchase history are excluded.",
     icon: RefreshCw,
   },
 ];
@@ -106,6 +120,8 @@ const createEmptyForm = () => ({
   address: "",
   phone: "",
   email: "",
+  latitude: "",
+  longitude: "",
   is_active: true,
 });
 
@@ -126,6 +142,12 @@ export default function BranchManagement() {
   const [pendingMigrationType, setPendingMigrationType] = useState("");
   const [branchPendingDelete, setBranchPendingDelete] = useState(null);
   const [deletingBranchId, setDeletingBranchId] = useState("");
+  const [regeneratingBranchId, setRegeneratingBranchId] = useState("");
+  const [branchLimit, setBranchLimit] = useState({
+    max_branches: 0,
+    branches_used: 0,
+    branches_remaining: 0,
+  });
 
   const activeCount = useMemo(
     () => branches.filter((branch) => branch.is_active).length,
@@ -139,7 +161,10 @@ export default function BranchManagement() {
     [activeBranch?.id, branches],
   );
   const selectedSourceBranch = useMemo(
-    () => branches.find((branch) => String(branch.id) === String(migrationSourceId)),
+    () =>
+      branches.find(
+        (branch) => String(branch.id) === String(migrationSourceId),
+      ),
     [branches, migrationSourceId],
   );
   const pendingMigrationCard = useMemo(
@@ -150,7 +175,8 @@ export default function BranchManagement() {
     () =>
       MIGRATION_FLOW_ITEMS.map((item) => ({
         ...item,
-        included: !item.excluded && item.includedIn?.includes(pendingMigrationType),
+        included:
+          !item.excluded && item.includedIn?.includes(pendingMigrationType),
       })),
     [pendingMigrationType],
   );
@@ -161,7 +187,15 @@ export default function BranchManagement() {
       const res = await instance.get(
         "/restaurant/branches/?include_inactive=true",
       );
-      setBranches(res.data);
+      setBranches(res.data.branches);
+
+      setBranchLimit(
+        res.data.branch_limit || {
+          max_branches: 0,
+          branches_used: 0,
+          branches_remaining: 0,
+        },
+      );
       setError("");
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load branches.");
@@ -193,7 +227,9 @@ export default function BranchManagement() {
   useEffect(() => {
     if (
       migrationSourceId &&
-      migrationSourceBranches.some((branch) => String(branch.id) === String(migrationSourceId))
+      migrationSourceBranches.some(
+        (branch) => String(branch.id) === String(migrationSourceId),
+      )
     ) {
       return;
     }
@@ -201,6 +237,12 @@ export default function BranchManagement() {
   }, [migrationSourceBranches, migrationSourceId]);
 
   const openCreate = () => {
+    if (branchLimit.branches_remaining <= 0) {
+      setError(
+        `Your subscription allows only ${branchLimit.max_branches} branches. Upgrade your subscription to add more branches.`,
+      );
+      return;
+    }
     setEditingBranch(null);
     setFormData(createEmptyForm());
     setError("");
@@ -215,6 +257,8 @@ export default function BranchManagement() {
       address: branch.address || "",
       phone: branch.phone || "",
       email: branch.email || "",
+      latitude: branch.latitude ?? "",
+      longitude: branch.longitude ?? "",
       is_active: branch.is_active,
     });
     setError("");
@@ -240,7 +284,11 @@ export default function BranchManagement() {
     setSaving(true);
     setError("");
     try {
-      const payload = { ...formData };
+      const payload = {
+        ...formData,
+        latitude: formData.latitude === "" ? null : formData.latitude,
+        longitude: formData.longitude === "" ? null : formData.longitude,
+      };
 
       if (editingBranch) {
         await instance.patch(
@@ -256,7 +304,9 @@ export default function BranchManagement() {
       const data = err.response?.data;
       setError(
         data?.detail ||
-          Object.values(data || {})?.flat?.()?.join(" ") ||
+          Object.values(data || {})
+            ?.flat?.()
+            ?.join(" ") ||
           "Could not save branch.",
       );
     } finally {
@@ -275,7 +325,8 @@ export default function BranchManagement() {
   };
 
   const runMigration = async () => {
-    if (!pendingMigrationType || !migrationSourceId || !activeBranch?.id) return;
+    if (!pendingMigrationType || !migrationSourceId || !activeBranch?.id)
+      return;
 
     setMigratingType(pendingMigrationType);
     setMigrationError("");
@@ -292,7 +343,9 @@ export default function BranchManagement() {
       const data = err.response?.data;
       setMigrationError(
         data?.detail ||
-          Object.values(data || {})?.flat?.()?.join(" ") ||
+          Object.values(data || {})
+            ?.flat?.()
+            ?.join(" ") ||
           "Could not run branch data migration.",
       );
     } finally {
@@ -311,9 +364,50 @@ export default function BranchManagement() {
       const data = err.response?.data;
       setError(
         data?.detail ||
-          Object.values(data || {})?.flat?.()?.join(" ") ||
+          Object.values(data || {})
+            ?.flat?.()
+            ?.join(" ") ||
           "Could not update branch status.",
       );
+    }
+  };
+
+  const copyBranchLink = async (branch) => {
+    if (!branch.public_url) return;
+    try {
+      await copyText(branch.public_url);
+    } catch (err) {
+      setError("Could not copy branch link.");
+    }
+  };
+
+  const downloadBranchQr = async (branch) => {
+    const qrUrl = getMediaUrl(branch.qr_code);
+    if (!qrUrl) return;
+    try {
+      await downloadFile(qrUrl, `${branch.slug || branch.code}_menu_qr.png`);
+    } catch (err) {
+      setError("Could not download branch QR code.");
+    }
+  };
+
+  const regenerateBranchQr = async (branch) => {
+    setError("");
+    setRegeneratingBranchId(branch.id);
+    try {
+      await instance.post(`/restaurant/branches/${branch.id}/regenerate-qr/`);
+      await reloadBranchState();
+    } catch (err) {
+      const data = err.response?.data;
+      setError(
+        data?.detail ||
+          Object.values(data || {})
+            ?.flat?.()
+            ?.join(" ") ||
+          "Could not regenerate branch QR code.",
+      );
+    } finally {
+      setRegeneratingBranchId("");
     }
   };
 
@@ -331,7 +425,11 @@ export default function BranchManagement() {
       await reloadBranchState();
     } catch (err) {
       const detail = err.response?.data?.detail;
-      setError(Array.isArray(detail) ? detail.join(" ") : detail || "Could not delete branch.");
+      setError(
+        Array.isArray(detail)
+          ? detail.join(" ")
+          : detail || "Could not delete branch.",
+      );
     } finally {
       setDeletingBranchId("");
     }
@@ -345,13 +443,18 @@ export default function BranchManagement() {
             Branch management
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {branches.length} total branches, {activeCount} active
+            {branchLimit.branches_used} / {branchLimit.max_branches} branches
+            used
+            {branchLimit.branches_remaining > 0
+              ? ` (${branchLimit.branches_remaining} remaining)`
+              : " (limit reached)"}
           </p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white transition hover:bg-gray-800"
+          disabled={branchLimit.branches_remaining <= 0}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           <Plus size={18} />
           Add branch
@@ -370,6 +473,7 @@ export default function BranchManagement() {
             <tr>
               <th className="px-5 py-3">Branch</th>
               <th className="px-5 py-3">Contact</th>
+              <th className="px-5 py-3">Public Menu</th>
               <th className="px-5 py-3">Staff</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3 text-right">Actions</th>
@@ -378,7 +482,7 @@ export default function BranchManagement() {
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td className="px-5 py-8 text-center text-gray-500" colSpan={5}>
+                <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
                   Loading branches...
                 </td>
               </tr>
@@ -409,6 +513,79 @@ export default function BranchManagement() {
                     <div>{branch.phone || "No phone"}</div>
                     <div className="text-xs text-gray-500">
                       {branch.email || branch.address || "No contact details"}
+                    </div>
+                  </td>
+                  <td className="min-w-[340px] px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                        {branch.qr_code ? (
+                          <img
+                            src={getMediaUrl(branch.qr_code)}
+                            alt={`${branch.name} QR code`}
+                            className="h-full w-full object-contain p-1"
+                          />
+                        ) : (
+                          <QrCode size={24} className="text-gray-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-medium text-gray-900">
+                          {branch.public_url || "No public URL yet"}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => copyBranchLink(branch)}
+                            disabled={!branch.public_url}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            title="Copy link"
+                          >
+                            <Copy size={13} />
+                            Copy
+                          </button>
+                          <a
+                            href={branch.public_url || "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={`inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 ${
+                              !branch.public_url
+                                ? "pointer-events-none opacity-40"
+                                : ""
+                            }`}
+                            title="Open menu"
+                          >
+                            <ExternalLink size={13} />
+                            Open
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => downloadBranchQr(branch)}
+                            disabled={!branch.qr_code}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            title="Download QR"
+                          >
+                            <Download size={13} />
+                            QR
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => regenerateBranchQr(branch)}
+                            disabled={regeneratingBranchId === branch.id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            title="Regenerate QR"
+                          >
+                            <RefreshCw
+                              size={13}
+                              className={
+                                regeneratingBranchId === branch.id
+                                  ? "animate-spin"
+                                  : ""
+                              }
+                            />
+                            Regenerate
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-gray-700">
@@ -459,7 +636,7 @@ export default function BranchManagement() {
               ))
             ) : (
               <tr>
-                <td className="px-5 py-8 text-center text-gray-500" colSpan={5}>
+                <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
                   No branches found.
                 </td>
               </tr>
@@ -473,8 +650,8 @@ export default function BranchManagement() {
           <div>
             <h2 className="text-xl font-bold text-gray-900">Data Migration</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Copy data one time from another branch into the currently selected branch.
-              No records stay linked after migration.
+              Copy data one time from another branch into the currently selected
+              branch. No records stay linked after migration.
             </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
@@ -514,14 +691,19 @@ export default function BranchManagement() {
 
         {migrationResult && (
           <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            Migration completed successfully. Imported {migrationResult.imported_count}, skipped{" "}
-            {migrationResult.skipped_count}, failed {migrationResult.failed_count}.
+            Migration completed successfully. Imported{" "}
+            {migrationResult.imported_count}, skipped{" "}
+            {migrationResult.skipped_count}, failed{" "}
+            {migrationResult.failed_count}.
           </div>
         )}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {MIGRATION_CARDS.map(({ type, title, description, icon: Icon }) => (
-            <div key={type} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div
+              key={type}
+              className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+            >
               <div className="flex items-start gap-3">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-gray-700 shadow-sm">
                   <Icon size={18} />
@@ -534,7 +716,11 @@ export default function BranchManagement() {
               <button
                 type="button"
                 onClick={() => openMigrationConfirmation(type)}
-                disabled={!migrationSourceId || !activeBranch?.id || Boolean(migratingType)}
+                disabled={
+                  !migrationSourceId ||
+                  !activeBranch?.id ||
+                  Boolean(migratingType)
+                }
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-500"
               >
                 {migratingType === type ? "Migrating..." : "Migrate"}
@@ -562,12 +748,18 @@ export default function BranchManagement() {
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {log.migration_type}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{log.source_branch_name}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {log.source_branch_name}
+                    </td>
                     <td className="px-4 py-3 text-gray-600">
                       {log.destination_branch_name}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{log.imported_count}</td>
-                    <td className="px-4 py-3 text-gray-700">{log.skipped_count}</td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {log.imported_count}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {log.skipped_count}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="rounded bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
                         {log.status}
@@ -577,7 +769,10 @@ export default function BranchManagement() {
                 ))
               ) : (
                 <tr>
-                  <td className="px-4 py-6 text-center text-gray-500" colSpan={6}>
+                  <td
+                    className="px-4 py-6 text-center text-gray-500"
+                    colSpan={6}
+                  >
                     No migrations yet.
                   </td>
                 </tr>
@@ -656,6 +851,33 @@ export default function BranchManagement() {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
+                    className="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Latitude
+                  <input
+                    name="latitude"
+                    type="number"
+                    step="any"
+                    value={formData.latitude}
+                    onChange={handleChange}
+                    placeholder="34.5553"
+                    className="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-gray-700">
+                  Longitude
+                  <input
+                    name="longitude"
+                    type="number"
+                    step="any"
+                    value={formData.longitude}
+                    onChange={handleChange}
+                    placeholder="69.2075"
                     className="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
                   />
                 </label>
@@ -759,7 +981,10 @@ export default function BranchManagement() {
                     }`}
                   >
                     {item.included ? (
-                      <CheckCircle2 size={16} className="shrink-0 text-green-600" />
+                      <CheckCircle2
+                        size={16}
+                        className="shrink-0 text-green-600"
+                      />
                     ) : (
                       <XCircle size={16} className="shrink-0 text-gray-400" />
                     )}
@@ -779,7 +1004,9 @@ export default function BranchManagement() {
               <li>Duplicate records will be skipped.</li>
               <li>Both branches will remain completely independent.</li>
               <li>Future changes in one branch will not affect the other.</li>
-              <li>Inventory quantities and stock records will NOT be migrated.</li>
+              <li>
+                Inventory quantities and stock records will NOT be migrated.
+              </li>
               <li>This action cannot be automatically undone.</li>
             </ul>
           </div>

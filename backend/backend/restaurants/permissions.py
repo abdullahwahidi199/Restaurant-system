@@ -75,6 +75,12 @@ class IsInventoryManager(HasStaffRole):
 class IsCallOperator(HasStaffRole):
     allowed_roles = ["Call_operator"]
 
+class IsOperationsManager(HasStaffRole):
+    allowed_roles = ["OperationsManager"]
+
+class IsFinanceManager(HasStaffRole):
+    allowed_roles = ["FinanceManager"]
+
 class IsCashier(HasStaffRole):
     allowed_roles = ["Cashier"]
 

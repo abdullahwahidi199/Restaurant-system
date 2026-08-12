@@ -1,26 +1,31 @@
-import { useContext, useEffect, useState } from "react";
-import FilterBar from "./FilterBar";
-import OrderCard from "./OrderCard";
-import MetricsBar from "./MetricsBar";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import instance from "../../api/axiosInstance";
 import useOrdersSocket from "../../hooks/useOrdersSocket";
 import { AuthContext } from "../../api/authforRBC";
 import OrderDetailSidebar from "./OrderDetailSidebar";
 import CompactOrderCard from "./CompactOrderCard";
-import { Search, UtensilsCrossed, Package } from "lucide-react";
+import { UtensilsCrossed, Package } from "lucide-react";
+import notification from "../../assets/sounds/notification.mp3";
 
 export default function KitchenHomepage() {
   const [orders, setOrders] = useState([]);
-  const [pendingOrders, setPendingOrders] = useState([]);
-  const [search, setSearch] = useState("");
+  const { orderSearch = "" } = useOutletContext() || {};
+  const search = orderSearch;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { auth } = useContext(AuthContext);
+  const userStationIds = auth?.user?.staff_profile?.stations || [];
 
-  const [activeTypeTab, setActiveTypeTab] = useState("dine-in");
-  const [activeStatusTab, setActiveStatusTab] = useState("all");
+  const activeStatusTab = "all";
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const fetchOrders = async () => {
+  const playOrderNotification = useCallback(() => {
+    const audio = new Audio(notification);
+    audio.play().catch(() => {});
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       const res = await instance.get("/orders/kitchen-orders/", {
@@ -35,26 +40,11 @@ export default function KitchenHomepage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchPendingOrders = async () => {
-    try {
-      const res = await instance.get("/orders/kitchen-orders/", {
-        params: { status: "pending" },
-      });
-      setPendingOrders(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchPendingOrders();
-  }, []);
+  }, [activeStatusTab, search]);
 
   useEffect(() => {
     fetchOrders();
-  }, [activeTypeTab, activeStatusTab]);
+  }, [fetchOrders]);
 
   const filteredOrders = orders.filter((order) => {
     const query = search.toLowerCase();
@@ -83,20 +73,46 @@ export default function KitchenHomepage() {
     }
   };
 
+  // 1️⃣ Safe string-matching helper to check if an item belongs to this Kitchen Manager's station(s):
+  const isItemForMyStation = (item) => {
+    if (!userStationIds.length) return true; // Admin or restaurant-wide access
+    return userStationIds.some((id) => String(id) === String(item.station_id));
+  };
+
+  const filterOrderForMyStations = (incomingOrder) => {
+    if (!userStationIds.length) return incomingOrder;
+    const relevantItems = (incomingOrder.items || []).filter(
+      isItemForMyStation,
+    );
+    if (!relevantItems.length) return null;
+    return {
+      ...incomingOrder,
+      items: relevantItems,
+    };
+  };
+
   const handleMessage = (msg) => {
     console.log("SOCKET MESSAGE:", msg);
     if (!msg?.type) return;
 
-    // Backend sometimes wraps order inside msg.order OR msg.message.order
     const payload = msg.message ?? msg;
     const type = payload.type ?? msg.type;
 
     /* =========================
-     NEW ORDER
-  ========================= */
+       NEW ORDER
+    ========================= */
     if (type === "NEW_ORDER") {
-      const incoming = payload.order || payload.message?.order;
+      let incoming = payload.order || payload.message?.order;
       if (!incoming?.id) return;
+
+      // 🔥 FILTER ITEMS FOR MY STATION:
+      incoming = filterOrderForMyStations(incoming);
+      if (!incoming) return; // Ignore order if 0 items belong to our station
+
+      const isNewPanelOrder = !orders.some((order) => order.id === incoming.id);
+      if (isNewPanelOrder) {
+        playOrderNotification();
+      }
 
       setOrders((prev) => {
         const exists = prev.some((o) => o.id === incoming.id);
@@ -106,38 +122,42 @@ export default function KitchenHomepage() {
         return [incoming, ...prev];
       });
 
-      setPendingOrders((prev) => {
-        if (incoming.status !== "pending") return prev;
-        const exists = prev.some((o) => o.id === incoming.id);
-        if (exists) {
-          return prev.map((o) => (o.id === incoming.id ? incoming : o));
-        }
-        return [incoming, ...prev];
-      });
-
-      // 🔥 NEW: Sync sidebar immediately if this order is already selected
       if (selectedOrder?.id === incoming.id) {
         setSelectedOrder(incoming);
       }
     }
 
     /* =========================
-     ITEM CREATED / UPDATED
-  ========================= */
-    /* =========================
-   ITEM CREATED / UPDATED
-========================= */
+       ITEM CREATED / UPDATED
+    ========================= */
     if (type === "ITEM_CREATED" || type === "ITEM_UPDATED") {
       const { order_id, item } = payload;
       if (!order_id || !item?.id) return;
 
+      // 🔥 CRITICAL: IF THIS ITEM BELONGS TO ANOTHER STATION, EXIT IMMEDIATELY:
+      if (!isItemForMyStation(item)) {
+        return; // Do NOT execute setOrders or add it to this station screen!
+      }
+
+      if (type === "ITEM_CREATED") {
+        playOrderNotification();
+      }
+
       setOrders((prevOrders) => {
         const index = prevOrders.findIndex((o) => o.id === order_id);
 
-        // Order doesn't exist in our list yet
+        // Order doesn't exist in our list yet:
         if (index === -1) {
           instance.get(`/orders/orders/${order_id}/`).then((res) => {
-            const fresh = res.data;
+            let fresh = res.data;
+            // 🔥 FILTER FRESH ORDER ITEMS SO WE DON'T LEAK ITEMS FROM OTHER STATIONS:
+            if (userStationIds.length > 0) {
+              const matchingItems = (fresh.items || []).filter(
+                isItemForMyStation,
+              );
+              if (matchingItems.length === 0) return;
+              fresh = { ...fresh, items: matchingItems };
+            }
             setOrders((p) => [fresh, ...p.filter((o) => o.id !== order_id)]);
 
             if (selectedOrder?.id === order_id) {
@@ -147,7 +167,7 @@ export default function KitchenHomepage() {
           return prevOrders;
         }
 
-        // Order exists - update items
+        // Order exists - update items:
         const currentOrder = prevOrders[index];
         const currentItems = currentOrder.items || [];
 
@@ -158,15 +178,13 @@ export default function KitchenHomepage() {
         const updatedOrder = {
           ...currentOrder,
           items: updatedItems,
-          total: currentOrder.total, // you can recalculate if needed
+          total: currentOrder.total,
           updated_at: new Date().toISOString(),
         };
 
         const newOrders = [...prevOrders];
         newOrders[index] = updatedOrder;
 
-        // === MOST IMPORTANT FIX ===
-        // Update sidebar immediately using functional update to avoid stale state
         if (selectedOrder?.id === order_id) {
           setSelectedOrder(updatedOrder);
         }
@@ -176,8 +194,8 @@ export default function KitchenHomepage() {
     }
 
     /* =========================
-     ITEM DELETED
-  ========================= */
+       ITEM DELETED
+    ========================= */
     if (type === "ITEM_DELETED") {
       const { order_id, item_id } = payload;
       if (!order_id || !item_id) return;
@@ -185,25 +203,22 @@ export default function KitchenHomepage() {
       setOrders((prev) =>
         prev.map((order) => {
           if (order.id !== order_id) return order;
-
           return {
             ...order,
             items: (order.items || []).filter((i) => i.id !== item_id),
           };
         }),
       );
-
       return;
     }
 
     /* =========================
-     TABLE UPDATED
-  ========================= */
+       TABLE UPDATED
+    ========================= */
     if (type === "TABLE_UPDATED") {
       const updatedTable = payload.table;
       if (!updatedTable?.id) return;
 
-      // optional: update only table reference inside orders
       setOrders((prev) =>
         prev.map((order) =>
           order.table === updatedTable.id
@@ -215,20 +230,12 @@ export default function KitchenHomepage() {
             : order,
         ),
       );
-
       return;
     }
   };
 
   useOrdersSocket(handleMessage);
-  useEffect(() => {
-    const testMsg = {
-      type: "ITEM_CREATED",
-      order_id: 331,
-      item: { id: 999, item_name: "Test", status: "pending", quantity: 1 },
-    };
-    handleMessage(testMsg);
-  }, []);
+
   // Keep sidebar always in sync with latest order data
   useEffect(() => {
     if (!selectedOrder?.id) return;
@@ -241,7 +248,7 @@ export default function KitchenHomepage() {
     ) {
       setSelectedOrder(latest);
     }
-  }, [orders]);
+  }, [orders, selectedOrder?.id, selectedOrder?.items]);
 
   const handleOrderPrinted = (orderId, printedIds) => {
     setOrders((prev) =>
@@ -309,34 +316,13 @@ export default function KitchenHomepage() {
     );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-[calc(100vh-5rem)] bg-gray-50 overflow-hidden xl:h-[calc(100vh-3rem)]">
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
           selectedOrder ? "mr-96" : ""
         }`}
       >
-        {/* Header & Search */}
-        <div className="p-4 border-b bg-white shadow-sm">
-          <div className="max-w-full mx-auto">
-            <div className="flex justify-center">
-              <div className="relative w-full sm:w-96">
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Search customer, order # or table..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Split Screen */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Dine-In Section - Top 50% */}

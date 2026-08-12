@@ -9,6 +9,51 @@ from django.core.files.base import ContentFile
 # from inventory.utils import update_platter_availability_from_menu_item
 
 
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+class Station(models.Model):
+    """
+    Represents a kitchen preparation station (e.g., Main Kitchen, Juice Bar, Grill, Bakery).
+    """
+    restaurant = models.ForeignKey(
+        "restaurants.Restaurant",
+        on_delete=models.CASCADE,
+        related_name="stations"
+    )
+    branch = models.ForeignKey(
+        "restaurants.Branch",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="stations",
+        help_text="Optional: If null, the station applies to all branches of the restaurant."
+    )
+    name = models.CharField(max_length=100)
+    name_dari = models.CharField(max_length=100, blank=True, null=True)
+    name_pashto = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    is_default = models.BooleanField(
+        default=False,
+        help_text="True if this is the default station (Main Kitchen) for the restaurant."
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-is_default", "name"]
+        indexes = [
+            models.Index(fields=["restaurant", "is_active"], name="station_rest_act_idx"),
+            models.Index(fields=["restaurant", "is_default"], name="station_rest_def_idx"),
+        ]
+        unique_together = [["restaurant", "name", "branch"]]
+
+    def __str__(self):
+        if self.branch:
+            return f"{self.name} ({self.branch.name})"
+        return self.name
+
 from decimal import Decimal
 
 
@@ -119,6 +164,14 @@ class MenuItem(models.Model):
         related_name="menu_items",
         null=True,
         blank=True,
+    )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="menu_items",
+        help_text="The kitchen station responsible for preparing this item."
     )
     price = models.DecimalField(max_digits=8, decimal_places=2)
     image = models.ImageField(upload_to='menu_items/', blank=True, null=True)
@@ -364,6 +417,14 @@ class Platter(models.Model):
         null=True,
         blank=True,
     )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="platters",
+        help_text="The kitchen station responsible for preparing this platter."
+    )
 
     name = models.CharField(max_length=150)
 
@@ -494,7 +555,12 @@ class PlatterItem(models.Model):
         related_name='platter_items'
     )
 
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.DecimalField(
+        max_digits=8,
+        decimal_places=3,
+        default=Decimal('1.000'),
+        help_text="Quantity of the menu item included in this platter (supports fractional amounts like 0.5 or 0.2)."
+    )
 
     def __str__(self):
         return f"{self.menu_item.name} x {self.quantity}"

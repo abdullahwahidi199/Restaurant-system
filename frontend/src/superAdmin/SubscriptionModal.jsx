@@ -10,6 +10,7 @@ export default function SubscriptionModal({
     starts_at: "",
     expires_at: "",
     is_active: true,
+    max_branches: 1,
   });
   const [existingSubId, setExistingSubId] = useState(null);
 
@@ -20,6 +21,7 @@ export default function SubscriptionModal({
         starts_at: restaurant.subscription.starts_at || "",
         expires_at: restaurant.subscription.expires_at || "",
         is_active: restaurant.subscription.is_active ?? true,
+        max_branches: restaurant.subscription.max_branches ?? 1,
       });
       setExistingSubId(restaurant.subscription.id);
     } else {
@@ -83,7 +85,20 @@ export default function SubscriptionModal({
               required
             />
           </div>
-
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Maximum Branches
+            </label>
+            <input
+              type="number"
+              min="1"
+              name="max_branches"
+              value={formData.max_branches}
+              onChange={handleChange}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+              required
+            />
+          </div>
           <div className="flex items-center">
             <input
               type="checkbox"

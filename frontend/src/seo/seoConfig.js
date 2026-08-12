@@ -1,16 +1,18 @@
 export const SITE_URL = "https://pakhlai.com";
-export const SITE_NAME = "Pakhlai";
+export const SITE_NAME = "Pakhlai RMS";
+export const COMPANY_NAME = "Asanlink";
 export const FOUNDER_NAME = "Abdullah Wahidi";
 export const DEFAULT_IMAGE = `${SITE_URL}/rmsLogo.png`;
 export const CURRENT_YEAR = 2026;
 
 export const ORGANIZATION_DESCRIPTION =
-  "Pakhlai is a cloud-based restaurant management system that helps restaurants manage menus, orders, tables, billing, kitchen workflow, and daily operations.";
+  "Pakhlai RMS helps restaurants manage orders, kitchen operations, inventory, staff, procurement, finances, and multiple branches from one connected platform.";
 
 export const baseOrganization = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
-  name: SITE_NAME,
+  name: COMPANY_NAME,
+  alternateName: SITE_NAME,
   url: SITE_URL,
   logo: `${SITE_URL}/rmsLogo.png`,
   description: ORGANIZATION_DESCRIPTION,
@@ -55,7 +57,7 @@ export const baseSoftwareApplication = {
   url: SITE_URL,
   description: ORGANIZATION_DESCRIPTION,
   creator: {
-    "@id": `${SITE_URL}/founder#abdullah-wahidi`,
+    "@id": `${SITE_URL}/#organization`,
   },
   publisher: {
     "@id": `${SITE_URL}/#organization`,
@@ -78,9 +80,9 @@ export const baseWebsite = {
 export const publicPages = [
   {
     path: "/",
-    title: "Pakhlai | Restaurant Management System by Abdullah Wahidi",
+    title: "Pakhlai RMS — Restaurant Management System | Asanlink",
     description:
-      "Pakhlai is a cloud-based restaurant management system founded and developed by Abdullah Wahidi for menus, orders, tables, billing, kitchen workflow, and daily operations.",
+      "Pakhlai RMS helps restaurants manage orders, kitchen operations, inventory, staff, procurement, finances, and multiple branches from one connected platform.",
     breadcrumbs: [{ name: "Home", path: "/" }],
   },
   {

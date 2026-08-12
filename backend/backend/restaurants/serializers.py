@@ -9,6 +9,8 @@ from users.models import Staff
 class BranchSerializer(serializers.ModelSerializer):
     staff_count = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
+    public_url = serializers.SerializerMethodField()
+    qr_code = serializers.ImageField(read_only=True)
 
     class Meta:
         model = Branch
@@ -17,9 +19,12 @@ class BranchSerializer(serializers.ModelSerializer):
             "restaurant",
             "name",
             "code",
+            "slug",
             "address",
             "phone",
             "email",
+            "latitude",
+            "longitude",
             "receipt_header",
             "receipt_footer",
             "receipt_template",
@@ -35,6 +40,8 @@ class BranchSerializer(serializers.ModelSerializer):
             "cash_drawer_enabled",
             "cash_drawer_name",
             "logo",
+            "qr_code",
+            "public_url",
             "settings",
             "is_main_branch",
             "is_active",
@@ -43,7 +50,17 @@ class BranchSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["restaurant", "created_at", "updated_at"]
+        read_only_fields = [
+            "restaurant",
+            "slug",
+            "qr_code",
+            "public_url",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
 
     def get_staff_count(self, obj):
         return obj.staff_members.count()
@@ -134,7 +151,10 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     is_expiring_soon = serializers.ReadOnlyField()
     class Meta:
         model = Subscription
-        fields = ['id', 'restaurant', 'starts_at', 'expires_at', 'is_active', 'is_valid','days_left','is_expiring_soon']
+        fields = ['id', 'restaurant', 'starts_at', 'expires_at', 'is_active', 'is_valid','days_left','is_expiring_soon',
+                  'max_branches','branches_used','branches_remaining'
+
+                  ]
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
@@ -193,6 +213,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
 
     subscription = SubscriptionSerializer(read_only=True)
     qr_code = serializers.ImageField(read_only=True)
+    public_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurant
@@ -204,8 +225,10 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'phone',
             'address',
             'logo',
+            'cover_image',
             'slogan',
             'qr_code',
+            'public_url',
             'is_active',
             'manager_discount_limit',
             'admin_discount_limit',
@@ -233,7 +256,10 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'admin_phone',
             'admin_password',
         ]
-        read_only_fields = ['created_at', 'updated_at', 'slug']
+        read_only_fields = ['created_at', 'updated_at', 'slug', 'public_url']
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
 
     def create(self, validated_data):
         admin_name = validated_data.pop("admin_name")
@@ -296,3 +322,89 @@ class RestaurantSerializer(serializers.ModelSerializer):
         instance.save()  # This will auto-update slug based on name
 
         return instance
+
+
+class PublicBranchSerializer(serializers.ModelSerializer):
+    public_url = serializers.SerializerMethodField()
+    effective_delivery_available = serializers.SerializerMethodField()
+    effective_min_order_amount = serializers.SerializerMethodField()
+    is_open = serializers.SerializerMethodField()
+    qr_code = serializers.ImageField(read_only=True)
+
+    class Meta:
+        model = Branch
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "address",
+            "phone",
+            "email",
+            "latitude",
+            "longitude",
+            "logo",
+            "qr_code",
+            "public_url",
+            "opening_hours",
+            "delivery_available",
+            "effective_delivery_available",
+            "effective_min_order_amount",
+            "is_open",
+        ]
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
+
+    def get_effective_delivery_available(self, obj):
+        if obj.delivery_available is not None:
+            return obj.delivery_available
+        return obj.restaurant.delivery_available
+
+    def get_effective_min_order_amount(self, obj):
+        if obj.min_order_amount is not None:
+            return obj.min_order_amount
+        return obj.restaurant.min_order_amount
+
+    def get_is_open(self, obj):
+        if not obj.is_active:
+            return False
+        opening_hours = (obj.opening_hours or obj.restaurant.opening_hours or "").lower()
+        if "closed" in opening_hours:
+            return False
+        return True
+
+
+class PublicRestaurantSerializer(serializers.ModelSerializer):
+    public_url = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
+    qr_code = serializers.ImageField(read_only=True)
+
+    class Meta:
+        model = Restaurant
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "email",
+            "phone",
+            "address",
+            "logo",
+            "cover_image",
+            "slogan",
+            "description",
+            "qr_code",
+            "public_url",
+            "website",
+            "opening_hours",
+            "facebook",
+            "instagram",
+            "x",
+            "delivery_available",
+            "min_order_amount",
+        ]
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
+
+    def get_description(self, obj):
+        return getattr(obj, "description", None) or obj.address or ""

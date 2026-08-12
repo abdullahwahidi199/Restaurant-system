@@ -17,6 +17,9 @@ export default function StaffFormModal({
   const canManageAdminRoles = auth?.user?.role === "Admin";
   const [showPassword, setShowPassword] = useState(false);
 
+  const [availableStations, setAvailableStations] = useState([]);
+  const [selectedStations, setSelectedStations] = useState([]);
+
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -30,6 +33,14 @@ export default function StaffFormModal({
     password: "",
     shift: "",
     vehicle_number: "",
+    salary_type: "monthly",
+    payroll_base_salary: "",
+    payment_day: 1,
+    payroll_allowances: "",
+    payroll_deductions: "",
+    overtime_rate: "",
+    payroll_notes: "",
+    is_payroll_active: true,
   });
 
   const [error, setError] = useState("");
@@ -37,6 +48,7 @@ export default function StaffFormModal({
 
   useEffect(() => {
     if (editingStaff) {
+      setSelectedStations(editingStaff.stations || []);
       setFormData({
         name: editingStaff.name || "",
         role: editingStaff.role || "",
@@ -50,8 +62,18 @@ export default function StaffFormModal({
         shift: editingStaff.shift || "",
         username: editingStaff.username || "",
         password: "",
+        salary_type: editingStaff.salary_type || "monthly",
+        payroll_base_salary: editingStaff.payroll_base_salary ?? "",
+        payment_day: editingStaff.payment_day || 1,
+        payroll_allowances: editingStaff.payroll_allowances ?? "",
+
+        payroll_deductions: editingStaff.payroll_deductions ?? "",
+        overtime_rate: editingStaff.overtime_rate ?? "",
+        payroll_notes: editingStaff.payroll_notes || "",
+        is_payroll_active: editingStaff.is_payroll_active !== false,
       });
     } else {
+      setSelectedStations([]);
       setFormData({
         name: "",
         role: "",
@@ -65,17 +87,33 @@ export default function StaffFormModal({
         shift: "",
         username: "",
         password: "",
+        salary_type: "monthly",
+        payroll_base_salary: "",
+        payment_day: 1,
+        payroll_allowances: "",
+        payroll_deductions: "",
+        overtime_rate: "",
+        payroll_notes: "",
+        is_payroll_active: true,
       });
     }
     setError("");
   }, [editingStaff, open]);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value, files, checked, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: files ? files[0] : value,
+      [name]: files ? files[0] : type === "checkbox" ? checked : value,
     }));
+  };
+
+  const handleStationToggle = (stationId) => {
+    setSelectedStations((prev) =>
+      prev.includes(stationId)
+        ? prev.filter((id) => id !== stationId)
+        : [...prev, stationId],
+    );
   };
 
   const formatApiError = (detail) => {
@@ -105,9 +143,48 @@ export default function StaffFormModal({
       return;
     }
 
+    const decimalFields = new Set([
+      "payroll_base_salary",
+      "payroll_allowances",
+      "payroll_deductions",
+      "overtime_rate",
+    ]);
+    const integerFields = new Set(["payment_day"]);
+    const optionalTextFields = new Set([
+      "username",
+      "password",
+      "payroll_notes",
+    ]);
     const data = new FormData();
+
     for (const key in formData) {
-      if (formData[key]) data.append(key, formData[key]);
+      const value = formData[key];
+
+      if (key === "image" && !value) continue;
+      if (value === null || value === undefined) continue;
+
+      if (decimalFields.has(key)) {
+        data.append(key, value === "" ? "0" : String(value).trim());
+        continue;
+      }
+
+      if (integerFields.has(key)) {
+        data.append(key, value === "" ? "1" : String(value));
+        continue;
+      }
+
+      if (typeof value === "boolean") {
+        data.append(key, value ? "true" : "false");
+        continue;
+      }
+
+      if (value === "" && optionalTextFields.has(key)) continue;
+      if (value !== "") {
+        data.append(key, value);
+      }
+      selectedStations.forEach((stationId) => {
+        data.append("stations", stationId);
+      });
     }
 
     try {
@@ -119,6 +196,16 @@ export default function StaffFormModal({
     }
   };
 
+  const getStations = async () => {
+    try {
+      const res = await instance.get("/menu/stations/"); // Adjust endpoint to your station API
+      const data = res.data?.results || res.data || [];
+      setAvailableStations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to load kitchen stations:", err);
+      setAvailableStations([]);
+    }
+  };
   const getShifts = async () => {
     try {
       const res = await instance.get("/users/shift/");
@@ -140,7 +227,10 @@ export default function StaffFormModal({
   };
 
   useEffect(() => {
-    if (open) getShifts();
+    if (open) {
+      getShifts();
+      getStations();
+    }
   }, [open, activeBranch?.id]);
 
   if (!open) return null;
@@ -164,8 +254,7 @@ export default function StaffFormModal({
             className="rounded-lg p-2 text-[0px] text-gray-500 transition hover:bg-white hover:text-gray-900"
             aria-label={t("common.close", "Close")}
           >
-            <X size={22} />
-            ✕
+            <X size={22} />✕
           </button>
         </div>
 
@@ -286,6 +375,8 @@ export default function StaffFormModal({
                   </option>
                   <option value="Kitchen_manager">Kitchen Manager</option>
                   <option value="InventoryManager">Inventory Manager</option>
+                  <option value="FinanceManager">Finance Manager</option>
+                  <option value="OperationsManager">Operations Manager</option>
                   <option value="Cashier">{t("staff.roles.cashier")}</option>
                   <option value="Call_operator">Call Operator</option>
                   <option value="Waiter">{t("staff.roles.waiter")}</option>
@@ -295,6 +386,58 @@ export default function StaffFormModal({
                   <option value="Other">{t("staff.roles.other")}</option>
                 </select>
               </div>
+              {formData.role === "Kitchen_manager" && (
+                <div className="md:col-span-2 bg-indigo-50/60 p-4 rounded-xl border border-indigo-200">
+                  <label className="block text-sm font-semibold text-indigo-900 mb-2">
+                    {t("staff.form.assign_stations", "Assign Kitchen Stations")}{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-indigo-700 mb-3">
+                    Select which stations this Kitchen Manager will see and
+                    manage orders for:
+                  </p>
+
+                  {availableStations.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic">
+                      No stations found. Default Main Kitchen will be assigned.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {availableStations.map((st) => {
+                        const isChecked = selectedStations.includes(st.id);
+                        return (
+                          <label
+                            key={st.id}
+                            onClick={() => handleStationToggle(st.id)}
+                            className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                              isChecked
+                                ? "bg-emerald-100 border-emerald-600 shadow-sm ring-2 ring-emerald-500 text-emerald-950 font-bold"
+                                : "bg-white/80 border-gray-200 hover:bg-white text-gray-700 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {}}
+                              className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span className="block text-sm truncate">
+                                {st.name}
+                              </span>
+                              {st.is_default && (
+                                <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] uppercase font-extrabold tracking-wider bg-emerald-200/80 text-emerald-900">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Shift */}
               <div>
@@ -367,6 +510,129 @@ export default function StaffFormModal({
                   />
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Salary Profile Section */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Salary Profile
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Salary Type
+                </label>
+                <select
+                  name="salary_type"
+                  value={formData.salary_type}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="daily">Daily</option>
+                  <option value="hourly">Hourly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Base Salary
+                </label>
+                <input
+                  name="payroll_base_salary"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.payroll_base_salary}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Day
+                </label>
+                <input
+                  name="payment_day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={formData.payment_day}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Allowances
+                </label>
+                <input
+                  name="payroll_allowances"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.payroll_allowances}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deductions
+                </label>
+                <input
+                  name="payroll_deductions"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.payroll_deductions}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Overtime Rate
+                </label>
+                <input
+                  name="overtime_rate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.overtime_rate}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payroll Notes
+                </label>
+                <textarea
+                  name="payroll_notes"
+                  value={formData.payroll_notes}
+                  onChange={handleChange}
+                  className="min-h-24 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <label className="md:col-span-2 flex items-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700">
+                <input
+                  name="is_payroll_active"
+                  type="checkbox"
+                  checked={formData.is_payroll_active}
+                  onChange={handleChange}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                Active Payroll Status
+              </label>
             </div>
           </div>
 

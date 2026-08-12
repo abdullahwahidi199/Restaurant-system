@@ -2,6 +2,8 @@ BRANCH_SETTING_FIELDS = [
     "address",
     "phone",
     "email",
+    "latitude",
+    "longitude",
     "receipt_header",
     "receipt_footer",
     "receipt_template",

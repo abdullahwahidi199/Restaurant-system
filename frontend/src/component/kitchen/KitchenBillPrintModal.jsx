@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import instance from "../../api/axiosInstance";
 
 const KitchenBillPrintModal = ({
@@ -8,8 +8,25 @@ const KitchenBillPrintModal = ({
   printMode,
 }) => {
   const printedRef = useRef(false);
+  const receiptFooter = "Powered by Pakhlai - pakhlai.com";
 
-  const markItemsPrinted = async () => {
+  const escapeHtml = (str) => {
+    if (typeof str !== "string") return str;
+    return str.replace(/[&<>"'`=/]/g, function (s) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+        "/": "&#x2F;",
+        "`": "&#x60;",
+        "=": "&#x3D;",
+      }[s];
+    });
+  };
+
+  const markItemsPrinted = useCallback(async () => {
     if (printMode !== "new") return;
     try {
       await instance.post(`/orders/kitchen/${order.id}/mark-items-printed/`);
@@ -21,9 +38,9 @@ const KitchenBillPrintModal = ({
     } catch (error) {
       console.error("Failed to mark items as printed:", error);
     }
-  };
+  }, [onOrderPrinted, order.id, order.items, printMode]);
 
-  const getPrintableItems = () => {
+  const itemsToPrint = useMemo(() => {
     if (printMode === "new") {
       return order.items.filter(
         (item) => !item.is_printed_to_kitchen && item.status !== "cancelled",
@@ -31,11 +48,10 @@ const KitchenBillPrintModal = ({
     }
 
     return order.items.filter((item) => item.status !== "cancelled");
-  };
-  const itemsToPrint = getPrintableItems();
+  }, [order.items, printMode]);
   console.log(order);
 
-  const generatePrintContent = () => {
+  const generatePrintContent = useCallback(() => {
     const tableName = order.table_name || order.tableName || "N/A";
     const createdBy = order.created_by_name || "System";
     const createdAt = order.created_at
@@ -94,7 +110,7 @@ const KitchenBillPrintModal = ({
 
           body {
             font-family: Arial, sans-serif;
-            color: #000;
+            color: var(--theme-text-primary);
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -128,7 +144,7 @@ table {
 
 th,
 td {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--theme-border);
   padding: 1mm 0;
   font-size: 12px;
   vertical-align: top;
@@ -154,7 +170,7 @@ th {
   margin-top: 0;
   padding-left: 2px;
   font-size: 10px;
-  color: #444;
+  color: var(--theme-text-secondary);
   font-style: italic;
   line-height: 1;
   white-space: pre-line;
@@ -164,6 +180,16 @@ th {
   vertical-align: top;
   font-weight: bold;
   width: 20px;
+}
+
+.receipt-footer {
+  margin-top: 3mm;
+  padding-top: 2mm;
+  border-top: 1px dashed var(--theme-border-strong);
+  text-align: center;
+  font-size: 10px;
+  color: var(--theme-text-secondary);
+  white-space: pre-line;
 }
         </style>
       </head>
@@ -198,11 +224,12 @@ th {
               ${itemsHtml}
             </tbody>
           </table>
+          <div class="receipt-footer">${escapeHtml(receiptFooter)}</div>
         </div>
       </body>
     </html>
   `;
-  };
+  }, [itemsToPrint, order, receiptFooter]);
 
   useEffect(() => {
     if (!order || printedRef.current) return;
@@ -253,7 +280,7 @@ th {
 
       iframeWindow.print();
     };
-  }, [order]);
+  }, [generatePrintContent, markItemsPrinted, onClose, order, printMode]);
 
   return null;
 };

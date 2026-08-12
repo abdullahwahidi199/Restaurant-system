@@ -10,6 +10,13 @@ from .models import Customer
 from rest_framework.permissions import AllowAny
 from django.shortcuts import get_object_or_404
 from restaurants.models import Restaurant
+from users.login_rate_limit import (
+    LoginRateLimitBlocked,
+    LoginRateLimitUnavailable,
+    check_login_allowed,
+    record_failed_login,
+    reset_login_attempts,
+)
 from rest_framework.decorators import permission_classes
 from restaurants.permissions import IsRestaurantAdmin,IsCashier,IsKitchenManager,IsSameRestaurant
 from restaurants.models import Restaurant
@@ -67,19 +74,33 @@ class CustomerOrdersView(APIView):
         if not customer:
             return Response({"error": "Access denied"}, status=403)
 
-        orders = customer.orders.all().order_by("-created_at")
+        orders = customer.orders.select_related(
+            "restaurant",
+            "branch",
+        ).prefetch_related(
+            "items__menu_item",
+            "items__platter",
+        ).order_by("-created_at")
 
         data = [
             {
                 "id": order.id,
                 "order_type": order.order_type,
                 "restaurant": order.restaurant.name if order.restaurant else None,
+                "restaurant_slug": order.restaurant.slug if order.restaurant else None,
+                "branch": order.branch.name if order.branch else None,
+                "branch_slug": order.branch.slug if order.branch else None,
                 "status": order.status,
                 "total": order.get_total(),
                 "created_at": order.created_at,
                 "items": [
                     {
-                        "menu_item": item.menu_item.name,
+                        "menu_item": (
+                            item.menu_item.name
+                            if item.menu_item
+                            else item.platter.name if item.platter else None
+                        ),
+                        "type": "menu_item" if item.menu_item else "platter",
                         "quantity": item.quantity,
                         "subtotal": item.get_subtotal()
                     }
@@ -141,16 +162,46 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        username = str(request.data.get("username", "")).strip()
+        password = request.data.get("password", "")
 
-        serializer = CustomerLoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        username = serializer.validated_data["username"]
-        password = serializer.validated_data["password"]
+        try:
+            config = check_login_allowed(
+                request,
+                namespace="customer",
+                identifier=username,
+            )
+        except LoginRateLimitBlocked as exc:
+            response = Response(
+                {
+                    "error": "Too many login attempts. Please try again later.",
+                    "retry_after": exc.retry_after,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+            response["Retry-After"] = str(exc.retry_after)
+            return response
+        except LoginRateLimitUnavailable:
+            return Response(
+                {"error": "Login is temporarily unavailable. Please try again shortly."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         user = authenticate(username=username, password=password)
 
         if not user:
+            try:
+                record_failed_login(
+                    request,
+                    namespace="customer",
+                    identifier=username,
+                    config=config,
+                )
+            except LoginRateLimitUnavailable:
+                return Response(
+                    {"error": "Login is temporarily unavailable. Please try again shortly."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             return Response({"error": "Invalid credentials"}, status=401)
 
         customer = Customer.objects.filter(
@@ -158,12 +209,31 @@ class LoginView(APIView):
         ).first()
 
         if not customer:
+            try:
+                record_failed_login(
+                    request,
+                    namespace="customer",
+                    identifier=username,
+                    config=config,
+                )
+            except LoginRateLimitUnavailable:
+                return Response(
+                    {"error": "Login is temporarily unavailable. Please try again shortly."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             return Response(
-                {"error": "This account does not belong to this restaurant"},
-                status=403
+                {"error": "Invalid credentials"},
+                status=401
             )
 
         refresh = RefreshToken.for_user(user)
+        try:
+            reset_login_attempts(request, namespace="customer", identifier=username)
+        except LoginRateLimitUnavailable:
+            return Response(
+                {"error": "Login is temporarily unavailable. Please try again shortly."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         return Response({
             "refresh": str(refresh),

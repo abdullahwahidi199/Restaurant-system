@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,14 +15,38 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+const GOOD_ACCURACY_METERS = 80;
+const MAX_DELIVERY_ACCURACY_METERS = 300;
+const LOCATION_WAIT_MS = 18000;
+
+const isValidCoordinate = (lat, lng) =>
+  lat !== null &&
+  lat !== undefined &&
+  lat !== "" &&
+  lng !== null &&
+  lng !== undefined &&
+  lng !== "" &&
+  Number.isFinite(lat) &&
+  Number.isFinite(lng) &&
+  Math.abs(lat) <= 90 &&
+  Math.abs(lng) <= 180;
+
+const getGoogleMapsUrl = (lat, lng) =>
+  `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
+
 export default function CheckoutForm({ user, onSubmit, onClose }) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
 
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [location, setLocation] = useState({ lat: null, lng: null });
+  const [location, setLocation] = useState({
+    lat: null,
+    lng: null,
+    accuracy: null,
+  });
   const [mapInput, setMapInput] = useState("");
+  const locationWatchRef = useRef({ watchId: null, timeoutId: null });
 
   const [formData, setFormData] = useState({
     name: user?.username || "",
@@ -33,6 +57,19 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  const clearLocationWatch = () => {
+    const { watchId, timeoutId } = locationWatchRef.current;
+    if (watchId !== null) {
+      navigator.geolocation?.clearWatch(watchId);
+    }
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+    locationWatchRef.current = { watchId: null, timeoutId: null };
+  };
+
+  useEffect(() => clearLocationWatch, []);
 
   const validateName = (name) => /^[A-Za-z\s]{2,50}$/.test(name.trim());
   const validatePhone = (phone) => /^[0-9]{7,15}$/.test(phone);
@@ -91,6 +128,33 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     return Object.keys(newErrors).length === 0;
   };
 
+  const applyLocation = ({ lat, lng, accuracy = null }) => {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+
+    if (!isValidCoordinate(latitude, longitude)) {
+      toast.error("Could not detect location properly.");
+      return false;
+    }
+
+    const coordinateText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+    const mapUrl = getGoogleMapsUrl(latitude, longitude);
+
+    setLocation({ lat: latitude, lng: longitude, accuracy });
+    setMapInput(coordinateText);
+    setFormData((prev) => ({
+      ...prev,
+      address: `Current location: ${coordinateText} - ${mapUrl}`,
+    }));
+    setTouched((prev) => ({ ...prev, address: true }));
+    setErrors((prev) => ({ ...prev, address: "" }));
+
+    const accuracyText =
+      accuracy !== null ? ` (accuracy ${Math.round(accuracy)}m)` : "";
+    toast.success(`Current location set${accuracyText}`);
+    return true;
+  };
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast.error(t("checkout.location.notSupported"));
@@ -123,10 +187,105 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     );
   };
 
+  const getAccurateCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Your browser does not support location detection.");
+      return;
+    }
+
+    clearLocationWatch();
+    setLocationLoading(true);
+
+    let bestPosition = null;
+    let completed = false;
+
+    const finish = (position) => {
+      if (completed) return;
+      completed = true;
+      clearLocationWatch();
+      setLocationLoading(false);
+
+      if (!position) {
+        toast.error("Could not detect your current location.");
+        return;
+      }
+
+      const { latitude, longitude, accuracy } = position.coords;
+      if (
+        accuracy &&
+        Number.isFinite(accuracy) &&
+        accuracy > MAX_DELIVERY_ACCURACY_METERS
+      ) {
+        setLocation({ lat: null, lng: null, accuracy: null });
+        setMapInput("");
+        toast.error(
+          `Current location is too approximate (${Math.round(
+            accuracy,
+          )}m). Please use Map and choose your exact pin.`,
+          { duration: 6000 },
+        );
+        return;
+      }
+
+      applyLocation({ lat: latitude, lng: longitude, accuracy });
+    };
+
+    const handlePosition = (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      if (!isValidCoordinate(latitude, longitude)) return;
+
+      if (!bestPosition || accuracy < bestPosition.coords.accuracy) {
+        bestPosition = pos;
+      }
+
+      if (accuracy <= GOOD_ACCURACY_METERS) {
+        finish(pos);
+      }
+    };
+
+    const handleError = (err) => {
+      if (bestPosition) {
+        finish(bestPosition);
+        return;
+      }
+
+      setLocationLoading(false);
+      clearLocationWatch();
+      if (err.code === 1) {
+        toast.error("Location permission was denied.");
+      } else if (err.code === 2) {
+        toast.error("Your current location is unavailable.");
+      } else if (err.code === 3) {
+        toast.error("Location detection timed out.");
+      } else {
+        toast.error("Could not detect your current location.");
+      }
+    };
+
+    locationWatchRef.current.watchId = navigator.geolocation.watchPosition(
+      handlePosition,
+      handleError,
+      { enableHighAccuracy: true, timeout: LOCATION_WAIT_MS, maximumAge: 0 },
+    );
+    locationWatchRef.current.timeoutId = setTimeout(
+      () => finish(bestPosition),
+      LOCATION_WAIT_MS,
+    );
+
+    navigator.geolocation.getCurrentPosition(handlePosition, handleError, {
+      enableHighAccuracy: true,
+      timeout: LOCATION_WAIT_MS,
+      maximumAge: 0,
+    });
+  };
+
   const openMapSelector = () => {
-    const url = `https://www.google.com/maps/@34.5,69.2,12z`;
+    const url =
+      isValidCoordinate(location.lat, location.lng)
+        ? getGoogleMapsUrl(location.lat, location.lng)
+        : "https://www.google.com/maps/search/?api=1&query=Current%20Location";
     window.open(url, "_blank");
-    toast(t("location.selectPrompt"), {
+    toast("Paste the selected Google Maps link or coordinates below.", {
       icon: "🗺️",
       duration: 4000,
     });
@@ -134,19 +293,25 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
   const parseCoordinates = (input) => {
     try {
-      if (input.includes(",")) {
-        const parts = input.split(",");
-        if (parts.length === 2) {
-          const lat = parseFloat(parts[0].trim());
-          const lng = parseFloat(parts[1].trim());
-          if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
-        }
+      const decodedInput = decodeURIComponent(input);
+      const directMatch = decodedInput.match(
+        /(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/,
+      );
+
+      if (directMatch) {
+        const lat = parseFloat(directMatch[1]);
+        const lng = parseFloat(directMatch[2]);
+        if (isValidCoordinate(lat, lng)) return { lat, lng };
       }
-      const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-      const match = input.match(regex);
+
+      const regex = /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/;
+      const match = decodedInput.match(regex);
       if (match) {
-        return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        if (isValidCoordinate(lat, lng)) return { lat, lng };
       }
+
       return null;
     } catch {
       return null;
@@ -157,8 +322,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     if (!mapInput.trim()) return;
     const coords = parseCoordinates(mapInput);
     if (coords) {
-      setLocation(coords);
-      toast.success(t("checkout.location.detected"));
+      applyLocation(coords);
     } else {
       toast.error("Invalid location format");
     }
@@ -167,8 +331,8 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
   const handleSubmit = async () => {
     if (loading) return;
     if (!validate()) return;
-    if (!location.lat || !location.lng) {
-      toast.error(t("location.failed"));
+    if (!isValidCoordinate(location.lat, location.lng)) {
+      toast.error("Please set your delivery location.");
       return;
     }
     try {
@@ -224,7 +388,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   {t("checkout.title")}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {t("checkout.description")}
+                  {t("checkout.description", "Confirm your delivery details.")}
                 </p>
               </div>
             </div>
@@ -344,7 +508,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                {t("checkout.location.deliveryLocation")}
+                {t("checkout.location.deliveryLocation", "Delivery Location")}
               </label>
               {location.lat && location.lng && (
                 <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -357,7 +521,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={getCurrentLocation}
+                onClick={getAccurateCurrentLocation}
                 disabled={locationLoading}
                 className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
                   bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25
@@ -372,8 +536,8 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 <span>
                   <span>
                     {locationLoading
-                      ? t("checkout.location.detecting")
-                      : t("checkout.location.current")}
+                      ? t("checkout.location.detecting", "Detecting...")
+                      : t("checkout.location.current", "Current")}
                   </span>
                 </span>
               </button>
@@ -386,7 +550,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   text-emerald-400 text-sm font-medium transition-all duration-200"
               >
                 <Map className="w-4 h-4" />
-                <span>{t("checkout.location.selectMap")}</span>
+                <span>{t("checkout.location.selectMap", "Map")}</span>
               </button>
             </div>
 
@@ -401,7 +565,10 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={mapInput}
                 onChange={(e) => setMapInput(e.target.value)}
                 onBlur={handleMapInputBlur}
-                placeholder={t("checkout.location.pasteHint")}
+                placeholder={t(
+                  "checkout.location.pasteHint",
+                  "Paste Google Maps link or lat,lng",
+                )}
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
                   placeholder-gray-500 outline-none transition-all duration-200 text-sm
                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
@@ -409,11 +576,14 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
               />
             </div>
 
-            {location.lat && location.lng && (
+            {isValidCoordinate(location.lat, location.lng) && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                 <span className="text-xs text-gray-400 truncate">
                   {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                  {location.accuracy
+                    ? ` - accuracy ${Math.round(location.accuracy)}m`
+                    : ""}
                 </span>
               </div>
             )}

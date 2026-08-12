@@ -16,30 +16,44 @@ import Select from "react-select";
 
 import instance from "../../../api/axiosInstance";
 
-const inputClass =
-  "h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10";
+const inputClass = "theme-input h-11 w-full px-3 text-sm";
+const textAreaClass = "theme-textarea min-h-24 w-full px-3 py-2.5 text-sm";
 
-const textAreaClass =
-  "min-h-24 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10";
+const themeVar = (name) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const selectStyles = {
   control: (base, state) => ({
     ...base,
     minHeight: 42,
     borderRadius: 8,
-    borderColor: state.isFocused ? "#111827" : "#e5e7eb",
-    boxShadow: state.isFocused ? "0 0 0 2px rgba(17, 24, 39, 0.10)" : "none",
-    ":hover": { borderColor: state.isFocused ? "#111827" : "#d1d5db" },
+    backgroundColor: themeVar("--theme-input-bg"),
+    borderColor: state.isFocused
+      ? themeVar("--theme-input-focus")
+      : themeVar("--theme-input-border"),
+    boxShadow: state.isFocused
+      ? `0 0 0 4px ${themeVar("--theme-input-ring")}`
+      : "none",
+    color: themeVar("--theme-text-primary"),
+    ":hover": { borderColor: themeVar("--theme-border-strong") },
   }),
-  menu: (base) => ({ ...base, zIndex: 60 }),
+  singleValue: (base) => ({ ...base, color: themeVar("--theme-text-primary") }),
+  input: (base) => ({ ...base, color: themeVar("--theme-text-primary") }),
+  menu: (base) => ({
+    ...base,
+    zIndex: 60,
+    backgroundColor: themeVar("--theme-surface"),
+  }),
 };
 
 function Field({ label, hint, children }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className="text-sm font-medium theme-text-secondary">{label}</span>
       <span className="mt-2 block">{children}</span>
-      {hint && <span className="mt-1 block text-xs text-gray-500">{hint}</span>}
+      {hint && (
+        <span className="mt-1 block text-xs theme-text-muted">{hint}</span>
+      )}
     </label>
   );
 }
@@ -221,7 +235,8 @@ export default function PlatterAddModal({
               Add New Platter
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Bundle multiple menu items with a single price and availability state.
+              Bundle multiple menu items with a single price and availability
+              state.
             </p>
           </div>
           <button
@@ -320,7 +335,7 @@ export default function PlatterAddModal({
               <Section
                 icon={Utensils}
                 title="Platter items"
-                description="Choose the menu items included in this platter and their quantities."
+                description="Choose the menu items included in this platter and their quantities (supports float amounts like 0.2 or 0.5)."
               >
                 <div className="space-y-3">
                   {formData.items.map((item, index) => (
@@ -357,11 +372,16 @@ export default function PlatterAddModal({
                         </span>
                         <input
                           type="number"
-                          min="1"
+                          min="0.01"
+                          step="any"
                           className={inputClass}
                           value={item.quantity}
                           onChange={(event) =>
-                            updatePlatterItem(index, "quantity", event.target.value)
+                            updatePlatterItem(
+                              index,
+                              "quantity",
+                              event.target.value,
+                            )
                           }
                         />
                       </label>
@@ -481,7 +501,9 @@ export default function PlatterAddModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedcategoryid || validItems.length === 0}
+              disabled={
+                loading || !selectedcategoryid || validItems.length === 0
+              }
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (

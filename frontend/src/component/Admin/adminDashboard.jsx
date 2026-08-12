@@ -2,11 +2,13 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "./navbar";
 import { useTranslation } from "react-i18next";
 import instance from "../../api/axiosInstance";
-import { useEffect, useState } from "react";
-import { X, AlertTriangle, CheckCircle, CreditCard } from "lucide-react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { X, AlertTriangle, CheckCircle } from "lucide-react";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
 import notification from "../../../src/assets/sounds/notification.mp3";
-import BranchSwitcher from "../branch/BranchSwitcher";
+import { AuthContext } from "../../api/authforRBC";
+import AdminTopHeader from "./AdminTopHeader";
+import { getAdminNavigationGroups } from "./adminNavigation";
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
@@ -16,6 +18,13 @@ export default function AdminDashboard() {
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWarningDismissed, setIsWarningDismissed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { auth } = useContext(AuthContext);
+  const navigationGroups = useMemo(
+    () => getAdminNavigationGroups(t, auth?.user?.role),
+    [t, auth?.user?.role],
+  );
 
   useEffect(() => {
     const checkRestaurant = async () => {
@@ -31,6 +40,16 @@ export default function AdminDashboard() {
 
     checkRestaurant();
   }, []);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   const playSound = () => {
     const audio = new Audio(notification);
@@ -52,7 +71,7 @@ export default function AdminDashboard() {
     if (days_left <= 3) {
       return {
         severity: "critical",
-        color: "bg-red-500",
+        color: "bg-[var(--theme-danger)]",
         icon: <AlertTriangle className="h-5 w-5 text-white" />,
         text: "Subscription expires in 3 days!",
         buttonText: "Renew Now",
@@ -60,7 +79,7 @@ export default function AdminDashboard() {
     } else if (days_left <= 7) {
       return {
         severity: "warning",
-        color: "bg-amber-500",
+        color: "bg-[var(--theme-warning)]",
         icon: <AlertTriangle className="h-5 w-5 text-white" />,
         text: "Subscription expires soon.",
         buttonText: "View Plans",
@@ -68,7 +87,7 @@ export default function AdminDashboard() {
     } else if (days_left <= 10) {
       return {
         severity: "info",
-        color: "bg-blue-500",
+        color: "bg-[var(--theme-info)]",
         icon: <CheckCircle className="h-5 w-5 text-white" />,
         text: "Don't forget to renew your plan.",
         buttonText: "Manage",
@@ -84,15 +103,15 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+      <div className="flex h-screen w-full items-center justify-center theme-app-shell">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[var(--theme-primary)]"></div>
       </div>
     );
   }
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-gray-50"
+      className="flex h-screen overflow-hidden theme-app-shell"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {alert && !isWarningDismissed && (
@@ -100,17 +119,17 @@ export default function AdminDashboard() {
           className={`fixed top-5 ${isRTL ? "left-5" : "right-5"} z-50 flex items-center gap-3 rounded-lg shadow-2xl transition-all duration-300 animate-in slide-in-from-top-5`}
         >
           <div className={`${alert.color} p-4 rounded-l-lg`}>{alert.icon}</div>
-          <div className="bg-white px-6 py-3 rounded-r-lg flex items-center gap-4">
+          <div className="theme-surface px-6 py-3 rounded-r-lg flex items-center gap-4">
             <div>
-              <p className="font-semibold text-gray-900">{alert.text}</p>
-              <p className="text-xs text-gray-500">
+              <p className="font-semibold theme-text-primary">{alert.text}</p>
+              <p className="text-xs theme-text-muted">
                 {subscription.days_left} days remaining
               </p>
             </div>
 
             <button
               onClick={() => setIsWarningDismissed(true)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="theme-btn theme-btn-ghost p-1"
             >
               <X className="h-4 w-4" />
             </button>
@@ -123,7 +142,7 @@ export default function AdminDashboard() {
           onClick={() => navigate("/admin/dashboard/pending-discount-requests")}
           className="
       fixed top-6 right-6 z-50
-      bg-orange-500 text-white
+      bg-[var(--theme-primary)] text-[var(--theme-text-inverse)]
       px-5 py-4 rounded-xl shadow-2xl
       cursor-pointer
       animate-bounce
@@ -142,16 +161,26 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <Navbar />
+      <Navbar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+        restaurant={restaurant}
+      />
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-4 flex justify-end">
-            <BranchSwitcher />
+      <div className="admin-content-frame">
+        <AdminTopHeader
+          navigationGroups={navigationGroups}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
+        />
+
+        <main className="admin-main">
+          <div className="admin-main-inner">
+            <Outlet />
           </div>
-          <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

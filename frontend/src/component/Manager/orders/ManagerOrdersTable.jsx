@@ -26,6 +26,15 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
     }
     return false;
   };
+
+  const getOrderTableLabel = (order) => {
+    if (order.order_type === "dine-in") {
+      return order.tableName || order.order_type_display || order.order_type;
+    }
+
+    return order.order_type_display || order.order_type;
+  };
+
   return (
     <div className="mt-4 overflow-x-auto bg-white rounded-xl shadow">
       <table className="w-full rtl:text-right ltr:text-left">
@@ -50,9 +59,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
               <td className="p-3">{order.order_number}</td>
               <td className="p-3">{order.name}</td>
               <td className="p-3">{order.total} AFN</td>
-              <td className="p-3">
-                {order.table ? order.tableName : order.order_type}
-              </td>
+              <td className="p-3">{getOrderTableLabel(order)}</td>
               <td className="p-3">
                 <span
                   className={`px-2 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}

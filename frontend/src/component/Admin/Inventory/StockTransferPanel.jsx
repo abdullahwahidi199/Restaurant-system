@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Check, RefreshCw, Send, X } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 
@@ -10,6 +11,7 @@ const emptyForm = {
 };
 
 export default function StockTransferPanel() {
+  const { t } = useTranslation();
   const [ingredients, setIngredients] = useState([]);
   const [branches, setBranches] = useState([]);
   const [transfers, setTransfers] = useState([]);
@@ -31,7 +33,12 @@ export default function StockTransferPanel() {
       setTransfers(Array.isArray(transferRes.data) ? transferRes.data : []);
       setError("");
     } catch (err) {
-      setError(err.response?.data?.detail || "Could not load transfers.");
+      setError(
+        err.response?.data?.detail ||
+          t("inventory_manager.stock_transfers.load_failed", {
+            defaultValue: "Could not load transfers.",
+          }),
+      );
     } finally {
       setLoading(false);
     }
@@ -55,7 +62,12 @@ export default function StockTransferPanel() {
       setForm(emptyForm);
       await loadData();
     } catch (err) {
-      setError(err.response?.data?.detail || "Could not create transfer.");
+      setError(
+        err.response?.data?.detail ||
+          t("inventory_manager.stock_transfers.create_failed", {
+            defaultValue: "Could not create transfer.",
+          }),
+      );
     } finally {
       setSaving(false);
     }
@@ -70,22 +82,33 @@ export default function StockTransferPanel() {
       });
       await loadData();
     } catch (err) {
-      setError(err.response?.data?.detail || "Could not update transfer.");
+      setError(
+        err.response?.data?.detail ||
+          t("inventory_manager.stock_transfers.update_failed", {
+            defaultValue: "Could not update transfer.",
+          }),
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="bg-white border rounded-2xl p-5 shadow-sm">
+    <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-gray-900">Stock Transfers</h3>
+        <h3 className="font-semibold text-gray-900">
+          {t("inventory_manager.stock_transfers.title", {
+            defaultValue: "Stock Transfers",
+          })}
+        </h3>
         <button
           type="button"
           onClick={loadData}
           disabled={loading}
           className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-          title="Refresh transfers"
+          title={t("inventory_manager.stock_transfers.refresh", {
+            defaultValue: "Refresh transfers",
+          })}
         >
           <RefreshCw size={16} />
         </button>
@@ -105,7 +128,9 @@ export default function StockTransferPanel() {
           required
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900"
         >
-          <option value="">Ingredient</option>
+          <option value="">
+            {t("inventory_manager.ingredients.ingredient", { defaultValue: "Ingredient" })}
+          </option>
           {ingredients.map((ingredient) => (
             <option key={ingredient.id} value={ingredient.id}>
               {ingredient.name}
@@ -120,7 +145,11 @@ export default function StockTransferPanel() {
           required
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900"
         >
-          <option value="">Destination branch</option>
+          <option value="">
+            {t("inventory_manager.stock_transfers.destination_branch", {
+              defaultValue: "Destination branch",
+            })}
+          </option>
           {branches.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
@@ -136,7 +165,9 @@ export default function StockTransferPanel() {
           min="0.001"
           step="0.001"
           type="number"
-          placeholder="Quantity"
+          placeholder={t("inventory_manager.common.quantity", {
+            defaultValue: "Quantity",
+          })}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900"
         />
 
@@ -144,7 +175,9 @@ export default function StockTransferPanel() {
           name="notes"
           value={form.notes}
           onChange={handleChange}
-          placeholder="Notes"
+          placeholder={t("inventory_manager.common.notes", {
+            defaultValue: "Notes",
+          })}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-gray-900"
         />
 
@@ -154,13 +187,21 @@ export default function StockTransferPanel() {
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:bg-gray-500"
         >
           <Send size={16} />
-          Request Transfer
+          {saving
+            ? t("inventory_manager.common.saving", { defaultValue: "Saving..." })
+            : t("inventory_manager.stock_transfers.request_transfer", {
+                defaultValue: "Request Transfer",
+              })}
         </button>
       </form>
 
       <div className="mt-5 space-y-3">
         {loading ? (
-          <p className="text-sm text-gray-500">Loading transfers...</p>
+          <p className="text-sm text-gray-500">
+            {t("inventory_manager.stock_transfers.loading", {
+              defaultValue: "Loading transfers...",
+            })}
+          </p>
         ) : transfers.length ? (
           transfers.slice(0, 5).map((transfer) => (
             <div
@@ -171,11 +212,17 @@ export default function StockTransferPanel() {
                 {transfer.ingredient_name} - {transfer.quantity}
               </div>
               <div className="mt-1 text-gray-500">
-                {transfer.from_branch_name} to {transfer.to_branch_name}
+                {t("inventory_manager.stock_transfers.transfer_route", {
+                  defaultValue: "{{from}} to {{to}}",
+                  from: transfer.from_branch_name,
+                  to: transfer.to_branch_name,
+                })}
               </div>
-              <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                 <span className="rounded bg-white px-2 py-1 text-xs font-semibold text-gray-700">
-                  {transfer.status}
+                  {t(`inventory_manager.statuses.${transfer.status}`, {
+                    defaultValue: transfer.status,
+                  })}
                 </span>
                 {transfer.status === "pending" && (
                   <div className="flex gap-1">
@@ -184,7 +231,9 @@ export default function StockTransferPanel() {
                       onClick={() => transferAction(transfer, "approve")}
                       disabled={saving}
                       className="rounded-lg border border-green-200 p-1.5 text-green-700 hover:bg-green-50"
-                      title="Approve"
+                      title={t("inventory_manager.common.approve", {
+                        defaultValue: "Approve",
+                      })}
                     >
                       <Check size={14} />
                     </button>
@@ -193,7 +242,9 @@ export default function StockTransferPanel() {
                       onClick={() => transferAction(transfer, "reject")}
                       disabled={saving}
                       className="rounded-lg border border-red-200 p-1.5 text-red-700 hover:bg-red-50"
-                      title="Reject"
+                      title={t("inventory_manager.common.reject", {
+                        defaultValue: "Reject",
+                      })}
                     >
                       <X size={14} />
                     </button>
@@ -203,7 +254,11 @@ export default function StockTransferPanel() {
             </div>
           ))
         ) : (
-          <p className="text-sm text-gray-500">No transfers yet.</p>
+          <p className="text-sm text-gray-500">
+            {t("inventory_manager.stock_transfers.empty", {
+              defaultValue: "No transfers yet.",
+            })}
+          </p>
         )}
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createIngredient } from "../../../api/inventoryApi";
 
 export default function CreateIngredientModal({ onClose, onSuccess }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: "",
     unit: "kg",
@@ -32,17 +34,17 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (err) {
-      setError("Failed to create ingredient");
+      setError(t("inventory_manager.ingredients.create_failed", { defaultValue: "Failed to create ingredient" }));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-full max-w-md rounded-xl p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-4 sm:p-6">
         <h2 className="text-xl font-semibold mb-4">
-          Add New Ingredient
+          {t("inventory_manager.ingredients.add_new", { defaultValue: "Add New Ingredient" })}
         </h2>
 
         {error && (
@@ -53,7 +55,7 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
          
           <div>
             <label className="block text-sm font-medium mb-1">
-              Ingredient Name
+              {t("inventory_manager.ingredients.ingredient_name", { defaultValue: "Ingredient Name" })}
             </label>
             <input
               type="text"
@@ -68,7 +70,7 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
           
           <div>
             <label className="block text-sm font-medium mb-1">
-              Unit
+              {t("inventory_manager.common.unit", { defaultValue: "Unit" })}
             </label>
             <select
               name="unit"
@@ -76,18 +78,18 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
               onChange={handleChange}
               className="w-full border rounded-lg px-3 py-2"
             >
-              <option value="kg">Kilogram</option>
-              <option value="g">Gram</option>
-              <option value="l">Liter</option>
-              <option value="ml">Milliliter</option>
-              <option value="pcs">Pieces</option>
+              <option value="kg">{t("inventory_manager.units.kilogram", { defaultValue: "Kilogram" })}</option>
+              <option value="g">{t("inventory_manager.units.gram", { defaultValue: "Gram" })}</option>
+              <option value="l">{t("inventory_manager.units.liter", { defaultValue: "Liter" })}</option>
+              <option value="ml">{t("inventory_manager.units.milliliter", { defaultValue: "Milliliter" })}</option>
+              <option value="pcs">{t("inventory_manager.units.pieces", { defaultValue: "Pieces" })}</option>
             </select>
           </div>
 
           
           <div>
             <label className="block text-sm font-medium mb-1">
-              Minimum Threshold
+              {t("inventory_manager.ingredients.minimum_threshold", { defaultValue: "Minimum Threshold" })}
             </label>
             <input
               type="number"
@@ -100,13 +102,13 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
           </div>
 
           
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="grid grid-cols-2 gap-2 pt-4 sm:flex sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 border rounded-lg"
             >
-              Cancel
+              {t("inventory_manager.common.cancel", { defaultValue: "Cancel" })}
             </button>
 
             <button
@@ -114,7 +116,9 @@ export default function CreateIngredientModal({ onClose, onSuccess }) {
               disabled={loading}
               className="px-4 py-2 bg-black text-white rounded-lg"
             >
-              {loading ? "Saving..." : "Create"}
+              {loading
+                ? t("inventory_manager.common.saving", { defaultValue: "Saving..." })
+                : t("inventory_manager.common.create", { defaultValue: "Create" })}
             </button>
           </div>
         </form>

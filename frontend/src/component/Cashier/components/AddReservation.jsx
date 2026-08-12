@@ -83,7 +83,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
   const fetchExistingReservations = async (tableId, date) => {
     try {
       const res = await instance.get(
-        `orders/reservations/?table=${tableId}&date=${date}&status=reserved`,
+        `orders/reservations/?table=${tableId}&date=${date}&status=reserved&paginate=false`,
       );
       setExistingReservations(res.data.results || res.data);
     } catch {

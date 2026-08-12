@@ -197,36 +197,343 @@ def deduct_stock_for_order(order):
     recalc_menu_availability(ingredient_ids)
 from django.db import transaction
 from decimal import Decimal
-from .models import StockMovement
+from django.utils import timezone
+from .models import (
+    Ingredient,
+    PurchaseInvoice,
+    PurchaseInvoiceLine,
+    StockMovement,
+    Supplier,
+    SupplierPayment,
+)
 from .utils import update_menu_item_availability
+
+
+MONEY_QUANT = Decimal("0.01")
+
+
+def _decimal(value, default="0"):
+    if value in [None, ""]:
+        return Decimal(default)
+    return Decimal(str(value))
+
+
+def _money(value):
+    return _decimal(value).quantize(MONEY_QUANT)
+
+
+def _invoice_status(total, paid):
+    total = _money(total)
+    paid = _money(paid)
+    if paid <= 0:
+        return PurchaseInvoice.STATUS_UNPAID
+    if paid < total:
+        return PurchaseInvoice.STATUS_PARTIALLY_PAID
+    return PurchaseInvoice.STATUS_PAID
+
+
+def _supplier_for_invoice(supplier_id, restaurant, branch):
+    if not supplier_id:
+        return None
+
+    try:
+        return Supplier.objects.get(
+            id=supplier_id,
+            restaurant=restaurant,
+            branch=branch,
+            is_active=True,
+        )
+    except Supplier.DoesNotExist as exc:
+        raise ValueError("Supplier not found for this branch.") from exc
+
+
+def _invoice_lines_from_payload(data, restaurant, branch):
+    raw_lines = data.get("lines")
+
+    if not raw_lines:
+        ingredient = data.get("ingredient")
+        quantity = data.get("quantity")
+        unit_price = data.get("unit_price") or data.get("cost_per_unit")
+        total_price = data.get("total_price")
+
+        if total_price not in [None, ""] and quantity not in [None, ""] and not unit_price:
+            unit_price = _money(total_price) / _decimal(quantity)
+
+        raw_lines = [
+            {
+                "ingredient": ingredient,
+                "quantity": quantity,
+                "unit_price": unit_price,
+            }
+        ]
+
+    lines = []
+    for index, line in enumerate(raw_lines, start=1):
+        ingredient_id = line.get("ingredient")
+        if not ingredient_id:
+            raise ValueError(f"Line {index}: ingredient is required.")
+
+        try:
+            ingredient = Ingredient.objects.select_for_update().get(
+                id=ingredient_id,
+                restaurant=restaurant,
+                branch=branch,
+                is_active=True,
+            )
+        except Ingredient.DoesNotExist as exc:
+            raise ValueError(f"Line {index}: ingredient not found for this branch.") from exc
+
+        quantity = _decimal(line.get("quantity"))
+        unit_price = _decimal(line.get("unit_price"))
+        if quantity <= 0:
+            raise ValueError(f"Line {index}: quantity must be greater than zero.")
+        if unit_price < 0:
+            raise ValueError(f"Line {index}: unit price cannot be negative.")
+
+        lines.append(
+            {
+                "ingredient": ingredient,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "total_price": _money(quantity * unit_price),
+            }
+        )
+
+    if not lines:
+        raise ValueError("At least one invoice line is required.")
+
+    return lines
+
+
+@transaction.atomic
+def post_purchase_invoice_inventory(invoice, created_by=None):
+    invoice = (
+        PurchaseInvoice.objects
+        .select_for_update()
+        .select_related("branch", "supplier")
+        .prefetch_related("lines__ingredient")
+        .get(pk=invoice.pk)
+    )
+
+    if invoice.is_inventory_posted:
+        return invoice
+
+    if invoice.status == PurchaseInvoice.STATUS_DRAFT:
+        invoice.status = _invoice_status(invoice.total_amount, invoice.amount_paid)
+
+    for line in invoice.lines.all():
+        ingredient = line.ingredient
+        change_ingredient_stock(
+            ingredient,
+            invoice.branch,
+            line.quantity,
+            cost_per_unit=line.unit_price,
+        )
+        movement = StockMovement.objects.create(
+            ingredient=ingredient,
+            restaurant=invoice.restaurant,
+            branch=invoice.branch,
+            change_quantity=line.quantity,
+            movement_type="purchase",
+            created_by=created_by or invoice.created_by,
+            unit_cost=line.unit_price,
+            note=(
+                f"Purchase invoice {invoice.invoice_number or invoice.id}"
+                + (f" from {invoice.supplier.name}" if invoice.supplier_id else "")
+            ),
+        )
+        PurchaseInvoiceLine.objects.filter(pk=line.pk).update(stock_movement=movement)
+
+        for recipe in ingredient.menu_items.select_related("menu_item"):
+            update_menu_item_availability(recipe.menu_item, branch=invoice.branch)
+
+    invoice.is_inventory_posted = True
+    invoice.save(update_fields=["is_inventory_posted", "status", "updated_at"])
+    invoice.refresh_totals_and_status(save=True)
+    return invoice
+
+
+@transaction.atomic
+def create_purchase_invoice(data, restaurant, branch, created_by=None):
+    if not branch:
+        raise ValueError("An active branch is required to create a purchase invoice.")
+
+    supplier = _supplier_for_invoice(data.get("supplier"), restaurant, branch)
+    lines = _invoice_lines_from_payload(data, restaurant, branch)
+    requested_status = data.get("status")
+    is_draft = requested_status == PurchaseInvoice.STATUS_DRAFT
+
+    invoice = PurchaseInvoice.objects.create(
+        restaurant=restaurant,
+        branch=branch,
+        supplier=supplier,
+        invoice_number=(data.get("invoice_number") or "").strip(),
+        purchase_date=data.get("purchase_date") or timezone.localdate(),
+        due_date=data.get("due_date") or None,
+        notes=(data.get("notes") or "").strip(),
+        status=PurchaseInvoice.STATUS_DRAFT if is_draft else PurchaseInvoice.STATUS_UNPAID,
+        created_by=created_by,
+    )
+
+    for line in lines:
+        PurchaseInvoiceLine.objects.create(
+            invoice=invoice,
+            ingredient=line["ingredient"],
+            quantity=line["quantity"],
+            unit_price=line["unit_price"],
+            total_price=line["total_price"],
+        )
+
+    invoice.refresh_totals_and_status(save=True)
+
+    initial_paid = _money(
+        data.get("amount_paid")
+        if "amount_paid" in data
+        else data.get("amount_paid_initial")
+    )
+    if initial_paid > invoice.total_amount:
+        raise ValueError("Initial payment cannot exceed invoice total.")
+
+    if not is_draft:
+        invoice = post_purchase_invoice_inventory(invoice, created_by=created_by)
+
+        if supplier and initial_paid > 0:
+            create_supplier_payment(
+                {
+                    "supplier": supplier.id,
+                    "purchase_invoice": invoice.id,
+                    "date": data.get("purchase_date"),
+                    "amount": initial_paid,
+                    "payment_method": data.get("payment_method") or "cash",
+                    "reference_number": data.get("payment_reference") or "",
+                    "notes": "Initial invoice payment.",
+                },
+                restaurant=restaurant,
+                branch=branch,
+                created_by=created_by,
+            )
+        else:
+            invoice.refresh_totals_and_status(save=True)
+
+    return PurchaseInvoice.objects.prefetch_related("lines", "payments").get(pk=invoice.pk)
+
+
+@transaction.atomic
+def create_supplier_payment(data, restaurant, branch, created_by=None):
+    supplier_id = data.get("supplier")
+    invoice_id = data.get("purchase_invoice")
+    if not supplier_id or not invoice_id:
+        raise ValueError("Supplier and purchase invoice are required.")
+
+    try:
+        supplier = Supplier.objects.get(
+            id=supplier_id,
+            restaurant=restaurant,
+        )
+    except Supplier.DoesNotExist as exc:
+        raise ValueError("Supplier not found.") from exc
+
+    try:
+        invoice = PurchaseInvoice.objects.select_for_update().get(
+            id=invoice_id,
+            restaurant=restaurant,
+            supplier=supplier,
+        )
+    except PurchaseInvoice.DoesNotExist as exc:
+        raise ValueError("Purchase invoice not found for this supplier.") from exc
+
+    if branch and invoice.branch_id != branch.id:
+        raise ValueError("Purchase invoice belongs to another branch.")
+
+    if invoice.status == PurchaseInvoice.STATUS_DRAFT:
+        raise ValueError("Draft invoices cannot receive payments.")
+
+    amount = _money(data.get("amount"))
+    if amount <= 0:
+        raise ValueError("Payment amount must be greater than zero.")
+    if amount > invoice.remaining_balance:
+        raise ValueError("Payment amount cannot exceed the remaining balance.")
+
+    payment = SupplierPayment.objects.create(
+        restaurant=restaurant,
+        branch=invoice.branch,
+        supplier=supplier,
+        purchase_invoice=invoice,
+        date=data.get("date") or timezone.localdate(),
+        amount=amount,
+        payment_method=data.get("payment_method") or "cash",
+        reference_number=(data.get("reference_number") or "").strip(),
+        notes=(data.get("notes") or "").strip(),
+        created_by=created_by,
+    )
+    return payment
+
+
+def supplier_ledger(supplier):
+    entries = []
+
+    for invoice in supplier.purchase_invoices.exclude(status="draft").all():
+        entries.append(
+            {
+                "date": invoice.purchase_date,
+                "type": "invoice",
+                "id": invoice.id,
+                "label": invoice.invoice_number or f"PINV-{invoice.id}",
+                "debit": Decimal(invoice.total_amount or 0),
+                "credit": Decimal("0.00"),
+                "status": invoice.status,
+            }
+        )
+
+    for payment in supplier.payments.all():
+        entries.append(
+            {
+                "date": payment.date,
+                "type": "payment",
+                "id": payment.id,
+                "label": payment.reference_number or payment.get_payment_method_display(),
+                "debit": Decimal("0.00"),
+                "credit": Decimal(payment.amount or 0),
+                "status": "paid",
+            }
+        )
+
+    entries.sort(key=lambda item: (item["date"], item["type"], item["id"]))
+
+    balance = Decimal("0.00")
+    for entry in entries:
+        balance += entry["debit"] - entry["credit"]
+        entry["debit"] = float(entry["debit"])
+        entry["credit"] = float(entry["credit"])
+        entry["running_balance"] = float(balance)
+
+    return {
+        "supplier": supplier,
+        "entries": entries,
+        "total_purchases": supplier.total_purchases,
+        "total_paid": supplier.total_paid,
+        "outstanding_balance": supplier.outstanding_balance,
+    }
 
 
 @transaction.atomic
 def add_stock(ingredient, quantity, created_by=None, cost_per_unit=None, branch=None):
-    quantity = Decimal(quantity)
     branch = branch or ingredient.branch
-
-    change_ingredient_stock(
-        ingredient,
-        branch,
-        quantity,
-        cost_per_unit=cost_per_unit,
-    )
-
-    # 3. Create Movement
-    StockMovement.objects.create(
-        ingredient=ingredient,
+    return create_purchase_invoice(
+        {
+            "supplier": None,
+            "lines": [
+                {
+                    "ingredient": ingredient.id,
+                    "quantity": quantity,
+                    "unit_price": cost_per_unit,
+                }
+            ],
+        },
         restaurant=ingredient.restaurant,
         branch=branch,
-        change_quantity=quantity,
-        movement_type="purchase",
         created_by=created_by,
-        unit_cost=cost_per_unit # Ensure you added this field to model
     )
-
-    # 4. Update availability
-    for recipe in ingredient.menu_items.select_related("menu_item"):
-        update_menu_item_availability(recipe.menu_item, branch=branch)
 
         
 from django.db import transaction
@@ -488,6 +795,16 @@ def edit_stock_movement(
         )
 
     movement.save()
+
+    try:
+        linked_line = movement.purchase_invoice_line
+    except PurchaseInvoiceLine.DoesNotExist:
+        linked_line = None
+    if linked_line and old_type == "purchase":
+        linked_line.quantity = new_effect
+        linked_line.unit_price = Decimal(movement.unit_cost or 0)
+        linked_line.save()
+        linked_line.invoice.refresh_totals_and_status(save=True)
 
     # refresh menu availability
     for recipe in ingredient.menu_items.select_related(

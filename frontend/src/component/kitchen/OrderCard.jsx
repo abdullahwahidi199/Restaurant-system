@@ -1,9 +1,8 @@
 import { useContext, useEffect, useState } from "react";
-import { Clock, CheckCircle, Utensils } from "lucide-react";
+import { Clock, CheckCircle, Utensils, CheckCircle2 } from "lucide-react";
 import OrderItem from "./OrderItem";
 import instance from "../../api/axiosInstance";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
-import { AuthContext } from "../../api/authforRBC";
 
 export default function OrderCard({ order }) {
   const [updating, setUpdating] = useState(false);
@@ -60,6 +59,19 @@ export default function OrderCard({ order }) {
     cancelled: "bg-red-100 text-red-800",
   };
 
+  // 🔥 CHECK VISIBLE ITEM STATUSES FOR THIS STATION:
+  const items = order.items || [];
+  const hasPendingItems = items.some((i) => i.status === "pending");
+  const allStationItemsReady =
+    items.length > 0 &&
+    items.every(
+      (i) =>
+        i.status === "ready" ||
+        i.status === "cancelled" ||
+        i.status === "served" ||
+        i.status === "completed",
+    );
+
   return (
     <div className="bg-white shadow-sm rounded-2xl p-4 border border-gray-100 space-y-3">
       {/* Header Section */}
@@ -77,7 +89,7 @@ export default function OrderCard({ order }) {
           </p>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${statusColors[order.status]}`}
+          className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${statusColors[order.status] || "bg-gray-100 text-gray-800"}`}
         >
           {order.status.replace("_", " ")}
         </span>
@@ -105,10 +117,8 @@ export default function OrderCard({ order }) {
       )}
 
       {/* Order Items Grid */}
-      {/* Using a 2-column grid. Items are flex rows to keep height compact. 
-          The green border logic is handled inside OrderItem based on status 'new' */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        {order.items.map((item, index) => (
+        {items.map((item, index) => (
           <div
             key={item.id}
             className={`${
@@ -121,9 +131,9 @@ export default function OrderCard({ order }) {
       </div>
 
       {/* Action Buttons Section */}
-      {/* Buttons wrap if space is tight, keeping the height compact */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-2">
-        {order.status === "pending" && (
+        {/* 1️⃣ SHOW START IF ANY ITEM FOR THIS STATION IS PENDING */}
+        {hasPendingItems && !allStationItemsReady && (
           <button
             disabled={updating}
             onClick={() => updateOrderStatus("in_progress")}
@@ -140,7 +150,8 @@ export default function OrderCard({ order }) {
           Print
         </button>
 
-        {order.status === "in_progress" && (
+        {/* 2️⃣ SHOW MARK READY IF ITEMS STARTED BUT NOT YET READY */}
+        {!hasPendingItems && !allStationItemsReady && (
           <button
             disabled={updating}
             onClick={() => {
@@ -151,6 +162,14 @@ export default function OrderCard({ order }) {
           >
             <CheckCircle size={16} /> Mark Ready
           </button>
+        )}
+
+        {/* 3️⃣ SHOW COMPLETED BADGE ONCE THIS STATION FINISHES ITS ITEMS */}
+        {allStationItemsReady && (
+          <div className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md text-xs font-bold">
+            <CheckCircle2 size={16} className="text-green-600 shrink-0" />
+            <span>Your Station Ready</span>
+          </div>
         )}
       </div>
 

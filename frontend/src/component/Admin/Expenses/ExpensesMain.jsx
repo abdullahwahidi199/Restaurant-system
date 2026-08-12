@@ -79,7 +79,7 @@ function ExpensesMain() {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const res = await instance.get("/restaurant/restaurant/");
+        const res = await instance.get("/restaurant/me/");
         setRestaurant(res.data);
       } catch (error) {
         console.error("Failed to fetch restaurant info", error);

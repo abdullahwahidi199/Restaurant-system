@@ -10,6 +10,7 @@ export default function ManagerReservationsTable({
   reservations,
   onUpdate,
   onReservationSaved,
+  showLocalFilters = true,
 }) {
   const [viewReservation, setViewReservation] = useState(null);
   const [editReservation, setEditReservation] = useState(null);
@@ -36,7 +37,8 @@ export default function ManagerReservationsTable({
     });
   };
 
-  const filteredReservations = reservations.filter((r) => {
+  const filteredReservations = showLocalFilters
+    ? reservations.filter((r) => {
     const matchesName = r.customer_name
       .toLowerCase()
       .includes(searchName.toLowerCase());
@@ -54,7 +56,8 @@ export default function ManagerReservationsTable({
       : true;
 
     return matchesName && matchesStatus && matchesStartDate && matchesEndDate;
-  });
+      })
+    : reservations;
   // Get status badge color and styling
   const getStatusStyle = (status) => {
     switch (status) {
@@ -89,7 +92,7 @@ export default function ManagerReservationsTable({
     }
   };
 
-  if (!reservations || reservations.length === 0) {
+  if (!filteredReservations || filteredReservations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="w-24 h-24 mb-4 text-gray-300">
@@ -157,6 +160,7 @@ export default function ManagerReservationsTable({
 
   return (
     <div className="w-full">
+      {showLocalFilters && (
       <div className="bg-white p-4 rounded-xl shadow-sm border mb-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
@@ -192,6 +196,7 @@ export default function ManagerReservationsTable({
           />
         </div>
       </div>
+      )}
       <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full">
           <thead>
@@ -414,7 +419,7 @@ export default function ManagerReservationsTable({
       </div>
 
       <div className="md:hidden space-y-4 px-2">
-        {reservations.map((reservation, index) => {
+        {filteredReservations.map((reservation, index) => {
           const statusStyle = getStatusStyle(reservation.status);
           const overdue = isOverdueForNoShow(reservation);
           const canMarkNoShow = overdue && reservation.status === "reserved";

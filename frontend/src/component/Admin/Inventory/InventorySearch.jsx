@@ -12,11 +12,13 @@ import {
   ChefHat,
 } from "lucide-react";
 import debounce from "lodash/debounce";
+import { useTranslation } from "react-i18next";
 
 import instance from "../../../api/axiosInstance";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function InventorySearch() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +61,7 @@ export default function InventorySearch() {
   const showDropdown = focused && query.trim();
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
+    <div className="relative w-full lg:mx-0 lg:max-w-2xl">
       {/* ── SEARCH BAR ── */}
       <div
         className={`
@@ -94,7 +96,9 @@ export default function InventorySearch() {
             onFocus={() => setFocused(true)}
             onBlur={() => setTimeout(() => setFocused(false), 200)}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search ingredients or menu usage…"
+            placeholder={t("inventory_manager.search.placeholder", {
+              defaultValue: "Search ingredients or menu usage...",
+            })}
             className="
               w-full bg-transparent outline-none
               text-sm text-gray-800 placeholder-gray-400
@@ -161,10 +165,14 @@ export default function InventorySearch() {
                 <SearchX className="w-8 h-8 text-gray-300" />
               </div>
               <p className="text-sm font-semibold text-gray-700">
-                No ingredients found
+                {t("inventory_manager.search.no_ingredients_found", {
+                  defaultValue: "No ingredients found",
+                })}
               </p>
               <p className="text-xs text-gray-400 mt-1 text-center">
-                Try a different keyword or check spelling
+                {t("inventory_manager.search.try_different_keyword", {
+                  defaultValue: "Try a different keyword or check spelling",
+                })}
               </p>
             </div>
           )}
@@ -175,7 +183,11 @@ export default function InventorySearch() {
               {/* Results Count */}
               <div className="px-5 pt-4 pb-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  {results.length} result{results.length !== 1 && "s"} found
+                  {t("inventory_manager.search.results_found", {
+                    defaultValue: "{{count}} result found",
+                    defaultValue_plural: "{{count}} results found",
+                    count: results.length,
+                  })}
                 </p>
               </div>
 
@@ -228,7 +240,9 @@ export default function InventorySearch() {
                                   "
                                 >
                                   <AlertTriangle className="w-3 h-3" />
-                                  Low Stock
+                                  {t("inventory_manager.common.low_stock", {
+                                    defaultValue: "Low Stock",
+                                  })}
                                 </span>
                               )}
                             </div>
@@ -238,7 +252,10 @@ export default function InventorySearch() {
                                 <span className="font-semibold text-gray-700">
                                   {ingredient.quantity_available}
                                 </span>{" "}
-                                {ingredient.unit} available
+                                {t("inventory_manager.common.available_quantity", {
+                                  defaultValue: "{{unit}} available",
+                                  unit: ingredient.unit,
+                                })}
                               </p>
 
                               {/* Mini Stock Bar */}
@@ -267,10 +284,15 @@ export default function InventorySearch() {
                         <div className="flex items-center gap-1.5 mb-2.5">
                           <ChefHat className="w-3 h-3 text-gray-400" />
                           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                            Used in{" "}
                             {ingredient.menu_items.length > 0
-                              ? `${ingredient.menu_items.length} item${ingredient.menu_items.length !== 1 ? "s" : ""}`
-                              : "no items"}
+                              ? t("inventory_manager.search.used_in_count", {
+                                  defaultValue: "Used in {{count}} item",
+                                  defaultValue_plural: "Used in {{count}} items",
+                                  count: ingredient.menu_items.length,
+                                })
+                              : t("inventory_manager.search.used_in_none", {
+                                  defaultValue: "Used in no items",
+                                })}
                           </p>
                         </div>
 
@@ -283,7 +305,9 @@ export default function InventorySearch() {
                             "
                           >
                             <p className="text-xs text-gray-400 italic">
-                              Not linked to any menu item yet
+                              {t("inventory_manager.search.not_linked", {
+                                defaultValue: "Not linked to any menu item yet",
+                              })}
                             </p>
                           </div>
                         ) : (
@@ -297,7 +321,7 @@ export default function InventorySearch() {
                                   border border-gray-100 bg-white
                                   hover:border-indigo-200 hover:bg-indigo-50/30
                                   transition-all duration-200
-                                  min-w-[200px] max-w-[240px]
+                                  w-full sm:min-w-[200px] sm:max-w-[240px]
                                   cursor-pointer
                                 "
                                 onClick={() =>
@@ -317,11 +341,16 @@ export default function InventorySearch() {
                                       {item.name}
                                     </p>
                                     <p className="text-[11px] text-gray-400 mt-1">
-                                      Uses{" "}
+                                      {t("inventory_manager.search.uses_prefix", {
+                                        defaultValue: "Uses",
+                                      })}{" "}
                                       <span className="font-semibold text-gray-500">
                                         {item.quantity_required}
                                       </span>{" "}
-                                      {ingredient.unit} per serving
+                                      {t("inventory_manager.search.per_serving", {
+                                        defaultValue: "{{unit}} per serving",
+                                        unit: ingredient.unit,
+                                      })}
                                     </p>
                                   </div>
 
@@ -350,7 +379,9 @@ export default function InventorySearch() {
               {/* Footer Hint */}
               <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
                 <p className="text-[11px] text-gray-400 text-center">
-                  Click any menu item to view full details
+                  {t("inventory_manager.search.click_hint", {
+                    defaultValue: "Click any menu item to view full details",
+                  })}
                 </p>
               </div>
             </>

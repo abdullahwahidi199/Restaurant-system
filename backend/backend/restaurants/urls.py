@@ -14,10 +14,18 @@ from .views import (
     active_branch_settings,
     branch_data_migrations,
     branch_copy,
+    branch_regenerate_qr,
     enterprise_settings,
+    public_branch_detail,
+    public_restaurant_branches,
+    public_restaurant_entry,
 )
 
 urlpatterns = [
+    path('public/<slug:restaurant_slug>/branches/', public_restaurant_branches, name='public-restaurant-branches'),
+    path('public/<slug:restaurant_slug>/<slug:branch_slug>/', public_branch_detail, name='public-branch-detail'),
+    path('public/<slug:restaurant_slug>/', public_restaurant_entry, name='public-restaurant-entry'),
+
     # Restaurant URLs
     path('restaurants/', restaurant_list_create, name='restaurant-list-create'),
     path('restaurants/<int:pk>/', RestaurantDetailView.as_view(), name='restaurant-detail'),
@@ -29,6 +37,7 @@ urlpatterns = [
     path('branches/active/settings/', active_branch_settings, name='active-branch-settings'),
     path('branch-data-migrations/', branch_data_migrations, name='branch-data-migrations'),
     path('branches/<int:branch_id>/copy/', branch_copy, name='branch-copy'),
+    path('branches/<int:branch_id>/regenerate-qr/', branch_regenerate_qr, name='branch-regenerate-qr'),
     path('branches/<int:branch_id>/', branch_detail, name='branch-detail'),
     path('enterprise-settings/', enterprise_settings, name='enterprise-settings'),
 

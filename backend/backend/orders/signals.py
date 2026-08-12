@@ -4,10 +4,11 @@ from django.dispatch import receiver
 from reports.models import Notification 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from .models import Order,OrderItem,Table,DiscountRequest
-from .seriailizers import OrderSerializer ,TableSerializer,DiscountRequestSerializer
+from .models import Order,OrderItem,Table,Reservation,DiscountRequest
+from .seriailizers import OrderSerializer ,TableSerializer,TablePanelSerializer,DiscountRequestSerializer
 
 from django.db import transaction
+from django.db.models import Prefetch
 
 
 import json
@@ -34,7 +35,14 @@ def broadcast_order(order):
     if not order or not order.restaurant:
         return
 
-    order = Order.objects.prefetch_related('items__menu_item').get(pk=order.pk)
+    order = (
+        Order.objects
+        .prefetch_related(
+            "items__menu_item__station",
+            "items__platter__station"
+        )
+        .get(pk=order.pk)
+    )
 
     serialized_order = make_json_safe(
     OrderSerializer(order).data
@@ -57,11 +65,36 @@ def broadcast_table(table):
     if not table:
         return
 
+    active_orders = Order.objects.filter(
+        status__in=["pending", "in_progress", "ready", "served"],
+    ).order_by("-created_at")
+    reservations = Reservation.objects.filter(
+        status__in=["arrived", "reserved"],
+    ).order_by("start_time")
+
     table = Table.objects.prefetch_related(
-        "orders__items__menu_item"
+        Prefetch(
+            "orders",
+            queryset=active_orders.prefetch_related(
+                Prefetch(
+                    "items",
+                    queryset=OrderItem.objects.select_related(
+                        "menu_item",
+                        "platter",
+                        "added_by",
+                    ),
+                ),
+            ),
+            to_attr="prefetched_active_orders",
+        ),
+        Prefetch(
+            "reservations",
+            queryset=reservations,
+            to_attr="prefetched_panel_reservations",
+        ),
     ).get(pk=table.pk)
     serialized = make_json_safe(
-    TableSerializer(table).data
+    TablePanelSerializer(table).data
 )
 
     group_name = f"orders_{table.restaurant.id}"
@@ -78,7 +111,7 @@ def broadcast_table(table):
     )
 # signals.py - Replace the order item signals
 
-from .models import Order, OrderItem, Table, DiscountRequest
+from .models import Order, OrderItem, Table, Reservation, DiscountRequest
 from .seriailizers import OrderSerializer, TableSerializer, OrderItemMiniSerializer
 
 # ✅ ADD: Lightweight broadcast functions for item changes
@@ -186,7 +219,7 @@ def broadcast_table_items_update(order):
                 "type": "TABLE_ITEMS_UPDATED",
                 "table_id": order.table_id,
                 "order_id": order.id,
-                "item_count": order.items.count(),
+                "item_count": order.items.exclude(status='cancelled').count(),
                 "order_total": str(total),
                 "order_status": order.status
             },

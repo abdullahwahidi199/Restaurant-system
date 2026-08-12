@@ -3,9 +3,14 @@ from .models import (
     Ingredient,
     IngredientStock,
     MenuItemIngredient,
+    PurchaseInvoice,
+    PurchaseInvoiceAttachment,
+    PurchaseInvoiceLine,
     StockMovement,
     StockTransfer,
     StockTransferLog,
+    Supplier,
+    SupplierPayment,
 )
 from menu.models import MenuItem
 from restaurants.branching import get_active_branch
@@ -142,6 +147,239 @@ class StockMovementSerializer(serializers.ModelSerializer):
             "branch",
         ]
         read_only_fields = ["restaurant", "branch", "created_by", "related_order"]
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    branch_name = serializers.ReadOnlyField(source="branch.name")
+    total_purchases = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        read_only=True,
+    )
+    total_paid = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        read_only=True,
+    )
+    outstanding_balance = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        read_only=True,
+    )
+
+    class Meta:
+        model = Supplier
+        validators = []
+        fields = [
+            "id",
+            "name",
+            "contact_person",
+            "phone",
+            "email",
+            "address",
+            "notes",
+            "is_active",
+            "restaurant",
+            "branch",
+            "branch_name",
+            "total_purchases",
+            "total_paid",
+            "outstanding_balance",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "total_purchases",
+            "total_paid",
+            "outstanding_balance",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class PurchaseInvoiceLineSerializer(serializers.ModelSerializer):
+    ingredient_name = serializers.ReadOnlyField(source="ingredient.name")
+    ingredient_unit = serializers.ReadOnlyField(source="ingredient.unit")
+
+    class Meta:
+        model = PurchaseInvoiceLine
+        fields = [
+            "id",
+            "invoice",
+            "ingredient",
+            "ingredient_name",
+            "ingredient_unit",
+            "quantity",
+            "unit_price",
+            "total_price",
+            "stock_movement",
+        ]
+        read_only_fields = ["invoice", "total_price", "stock_movement"]
+
+
+class PurchaseInvoiceAttachmentSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.ReadOnlyField(source="uploaded_by.name")
+    file_type = serializers.ReadOnlyField()
+    download_url = serializers.SerializerMethodField()
+    preview_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseInvoiceAttachment
+        fields = [
+            "id",
+            "invoice",
+            "original_filename",
+            "content_type",
+            "file_size",
+            "file_type",
+            "uploaded_by",
+            "uploaded_by_name",
+            "uploaded_at",
+            "download_url",
+            "preview_url",
+        ]
+        read_only_fields = [
+            "invoice",
+            "original_filename",
+            "content_type",
+            "file_size",
+            "file_type",
+            "uploaded_by",
+            "uploaded_at",
+            "download_url",
+            "preview_url",
+        ]
+
+    def _url(self, obj, download=False):
+        request = self.context.get("request")
+        path = (
+            f"/api/procurement/purchase-invoices/{obj.invoice_id}/"
+            f"attachments/{obj.id}/download/"
+        )
+        if download:
+            path += "?download=1"
+        return request.build_absolute_uri(path) if request else path
+
+    def get_download_url(self, obj):
+        return self._url(obj, download=True)
+
+    def get_preview_url(self, obj):
+        return self._url(obj)
+
+
+class SupplierPaymentSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.ReadOnlyField(source="supplier.name")
+    invoice_number = serializers.SerializerMethodField()
+    created_by_name = serializers.ReadOnlyField(source="created_by.name")
+    remaining_balance = serializers.SerializerMethodField()
+    voucher_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SupplierPayment
+        fields = [
+            "id",
+            "restaurant",
+            "branch",
+            "supplier",
+            "supplier_name",
+            "purchase_invoice",
+            "invoice_number",
+            "voucher_number",
+            "date",
+            "amount",
+            "payment_method",
+            "reference_number",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "remaining_balance",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "remaining_balance",
+        ]
+
+    def get_invoice_number(self, obj):
+        if not obj.purchase_invoice_id:
+            return None
+        return obj.purchase_invoice.invoice_number or f"PINV-{obj.purchase_invoice_id}"
+
+    def get_remaining_balance(self, obj):
+        if not obj.purchase_invoice_id:
+            return "0.00"
+        return obj.purchase_invoice.remaining_balance
+
+    def get_voucher_number(self, obj):
+        return f"SPV-{obj.id:06d}" if obj.id else None
+
+
+class PurchaseInvoiceSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.ReadOnlyField(source="supplier.name")
+    branch_name = serializers.ReadOnlyField(source="branch.name")
+    created_by_name = serializers.ReadOnlyField(source="created_by.name")
+    lines = PurchaseInvoiceLineSerializer(many=True, read_only=True)
+    payments = SupplierPaymentSerializer(many=True, read_only=True)
+    attachments = PurchaseInvoiceAttachmentSerializer(many=True, read_only=True)
+    remaining_balance = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        read_only=True,
+    )
+    line_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseInvoice
+        fields = [
+            "id",
+            "restaurant",
+            "branch",
+            "branch_name",
+            "supplier",
+            "supplier_name",
+            "invoice_number",
+            "purchase_date",
+            "due_date",
+            "notes",
+            "total_amount",
+            "amount_paid",
+            "remaining_balance",
+            "status",
+            "is_inventory_posted",
+            "created_by",
+            "created_by_name",
+            "line_count",
+            "lines",
+            "payments",
+            "attachments",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "restaurant",
+            "branch",
+            "total_amount",
+            "amount_paid",
+            "remaining_balance",
+            "status",
+            "is_inventory_posted",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_line_count(self, obj):
+        annotated = getattr(obj, "line_count", None)
+        if annotated is not None:
+            return annotated
+        return obj.lines.count()
 
 
 class StockTransferLogSerializer(serializers.ModelSerializer):

@@ -9,6 +9,18 @@ const buildVoucherHTML = (
   restaurantName = "Restaurant",
   logo = null,
 ) => {
+  const themeValue = (name) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const printThemeVars = [
+    "--theme-surface",
+    "--theme-surface-rgb",
+    "--theme-text-primary",
+    "--theme-text-muted",
+    "--theme-border",
+    "--theme-muted",
+  ]
+    .map((name) => `${name}:${themeValue(name)};`)
+    .join("");
   const voucherNumber = `EXP-${String(expense.id).padStart(5, "0")}`;
   const isUSD = expense.currency === "USD";
   const BASE_MEDIA_URL = import.meta.env.VITE_MEDIA_URL;
@@ -23,19 +35,20 @@ const buildVoucherHTML = (
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #fff;
-      color: #111;
+      background: var(--theme-surface);
+      color: var(--theme-text-primary);
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
     body { padding: 28px; }
 
     :root{
-      --ink:#111;
-      --muted:#5a5a5a;
-      --line:#e7e7e7;
-      --panel:#f6f6f6;
-      --accent:#111;
+      ${printThemeVars}
+      --ink:var(--theme-text-primary);
+      --muted:var(--theme-text-muted);
+      --line:var(--theme-border);
+      --panel:var(--theme-muted);
+      --accent:var(--theme-text-primary);
       --radius:14px;
     }
 
@@ -45,13 +58,13 @@ const buildVoucherHTML = (
       border: 2px solid var(--ink);
       border-radius: var(--radius);
       overflow: hidden;
-      background: #fff;
+      background: var(--theme-surface);
     }
 
     /* HEADER */
     .header {
       background: var(--ink);
-      color: #fff;
+      color: var(--theme-surface);
       padding: 18px 26px;
       display: flex;
       align-items: center;
@@ -70,18 +83,18 @@ const buildVoucherHTML = (
       height: 44px;
       width: auto;
       object-fit: contain;
-      background: rgba(255,255,255,0.08);
+      background: rgb(var(--theme-surface-rgb) / 0.08);
       border-radius: 10px;
       padding: 6px 8px;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgb(var(--theme-surface-rgb) / 0.2);
     }
 
     .logo-placeholder{
       height: 44px;
       width: 58px;
       border-radius: 10px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgb(var(--theme-surface-rgb) / 0.08);
+      border: 1px solid rgb(var(--theme-surface-rgb) / 0.2);
     }
 
     .company-name {
@@ -118,7 +131,7 @@ const buildVoucherHTML = (
       font-weight: 800;
       letter-spacing: 5px;
       padding: 16px 16px;
-      background: #f4f4f4;
+      background: var(--theme-muted);
       border-bottom: 2px solid var(--ink);
       text-transform: uppercase;
     }
@@ -133,7 +146,7 @@ const buildVoucherHTML = (
       border-radius: 12px;
       padding: 16px 16px;
       margin-bottom: 14px;
-      background: #fff;
+      background: var(--theme-surface);
     }
 
     .grid-2 {
@@ -153,7 +166,7 @@ const buildVoucherHTML = (
     }
     .field-value{
       font-size: 14px;
-      color: #111;
+      color: var(--theme-text-primary);
       font-weight: 700;
       text-align: right;
     }
@@ -198,7 +211,7 @@ const buildVoucherHTML = (
     }
     .desc-text {
       padding: 12px 14px;
-      background: #fafafa;
+      background: var(--theme-background);
       border-left: 4px solid var(--ink);
       line-height: 1.6;
       font-size: 13px;
@@ -215,10 +228,10 @@ const buildVoucherHTML = (
     }
 
     .signature-box{
-      border: 1px dashed #bdbdbd;
+      border: 1px dashed var(--theme-border-strong);
       border-radius: 12px;
       padding: 16px 12px 18px;
-      background: #fff;
+      background: var(--theme-surface);
       min-height: 120px;
       position: relative;
     }
@@ -253,10 +266,10 @@ const buildVoucherHTML = (
     .footer {
       text-align: center;
       padding: 12px 16px;
-      background: #f4f4f4;
+      background: var(--theme-muted);
       border-top: 2px solid var(--ink);
       font-size: 10px;
-      color: #666;
+      color: var(--theme-text-muted);
       letter-spacing: 1px;
       line-height: 1.5;
     }

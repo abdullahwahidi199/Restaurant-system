@@ -1,12 +1,13 @@
+import { useTranslation } from "react-i18next";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = [
-  "#7C3AED",
-  "#B45309",
-  "#DC2626",
-  "#2563EB",
-  "#F59E0B",
-  "#16A34A",
+  "var(--theme-chart-1)",
+  "var(--theme-chart-2)",
+  "var(--theme-chart-3)",
+  "var(--theme-chart-4)",
+  "var(--theme-chart-5)",
+  "var(--theme-chart-6)",
 ];
 
 const renderLabel = ({ name, percent }) => {
@@ -14,10 +15,16 @@ const renderLabel = ({ name, percent }) => {
 };
 
 export default function TopConsumedChart({ items }) {
+  const { t } = useTranslation();
+
   if (!items || items.length === 0) {
     return (
-      <div className="bg-white border rounded-2xl p-5 shadow-sm">
-        <p className="text-sm text-gray-500">No consumption data available</p>
+      <div className="theme-card p-4 sm:p-5">
+        <p className="text-sm theme-text-muted">
+          {t("inventory_manager.dashboard.no_consumption_data", {
+            defaultValue: "No consumption data available",
+          })}
+        </p>
       </div>
     );
   }
@@ -44,9 +51,11 @@ export default function TopConsumedChart({ items }) {
   });
 
   return (
-    <div className="bg-white border rounded-2xl p-5 shadow-sm">
-      <h3 className="font-semibold text-gray-900 mb-4">
-        Top Consumed Ingredients (30 days)
+    <div className="theme-card p-4 sm:p-5">
+      <h3 className="mb-4 font-semibold theme-text-primary">
+        {t("inventory_manager.dashboard.top_consumed", {
+          defaultValue: "Top Consumed Ingredients (30 days)",
+        })}
       </h3>
 
       <div className="h-72">
@@ -59,7 +68,7 @@ export default function TopConsumedChart({ items }) {
               cx="50%"
               cy="50%"
               innerRadius={0}
-              outerRadius={120}
+              outerRadius="72%"
               label={renderLabel}
               labelLine={false}
             >

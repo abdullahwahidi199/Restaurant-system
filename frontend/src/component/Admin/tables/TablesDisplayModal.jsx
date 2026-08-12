@@ -67,7 +67,10 @@ export default function TablesDisplay({ tables, onUpdate }) {
                   <div className="flex items-center text-gray-600 mt-1">
                     <Coffee size={16} className="mr-1" />
                     <span>
-                      {t("items")}: {table.current_order.items.length} |{" "}
+                      {t("items")}:{" "}
+                      {table.current_order.item_count ??
+                        table.current_order.items.length}{" "}
+                      |{" "}
                       {t("total")}: Afs{table.current_order.total}
                     </span>
                   </div>

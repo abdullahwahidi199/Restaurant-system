@@ -25,6 +25,7 @@ from restaurants.permissions import IsRestaurantAdmin,IsSameRestaurant,IsRestaur
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from audit.services import record_report_export
 
 from django.db.models import Q
 
@@ -413,6 +414,15 @@ def generate_report(request):
     else:
         return Response({"error": "Invalid report type"}, status=400)
 
+    record_report_export(
+        request=request,
+        report_type=report_type,
+        export_format="json",
+        branch=branch,
+        start=start,
+        end=end,
+    )
+
     return Response({
         "type": report_type,
         "branch": report_branch_payload(branch),
@@ -624,6 +634,7 @@ def orders_pdf_report(request):
     story.append(_make_table(del_table, col_widths=[7*cm, 4*cm, 5*cm]))
 
     doc.build(story)
+    record_report_export(request=request, report_type="orders", export_format="pdf", branch=branch, start=start, end=end)
     return response
 
 
@@ -694,6 +705,10 @@ def staff_pdf_report(request):
                 ["Active Staff", _safe(totals.get("active_staff"))],
                 ["Inactive Staff", _safe(totals.get("inactive_staff"))],
                 ["Total Payroll Cost", _money(totals.get("total_payroll_cost", 0))],
+                ["Payroll Paid", _money(totals.get("total_payroll_paid", 0))],
+                ["Outstanding Salaries", _money(totals.get("outstanding_salaries", 0))],
+                ["Salary Advances", _money(totals.get("salary_advances", 0))],
+                ["Employee Deductions", _money(totals.get("total_employee_deductions", 0))],
                 ["Attendance Rate", f"{totals.get('attendance_rate_percent', 0)} %"],
                 ["Present Days (records)", _safe(totals.get("present_days"))],
                 ["Total Attendance Records", _safe(totals.get("total_attendance_records"))],
@@ -843,6 +858,111 @@ def staff_pdf_report(request):
         )
     )
 
+    _section_title(story, styles, "Salary Profiles")
+    salary_rows = [["Staff", "Type", "Base", "Pay Day", "Allow.", "Deduct.", "Active"]]
+    for row in data.get("salary_history", [])[:25]:
+        salary_rows.append([
+            _safe(row.get("staff_name"))[:18],
+            _safe(row.get("salary_type")),
+            _money(row.get("base_salary", 0)),
+            _safe(row.get("payment_day", "-")),
+            _money(row.get("allowances", 0)),
+            _money(row.get("deductions", 0)),
+            "Yes" if row.get("payroll_active") else "No",
+        ])
+    if len(salary_rows) == 1:
+        salary_rows.append(["-", "-", _money(0), "-", _money(0), _money(0), "-"])
+    story.append(
+        _make_table(
+            salary_rows,
+            col_widths=[3.2 * cm, 2.2 * cm, 2.2 * cm, 1.6 * cm, 2.2 * cm, 2.2 * cm, 1.6 * cm],
+        )
+    )
+
+    _section_title(story, styles, "Payroll History")
+    history_rows = [["Staff", "Period", "Status", "Gross", "Deductions", "Net", "Balance"]]
+    for row in data.get("payroll_history", [])[:25]:
+        history_rows.append([
+            _safe(row.get("staff_name"))[:16],
+            f"{row.get('period_start', '-')} to {row.get('period_end', '-')}",
+            _safe(row.get("status")),
+            _money(row.get("gross_salary", 0)),
+            _money(row.get("deductions", 0)),
+            _money(row.get("net_salary", 0)),
+            _money(row.get("remaining_balance", 0)),
+        ])
+    if len(history_rows) == 1:
+        history_rows.append(["-", "-", "-", _money(0), _money(0), _money(0), _money(0)])
+    story.append(
+        _make_table(
+            history_rows,
+            col_widths=[2.8 * cm, 4.2 * cm, 2 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm, 2.2 * cm],
+        )
+    )
+
+    _section_title(story, styles, "Payroll Payment History")
+    payment_rows = [["Date", "Staff", "Method", "Reference", "Amount"]]
+    for row in data.get("payroll_payment_history", [])[:25]:
+        payment_rows.append([
+            _safe(row.get("date")),
+            _safe(row.get("staff_name"))[:18],
+            _safe(row.get("payment_method")),
+            _safe(row.get("reference_number", "-"))[:18],
+            _money(row.get("amount", 0)),
+        ])
+    if len(payment_rows) == 1:
+        payment_rows.append(["-", "-", "-", "-", _money(0)])
+    story.append(
+        _make_table(
+            payment_rows,
+            col_widths=[3 * cm, 4 * cm, 3 * cm, 3.5 * cm, 2.5 * cm],
+        )
+    )
+
+    _section_title(story, styles, "Salary Advances")
+    advance_rows = [["Date", "Staff", "Reason", "Applied", "Amount"]]
+    for row in data.get("advance_history", [])[:25]:
+        advance_rows.append([
+            _safe(row.get("date")),
+            _safe(row.get("staff_name"))[:18],
+            _safe(row.get("reason"))[:22],
+            "Yes" if row.get("is_applied") else "No",
+            _money(row.get("amount", 0)),
+        ])
+    if len(advance_rows) == 1:
+        advance_rows.append(["-", "-", "-", "-", _money(0)])
+    story.append(
+        _make_table(
+            advance_rows,
+            col_widths=[3 * cm, 4 * cm, 4.5 * cm, 2 * cm, 2.5 * cm],
+        )
+    )
+
+    _section_title(story, styles, "Employee Earnings and Deductions")
+    earnings_rows = [["Staff", "Role", "Earnings", "Paid", "Outstanding", "Deductions"]]
+    deduction_by_staff = {
+        row.get("staff_id"): row
+        for row in data.get("employee_deductions", [])
+    }
+    for row in data.get("employee_earnings", [])[:25]:
+        deduction = deduction_by_staff.get(row.get("staff_id"), {})
+        earnings_rows.append([
+            _safe(row.get("staff_name"))[:18],
+            _safe(row.get("role"))[:12],
+            _money(row.get("earnings", 0)),
+            _money(row.get("paid", 0)),
+            _money(row.get("outstanding", 0)),
+            _money(deduction.get("deductions", 0)),
+        ])
+    if len(earnings_rows) == 1:
+        earnings_rows.append(["-", "-", _money(0), _money(0), _money(0), _money(0)])
+    story.append(
+        _make_table(
+            earnings_rows,
+            col_widths=[3.2 * cm, 2.5 * cm, 2.5 * cm, 2.5 * cm, 2.6 * cm, 2.5 * cm],
+        )
+    )
+
     _section_title(story, styles, "Top Performers (by Revenue)")
     performers = data.get("top_performers", [])
     perf_table = [["Staff", "Role", "Orders", "Revenue"]]
@@ -858,6 +978,7 @@ def staff_pdf_report(request):
     story.append(_make_table(perf_table, col_widths=[5 * cm, 4 * cm, 3 * cm, 4 * cm]))
 
     doc.build(story)
+    record_report_export(request=request, report_type="staff", export_format="pdf", branch=branch, start=start, end=end)
     return response
 from django.http import HttpResponse
 from django.utils import timezone
@@ -1083,6 +1204,7 @@ def orders_pdf_report(request):
     story.append(make_table(del_table, col_widths=[7 * cm, 4 * cm, 5 * cm]))
 
     doc.build(story)
+    record_report_export(request=request, report_type="orders", export_format="pdf", branch=branch, start=start, end=end)
     return response
 
 from django.http import HttpResponse
@@ -1184,10 +1306,141 @@ def finance_pdf_report(request):
         ["COGS", str(expenses.get("cogs", 0))],
         ["Wastage", str(expenses.get("wastage", 0))],
         ["Stock Purchases", str(expenses.get("stock_purchases", 0))],
-        ["Operational Expenses", str(expenses.get("operational_expenses", 0))],  # NEW
+        ["Supplier Payments", str(expenses.get("supplier_payments", 0))],
+        ["Outstanding Supplier Payables", str(expenses.get("supplier_payables", 0))],
+        ["Daily Expenses", str(expenses.get("daily_expenses", expenses.get("operational_expenses", 0)))],
+        ["Contractor Expenses", str(expenses.get("contractor_expenses", 0))],
+        ["Contractor Payments", str(expenses.get("contractor_payments", 0))],
+        ["Outstanding Contractor Payables", str(expenses.get("contractor_payables", 0))],
+        ["Payroll", str(expenses.get("payroll", 0))],
+        ["Payroll Payments", str(expenses.get("payroll_payments", 0))],
+        ["Outstanding Salaries", str(expenses.get("outstanding_salaries", 0))],
+        ["Salary Advances", str(expenses.get("salary_advances", 0))],
         ["Total Expenses", str(expenses.get("total_expenses", 0))],
     ]
     draw_table(table_data, [220, 150])
+
+    procurement = data.get("procurement", {})
+    draw_section_title("Procurement Summary")
+    procurement_table = [
+        ["Metric", "Amount (AFN)"],
+        ["Purchase Value", str(procurement.get("purchase_value", 0))],
+        ["Payments Made", str(procurement.get("payments_made", 0))],
+        ["Outstanding Supplier Balance", str(procurement.get("outstanding_supplier_balance", 0))],
+    ]
+    draw_table(procurement_table, [220, 150])
+
+    contractors = data.get("contractors", {})
+    draw_section_title("Contractor Summary")
+    contractor_table = [
+        ["Metric", "Amount (AFN)"],
+        ["Contractor Expenses", str(contractors.get("expense_value", 0))],
+        ["Payments Made", str(contractors.get("payments_made", 0))],
+        ["Outstanding Contractor Balance", str(contractors.get("outstanding_contractor_balance", 0))],
+    ]
+    draw_table(contractor_table, [220, 150])
+
+    payroll = data.get("payroll", {})
+    draw_section_title("Payroll Summary")
+    payroll_table = [
+        ["Metric", "Amount (AFN)"],
+        ["Monthly Payroll Cost", str(payroll.get("monthly_payroll_cost", 0))],
+        ["Payments Made", str(payroll.get("payments_made", 0))],
+        ["Outstanding Salaries", str(payroll.get("outstanding_salaries", 0))],
+        ["Salary Advances", str(payroll.get("salary_advances", 0))],
+    ]
+    draw_table(payroll_table, [220, 150])
+
+    by_employee = payroll.get("payroll_by_employee", [])[:10]
+    if by_employee:
+        draw_section_title("Payroll by Employee")
+        employee_rows = [["Employee", "Cost", "Paid", "Balance"]]
+        for row in by_employee:
+            employee_rows.append([
+                row.get("employee", "-")[:18],
+                str(row.get("payroll_cost", 0)),
+                str(row.get("paid", 0)),
+                str(row.get("outstanding", 0)),
+            ])
+        draw_table(employee_rows, [130, 80, 80, 90])
+
+    payment_history = payroll.get("payment_history", [])[:10]
+    if payment_history:
+        draw_section_title("Payroll Payment History")
+        payment_rows = [["Date", "Employee", "Method", "Amount"]]
+        for row in payment_history:
+            payment_rows.append([
+                row.get("date", "-"),
+                row.get("employee", "-")[:18],
+                row.get("payment_method", "-"),
+                str(row.get("amount", 0)),
+            ])
+        draw_table(payment_rows, [80, 130, 90, 80])
+
+    payroll_trends = payroll.get("payroll_trends", [])[:12]
+    if payroll_trends:
+        draw_section_title("Payroll Trends")
+        trend_rows = [["Period", "Payrolls", "Cost", "Net"]]
+        for row in payroll_trends:
+            trend_rows.append([
+                row.get("period", "-"),
+                str(row.get("payroll_count", 0)),
+                str(row.get("payroll_cost", 0)),
+                str(row.get("net_salary", 0)),
+            ])
+        draw_table(trend_rows, [90, 80, 100, 100])
+
+    by_contractor = contractors.get("expenses_by_contractor", [])[:10]
+    if by_contractor:
+        draw_section_title("Expenses by Contractor")
+        contractor_rows = [["Contractor", "Invoices", "Expense", "Balance"]]
+        for row in by_contractor:
+            contractor_rows.append([
+                row.get("contractor", "-")[:18],
+                str(row.get("invoice_count", 0)),
+                str(row.get("expense_value", 0)),
+                str(row.get("outstanding", 0)),
+            ])
+        draw_table(contractor_rows, [130, 70, 90, 90])
+
+    by_service = contractors.get("expenses_by_service_type", [])[:10]
+    if by_service:
+        draw_section_title("Expenses by Service Type")
+        service_rows = [["Service Type", "Lines", "Quantity", "Expense"]]
+        for row in by_service:
+            service_rows.append([
+                row.get("service_type", "-")[:18],
+                str(row.get("line_count", 0)),
+                str(row.get("quantity", 0)),
+                str(row.get("expense_value", 0)),
+            ])
+        draw_table(service_rows, [130, 70, 80, 90])
+
+    unpaid = procurement.get("unpaid_purchase_invoices", [])[:10]
+    if unpaid:
+        draw_section_title("Unpaid Purchase Invoices")
+        unpaid_table = [["Invoice", "Supplier", "Date", "Balance"]]
+        for invoice in unpaid:
+            unpaid_table.append([
+                invoice.get("invoice_number", "-"),
+                invoice.get("supplier", "-")[:18],
+                invoice.get("purchase_date", "-"),
+                str(invoice.get("remaining_balance", 0)),
+            ])
+        draw_table(unpaid_table, [90, 130, 80, 80])
+
+    unpaid_contractors = contractors.get("unpaid_contractor_invoices", [])[:10]
+    if unpaid_contractors:
+        draw_section_title("Unpaid Contractor Invoices")
+        unpaid_contractor_table = [["Invoice", "Contractor", "Date", "Balance"]]
+        for invoice in unpaid_contractors:
+            unpaid_contractor_table.append([
+                invoice.get("invoice_number", "-"),
+                invoice.get("contractor", "-")[:18],
+                invoice.get("invoice_date", "-"),
+                str(invoice.get("remaining_balance", 0)),
+            ])
+        draw_table(unpaid_contractor_table, [90, 130, 80, 80])
 
     # Profit analysis
     draw_section_title("Profit Analysis")
@@ -1210,6 +1463,7 @@ def finance_pdf_report(request):
     draw_text_line(f"Final Margin: {margin}%")
 
     p.save()
+    record_report_export(request=request, report_type="finance", export_format="pdf", branch=branch, start=start, end=end)
     return response
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -1452,6 +1706,33 @@ def inventory_pdf_report(request):
             ])
 
     draw_table(rows, [200, 80, 120], header_color=colors.steelblue)
+
+    # ---------------- Procurement Purchase Costs ----------------
+    draw_section_title("Purchase Cost Intelligence")
+    rows = [["Ingredient", "Avg Cost", "Last Price", "Last Supplier", "Value"]]
+    for item in movements.get("purchase_costs", [])[:15]:
+        rows.append([
+            safe_str(item.get("ingredient"), 20),
+            safe_money(item.get("average_purchase_cost")),
+            safe_money(item.get("last_purchase_price")),
+            safe_str(item.get("last_supplier"), 16),
+            safe_money(item.get("purchase_value")),
+        ])
+    draw_table(rows, [120, 80, 80, 120, 90], header_color=colors.darkgreen)
+
+    # ---------------- Supplier Purchase History ----------------
+    draw_section_title("Supplier Purchase History")
+    rows = [["Supplier", "Invoices", "Lines", "Quantity", "Value"]]
+    for item in movements.get("supplier_history", [])[:15]:
+        rows.append([
+            safe_str(item.get("supplier"), 22),
+            str(item.get("invoice_count", 0)),
+            str(item.get("line_count", 0)),
+            safe_num(item.get("quantity")),
+            safe_money(item.get("purchase_value")),
+        ])
+    draw_table(rows, [150, 65, 55, 85, 110], header_color=colors.darkgreen)
+
     # ---------------- Daily Movements ----------------
     draw_section_title("Daily Movement Trend")
     rows = [["Date", "Movements", "Total Quantity"]]
@@ -1479,6 +1760,19 @@ def inventory_pdf_report(request):
     draw_table(rows, [160, 90, 110, 70], header_color=colors.darkred)
 
 
+    # ---------------- Purchase History ----------------
+    draw_section_title("Purchase History")
+    rows = [["Date", "Invoice", "Supplier", "Ingredient", "Total"]]
+    for item in movements.get("purchase_history", [])[:20]:
+        rows.append([
+            safe_str(item.get("purchase_date"), 10),
+            safe_str(item.get("invoice_number"), 14),
+            safe_str(item.get("supplier"), 16),
+            safe_str(item.get("ingredient"), 18),
+            safe_money(item.get("total_price")),
+        ])
+    draw_table(rows, [70, 90, 110, 120, 90], header_color=colors.darkgreen)
+
 
     # ---------------- Recent Movements ----------------
     draw_section_title("Recent Stock Movements")
@@ -1501,6 +1795,7 @@ def inventory_pdf_report(request):
 
     p.showPage()
     p.save()
+    record_report_export(request=request, report_type="inventory", export_format="pdf", branch=branch, start=start, end=end)
     return response
 
 

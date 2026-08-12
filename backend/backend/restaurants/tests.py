@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.test import TestCase, override_settings
@@ -7,7 +8,7 @@ from django.test import TestCase, override_settings
 from inventory.models import Ingredient, MenuItemIngredient, StockMovement
 from menu.models import Category, MenuItem, Platter, PlatterItem
 from restaurants.data_migration import run_branch_data_migration
-from restaurants.models import Branch, BranchDataMigrationLog, Restaurant
+from restaurants.models import Branch, BranchDataMigrationLog, Restaurant, Subscription
 
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -30,6 +31,13 @@ class BranchDataMigrationServiceTests(TestCase):
             ingredient_mode="separate",
             recipe_mode="separate",
             pricing_mode="branch",
+        )
+        Subscription.objects.create(
+            restaurant=self.restaurant,
+            starts_at=date.today() - timedelta(days=1),
+            expires_at=date.today() + timedelta(days=30),
+            max_branches=5,
+            is_active=True,
         )
         self.source = Branch.objects.create(
             restaurant=self.restaurant,

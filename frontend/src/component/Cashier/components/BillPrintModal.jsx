@@ -6,10 +6,19 @@ const BillPrintModal = ({ order, onClose }) => {
   const printRef = useRef();
   console.log(order);
   const { restaurantDetails } = useContext(AuthContext);
+  const receiptFooter = "Powered by Pakhlai - pakhlai.com";
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const logo = restaurantDetails?.logo
     ? `${BASE_URL}${restaurantDetails.logo}`
     : "";
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   if (!order) return null;
 
@@ -56,7 +65,7 @@ const BillPrintModal = ({ order, onClose }) => {
 
   function escapeHtml(str) {
     if (typeof str !== "string") return str;
-    return str.replace(/[&<>"'`=\/]/g, function (s) {
+    return str.replace(/[&<>"'`=/]/g, function (s) {
       return {
         "&": "&amp;",
         "<": "&lt;",
@@ -83,16 +92,16 @@ const BillPrintModal = ({ order, onClose }) => {
         ${isCancelled ? "opacity:0.5;text-decoration:line-through;" : ""}
       "
     >
-      <td style="padding:4px;border-bottom:1px solid #eee;font-size:11px">
+      <td style="padding:4px;border-bottom:1px solid var(--theme-border);font-size:11px">
         ${escapeHtml(itemName(it))}
         ${isCancelled ? '<span style="color:red"> (Cancelled)</span>' : ""}
       </td>
 
-      <td style="padding:4px;border-bottom:1px solid #eee;text-align:center;font-size:11px">
+      <td style="padding:4px;border-bottom:1px solid var(--theme-border);text-align:center;font-size:11px">
         ${escapeHtml(String(itemQty(it)))}
       </td>
 
-      <td style="padding:4px;border-bottom:1px solid #eee;text-align:right;font-size:11px">
+      <td style="padding:4px;border-bottom:1px solid var(--theme-border);text-align:right;font-size:11px">
         ${
           isCancelled
             ? "AFN 0.00"
@@ -118,15 +127,18 @@ const BillPrintModal = ({ order, onClose }) => {
 
     const restaurantContactHtml =
       restaurantDetails?.phone || restaurantDetails?.address
-        ? `<div style="text-align:center;margin-bottom:8px;border-bottom:1px dashed #ccc;padding-bottom:4px">
+        ? `<div style="text-align:center;margin-bottom:8px;border-bottom:1px dashed var(--theme-border-strong);padding-bottom:4px">
             ${restaurantDetails?.phone ? `<p style="margin:0 0 2px;font-size:10px"><strong>Phone:</strong> ${escapeHtml(restaurantDetails.phone)}</p>` : ""}
             ${restaurantDetails?.address ? `<p style="margin:0;font-size:10px"><strong>Address:</strong> ${escapeHtml(restaurantDetails.address)}</p>` : ""}
            </div>`
         : "";
+    const receiptFooterHtml = receiptFooter
+      ? `<p style="text-align:center;color:var(--theme-text-muted);font-size:10px;margin-top:8px;white-space:pre-line">${escapeHtml(receiptFooter)}</p>`
+      : "";
 
     // Standardized Summary for Thermal Printers
     const summaryHtml = `
-      <div style="margin-top:8px;border-top:1px dashed #ccc;padding-top:4px;font-size:11px">
+      <div style="margin-top:8px;border-top:1px dashed var(--theme-border-strong);padding-top:4px;font-size:11px">
         <div style="margin:2px 0">Items Subtotal: <span style="float:right">AFN ${itemsSubtotal.toFixed(2)}</span></div>
         ${hasReservation ? `<div style="margin:2px 0">Reservation: <span style="float:right">AFN ${reservationTotal.toFixed(2)}</span></div>` : ""}
         <div style="margin:2px 0;font-weight:bold">Subtotal: <span style="float:right">AFN ${originalBillTotal.toFixed(2)}</span></div>
@@ -144,16 +156,16 @@ const BillPrintModal = ({ order, onClose }) => {
         ${deliveryFee > 0 ? `<div style="margin:2px 0">Delivery Fee: <span style="float:right">AFN ${deliveryFee.toFixed(2)}</span></div>` : ""}
         
         <div style="clear:both"></div>
-        <div style="margin:4px 0;font-size:14px;font-weight:bold;border-top:1px solid #000;padding-top:4px">
+        <div style="margin:4px 0;font-size:14px;font-weight:bold;border-top:1px solid var(--theme-text-primary);padding-top:4px">
           Grand Total: <span style="float:right">AFN ${grandTotal.toFixed(2)}</span>
         </div>
         
         ${
           hasReservation
             ? `
-          <div style="clear:both;margin-top:6px;padding-top:4px;border-top:1px dashed #ccc">
+          <div style="clear:both;margin-top:6px;padding-top:4px;border-top:1px dashed var(--theme-border-strong)">
             <div style="margin:2px 0">Pre-paid: <span style="float:right">AFN ${reservationPaid.toFixed(2)}</span></div>
-            <div style="margin:2px 0;font-weight:bold;color:#d32f2f">Remaining Balance: <span style="float:right">AFN ${remainingBalance.toFixed(2)}</span></div>
+            <div style="margin:2px 0;font-weight:bold;color:var(--theme-danger-hover)">Remaining Balance: <span style="float:right">AFN ${remainingBalance.toFixed(2)}</span></div>
           </div>
         `
             : ""
@@ -163,7 +175,7 @@ const BillPrintModal = ({ order, onClose }) => {
     `;
 
     return `
-      <div style="font-family:Arial,Helvetica,sans-serif;padding:12px;color:#111;font-size:12px">
+      <div style="font-family:Arial,Helvetica,sans-serif;padding:12px;color:var(--theme-text-primary);font-size:12px">
         ${restaurantLogoHtml}
         ${restaurantNameHtml}
         ${restaurantContactHtml}
@@ -181,9 +193,9 @@ const BillPrintModal = ({ order, onClose }) => {
         <table style="width:100%;border-collapse:collapse;text-align:left;margin-bottom:8px">
           <thead>
             <tr>
-              <th style="padding:4px;border-bottom:1px solid #000;text-align:left;font-size:11px">Item</th>
-              <th style="padding:4px;border-bottom:1px solid #000;text-align:center;font-size:11px">Qty</th>
-              <th style="padding:4px;border-bottom:1px solid #000;text-align:right;font-size:11px">Price</th>
+              <th style="padding:4px;border-bottom:1px solid var(--theme-text-primary);text-align:left;font-size:11px">Item</th>
+              <th style="padding:4px;border-bottom:1px solid var(--theme-text-primary);text-align:center;font-size:11px">Qty</th>
+              <th style="padding:4px;border-bottom:1px solid var(--theme-text-primary);text-align:right;font-size:11px">Price</th>
             </tr>
           </thead>
           <tbody>${itemsHtml}</tbody>
@@ -191,7 +203,7 @@ const BillPrintModal = ({ order, onClose }) => {
         
         ${summaryHtml}
         
-        <p style="text-align:center;color:#666;font-size:10px;margin-top:8px">Thank you for dining with us!</p>
+        ${receiptFooterHtml}
       </div>
     `;
   };
@@ -240,14 +252,6 @@ const BillPrintModal = ({ order, onClose }) => {
       alert("Could not open print window.");
     }
   };
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   // --- Modal Render ---
   return (
@@ -431,8 +435,8 @@ const BillPrintModal = ({ order, onClose }) => {
             )}
           </div>
 
-          <p className="text-center text-gray-500 text-[10px] mt-3">
-            Thanks for dining with us!
+          <p className="text-center text-gray-500 text-[10px] mt-3 whitespace-pre-line">
+            {receiptFooter}
           </p>
         </div>
 

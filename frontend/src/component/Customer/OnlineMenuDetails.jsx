@@ -13,15 +13,21 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
+import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
+import {
+  getMenuApiBase,
+  getPublicCartKey,
+  getPublicContextFromParams,
+} from "../../api/publicOrdering";
 
 // Reusable Image fallback
 const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
       <div
-        className={`${className} bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center`}
+        className={`${className} bg-gradient-to-br from-[var(--theme-primary-subtle)] to-[var(--theme-danger-soft)] flex items-center justify-center`}
       >
-        <Utensils className="w-16 h-16 text-orange-200" />
+        <Utensils className="w-16 h-16 text-[var(--theme-primary)]/30" />
       </div>
     );
   }
@@ -38,15 +44,22 @@ const ImageWrapper = ({ src, alt, className }) => {
       loading="lazy"
       onError={(e) => {
         e.target.onerror = null;
-        e.target.src =
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400'%3E%3Crect width='600' height='400' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial' font-size='18' fill='%239ca3af' text-anchor='middle'%3EImage not available%3C/text%3E%3C/svg%3E";
+        e.target.src = buildThemedImagePlaceholder({
+          fontSize: 18,
+          label: "Image not available",
+        });
       }}
     />
   );
 };
 
 export default function OnlineMenuItemDetails() {
-  const { id, slug } = useParams();
+  const params = useParams();
+  const { id } = params;
+  const publicContext = getPublicContextFromParams(params);
+  const slug = publicContext.branchSlug || publicContext.restaurantSlug;
+  const menuApiBase = getMenuApiBase(publicContext);
+  const cartKey = getPublicCartKey(publicContext);
   const [itemDetails, setItemDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +72,7 @@ export default function OnlineMenuItemDetails() {
     try {
       setLoading(true);
       setError(null);
-      const res = await instance.get(`/menu/public/${slug}/menu-items/${id}/`);
+      const res = await instance.get(`${menuApiBase}/menu-items/${id}/`);
       setItemDetails(res.data);
     } catch (err) {
       console.error(err);
@@ -72,10 +85,9 @@ export default function OnlineMenuItemDetails() {
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchItemDetails();
-  }, [id]);
+  }, [id, menuApiBase]);
 
   const handleAddToCart = () => {
-    const cartKey = `online_cart_${slug}`;
     let cart = [];
 
     try {
@@ -83,7 +95,9 @@ export default function OnlineMenuItemDetails() {
       if (saved) cart = JSON.parse(saved);
     } catch {}
 
-    const existing = cart.find((i) => i.id === itemDetails.id);
+    const existing = cart.find(
+      (i) => i.id === itemDetails.id && i.type === "menu_item",
+    );
 
     if (existing) {
       existing.quantity += quantity;
@@ -94,6 +108,8 @@ export default function OnlineMenuItemDetails() {
         price: parseFloat(itemDetails.price),
         image: itemDetails.image,
         type: "menu_item",
+        restaurant_slug: publicContext.restaurantSlug,
+        branch_slug: publicContext.branchSlug,
         quantity,
       });
     }
@@ -103,7 +119,7 @@ export default function OnlineMenuItemDetails() {
     // 👇 ADD THIS: Dispatch custom event to notify other components
     window.dispatchEvent(
       new CustomEvent("cart-updated", {
-        detail: { cart, slug },
+        detail: { cart, slug, branchSlug: publicContext.branchSlug },
       }),
     );
 

@@ -11,6 +11,18 @@ import {
 import instance from "../../../api/axiosInstance";
 import DiscountRequestCard from "../../Manager/DiscountRequest/DiscountRequestCard";
 import useDiscountSocket from "../../../hooks/useDiscoutSocket";
+import PaginationControls from "../../ui/PaginationControls";
+
+const PAGE_SIZE = 20;
+const normalizePaginatedResponse = (data) =>
+  Array.isArray(data)
+    ? { results: data, count: data.length, next: null, previous: null }
+    : {
+        results: data?.results || [],
+        count: data?.count || 0,
+        next: data?.next || null,
+        previous: data?.previous || null,
+      };
 
 export default function AdminDiscountsMain() {
   const [requests, setRequests] = useState([]);
@@ -18,22 +30,42 @@ export default function AdminDiscountsMain() {
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({
+    count: 0,
+    next: null,
+    previous: null,
+  });
 
   const pendingCount = useMemo(
     () => requests.filter((r) => r.status === "pending").length,
     [requests],
   );
 
-  const fetchPendingRequests = async () => {
+  const fetchPendingRequests = async (targetPage = page) => {
     try {
       setError("");
       setLoading(true);
 
       const res = await instance.get(
         "/orders/admin/discount-requests/pending/",
+        {
+          params: {
+            page: targetPage,
+            page_size: PAGE_SIZE,
+            search: search || undefined,
+          },
+        },
       );
 
-      setRequests(res.data || []);
+      const payload = normalizePaginatedResponse(res.data);
+      setRequests(payload.results);
+      setPagination({
+        count: payload.count,
+        next: payload.next,
+        previous: payload.previous,
+      });
     } catch (error) {
       console.error(error);
 
@@ -48,8 +80,8 @@ export default function AdminDiscountsMain() {
   };
 
   useEffect(() => {
-    fetchPendingRequests();
-  }, []);
+    fetchPendingRequests(page);
+  }, [page, search]);
 
   const handleAction = async (id, action) => {
     try {
@@ -59,8 +91,7 @@ export default function AdminDiscountsMain() {
         action,
       });
 
-      // Remove approved/rejected request instantly
-      setRequests((prev) => prev.filter((req) => req.id !== id));
+      fetchPendingRequests(page);
     } catch (error) {
       const message =
         error?.response?.data?.error ||
@@ -96,7 +127,14 @@ export default function AdminDiscountsMain() {
 
         // if new pending request -> add it
         if (data.discount.status === "pending") {
-          return [data.discount, ...prev];
+          if (page === 1) {
+            setPagination((current) => ({
+              ...current,
+              count: Number(current.count || 0) + 1,
+            }));
+            return [data.discount, ...prev].slice(0, PAGE_SIZE);
+          }
+          fetchPendingRequests(page);
         }
 
         return prev;
@@ -149,6 +187,29 @@ export default function AdminDiscountsMain() {
         </div>
       )}
 
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 md:flex-row md:items-center">
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setPage(1);
+            setSearch(event.target.value);
+          }}
+          placeholder="Search order, table, customer, reason..."
+          className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setPage(1);
+            setSearch("");
+          }}
+          className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+        >
+          Reset
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-gray-200 bg-white">
           <div className="flex flex-col items-center gap-3">
@@ -186,6 +247,14 @@ export default function AdminDiscountsMain() {
           ))}
         </div>
       )}
+      <PaginationControls
+        page={page}
+        count={pagination.count}
+        hasNext={Boolean(pagination.next)}
+        hasPrevious={Boolean(pagination.previous)}
+        onPageChange={setPage}
+        pageSize={PAGE_SIZE}
+      />
     </div>
   );
 }

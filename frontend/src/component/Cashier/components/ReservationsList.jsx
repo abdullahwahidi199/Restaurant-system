@@ -6,6 +6,18 @@ import ReservationUpdateForm from "./ReservationUpdateForms";
 import ReservationCancellationToast from "./ReservationCancellationToast";
 import { AuthContext } from "../../../api/authforRBC";
 import ReservationPrintModal from "./ReservationPrintModal";
+import PaginationControls from "../../ui/PaginationControls";
+
+const PAGE_SIZE = 20;
+const normalizePaginatedResponse = (data) =>
+  Array.isArray(data)
+    ? { results: data, count: data.length, next: null, previous: null }
+    : {
+        results: data?.results || [],
+        count: data?.count || 0,
+        next: data?.next || null,
+        previous: data?.previous || null,
+      };
 
 export default function ReservationsList() {
   const [reservations, setReservations] = useState([]);
@@ -14,24 +26,61 @@ export default function ReservationsList() {
   const [reservationToCancel, setReservationToCancel] = useState(null);
   const { restaurantDetails } = useContext(AuthContext);
   const [printReservation, setPrintReservation] = useState(null);
-  const fetchReservations = async () => {
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    start: "",
+    end: "",
+  });
+  const [pagination, setPagination] = useState({
+    count: 0,
+    next: null,
+    previous: null,
+  });
+  const fetchReservations = async (targetPage = page) => {
     try {
-      const res = await instance.get("/orders/cashier/reservations/");
-      setReservations(res.data);
+      const res = await instance.get("/orders/cashier/reservations/", {
+        params: {
+          page: targetPage,
+          page_size: PAGE_SIZE,
+          search: filters.search || undefined,
+          status: filters.status || undefined,
+          start: filters.start || undefined,
+          end: filters.end || undefined,
+        },
+      });
+      const payload = normalizePaginatedResponse(res.data);
+      setReservations(payload.results);
+      setPagination({
+        count: payload.count,
+        next: payload.next,
+        previous: payload.previous,
+      });
     } catch (err) {
       toast.error("Failed to fetch reservations");
     }
   };
 
   useEffect(() => {
-    fetchReservations();
-  }, []);
+    fetchReservations(page);
+  }, [page, filters]);
+
+  const updateFilter = (field, value) => {
+    setPage(1);
+    setFilters((current) => ({ ...current, [field]: value }));
+  };
+
+  const resetFilters = () => {
+    setPage(1);
+    setFilters({ search: "", status: "", start: "", end: "" });
+  };
 
   const markArrived = async (id) => {
     try {
       await instance.post(`/orders/cashier/reservations/${id}/arrive/`);
       toast.success("Marked as arrived");
-      fetchReservations();
+      fetchReservations(page);
     } catch (err) {
       toast.error("Failed to update reservation status");
     }
@@ -41,7 +90,7 @@ export default function ReservationsList() {
     try {
       await instance.patch(`/orders/cancel-reservation/${id}/`);
       toast.success("Reservation cancelled");
-      fetchReservations();
+      fetchReservations(page);
     } catch (err) {
       toast.error("Failed to cancel reservation");
     }
@@ -109,6 +158,46 @@ export default function ReservationsList() {
         >
           <span className="text-xl">+</span> Add Reservation
         </button>
+      </div>
+
+      <div className="mb-4 grid gap-3 rounded-lg border border-gray-200 bg-white p-4 md:grid-cols-5">
+        <input
+          type="search"
+          value={filters.search}
+          onChange={(event) => updateFilter("search", event.target.value)}
+          placeholder="Search name, phone, table..."
+          className="rounded-md border border-gray-200 px-3 py-2 text-sm md:col-span-2"
+        />
+        <select
+          value={filters.status}
+          onChange={(event) => updateFilter("status", event.target.value)}
+          className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+        >
+          <option value="">Active status</option>
+          <option value="reserved">Reserved</option>
+          <option value="arrived">Arrived</option>
+        </select>
+        <input
+          type="date"
+          value={filters.start}
+          onChange={(event) => updateFilter("start", event.target.value)}
+          className="rounded-md border border-gray-200 px-3 py-2 text-sm"
+        />
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={filters.end}
+            onChange={(event) => updateFilter("end", event.target.value)}
+            className="min-w-0 flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -238,6 +327,15 @@ export default function ReservationsList() {
           </div>
         )}
       </div>
+      <PaginationControls
+        page={page}
+        count={pagination.count}
+        hasNext={Boolean(pagination.next)}
+        hasPrevious={Boolean(pagination.previous)}
+        onPageChange={setPage}
+        pageSize={PAGE_SIZE}
+        className="mt-4"
+      />
 
       {/* Add Reservation Modal */}
       {isAddModalOpen && (
@@ -245,7 +343,8 @@ export default function ReservationsList() {
           onClose={() => setIsAddModalOpen(false)}
           onReservationSaved={() => {
             setIsAddModalOpen(false);
-            fetchReservations();
+            setPage(1);
+            fetchReservations(1);
           }}
         />
       )}
@@ -255,7 +354,7 @@ export default function ReservationsList() {
           onClose={() => setSelectedReservation(null)}
           onReservationSaved={() => {
             setSelectedReservation(null);
-            fetchReservations();
+            fetchReservations(page);
           }}
         />
       )}

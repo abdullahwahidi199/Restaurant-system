@@ -36,6 +36,7 @@ ALLOWED_HOSTS = [
     'www.pakhlai.com',
 'localhost',
     '127.0.0.1',
+    '10.10.10.216'
 ]   
 
 
@@ -59,8 +60,10 @@ INSTALLED_APPS = [
     'system',
     'restaurants',
     'expenses',
+    'audit',
     'otp',
     'inventory',
+    'contractors',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
@@ -84,7 +87,7 @@ ASGI_APPLICATION = "backend.asgi.application"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     # "http://localhost:3000",
-    "http://10.10.10.224:5173",
+    "http://10.10.10.216:5173",
     "https://pakhlai.com",
     "https://www.pakhlai.com",
     "http://185.197.249.94",
@@ -122,25 +125,38 @@ CHANNEL_LAYERS = {
         },
     },
 }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'rms_db',
-#         'USER':'rms_user',
-#         'PASSWORD':'AbdullahWahidi123',
-#         'HOST':'localhost',
-#         'PORT':'5432'
-#     }
-# }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("DJANGO_CACHE_URL", "redis://127.0.0.1:6379/1"),
+    }
+}
+
+TRUSTED_PROXY_IPS = [
+    ip.strip()
+    for ip in os.environ.get("TRUSTED_PROXY_IPS", "").split(",")
+    if ip.strip()
+]
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'rms_db',
+        'USER':'rms_user',
+        'PASSWORD':'AbdullahWahidi123',
+        'HOST':'localhost',
+        'PORT':'5432'
+    }
+}
 
 RATELIMIT_IP_META_KEY = "HTTP_CF_CONNECTING_IP"
 BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 from datetime import timedelta

@@ -77,6 +77,13 @@ export default function RestaurantCard({
               No Subscription
             </span>
           )}
+
+          {subscription && (
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+              {subscription.branches_used}/{subscription.max_branches} Branches
+              Used
+            </span>
+          )}
         </div>
 
         {/* Action Buttons */}

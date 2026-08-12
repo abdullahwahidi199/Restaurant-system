@@ -22,7 +22,6 @@ export default function OrderDetailSidebar({
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [time, setTime] = useState(0);
-  const [running, setRunning] = useState(false);
 
   const updateOrderStatus = async (newStatus) => {
     try {
@@ -110,11 +109,23 @@ export default function OrderDetailSidebar({
     };
   }, [order.status, order.id]);
 
+  const items = order.items || [];
+  const hasPendingItems = items.some((i) => i.status === "pending");
+  const allStationItemsReady =
+    items.length > 0 &&
+    items.every(
+      (i) =>
+        i.status === "ready" ||
+        i.status === "cancelled" ||
+        i.status === "served" ||
+        i.status === "completed",
+    );
+
   return (
-    <div className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl overflow-y-auto z-20">
+    <div className="fixed right-0 top-0 z-50 h-full w-full max-w-96 overflow-y-auto border-l border-gray-200 bg-white shadow-xl sm:w-96">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-        <div>
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white p-4">
+        <div className="min-w-0">
           <h3 className="font-semibold text-lg text-gray-800">
             {getOrderTitle()}
           </h3>
@@ -124,7 +135,8 @@ export default function OrderDetailSidebar({
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          aria-label="Close order details"
         >
           <X size={20} />
         </button>
@@ -199,7 +211,7 @@ export default function OrderDetailSidebar({
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
-          {order.status === "pending" && !readOnly && (
+          {hasPendingItems && !allStationItemsReady && !readOnly && (
             <button
               disabled={updating}
               onClick={() => updateOrderStatus("in_progress")}
@@ -227,12 +239,11 @@ export default function OrderDetailSidebar({
             </button>
           </div>
 
-          {order.status === "in_progress" && !readOnly && (
+          {!hasPendingItems && !allStationItemsReady && !readOnly && (
             <button
               disabled={updating}
               onClick={() => {
                 updateOrderStatus("ready");
-                setRunning(false);
               }}
               className="w-full flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
             >

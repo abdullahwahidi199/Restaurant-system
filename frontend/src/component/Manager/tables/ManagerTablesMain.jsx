@@ -10,9 +10,10 @@ export default function HomePage() {
 
   const fetchTables = async () => {
     try {
-      const res = await instance.get("/orders/tables/");
+      const res = await instance.get("/orders/tables/", {
+        params: { view: "panel" },
+      });
       setTables(res.data);
-      console.log(res.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,6 +28,26 @@ export default function HomePage() {
 
   // real-time update handler
   const handleTableMessage = (msg) => {
+    if (msg?.type === "TABLE_ITEMS_UPDATED") {
+      setTables((prev) =>
+        prev.map((table) => {
+          if (table.id !== msg.table_id || !table.current_order) return table;
+          if (table.current_order.id !== msg.order_id) return table;
+
+          return {
+            ...table,
+            current_order: {
+              ...table.current_order,
+              item_count: msg.item_count,
+              total: msg.order_total,
+              status: msg.order_status,
+            },
+          };
+        }),
+      );
+      return;
+    }
+
     if (!msg?.table) return;
 
     const incoming = msg.table;

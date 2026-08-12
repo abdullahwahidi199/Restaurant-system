@@ -18,8 +18,9 @@ export default function ChangeTableModal({
 
   const fetchTables = async () => {
     try {
-      const res = await instance.get("/orders/tables/");
-      console.log(res.data);
+      const res = await instance.get("/orders/tables/", {
+        params: { view: "panel" },
+      });
       const availableTables = res.data.filter(
         (t) =>
           t.status === "available" &&

@@ -45,19 +45,19 @@ export default function TakeawayCheckoutForm({ onSubmit, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--theme-overlay)]"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      <div className="bg-[#111] p-6 rounded-xl w-80 md:w-96 shadow-lg relative">
+      <div className="theme-surface relative w-80 rounded-xl p-6 shadow-lg md:w-96">
         <button
           onClick={onClose}
           className={`absolute top-3 ${
             isRTL ? "left-3" : "right-3"
-          } text-gray-400 hover:text-white`}
+          } text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]`}
         >
           ✕
         </button>
-        <h2 className="text-2xl font-bold text-white mb-4">
+        <h2 className="mb-4 text-2xl font-bold text-[var(--theme-text-primary)]">
           {t("checkout.title")}
         </h2>
 
@@ -68,7 +68,7 @@ export default function TakeawayCheckoutForm({ onSubmit, onClose }) {
             placeholder={t("checkout.name")}
             value={formData.name}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-[#1a1a1a] border border-gray-700 text-white"
+            className="theme-input w-full p-2"
           />
 
           <input
@@ -77,12 +77,12 @@ export default function TakeawayCheckoutForm({ onSubmit, onClose }) {
             placeholder={t("checkout.phone")}
             value={formData.phone}
             onChange={handleChange}
-            className="w-full p-2 rounded bg-[#1a1a1a] border border-gray-700 text-white"
+            className="theme-input w-full p-2"
           />
 
           <button
             onClick={handleSubmit}
-            className="w-full py-2 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold"
+            className="theme-btn theme-btn-primary w-full rounded-full py-2"
           >
             {t("checkout.placeOrder")}
           </button>

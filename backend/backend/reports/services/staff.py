@@ -14,7 +14,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from users.models import Staff, Attendance, Payroll
+from users.models import Staff, Attendance, Payroll, PayrollPayment, SalaryAdvance
 from orders.models import Order, Reservation
 from decimal import Decimal
 
@@ -112,6 +112,22 @@ class StaffReportService:
         )
 
         # ── Payroll summary ────────────────────────────────────────────────
+        approved_payroll_qs = payroll_qs.filter(
+            status__in=[Payroll.STATUS_APPROVED, Payroll.STATUS_PAID]
+        )
+
+        payroll_payment_qs = PayrollPayment.objects.filter(
+            restaurant=restaurant,
+            date__range=[start_date, end_date],
+        )
+        salary_advance_qs = SalaryAdvance.objects.filter(
+            restaurant=restaurant,
+            date__range=[start_date, end_date],
+        )
+        if branch:
+            payroll_payment_qs = payroll_payment_qs.filter(branch=branch)
+            salary_advance_qs = salary_advance_qs.filter(branch=branch)
+
         payroll_rows = (
             payroll_qs
             .values(
@@ -125,16 +141,36 @@ class StaffReportService:
                     Sum("base_salary"),
                     Value(0, output_field=StaffReportService.MONEY_FIELD),
                 ),
+                total_allowances=Coalesce(
+                    Sum("allowances"),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
                 total_bonuses=Coalesce(
                     Sum("bonuses"),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
+                total_overtime=Coalesce(
+                    Sum("overtime_amount"),
                     Value(0, output_field=StaffReportService.MONEY_FIELD),
                 ),
                 total_deductions=Coalesce(
                     Sum("deductions"),
                     Value(0, output_field=StaffReportService.MONEY_FIELD),
                 ),
+                total_advances=Coalesce(
+                    Sum("advance_deductions"),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
+                total_gross=Coalesce(
+                    Sum("gross_salary"),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
                 total_net=Coalesce(
                     Sum("net_salary"),
+                    Value(0, output_field=StaffReportService.MONEY_FIELD),
+                ),
+                total_paid=Coalesce(
+                    Sum("amount_paid"),
                     Value(0, output_field=StaffReportService.MONEY_FIELD),
                 ),
             )
@@ -148,19 +184,183 @@ class StaffReportService:
                 "role": row["role"],
                 "payroll_count": row["payroll_count"],
                 "total_base": StaffReportService._money(row["total_base"]),
+                "total_allowances": StaffReportService._money(row["total_allowances"]),
                 "total_bonuses": StaffReportService._money(row["total_bonuses"]),
+                "total_overtime": StaffReportService._money(row["total_overtime"]),
                 "total_deductions": StaffReportService._money(row["total_deductions"]),
+                "total_advances": StaffReportService._money(row["total_advances"]),
+                "total_gross": StaffReportService._money(row["total_gross"]),
                 "total_net": StaffReportService._money(row["total_net"]),
+                "total_paid": StaffReportService._money(row["total_paid"]),
+                "outstanding": StaffReportService._money(
+                    (row["total_net"] or 0) - (row["total_paid"] or 0)
+                ),
             }
             for row in payroll_rows
         ]
 
-        total_payroll_cost = payroll_qs.aggregate(
-            total=Coalesce(
-                Sum("net_salary"),
-                Value(0, output_field=StaffReportService.MONEY_FIELD),
+        payroll_records = list(
+            payroll_qs.select_related("staff", "branch").order_by(
+                "-period_end",
+                "staff__name",
             )
-        )["total"]
+        )
+        approved_payroll_records = [
+            payroll
+            for payroll in payroll_records
+            if payroll.status in [Payroll.STATUS_APPROVED, Payroll.STATUS_PAID]
+        ]
+
+        total_payroll_cost = sum(
+            (payroll.expense_amount for payroll in approved_payroll_records),
+            Decimal("0.00"),
+        )
+        total_payroll_paid = (
+            payroll_payment_qs.aggregate(total=Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
+        total_salary_advances = (
+            salary_advance_qs.aggregate(total=Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
+        outstanding_salaries = sum(
+            (
+                payroll.remaining_balance
+                for payroll in approved_payroll_records
+                if payroll.status != Payroll.STATUS_PAID
+            ),
+            Decimal("0.00"),
+        )
+        total_employee_deductions = sum(
+            (
+                Decimal(payroll.deductions or 0)
+                + Decimal(payroll.advance_deductions or 0)
+                for payroll in payroll_records
+            ),
+            Decimal("0.00"),
+        )
+
+        salary_history = [
+            {
+                "staff_id": staff.id,
+                "staff_name": staff.name,
+                "role": staff.role,
+                "salary_type": staff.salary_type,
+                "base_salary": StaffReportService._money(staff.payroll_base_salary),
+                "payment_day": staff.payment_day,
+                "allowances": StaffReportService._money(staff.payroll_allowances),
+                "deductions": StaffReportService._money(staff.payroll_deductions),
+                "overtime_rate": StaffReportService._money(staff.overtime_rate),
+                "payroll_active": staff.is_payroll_active,
+            }
+            for staff in staff_qs.select_related("active_branch").order_by("name")
+        ]
+
+        payroll_history = [
+            {
+                "id": payroll.id,
+                "staff_id": payroll.staff_id,
+                "staff_name": payroll.staff.name,
+                "role": payroll.staff.role,
+                "period_type": payroll.period_type,
+                "period_start": payroll.period_start.strftime("%Y-%m-%d"),
+                "period_end": payroll.period_end.strftime("%Y-%m-%d"),
+                "status": payroll.status,
+                "gross_salary": StaffReportService._money(payroll.gross_salary),
+                "deductions": StaffReportService._money(payroll.deductions),
+                "advance_deductions": StaffReportService._money(payroll.advance_deductions),
+                "net_salary": StaffReportService._money(payroll.net_salary),
+                "amount_paid": StaffReportService._money(payroll.amount_paid),
+                "remaining_balance": StaffReportService._money(payroll.remaining_balance),
+            }
+            for payroll in payroll_records[:100]
+        ]
+
+        payroll_payment_history = [
+            {
+                "id": payment.id,
+                "staff_id": payment.staff_id,
+                "staff_name": payment.staff.name,
+                "payroll_id": payment.payroll_id,
+                "date": payment.date.strftime("%Y-%m-%d"),
+                "period": f"{payment.payroll.period_start} - {payment.payroll.period_end}",
+                "payment_method": payment.payment_method,
+                "reference_number": payment.reference_number,
+                "amount": StaffReportService._money(payment.amount),
+            }
+            for payment in payroll_payment_qs.select_related("staff", "payroll")
+            .order_by("-date", "-created_at")[:100]
+        ]
+
+        advance_history = [
+            {
+                "id": advance.id,
+                "staff_id": advance.staff_id,
+                "staff_name": advance.staff.name,
+                "date": advance.date.strftime("%Y-%m-%d"),
+                "amount": StaffReportService._money(advance.amount),
+                "reason": advance.reason,
+                "is_applied": advance.is_applied,
+                "applied_payroll": (
+                    f"{advance.applied_to.period_start} - {advance.applied_to.period_end}"
+                    if advance.applied_to_id
+                    else None
+                ),
+            }
+            for advance in salary_advance_qs.select_related("staff", "applied_to")
+            .order_by("-date", "-created_at")[:100]
+        ]
+
+        employee_totals = {}
+        for payroll in payroll_records:
+            row = employee_totals.setdefault(
+                payroll.staff_id,
+                {
+                    "staff_id": payroll.staff_id,
+                    "staff_name": payroll.staff.name,
+                    "role": payroll.staff.role,
+                    "earnings": Decimal("0.00"),
+                    "deductions": Decimal("0.00"),
+                    "advances": Decimal("0.00"),
+                    "paid": Decimal("0.00"),
+                    "outstanding": Decimal("0.00"),
+                },
+            )
+            if payroll.status in [Payroll.STATUS_APPROVED, Payroll.STATUS_PAID]:
+                row["earnings"] += payroll.expense_amount
+                row["outstanding"] += payroll.remaining_balance
+            row["deductions"] += Decimal(payroll.deductions or 0) + Decimal(payroll.advance_deductions or 0)
+            row["advances"] += Decimal(payroll.advance_deductions or 0)
+            row["paid"] += Decimal(payroll.amount_paid or 0)
+
+        employee_earnings = [
+            {
+                "staff_id": row["staff_id"],
+                "staff_name": row["staff_name"],
+                "role": row["role"],
+                "earnings": StaffReportService._money(row["earnings"]),
+                "paid": StaffReportService._money(row["paid"]),
+                "outstanding": StaffReportService._money(row["outstanding"]),
+            }
+            for row in sorted(
+                employee_totals.values(),
+                key=lambda item: (-item["earnings"], item["staff_name"].lower()),
+            )
+        ]
+
+        employee_deductions = [
+            {
+                "staff_id": row["staff_id"],
+                "staff_name": row["staff_name"],
+                "role": row["role"],
+                "deductions": StaffReportService._money(row["deductions"]),
+                "salary_advances": StaffReportService._money(row["advances"]),
+            }
+            for row in sorted(
+                employee_totals.values(),
+                key=lambda item: (-item["deductions"], item["staff_name"].lower()),
+            )
+        ]
 
         # ── Waiter performance (ALL waiters) ────────────────────────────────
         waiters = list(
@@ -233,7 +433,7 @@ revenue=Coalesce(
         )
 
         delivery_stats = {}
-        from decimal import Decimal
+       
 
         delivery_stats = {}
 
@@ -323,7 +523,7 @@ revenue=Coalesce(
 
     
 
-        from decimal import Decimal
+        
 
         order_cashier_stats = {}
 
@@ -497,6 +697,10 @@ revenue=Coalesce(
                 "active_staff": active_staff,
                 "inactive_staff": inactive_staff,
                 "total_payroll_cost": StaffReportService._money(total_payroll_cost),
+                "total_payroll_paid": StaffReportService._money(total_payroll_paid),
+                "outstanding_salaries": StaffReportService._money(outstanding_salaries),
+                "salary_advances": StaffReportService._money(total_salary_advances),
+                "total_employee_deductions": StaffReportService._money(total_employee_deductions),
                 "attendance_rate_percent": attendance_rate,
                 "present_days": present_count,
                 "total_attendance_records": total_attendance_records,
@@ -508,5 +712,11 @@ revenue=Coalesce(
             "delivery_performance": delivery_performance,
             "cashier_performance": cashier_performance,
             "payroll_summary": payroll_summary,
+            "salary_history": salary_history,
+            "payroll_history": payroll_history,
+            "payroll_payment_history": payroll_payment_history,
+            "advance_history": advance_history,
+            "employee_earnings": employee_earnings,
+            "employee_deductions": employee_deductions,
             "top_performers": top_performers,
         }

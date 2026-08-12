@@ -8,7 +8,13 @@ from django.utils import timezone
 from datetime import datetime, timedelta, time
 from decimal import Decimal
 
-from inventory.models import Ingredient, StockMovement, MenuItemIngredient
+from inventory.models import (
+    Ingredient,
+    MenuItemIngredient,
+    PurchaseInvoice,
+    PurchaseInvoiceLine,
+    StockMovement,
+)
 from inventory.services import (
     get_effective_cost_per_unit,
 )
@@ -191,7 +197,85 @@ class InventoryReportService:
         # Order consumption
         consumption_qty = Decimal("0.00")
         consumption_cost = Decimal("0.00")
-        
+
+        purchase_lines = PurchaseInvoiceLine.objects.filter(
+            invoice__restaurant=restaurant,
+            invoice__purchase_date__range=(start_dt.date(), end_dt.date()),
+        ).exclude(invoice__status=PurchaseInvoice.STATUS_DRAFT)
+        if branch:
+            purchase_lines = purchase_lines.filter(invoice__branch=branch)
+
+        purchase_lines = purchase_lines.select_related(
+            "ingredient",
+            "invoice__supplier",
+            "invoice__branch",
+        ).order_by("-invoice__purchase_date", "-invoice__created_at")
+
+        purchase_history = [
+            {
+                "invoice_id": line.invoice_id,
+                "invoice_number": line.invoice.invoice_number or f"PINV-{line.invoice_id}",
+                "purchase_date": line.invoice.purchase_date.strftime("%Y-%m-%d"),
+                "supplier": line.invoice.supplier.name if line.invoice.supplier_id else "Cash / No Supplier",
+                "branch": line.invoice.branch.name if line.invoice.branch_id else "-",
+                "ingredient": line.ingredient.name,
+                "unit": line.ingredient.unit,
+                "quantity": float(line.quantity or 0),
+                "unit_price": float(line.unit_price or 0),
+                "total_price": float(line.total_price or 0),
+                "status": line.invoice.status,
+            }
+            for line in purchase_lines[:30]
+        ]
+
+        supplier_history_map = {}
+        ingredient_cost_map = {}
+        last_by_ingredient = {}
+
+        for line in purchase_lines:
+            supplier_name = (
+                line.invoice.supplier.name
+                if line.invoice.supplier_id
+                else "Cash / No Supplier"
+            )
+            supplier_row = supplier_history_map.setdefault(
+                supplier_name,
+                {
+                    "supplier": supplier_name,
+                    "invoice_count": set(),
+                    "line_count": 0,
+                    "purchase_value": Decimal("0.00"),
+                    "quantity": Decimal("0.00"),
+                },
+            )
+            supplier_row["invoice_count"].add(line.invoice_id)
+            supplier_row["line_count"] += 1
+            supplier_row["purchase_value"] += Decimal(line.total_price or 0)
+            supplier_row["quantity"] += Decimal(line.quantity or 0)
+
+            ingredient_name = line.ingredient.name
+            ingredient_row = ingredient_cost_map.setdefault(
+                ingredient_name,
+                {
+                    "ingredient": ingredient_name,
+                    "unit": line.ingredient.unit,
+                    "quantity": Decimal("0.00"),
+                    "purchase_value": Decimal("0.00"),
+                    "purchase_count": 0,
+                },
+            )
+            ingredient_row["quantity"] += Decimal(line.quantity or 0)
+            ingredient_row["purchase_value"] += Decimal(line.total_price or 0)
+            ingredient_row["purchase_count"] += 1
+
+            if ingredient_name not in last_by_ingredient:
+                last_by_ingredient[ingredient_name] = {
+                    "ingredient": ingredient_name,
+                    "unit": line.ingredient.unit,
+                    "last_purchase_price": float(line.unit_price or 0),
+                    "last_supplier": supplier_name,
+                    "last_purchase_date": line.invoice.purchase_date.strftime("%Y-%m-%d"),
+                }
 
         return {
             "range": {
@@ -205,6 +289,34 @@ class InventoryReportService:
             "total_consumption_quantity": round(float(consumption_qty), 2),
             "total_consumption_cost": round(float(consumption_cost), 2),
             "by_type": by_type,
+            "purchase_history": purchase_history,
+            "supplier_history": [
+                {
+                    "supplier": row["supplier"],
+                    "invoice_count": len(row["invoice_count"]),
+                    "line_count": row["line_count"],
+                    "quantity": round(float(row["quantity"]), 3),
+                    "purchase_value": round(float(row["purchase_value"]), 2),
+                }
+                for row in supplier_history_map.values()
+            ],
+            "purchase_costs": [
+                {
+                    "ingredient": row["ingredient"],
+                    "unit": row["unit"],
+                    "quantity": round(float(row["quantity"]), 3),
+                    "purchase_value": round(float(row["purchase_value"]), 2),
+                    "average_purchase_cost": round(
+                        float(row["purchase_value"] / row["quantity"]),
+                        4,
+                    ) if row["quantity"] else 0,
+                    "purchase_count": row["purchase_count"],
+                    "last_purchase_price": last_by_ingredient[row["ingredient"]]["last_purchase_price"],
+                    "last_supplier": last_by_ingredient[row["ingredient"]]["last_supplier"],
+                    "last_purchase_date": last_by_ingredient[row["ingredient"]]["last_purchase_date"],
+                }
+                for row in ingredient_cost_map.values()
+            ],
         }
 
     # -------------------------

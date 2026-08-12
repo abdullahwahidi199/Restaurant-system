@@ -66,6 +66,16 @@ const getStatusClasses = (status = "") => {
       return "bg-amber-50 text-amber-700 ring-amber-200";
     case "leave":
       return "bg-violet-50 text-violet-700 ring-violet-200";
+    case "draft":
+      return "bg-slate-100 text-slate-700 ring-slate-200";
+    case "approved":
+      return "bg-blue-50 text-blue-700 ring-blue-200";
+    case "paid":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+    case "open":
+      return "bg-amber-50 text-amber-700 ring-amber-200";
+    case "applied":
+      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
     default:
       return "bg-slate-100 text-slate-700 ring-slate-200";
   }
@@ -266,6 +276,12 @@ export default function StaffReport({ startDate, endDate }) {
   const deliveryPerformance = report.delivery_performance || [];
   const cashierPerformance = report.cashier_performance || [];
   const payrollSummary = report.payroll_summary || [];
+  const salaryHistory = report.salary_history || [];
+  const payrollHistory = report.payroll_history || [];
+  const payrollPaymentHistory = report.payroll_payment_history || [];
+  const advanceHistory = report.advance_history || [];
+  const employeeEarnings = report.employee_earnings || [];
+  const employeeDeductions = report.employee_deductions || [];
   const topPerformers = report.top_performers || [];
 
   const payrollColumns = useMemo(() => {
@@ -380,6 +396,30 @@ export default function StaffReport({ startDate, endDate }) {
               value={totals.total_attendance_records ?? 0}
               helper="All attendance records in period"
               dotClass="bg-cyan-500"
+            />
+            <StatCard
+              label="Payroll Cost"
+              value={formatCurrency(totals.total_payroll_cost ?? 0)}
+              helper="Approved salary expense"
+              dotClass="bg-slate-700"
+            />
+            <StatCard
+              label="Payroll Paid"
+              value={formatCurrency(totals.total_payroll_paid ?? 0)}
+              helper="Salary cash paid"
+              dotClass="bg-emerald-500"
+            />
+            <StatCard
+              label="Outstanding Salaries"
+              value={formatCurrency(totals.outstanding_salaries ?? 0)}
+              helper="Approved salaries unpaid"
+              dotClass="bg-rose-500"
+            />
+            <StatCard
+              label="Salary Advances"
+              value={formatCurrency(totals.salary_advances ?? 0)}
+              helper="Advances issued in period"
+              dotClass="bg-amber-500"
             />
           </div>
 
@@ -572,6 +612,226 @@ export default function StaffReport({ startDate, endDate }) {
                 ]}
                 rows={cashierPerformance}
                 emptyText="No cashier performance data found."
+              />
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <SectionCard
+              title="Salary History"
+              subtitle="Current salary profile configured for each employee"
+            >
+              <DataTable
+                columns={[
+                  { key: "staff_name", label: "Staff" },
+                  { key: "role", label: "Role" },
+                  { key: "salary_type", label: "Type" },
+                  {
+                    key: "base_salary",
+                    label: "Base",
+                    render: (value) => formatCurrency(value),
+                  },
+                  { key: "payment_day", label: "Pay Day" },
+                  {
+                    key: "allowances",
+                    label: "Allowances",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "deductions",
+                    label: "Deductions",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "payroll_active",
+                    label: "Active",
+                    render: (value) => (value ? "Yes" : "No"),
+                  },
+                ]}
+                rows={salaryHistory}
+                emptyText="No salary profiles found."
+              />
+            </SectionCard>
+
+            <SectionCard
+              title="Payroll Summary"
+              subtitle="Earnings, deductions, advances, paid amounts, and balances"
+            >
+              <DataTable
+                columns={[
+                  { key: "staff_name", label: "Staff" },
+                  { key: "role", label: "Role" },
+                  { key: "payroll_count", label: "Payrolls" },
+                  {
+                    key: "total_gross",
+                    label: "Gross",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "total_deductions",
+                    label: "Deductions",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "total_advances",
+                    label: "Advances",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "total_net",
+                    label: "Net",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "outstanding",
+                    label: "Balance",
+                    render: (value) => formatCurrency(value),
+                  },
+                ]}
+                rows={payrollSummary}
+                emptyText="No payroll summary found."
+              />
+            </SectionCard>
+          </div>
+
+          <SectionCard
+            title="Payroll History"
+            subtitle="Generated payroll records by employee and period"
+          >
+            <DataTable
+              columns={[
+                { key: "staff_name", label: "Staff" },
+                { key: "period_type", label: "Type" },
+                { key: "period_start", label: "Start" },
+                { key: "period_end", label: "End" },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (value) => <StatusBadge status={value} />,
+                },
+                {
+                  key: "gross_salary",
+                  label: "Gross",
+                  render: (value) => formatCurrency(value),
+                },
+                {
+                  key: "net_salary",
+                  label: "Net",
+                  render: (value) => formatCurrency(value),
+                },
+                {
+                  key: "remaining_balance",
+                  label: "Balance",
+                  render: (value) => formatCurrency(value),
+                },
+              ]}
+              rows={payrollHistory}
+              emptyText="No payroll history found."
+            />
+          </SectionCard>
+
+          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <SectionCard
+              title="Payment History"
+              subtitle="Salary payment trail and references"
+            >
+              <DataTable
+                columns={[
+                  { key: "date", label: "Date" },
+                  { key: "staff_name", label: "Staff" },
+                  { key: "period", label: "Period" },
+                  { key: "payment_method", label: "Method" },
+                  { key: "reference_number", label: "Reference" },
+                  {
+                    key: "amount",
+                    label: "Amount",
+                    render: (value) => formatCurrency(value),
+                  },
+                ]}
+                rows={payrollPaymentHistory}
+                emptyText="No payroll payments found."
+              />
+            </SectionCard>
+
+            <SectionCard
+              title="Advance History"
+              subtitle="Salary advances and payroll application status"
+            >
+              <DataTable
+                columns={[
+                  { key: "date", label: "Date" },
+                  { key: "staff_name", label: "Staff" },
+                  { key: "reason", label: "Reason" },
+                  {
+                    key: "is_applied",
+                    label: "Status",
+                    render: (value) => (
+                      <StatusBadge status={value ? "applied" : "open"} />
+                    ),
+                  },
+                  {
+                    key: "amount",
+                    label: "Amount",
+                    render: (value) => formatCurrency(value),
+                  },
+                ]}
+                rows={advanceHistory}
+                emptyText="No salary advances found."
+              />
+            </SectionCard>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <SectionCard
+              title="Employee Earnings"
+              subtitle="Approved payroll earnings, payments, and outstanding balances"
+            >
+              <DataTable
+                columns={[
+                  { key: "staff_name", label: "Staff" },
+                  { key: "role", label: "Role" },
+                  {
+                    key: "earnings",
+                    label: "Earnings",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "paid",
+                    label: "Paid",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "outstanding",
+                    label: "Outstanding",
+                    render: (value) => formatCurrency(value),
+                  },
+                ]}
+                rows={employeeEarnings}
+                emptyText="No employee earnings found."
+              />
+            </SectionCard>
+
+            <SectionCard
+              title="Employee Deductions"
+              subtitle="Deductions and salary advances by employee"
+            >
+              <DataTable
+                columns={[
+                  { key: "staff_name", label: "Staff" },
+                  { key: "role", label: "Role" },
+                  {
+                    key: "deductions",
+                    label: "Deductions",
+                    render: (value) => formatCurrency(value),
+                  },
+                  {
+                    key: "salary_advances",
+                    label: "Advances",
+                    render: (value) => formatCurrency(value),
+                  },
+                ]}
+                rows={employeeDeductions}
+                emptyText="No employee deductions found."
               />
             </SectionCard>
           </div>

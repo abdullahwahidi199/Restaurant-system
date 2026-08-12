@@ -6,11 +6,26 @@ import OrderCancellationToast from "../OrderCancellationToast";
 import { useTranslation } from "react-i18next";
 import { Clock3, Receipt, Star, Trash2, PackageCheck } from "lucide-react";
 import { useParams } from "react-router-dom";
+import {
+  getOnlineOrderApiPath,
+  getPublicContextFromParams,
+  getStoredPublicOrderingContext,
+} from "../../api/publicOrdering";
 
 export default function Orders() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
-  const { slug } = useParams();
+  const params = useParams();
+  const storedContext = getStoredPublicOrderingContext();
+  const publicContext = {
+    ...getPublicContextFromParams(params),
+    restaurantSlug:
+      params.restaurantSlug ||
+      params.slug ||
+      storedContext?.restaurantSlug ||
+      "",
+    branchSlug: params.branchSlug || storedContext?.branchSlug || "",
+  };
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewOrderId, setReviewOrderID] = useState(null);
@@ -84,9 +99,7 @@ export default function Orders() {
 
   const cancelOrder = async () => {
     try {
-      await api.patch(
-        `/orders/online-orders/${slug}/${orderToBeCancelled}/cancel/`,
-      );
+      await api.patch(getOnlineOrderApiPath(publicContext, orderToBeCancelled));
 
       setOrders((prev) =>
         prev.map((order) =>

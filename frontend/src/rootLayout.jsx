@@ -5,8 +5,8 @@ function RootLayout() {
   return (
     <>
       <Seo />
-      <div className="flex h-screen overflow-hidden">
-        <main className="flex-1 bg-gray-100  overflow-auto">
+      <div className="flex h-screen overflow-hidden theme-app-shell">
+        <main className="min-w-0 flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>

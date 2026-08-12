@@ -1,182 +1,307 @@
-import React, { useContext, useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Users,
-  CalendarCheck,
-  Clock,
-  Utensils,
-  Info,
-  Menu as MenuIcon,
-  Receipt,
-  Table2,
-  Settings,
-  User,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
-  BarChart,
-  Star,
-  Wallet,
-  BadgePercent,
-  Package,
-  CalendarDays,
-  CreditCard,
-  Building2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../api/authforRBC";
+import {
+  findActiveNavigationItem,
+  getAdminNavigationGroups,
+  getExpandedIdsForPath,
+  isAdminNavigationItemActive,
+} from "./adminNavigation";
 
-function Navbar() {
-  const [isOpen, setIsOpen] = useState(true);
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const { t, i18n } = useTranslation();
-  const { auth } = useContext(AuthContext);
-  const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const role = auth?.user?.role;
+const EXPANDED_STORAGE_KEY = "pakhlai-admin-sidebar-expanded";
+const mediaBaseUrl = import.meta.env.VITE_MEDIA_URL || "";
 
-  const navItems = [
-    {
-      to: "/admin/dashboard",
-      label: t("nav.dashboard"),
-      icon: <LayoutDashboard size={18} />,
-    },
-    {
-      to: "/admin/dashboard/attendance",
-      label: t("nav.attendance"),
-      icon: <CalendarCheck size={18} />,
-    },
-    {
-      to: "/admin/dashboard/staff",
-      label: t("nav.staff"),
-      icon: <Users size={18} />,
-    },
-    {
-      to: "/admin/dashboard/branches",
-      label: "Branches",
-      icon: <Building2 size={18} />,
-      adminOnly: true,
-    },
-    {
-      to: "/admin/dashboard/shifts",
-      label: t("nav.shifts"),
-      icon: <Clock size={18} />,
-    },
-    {
-      to: "/admin/dashboard/menu",
-      label: t("nav.menu"),
-      icon: <Utensils size={18} />,
-    },
-    {
-      to: "/admin/dashboard/daily_production",
-      label: "Daily Productions",
-      icon: <Utensils size={18} />,
-    },
-    {
-      to: "/admin/dashboard/pending-discount-requests",
-      label: "Discount Requests",
-      icon: <BadgePercent size={18} />,
-    },
-    {
-      to: "/admin/dashboard/orders",
-      label: t("nav.orders"),
-      icon: <Receipt size={18} />,
-    },
-    {
-      to: "/admin/dashboard/tables",
-      label: t("nav.tables"),
-      icon: <Table2 size={18} />,
-    },
-    {
-      to: "/admin/dashboard/expenses",
-      label: t("nav.expenses"),
-      icon: <Wallet size={18} />,
-    },
-    {
-      to: "/admin/dashboard/reservations",
-      label: "Reservations",
-      icon: <CalendarDays size={18} />,
-    },
-    {
-      to: "/admin/dashboard/discount-cards",
-      label: "Discount Cards",
-      icon: <CreditCard size={18} />,
-    },
-    {
-      to: "/admin/dashboard/reports",
-      label: t("nav.reports"),
-      icon: <BarChart size={18} />,
-    },
-    {
-      to: "/admin/dashboard/settings",
-      label: t("nav.settings"),
-      icon: <Settings size={18} />,
-    },
-    // {
-    //   to: "/admin/dashboard/customers",
-    //   label: t("nav.customers"),
-    //   icon: <User size={18} />,
-    // },
+const getLogoUrl = (logo) => {
+  if (!logo) return null;
+  if (logo.startsWith("http") || logo.startsWith("data:")) return logo;
+  return `${mediaBaseUrl}${logo}`;
+};
 
-    {
-      to: "/admin/dashboard/feedbacks",
-      label: t("nav.feedbacks"),
-      icon: <Star size={18} />,
-    },
-    {
-      to: "/admin/dashboard/inventory",
-      label: t("nav.inventory"),
-      icon: <Package size={18} />,
-    },
-  ];
+const readExpandedIds = () => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(EXPANDED_STORAGE_KEY) || "[]",
+    );
+    return new Set(Array.isArray(saved) ? saved : []);
+  } catch {
+    window.localStorage.removeItem(EXPANDED_STORAGE_KEY);
+    return new Set();
+  }
+};
+
+function BrandMark({ logoUrl, collapsed, name }) {
+  return (
+    <div className="admin-brand-mark" aria-hidden={collapsed ? undefined : true}>
+      {logoUrl ? (
+        <img src={logoUrl} alt={collapsed ? `${name} logo` : ""} />
+      ) : (
+        <span>P</span>
+      )}
+    </div>
+  );
+}
+
+function Tooltip({ label }) {
+  return <span className="admin-nav-tooltip">{label}</span>;
+}
+
+function TreeLink({ item, expanded, level, onNavigate, active }) {
+  const Icon = item.icon;
+  const depth = expanded ? level : 0;
 
   return (
-    <nav
-      dir={isRTL ? "rtl" : "ltr"}
-      className={`bg-gray-200 shadow-lg border border-t-0 border-r-gray-500 fixed md:static z-50 transition-all duration-300 ${
-        isOpen ? "w-64" : "w-16"
-      } h-screen flex flex-col`}
-    >
-      <div className="flex items-center justify-between bg-white px-4 py-4 border-b border-gray-500 flex-shrink-0">
-        <h1
-          className={`text-2xl font-bold text-gray-800 transition-all duration-300 ${!isOpen && "opacity-0 hidden"}`}
-        >
-          {t("nav.admin")}
-        </h1>
-        <button
-          className="text-gray-700 cursor-pointer hover:text-gray-900 transition"
-          onClick={toggleMenu}
-        >
-          {isOpen ? <X size={24} /> : <MenuIcon size={24} />}
-        </button>
-      </div>
+    <li className="admin-tree-item">
+      <NavLink
+        to={item.to}
+        end={item.end ?? true}
+        onClick={onNavigate}
+        className={() =>
+          `admin-nav-row admin-nav-link ${
+            active ? "admin-nav-link-active" : ""
+          } ${expanded ? "admin-nav-link-expanded" : "admin-nav-link-collapsed"} ${
+            level > 0 ? "admin-nav-child-link" : "admin-nav-parent-link"
+          }`
+        }
+        style={{ "--nav-depth": depth }}
+        title={expanded ? undefined : item.label}
+      >
+        <span className="admin-nav-icon-wrap">
+          <Icon className="admin-nav-icon" />
+        </span>
+        {expanded && <span className="admin-nav-label">{item.label}</span>}
+        {!expanded && <Tooltip label={item.label} />}
+      </NavLink>
+    </li>
+  );
+}
 
-      {/* Scrollable Menu */}
-      {isOpen && (
-        <div className="flex-1 overflow-y-auto">
-          <ul className="py-4 space-y-2 md:space-y-1">
-            {navItems
-              .filter((item) => !(item.adminOnly && role !== "Admin"))
-              .map(({ to, label, icon }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  end
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-5 py-2.5 rounded-lg transition-all ${
-                      isActive
-                        ? "bg-gray-200 text-gray-900 font-semibold"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  {icon}
-                  <span>{label}</span>
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+function TreeBranch({
+  item,
+  expanded,
+  level,
+  open,
+  active,
+  onToggle,
+  renderChildren,
+}) {
+  const Icon = item.icon;
+  const depth = expanded ? level : 0;
+
+  return (
+    <li className="admin-tree-item">
+      <button
+        type="button"
+        className={`admin-nav-row admin-nav-branch ${
+          active ? "admin-nav-branch-active" : ""
+        } ${expanded ? "admin-nav-link-expanded" : "admin-nav-link-collapsed"} ${
+          level > 0 ? "admin-nav-child-branch" : "admin-nav-parent-branch"
+        }`}
+        style={{ "--nav-depth": depth }}
+        onClick={() => onToggle(item.id)}
+        aria-expanded={expanded ? open : undefined}
+        title={expanded ? undefined : item.label}
+      >
+        <span className="admin-nav-icon-wrap">
+          <Icon className="admin-nav-icon" />
+        </span>
+        {expanded && (
+          <>
+            <span className="admin-nav-label">{item.label}</span>
+            <ChevronRight
+              className={`admin-nav-chevron ${open ? "admin-nav-chevron-open" : ""}`}
+            />
+          </>
+        )}
+        {!expanded && <Tooltip label={item.label} />}
+      </button>
+
+      {expanded && (
+        <div
+          className={`admin-tree-children ${open ? "admin-tree-children-open" : ""}`}
+        >
+          <div className="admin-tree-children-inner">
+            {renderChildren(item.children, level + 1)}
+          </div>
         </div>
       )}
-    </nav>
+    </li>
+  );
+}
+
+function Navbar({
+  collapsed,
+  mobileOpen,
+  onToggleCollapse,
+  onCloseMobile,
+  restaurant,
+}) {
+  const { t, i18n } = useTranslation();
+  const { auth, restaurantDetails } = useContext(AuthContext);
+  const location = useLocation();
+  const role = auth?.user?.role;
+  const isRTL = i18n.language === "fa" || i18n.language === "ps";
+  const groups = useMemo(() => getAdminNavigationGroups(t, role), [t, role]);
+  const activeItem = useMemo(
+    () => findActiveNavigationItem(groups, location.pathname),
+    [groups, location.pathname],
+  );
+  const expanded = !collapsed || mobileOpen;
+  const [expandedIds, setExpandedIds] = useState(() => {
+    const saved = readExpandedIds();
+    getExpandedIdsForPath(groups, location.pathname).forEach((id) =>
+      saved.add(id),
+    );
+    return saved;
+  });
+  const restaurantName =
+    restaurant?.name || restaurantDetails?.name || "Pakhlai Restaurant";
+  const logoUrl = getLogoUrl(restaurant?.logo || restaurantDetails?.logo);
+
+  useEffect(() => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      let changed = false;
+      getExpandedIdsForPath(groups, location.pathname).forEach((id) => {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, [groups, location.pathname]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      EXPANDED_STORAGE_KEY,
+      JSON.stringify([...expandedIds]),
+    );
+  }, [expandedIds]);
+
+  const toggleBranch = (id) => {
+    if (!expanded) {
+      onToggleCollapse();
+      setExpandedIds((current) => new Set(current).add(id));
+      return;
+    }
+
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const renderTree = (items, level = 0) => (
+    <ul className={`admin-tree-list admin-tree-level-${level}`}>
+      {items
+        .filter((item) => !item.hiddenInSidebar)
+        .map((item) => {
+          const hasChildren = item.children?.some(
+            (child) => !child.hiddenInSidebar,
+          );
+          const active = item.children?.length
+            ? isAdminNavigationItemActive(location.pathname, item)
+            : activeItem?.id === item.id;
+
+          if (hasChildren) {
+            const open = expandedIds.has(item.id);
+            return (
+              <TreeBranch
+                key={item.id}
+                item={item}
+                expanded={expanded}
+                level={level}
+                open={open}
+                active={active}
+                onToggle={toggleBranch}
+                renderChildren={renderTree}
+              />
+            );
+          }
+
+          return (
+            <TreeLink
+              key={item.id}
+              item={item}
+              expanded={expanded}
+              level={level}
+              active={active}
+              onNavigate={onCloseMobile}
+            />
+          );
+        })}
+    </ul>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`admin-sidebar-backdrop ${
+          mobileOpen ? "admin-sidebar-backdrop-open" : ""
+        }`}
+        onClick={onCloseMobile}
+        aria-label="Close navigation"
+      />
+
+      <aside
+        dir={isRTL ? "rtl" : "ltr"}
+        className={`admin-sidebar ${
+          expanded ? "admin-sidebar-expanded" : "admin-sidebar-collapsed"
+        } ${mobileOpen ? "admin-sidebar-mobile-open" : ""}`}
+        aria-label="Primary navigation"
+      >
+        <div className="admin-sidebar-brand">
+          <div className="admin-brand-content">
+            <BrandMark
+              logoUrl={logoUrl}
+              collapsed={!expanded}
+              name={restaurantName}
+            />
+            {expanded && (
+              <div className="admin-brand-copy">
+                <span className="admin-brand-title">Pakhlai RMS</span>
+                <span className="admin-brand-subtitle">{restaurantName}</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="admin-sidebar-collapse"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            className="admin-sidebar-mobile-close"
+            onClick={onCloseMobile}
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="admin-sidebar-scroll">{renderTree(groups)}</div>
+      </aside>
+    </>
   );
 }
 

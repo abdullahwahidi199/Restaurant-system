@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import { useTranslation } from "react-i18next";
+import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
 
 /* ═══════════════════════════════════════════
    LANGUAGE CONFIG
@@ -61,7 +62,7 @@ const FloatingParticles = () => {
             top: `${p.y}%`,
             width: `${p.size}px`,
             height: `${p.size}px`,
-            background: `radial-gradient(circle, rgba(212,168,83,${p.opacity}) 0%, rgba(212,168,83,0) 70%)`,
+            background: `radial-gradient(circle, rgb(var(--theme-secondary-rgb) / ${p.opacity}) 0%, rgb(var(--theme-secondary-rgb) / 0) 70%)`,
             animation: `floatParticle ${p.duration}s ease-in-out ${p.delay}s infinite`,
           }}
         />
@@ -72,7 +73,7 @@ const FloatingParticles = () => {
           top: "-10%",
           right: "-10%",
           background:
-            "radial-gradient(circle, rgba(212,168,83,0.06) 0%, transparent 70%)",
+            "radial-gradient(circle, rgb(var(--theme-secondary-rgb) / 0.06) 0%, transparent 70%)",
           animation: "pulseGlow 8s ease-in-out infinite",
         }}
       />
@@ -82,7 +83,7 @@ const FloatingParticles = () => {
           bottom: "-15%",
           left: "-15%",
           background:
-            "radial-gradient(circle, rgba(139,90,43,0.05) 0%, transparent 70%)",
+            "radial-gradient(circle, rgb(var(--theme-primary-rgb) / 0.05) 0%, transparent 70%)",
           animation: "pulseGlow 12s ease-in-out 3s infinite",
         }}
       />
@@ -95,18 +96,18 @@ const FloatingParticles = () => {
 ═══════════════════════════════════════════ */
 const OrnamentalDivider = () => (
   <div className="flex items-center justify-center gap-3 py-4 sm:py-6 select-none">
-    <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-[#d4a853]/40" />
+    <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent to-[var(--theme-secondary)]/40" />
     <div className="relative">
       <Sparkles
-        className="w-4 h-4 sm:w-5 sm:h-5 text-[#d4a853]"
+        className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--theme-secondary)]"
         style={{ animation: "shimmerIcon 3s ease-in-out infinite" }}
       />
       <div
-        className="absolute inset-0 blur-md bg-[#d4a853]/30 rounded-full"
+        className="absolute inset-0 blur-md bg-[var(--theme-secondary)]/30 rounded-full"
         style={{ animation: "shimmerIcon 3s ease-in-out infinite" }}
       />
     </div>
-    <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-[#d4a853]/40" />
+    <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent to-[var(--theme-secondary)]/40" />
   </div>
 );
 
@@ -165,9 +166,9 @@ const ImageWrapper = ({ src, alt, className }) => {
   if (!src) {
     return (
       <div
-        className={`${className} bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] flex items-center justify-center`}
+        className={`${className} bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-text-primary)] flex items-center justify-center`}
       >
-        <UtensilsCrossed className="w-8 h-8 text-[#d4a853]/30" />
+        <UtensilsCrossed className="w-8 h-8 text-[var(--theme-secondary)]/30" />
       </div>
     );
   }
@@ -179,7 +180,7 @@ const ImageWrapper = ({ src, alt, className }) => {
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-text-primary)] animate-pulse" />
       )}
       <img
         src={fullUrl}
@@ -192,8 +193,11 @@ const ImageWrapper = ({ src, alt, className }) => {
         onError={(e) => {
           e.target.onerror = null;
           setLoaded(true);
-          e.target.src =
-            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23111'/%3E%3Ctext x='50%25' y='50%25' font-family='serif' font-size='14' fill='%23d4a85366' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E";
+          e.target.src = buildThemedImagePlaceholder({
+            width: 400,
+            height: 300,
+            fontSize: 14,
+          });
         }}
       />
     </div>
@@ -205,7 +209,7 @@ const ImageWrapper = ({ src, alt, className }) => {
 ═══════════════════════════════════════════ */
 const ShimmerText = ({ children, className = "" }) => (
   <span
-    className={`inline-block bg-gradient-to-r from-[#d4a853] via-[#f5e6a3] to-[#d4a853] bg-[length:200%_100%] bg-clip-text text-transparent ${className}`}
+    className={`inline-block bg-gradient-to-r from-[var(--theme-secondary)] via-[var(--theme-warning-soft)] to-[var(--theme-secondary)] bg-[length:200%_100%] bg-clip-text text-transparent ${className}`}
     style={{ animation: "shimmerText 4s linear infinite" }}
   >
     {children}
@@ -247,8 +251,8 @@ const LanguageSwitcher = ({ i18n }) => {
           border rounded-full transition-all duration-300
           ${
             isOpen
-              ? "border-[#d4a853]/40 bg-[#d4a853]/10 text-[#d4a853]"
-              : "border-[#d4a853]/15 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30"
+              ? "border-[var(--theme-secondary)]/40 bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)]"
+              : "border-[var(--theme-secondary)]/15 text-gray-400 hover:text-[var(--theme-secondary)] hover:border-[var(--theme-secondary)]/30"
           }
         `}
         aria-label="Change language"
@@ -277,7 +281,7 @@ const LanguageSwitcher = ({ i18n }) => {
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute top-full mt-2 bg-[#131313]/95 backdrop-blur-2xl border border-[#d4a853]/15 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 min-w-[180px] z-[60]"
+          className="absolute top-full mt-2 bg-[var(--theme-elevated)]/95 backdrop-blur-2xl border border-[var(--theme-secondary)]/15 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 min-w-[180px] z-[60]"
           style={{
             animation: "langDropIn 0.25s cubic-bezier(0.22,1,0.36,1)",
             right: 0,
@@ -291,7 +295,7 @@ const LanguageSwitcher = ({ i18n }) => {
           </div>
 
           {/* Divider */}
-          <div className="mx-3 h-[1px] bg-gradient-to-r from-transparent via-[#d4a853]/15 to-transparent" />
+          <div className="mx-3 h-[1px] bg-gradient-to-r from-transparent via-[var(--theme-secondary)]/15 to-transparent" />
 
           {/* Options */}
           <div className="py-1.5">
@@ -305,8 +309,8 @@ const LanguageSwitcher = ({ i18n }) => {
                     w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 group
                     ${
                       isActive
-                        ? "bg-[#d4a853]/10 text-[#d4a853]"
-                        : "text-gray-400 hover:bg-[#d4a853]/5 hover:text-gray-200"
+                        ? "bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)]"
+                        : "text-gray-400 hover:bg-[var(--theme-secondary)]/5 hover:text-gray-200"
                     }
                   `}
                 >
@@ -314,14 +318,14 @@ const LanguageSwitcher = ({ i18n }) => {
                   <span
                     className={`
                       w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all duration-300
-                      ${isActive ? "bg-[#d4a853] shadow-[0_0_6px_rgba(212,168,83,0.5)]" : "bg-gray-700 group-hover:bg-gray-500"}
+                      ${isActive ? "theme-dot-secondary" : "theme-dot-muted"}
                     `}
                   />
 
                   {/* Language info */}
                   <div className="flex flex-col items-start gap-0.5 flex-1">
                     <span
-                      className={`font-light tracking-wide text-[13px] ${isActive ? "text-[#d4a853]" : ""}`}
+                      className={`font-light tracking-wide text-[13px] ${isActive ? "text-[var(--theme-secondary)]" : ""}`}
                     >
                       {lang.nativeLabel}
                     </span>
@@ -332,7 +336,7 @@ const LanguageSwitcher = ({ i18n }) => {
 
                   {/* Checkmark */}
                   {isActive && (
-                    <Check className="w-3.5 h-3.5 text-[#d4a853] flex-shrink-0" />
+                    <Check className="w-3.5 h-3.5 text-[var(--theme-secondary)] flex-shrink-0" />
                   )}
                 </button>
               );
@@ -340,7 +344,7 @@ const LanguageSwitcher = ({ i18n }) => {
           </div>
 
           {/* Bottom accent line */}
-          <div className="h-[2px] bg-gradient-to-r from-transparent via-[#d4a853]/30 to-transparent" />
+          <div className="h-[2px] bg-gradient-to-r from-transparent via-[var(--theme-secondary)]/30 to-transparent" />
         </div>
       )}
     </div>
@@ -600,7 +604,7 @@ export default function PublicMenu() {
   /* ────── LOADING ────── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center px-4 relative overflow-hidden">
         <FloatingParticles />
         <div
           className="text-center relative z-10"
@@ -611,15 +615,15 @@ export default function PublicMenu() {
         >
           <div className="relative mx-auto mb-8 w-20 h-20">
             <div
-              className="absolute inset-0 rounded-full border-2 border-[#d4a853]/20"
+              className="absolute inset-0 rounded-full border-2 border-[var(--theme-secondary)]/20"
               style={{ animation: "spinSlow 3s linear infinite" }}
             />
             <div
-              className="absolute inset-2 rounded-full border-2 border-t-[#d4a853] border-r-transparent border-b-transparent border-l-transparent"
+              className="absolute inset-2 rounded-full border-2 border-t-[var(--theme-secondary)] border-r-transparent border-b-transparent border-l-transparent"
               style={{ animation: "spinSlow 1.5s linear infinite" }}
             />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-[#d4a853]" />
+              <Sparkles className="w-6 h-6 text-[var(--theme-secondary)]" />
             </div>
           </div>
           <ShimmerText className="text-lg sm:text-xl font-light tracking-[0.3em] uppercase">
@@ -633,10 +637,10 @@ export default function PublicMenu() {
   /* ────── ERROR ────── */
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--theme-text-primary)] flex items-center justify-center p-4 relative overflow-hidden">
         <FloatingParticles />
         <div
-          className="bg-[#111]/80 backdrop-blur-xl rounded-3xl border border-[#d4a853]/10 p-8 sm:p-12 max-w-md w-full text-center relative z-10"
+          className="bg-[var(--theme-text-primary)]/80 backdrop-blur-xl rounded-3xl border border-[var(--theme-secondary)]/10 p-8 sm:p-12 max-w-md w-full text-center relative z-10"
           style={{ animation: "fadeInUp 0.6s ease-out" }}
         >
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -648,7 +652,7 @@ export default function PublicMenu() {
           <p className="text-gray-500 text-sm mb-8">{error}</p>
           <button
             onClick={fetchMenuItems}
-            className="px-8 py-3 bg-gradient-to-r from-[#d4a853] to-[#b8922e] text-[#0a0a0a] rounded-full font-medium text-sm tracking-wide hover:shadow-lg hover:shadow-[#d4a853]/20 transition-all active:scale-95"
+            className="px-8 py-3 bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-hover)] text-[var(--theme-text-primary)] rounded-full font-medium text-sm tracking-wide hover:shadow-lg hover:shadow-[var(--theme-secondary)]/20 transition-all active:scale-95"
           >
             {t("labels.try_again")}
           </button>
@@ -659,7 +663,7 @@ export default function PublicMenu() {
 
   /* ────── MAIN RENDER ────── */
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-28 sm:pb-8 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--theme-text-primary)] pb-28 sm:pb-8 relative overflow-x-hidden">
       {/* Global CSS Keyframes */}
       <style>{`
         @keyframes floatParticle {
@@ -697,8 +701,8 @@ export default function PublicMenu() {
           to { transform: rotate(360deg); }
         }
         @keyframes borderGlow {
-          0%, 100% { border-color: rgba(212,168,83,0.1); }
-          50% { border-color: rgba(212,168,83,0.3); }
+          0%, 100% { border-color: rgb(var(--theme-secondary-rgb) / 0.1); }
+          50% { border-color: rgb(var(--theme-secondary-rgb) / 0.3); }
         }
         @keyframes cartBounce {
           0%, 100% { transform: scale(1); }
@@ -733,20 +737,20 @@ export default function PublicMenu() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
         .glass-card {
-          background: rgba(17,17,17,0.6);
+          background: rgb(var(--theme-text-primary-rgb) / 0.6);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(212,168,83,0.08);
+          border: 1px solid rgb(var(--theme-secondary-rgb) / 0.08);
         }
         .glass-card:hover {
-          border-color: rgba(212,168,83,0.2);
-          background: rgba(17,17,17,0.8);
+          border-color: rgb(var(--theme-secondary-rgb) / 0.2);
+          background: rgb(var(--theme-text-primary-rgb) / 0.8);
         }
         .gold-glow {
-          box-shadow: 0 0 30px rgba(212,168,83,0.1), 0 0 60px rgba(212,168,83,0.05);
+          box-shadow: 0 0 30px rgb(var(--theme-secondary-rgb) / 0.1), 0 0 60px rgb(var(--theme-secondary-rgb) / 0.05);
         }
         .text-shadow-gold {
-          text-shadow: 0 0 40px rgba(212,168,83,0.3);
+          text-shadow: 0 0 40px rgb(var(--theme-secondary-rgb) / 0.3);
         }
 
         .menu-card-hover {
@@ -754,8 +758,8 @@ export default function PublicMenu() {
         }
         .menu-card-hover:hover {
           transform: translateY(-6px);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,83,0.08);
-          border-color: rgba(212,168,83,0.25);
+          box-shadow: 0 20px 60px rgb(var(--theme-shadow-color) / 0.5), 0 0 40px rgb(var(--theme-secondary-rgb) / 0.08);
+          border-color: rgb(var(--theme-secondary-rgb) / 0.25);
         }
         .menu-card-hover:hover .card-image {
           transform: scale(1.08);
@@ -768,31 +772,31 @@ export default function PublicMenu() {
           transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .category-pill.active {
-          background: linear-gradient(135deg, #d4a853, #b8922e);
-          color: #0a0a0a;
-          box-shadow: 0 4px 20px rgba(212,168,83,0.3);
+          background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
+          color: var(--theme-text-primary);
+          box-shadow: 0 4px 20px rgb(var(--theme-secondary-rgb) / 0.3);
         }
 
         .hero-section {
-          background: linear-gradient(180deg, rgba(212,168,83,0.03) 0%, transparent 100%);
+          background: linear-gradient(180deg, rgb(var(--theme-secondary-rgb) / 0.03) 0%, transparent 100%);
         }
 
         .cart-drawer-panel {
-          background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+          background: linear-gradient(180deg, var(--theme-text-primary) 0%, var(--theme-text-primary) 100%);
         }
 
         .input-luxury:focus {
-          box-shadow: 0 0 0 1px rgba(212,168,83,0.3), 0 0 20px rgba(212,168,83,0.1);
-          border-color: rgba(212,168,83,0.4);
+          box-shadow: 0 0 0 1px rgb(var(--theme-secondary-rgb) / 0.3), 0 0 20px rgb(var(--theme-secondary-rgb) / 0.1);
+          border-color: rgb(var(--theme-secondary-rgb) / 0.4);
         }
 
         .btn-gold {
-          background: linear-gradient(135deg, #d4a853, #b8922e);
-          color: #0a0a0a;
+          background: linear-gradient(135deg, var(--theme-secondary), var(--theme-secondary-hover));
+          color: var(--theme-text-primary);
           transition: all 0.3s ease;
         }
         .btn-gold:hover {
-          box-shadow: 0 4px 25px rgba(212,168,83,0.4);
+          box-shadow: 0 4px 25px rgb(var(--theme-secondary-rgb) / 0.4);
           transform: translateY(-1px);
         }
         .btn-gold:active {
@@ -806,12 +810,12 @@ export default function PublicMenu() {
           display: inline-block;
         }
         .availability-dot.available {
-          background: #4ade80;
-          box-shadow: 0 0 8px rgba(74,222,128,0.5);
+          background: var(--theme-success);
+          box-shadow: 0 0 8px rgb(var(--theme-success-rgb) / 0.5);
           animation: pulseGlow 2s ease-in-out infinite;
         }
         .availability-dot.unavailable {
-          background: #6b7280;
+          background: var(--theme-text-muted);
         }
 
         .stagger-1 { animation-delay: 0.1s; }
@@ -850,8 +854,8 @@ export default function PublicMenu() {
                 className="relative"
                 style={{ animation: "float 6s ease-in-out infinite" }}
               >
-                <div className="absolute -inset-4 rounded-full bg-[#d4a853]/5 blur-xl" />
-                <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-[#d4a853]/30 overflow-hidden bg-[#111] flex items-center justify-center gold-glow">
+                <div className="absolute -inset-4 rounded-full bg-[var(--theme-secondary)]/5 blur-xl" />
+                <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full border-2 border-[var(--theme-secondary)]/30 overflow-hidden bg-[var(--theme-text-primary)] flex items-center justify-center gold-glow">
                   {restaurantInfo?.logo ? (
                     <img
                       src={getLogoUrl(restaurantInfo.logo)}
@@ -859,15 +863,15 @@ export default function PublicMenu() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <UtensilsCrossed className="w-8 h-8 sm:w-10 sm:h-10 text-[#d4a853]/50" />
+                    <UtensilsCrossed className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--theme-secondary)]/50" />
                   )}
                 </div>
                 {/* Decorative ring */}
                 <div
-                  className="absolute -inset-2 rounded-full border border-[#d4a853]/10"
+                  className="absolute -inset-2 rounded-full border border-[var(--theme-secondary)]/10"
                   style={{ animation: "spinSlow 20s linear infinite" }}
                 >
-                  <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-[#d4a853] rounded-full -translate-x-1/2 -translate-y-1/2" />
+                  <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-[var(--theme-secondary)] rounded-full -translate-x-1/2 -translate-y-1/2" />
                 </div>
               </div>
             </div>
@@ -886,7 +890,7 @@ export default function PublicMenu() {
             {/* Slogan */}
             {restaurantInfo?.slogan && (
               <p
-                className="text-[#d4a853]/60 text-sm sm:text-base tracking-[0.3em] uppercase font-light mb-2"
+                className="text-[var(--theme-secondary)]/60 text-sm sm:text-base tracking-[0.3em] uppercase font-light mb-2"
                 style={{ animation: "fadeIn 1.5s ease-out 0.5s both" }}
               >
                 {restaurantInfo.slogan}
@@ -909,12 +913,12 @@ export default function PublicMenu() {
       {/* ══════════════════════════════════════
           STICKY HEADER / TOOLBAR
       ══════════════════════════════════════ */}
-      <header className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-2xl border-b border-[#d4a853]/5">
+      <header className="sticky top-0 z-40 bg-[var(--theme-text-primary)]/80 backdrop-blur-2xl border-b border-[var(--theme-secondary)]/5">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-3">
             {/* Compact Logo */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#d4a853]/20 overflow-hidden bg-[#111] flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[var(--theme-secondary)]/20 overflow-hidden bg-[var(--theme-text-primary)] flex items-center justify-center flex-shrink-0">
                 {restaurantInfo?.logo ? (
                   <img
                     src={getLogoUrl(restaurantInfo.logo)}
@@ -922,14 +926,14 @@ export default function PublicMenu() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <UtensilsCrossed className="w-4 h-4 text-[#d4a853]/50" />
+                  <UtensilsCrossed className="w-4 h-4 text-[var(--theme-secondary)]/50" />
                 )}
               </div>
               <div className="hidden sm:flex flex-col min-w-0">
                 <span className="text-white text-sm font-light tracking-[0.1em] truncate">
                   {restaurantInfo?.name || slug?.replace(/-/g, " ")}
                 </span>
-                <span className="text-[#d4a853]/40 text-[10px] tracking-[0.2em] uppercase truncate">
+                <span className="text-[var(--theme-secondary)]/40 text-[10px] tracking-[0.2em] uppercase truncate">
                   {restaurantInfo?.slogan || "Menu"}
                 </span>
               </div>
@@ -938,7 +942,7 @@ export default function PublicMenu() {
             {/* Search Bar */}
             <div className="relative flex-1 max-w-md">
               <Search
-                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-[#d4a853]/30 ${
+                className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-secondary)]/30 ${
                   isRTL ? "right-3 sm:right-4" : "left-3 sm:left-4"
                 }`}
               />
@@ -949,7 +953,7 @@ export default function PublicMenu() {
                 placeholder={t("labels.search_menu")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`input-luxury w-full py-2 sm:py-2.5 bg-[#111]/60 border border-[#d4a853]/10 rounded-full text-white placeholder-gray-600 text-sm focus:outline-none transition-all duration-300 ${
+                className={`input-luxury w-full py-2 sm:py-2.5 bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full text-white placeholder-gray-600 text-sm focus:outline-none transition-all duration-300 ${
                   isRTL
                     ? "pr-9 sm:pr-11 pl-10 text-right"
                     : "pl-9 sm:pl-11 pr-10 text-left"
@@ -959,7 +963,7 @@ export default function PublicMenu() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#d4a853] transition-colors ${
+                  className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-[var(--theme-secondary)] transition-colors ${
                     isRTL ? "left-3" : "right-3"
                   }`}
                 >
@@ -971,13 +975,13 @@ export default function PublicMenu() {
             {/* View Toggle + Language + Cart */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* View Mode Toggle */}
-              <div className="hidden sm:flex items-center bg-[#111]/60 border border-[#d4a853]/10 rounded-full p-0.5">
+              <div className="hidden sm:flex items-center bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full p-0.5">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-full transition-all duration-300 ${
                     viewMode === "grid"
-                      ? "bg-[#d4a853] text-[#0a0a0a]"
-                      : "text-gray-500 hover:text-[#d4a853]"
+                      ? "bg-[var(--theme-secondary)] text-[var(--theme-text-primary)]"
+                      : "text-gray-500 hover:text-[var(--theme-secondary)]"
                   }`}
                 >
                   <LayoutGrid className="w-4 h-4" />
@@ -986,8 +990,8 @@ export default function PublicMenu() {
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-full transition-all duration-300 ${
                     viewMode === "list"
-                      ? "bg-[#d4a853] text-[#0a0a0a]"
-                      : "text-gray-500 hover:text-[#d4a853]"
+                      ? "bg-[var(--theme-secondary)] text-[var(--theme-text-primary)]"
+                      : "text-gray-500 hover:text-[var(--theme-secondary)]"
                   }`}
                 >
                   <ListIcon className="w-4 h-4" />
@@ -1000,7 +1004,7 @@ export default function PublicMenu() {
               {/* Cart Button */}
               <button
                 onClick={() => setIsCartOpen(true)}
-                className="relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 border border-[#d4a853]/20 text-[#d4a853] rounded-full hover:bg-[#d4a853]/10 transition-all duration-300 active:scale-95"
+                className="relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 border border-[var(--theme-secondary)]/20 text-[var(--theme-secondary)] rounded-full hover:bg-[var(--theme-secondary)]/10 transition-all duration-300 active:scale-95"
               >
                 <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden md:inline font-light text-sm tracking-wide">
@@ -1008,7 +1012,7 @@ export default function PublicMenu() {
                 </span>
                 {cartTotals.itemCount > 0 && (
                   <span
-                    className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#d4a853] to-[#b8922e] text-[#0a0a0a] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full"
+                    className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-secondary-hover)] text-[var(--theme-text-primary)] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full"
                     style={{ animation: "cartBounce 0.4s ease-out" }}
                   >
                     {cartTotals.itemCount}
@@ -1038,8 +1042,8 @@ export default function PublicMenu() {
                   onClick={() => setSelectedCategory(category)}
                   className={`category-pill snap-start flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full whitespace-nowrap text-xs sm:text-sm font-light tracking-wide border ${
                     isActive
-                      ? "active border-[#d4a853]/40"
-                      : "bg-transparent text-gray-500 border-[#d4a853]/5 hover:border-[#d4a853]/15 hover:text-gray-300"
+                      ? "active border-[var(--theme-secondary)]/40"
+                      : "bg-transparent text-gray-500 border-[var(--theme-secondary)]/5 hover:border-[var(--theme-secondary)]/15 hover:text-gray-300"
                   }`}
                 >
                   <span>
@@ -1053,8 +1057,8 @@ export default function PublicMenu() {
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                         isActive
-                          ? "bg-[#0a0a0a]/20 text-[#0a0a0a]/70"
-                          : "bg-[#d4a853]/5 text-gray-600"
+                          ? "bg-[var(--theme-text-primary)]/20 text-[var(--theme-text-primary)]/70"
+                          : "bg-[var(--theme-secondary)]/5 text-gray-600"
                       }`}
                     >
                       {getCategoryCount(category)}
@@ -1066,7 +1070,7 @@ export default function PublicMenu() {
           </div>
           {/* Animated underline indicator */}
           <div
-            className="absolute bottom-2 h-[2px] bg-gradient-to-r from-transparent via-[#d4a853] to-transparent rounded-full transition-all duration-500 ease-out"
+            className="absolute bottom-2 h-[2px] bg-gradient-to-r from-transparent via-[var(--theme-secondary)] to-transparent rounded-full transition-all duration-500 ease-out"
             style={{
               left: `${activeCategoryIndicator.left}px`,
               width: `${activeCategoryIndicator.width}px`,
@@ -1094,7 +1098,7 @@ export default function PublicMenu() {
                     ? selectedCategory.name_pashto || selectedCategory.name
                     : selectedCategory.name}
               </h2>
-              <div className="flex-1 h-[1px] bg-gradient-to-r from-[#d4a853]/20 to-transparent" />
+              <div className="flex-1 h-[1px] bg-gradient-to-r from-[var(--theme-secondary)]/20 to-transparent" />
             </div>
             {selectedCategory.description && (
               <p className="text-gray-500 text-sm font-light tracking-wide">
@@ -1106,12 +1110,12 @@ export default function PublicMenu() {
 
         {/* Mobile View Toggle */}
         <div className="flex sm:hidden items-center justify-end mb-4">
-          <div className="flex items-center bg-[#111]/60 border border-[#d4a853]/10 rounded-full p-0.5">
+          <div className="flex items-center bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full p-0.5">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-full transition-all ${
                 viewMode === "grid"
-                  ? "bg-[#d4a853] text-[#0a0a0a]"
+                  ? "bg-[var(--theme-secondary)] text-[var(--theme-text-primary)]"
                   : "text-gray-500"
               }`}
             >
@@ -1121,7 +1125,7 @@ export default function PublicMenu() {
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-full transition-all ${
                 viewMode === "list"
-                  ? "bg-[#d4a853] text-[#0a0a0a]"
+                  ? "bg-[var(--theme-secondary)] text-[var(--theme-text-primary)]"
                   : "text-gray-500"
               }`}
             >
@@ -1156,7 +1160,7 @@ export default function PublicMenu() {
                       }}
                     >
                       {/* Image */}
-                      <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden bg-[#111]">
+                      <div className="relative aspect-[4/3] sm:aspect-[4/3] overflow-hidden bg-[var(--theme-text-primary)]">
                         <ImageWrapper
                           src={item.image}
                           alt={
@@ -1169,7 +1173,7 @@ export default function PublicMenu() {
                           className="card-image w-full h-full"
                         />
                         {/* Image overlay gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/80 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--theme-text-primary)]/80 via-transparent to-transparent" />
 
                         {/* Availability badge */}
                         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
@@ -1196,7 +1200,7 @@ export default function PublicMenu() {
                         {/* Type badge */}
                         {item.type === "platter" && (
                           <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
-                            <span className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wide bg-[#d4a853]/15 text-[#d4a853] border border-[#d4a853]/20 backdrop-blur-md">
+                            <span className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-medium tracking-wide bg-[var(--theme-secondary)]/15 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/20 backdrop-blur-md">
                               {t("labels.platter")}
                             </span>
                           </div>
@@ -1205,7 +1209,7 @@ export default function PublicMenu() {
                         {/* Price on image */}
                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
                           <span className="text-white text-base sm:text-xl md:text-2xl font-light tracking-wide">
-                            <span className="text-[#d4a853] text-xs sm:text-sm mr-1">
+                            <span className="text-[var(--theme-secondary)] text-xs sm:text-sm mr-1">
                               AFN
                             </span>
                             {parseFloat(item.price).toFixed(2)}
@@ -1215,7 +1219,7 @@ export default function PublicMenu() {
 
                       {/* Content */}
                       <div className="p-3 sm:p-4 md:p-5 flex-1 flex flex-col">
-                        <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 mb-3 group-hover:text-[#d4a853] transition-colors duration-300">
+                        <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 mb-3 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
                           {i18n.language === "fa"
                             ? item.name_dari || item.name
                             : i18n.language === "ps"
@@ -1243,13 +1247,13 @@ export default function PublicMenu() {
                               )}
                             </button>
                           ) : (
-                            <div className="flex items-center justify-between bg-[#111] border border-[#d4a853]/15 rounded-xl p-1">
+                            <div className="flex items-center justify-between bg-[var(--theme-text-primary)] border border-[var(--theme-secondary)]/15 rounded-xl p-1">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   decrementItem(item.id);
                                 }}
-                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg hover:bg-[#d4a853]/10 text-[#d4a853] flex items-center justify-center transition-all active:scale-90"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg hover:bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] flex items-center justify-center transition-all active:scale-90"
                               >
                                 <Minus className="w-4 h-4" />
                               </button>
@@ -1281,7 +1285,7 @@ export default function PublicMenu() {
                       <div
                         className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                         style={{
-                          boxShadow: "inset 0 0 30px rgba(212,168,83,0.05)",
+                          boxShadow: "inset 0 0 30px rgb(var(--theme-secondary-rgb) / 0.05)",
                         }}
                       />
                     </div>
@@ -1313,7 +1317,7 @@ export default function PublicMenu() {
                       }}
                     >
                       {/* Image */}
-                      <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex-shrink-0 overflow-hidden bg-[#111]">
+                      <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 flex-shrink-0 overflow-hidden bg-[var(--theme-text-primary)]">
                         <ImageWrapper
                           src={item.image}
                           alt={
@@ -1325,7 +1329,7 @@ export default function PublicMenu() {
                           }
                           className="card-image w-full h-full"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#111]/50" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[var(--theme-text-primary)]/50" />
 
                         {/* Availability dot */}
                         <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
@@ -1342,7 +1346,7 @@ export default function PublicMenu() {
                       {/* Content */}
                       <div className="flex-1 p-3 sm:p-4 md:p-5 flex flex-col min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 group-hover:text-[#d4a853] transition-colors duration-300">
+                          <h3 className="text-sm sm:text-base md:text-lg font-light text-white leading-snug line-clamp-2 group-hover:text-[var(--theme-secondary)] transition-colors duration-300">
                             {i18n.language === "fa"
                               ? item.name_dari || item.name
                               : i18n.language === "ps"
@@ -1350,7 +1354,7 @@ export default function PublicMenu() {
                                 : item.name}
                           </h3>
                           {item.type === "platter" && (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[#d4a853]/10 text-[#d4a853] border border-[#d4a853]/15 flex-shrink-0">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-medium bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] border border-[var(--theme-secondary)]/15 flex-shrink-0">
                               {t("labels.platter")}
                             </span>
                           )}
@@ -1362,9 +1366,9 @@ export default function PublicMenu() {
                           </p>
                         )}
 
-                        <div className="mt-auto flex items-center justify-between pt-2 border-t border-[#d4a853]/5">
+                        <div className="mt-auto flex items-center justify-between pt-2 border-t border-[var(--theme-secondary)]/5">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-[#d4a853] text-[10px] sm:text-xs tracking-wider">
+                            <span className="text-[var(--theme-secondary)] text-[10px] sm:text-xs tracking-wider">
                               AFN
                             </span>
                             <span className="text-white text-base sm:text-lg md:text-xl font-light">
@@ -1389,13 +1393,13 @@ export default function PublicMenu() {
                               )}
                             </button>
                           ) : (
-                            <div className="flex items-center bg-[#111] border border-[#d4a853]/15 rounded-full p-0.5">
+                            <div className="flex items-center bg-[var(--theme-text-primary)] border border-[var(--theme-secondary)]/15 rounded-full p-0.5">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   decrementItem(item.id);
                                 }}
-                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-[#d4a853]/10 text-[#d4a853] flex items-center justify-center transition-all active:scale-90"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full hover:bg-[var(--theme-secondary)]/10 text-[var(--theme-secondary)] flex items-center justify-center transition-all active:scale-90"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
@@ -1428,10 +1432,10 @@ export default function PublicMenu() {
             style={{ animation: "fadeIn 0.5s ease-out" }}
           >
             <div
-              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full border border-[#d4a853]/10 flex items-center justify-center"
+              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 rounded-full border border-[var(--theme-secondary)]/10 flex items-center justify-center"
               style={{ animation: "float 4s ease-in-out infinite" }}
             >
-              <Search className="w-8 h-8 sm:w-10 sm:h-10 text-[#d4a853]/20" />
+              <Search className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--theme-secondary)]/20" />
             </div>
             <h3 className="text-lg sm:text-xl font-light text-white/60 mb-2 tracking-wide">
               {t("labels.no_items_found")}
@@ -1461,7 +1465,7 @@ export default function PublicMenu() {
           className="sm:hidden fixed bottom-0 left-0 right-0 z-40 p-3"
           style={{
             background:
-              "linear-gradient(to top, #0a0a0a 60%, transparent 100%)",
+              "linear-gradient(to top, var(--theme-text-primary) 60%, transparent 100%)",
             animation: "slideDown 0.4s ease-out",
           }}
         >
@@ -1472,7 +1476,7 @@ export default function PublicMenu() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 bg-[#0a0a0a] text-[#d4a853] text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-[#d4a853]/30">
+                <span className="absolute -top-2 -right-2 bg-[var(--theme-text-primary)] text-[var(--theme-secondary)] text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-[var(--theme-secondary)]/30">
                   {cartTotals.itemCount}
                 </span>
               </div>
@@ -1501,15 +1505,15 @@ export default function PublicMenu() {
           CART DRAWER PANEL
       ══════════════════════════════════════ */}
       <aside
-        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[420px] md:w-[460px] cart-drawer-panel shadow-2xl shadow-black/50 border-l border-[#d4a853]/10 transform transition-transform duration-400 ease-out flex flex-col ${
+        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-[420px] md:w-[460px] cart-drawer-panel shadow-2xl shadow-black/50 border-l border-[var(--theme-secondary)]/10 transform transition-transform duration-400 ease-out flex flex-col ${
           isCartOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Cart Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-[#d4a853]/10">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-[var(--theme-secondary)]/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d4a853] to-[#b8922e] flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-[#0a0a0a]" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--theme-secondary)] to-[var(--theme-secondary-hover)] flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-[var(--theme-text-primary)]" />
             </div>
             <div>
               <h2 className="text-lg font-light text-white tracking-wide">
@@ -1523,7 +1527,7 @@ export default function PublicMenu() {
           </div>
           <button
             onClick={() => setIsCartOpen(false)}
-            className="w-10 h-10 rounded-full border border-[#d4a853]/10 hover:border-[#d4a853]/30 hover:bg-[#d4a853]/5 flex items-center justify-center transition-all"
+            className="w-10 h-10 rounded-full border border-[var(--theme-secondary)]/10 hover:border-[var(--theme-secondary)]/30 hover:bg-[var(--theme-secondary)]/5 flex items-center justify-center transition-all"
           >
             <X className="w-5 h-5 text-gray-400" />
           </button>
@@ -1534,10 +1538,10 @@ export default function PublicMenu() {
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               <div
-                className="w-24 h-24 rounded-full border border-[#d4a853]/10 flex items-center justify-center mb-6"
+                className="w-24 h-24 rounded-full border border-[var(--theme-secondary)]/10 flex items-center justify-center mb-6"
                 style={{ animation: "float 5s ease-in-out infinite" }}
               >
-                <ShoppingCart className="w-10 h-10 text-[#d4a853]/20" />
+                <ShoppingCart className="w-10 h-10 text-[var(--theme-secondary)]/20" />
               </div>
               <h3 className="text-lg font-light text-white/60 mb-2 tracking-wide">
                 {t("labels.cart_empty")}
@@ -1557,12 +1561,12 @@ export default function PublicMenu() {
               {cart.map((item, index) => (
                 <li
                   key={item.id}
-                  className="flex gap-3 p-3 bg-[#111]/60 rounded-2xl border border-[#d4a853]/5 hover:border-[#d4a853]/15 transition-all duration-300"
+                  className="flex gap-3 p-3 bg-[var(--theme-text-primary)]/60 rounded-2xl border border-[var(--theme-secondary)]/5 hover:border-[var(--theme-secondary)]/15 transition-all duration-300"
                   style={{
                     animation: `slideInRight 0.4s ease-out ${index * 0.05}s both`,
                   }}
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[#1a1a1a] flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[var(--theme-secondary)] flex-shrink-0">
                     <ImageWrapper
                       src={item.image}
                       alt={item.name}
@@ -1585,15 +1589,15 @@ export default function PublicMenu() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <p className="text-xs text-[#d4a853]/70 font-light mt-0.5 mb-2">
+                    <p className="text-xs text-[var(--theme-secondary)]/70 font-light mt-0.5 mb-2">
                       AFN {item.price.toFixed(2)}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between">
-                      <div className="flex items-center bg-[#0a0a0a] border border-[#d4a853]/10 rounded-full">
+                      <div className="flex items-center bg-[var(--theme-text-primary)] border border-[var(--theme-secondary)]/10 rounded-full">
                         <button
                           onClick={() => decrementItem(item.id)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-[#d4a853]/10 rounded-full text-[#d4a853] transition-colors"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-[var(--theme-secondary)]/10 rounded-full text-[var(--theme-secondary)] transition-colors"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -1602,7 +1606,7 @@ export default function PublicMenu() {
                         </span>
                         <button
                           onClick={() => incrementItem(item.id)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#d4a853] text-[#0a0a0a] hover:bg-[#e0b85e] rounded-full transition-colors"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[var(--theme-secondary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-secondary-hover)] rounded-full transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -1630,13 +1634,13 @@ export default function PublicMenu() {
 
         {/* Cart Footer */}
         {cart.length > 0 && (
-          <div className="border-t border-[#d4a853]/10 px-5 sm:px-6 py-5 bg-[#0d0d0d]">
+          <div className="border-t border-[var(--theme-secondary)]/10 px-5 sm:px-6 py-5 bg-[var(--theme-text-primary)]">
             <div className="flex justify-between items-center mb-5">
               <span className="text-gray-400 text-sm font-light tracking-wide">
                 {t("labels.total")}
               </span>
               <div className="text-right">
-                <span className="text-[#d4a853] text-xs tracking-wider mr-1">
+                <span className="text-[var(--theme-secondary)] text-xs tracking-wider mr-1">
                   AFN
                 </span>
                 <span className="text-white text-2xl font-light">

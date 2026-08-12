@@ -66,7 +66,7 @@ export default function StaffManagement() {
       return;
     }
     try {
-      const res = await instance.put(`/users/staff/${id}/`, formData);
+      const res = await instance.patch(`/users/staff/${id}/`, formData);
 
       setStaff((prev) => prev.map((s) => (s.id === id ? res.data : s)));
     } catch (err) {

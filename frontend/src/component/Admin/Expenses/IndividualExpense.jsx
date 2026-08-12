@@ -18,14 +18,17 @@ import {
   getCurrencyBadge,
   emptyExpenseForm,
 } from "./helpers";
+import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
 
 export default function IndividualExpense() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const dashboardBase = location.pathname.startsWith("/inventory-manager")
-    ? "/inventory-manager"
-    : "/admin/dashboard";
+  const dashboardBase = location.pathname.startsWith("/operations-manager")
+    ? "/operations-manager"
+    : location.pathname.startsWith("/inventory-manager")
+      ? "/inventory-manager"
+      : "/admin/dashboard";
   const expensesPath = `${dashboardBase}/expenses`;
 
   const [expense, setExpense] = useState(null);
@@ -40,7 +43,7 @@ export default function IndividualExpense() {
   useEffect(() => {
     const fetchRestaurant = async () => {
       try {
-        const res = await instance.get("/restaurant/restaurant/");
+        const res = await instance.get("/restaurant/me/");
         setRestaurant(res.data);
       } catch (error) {
         console.error("Failed to fetch restaurant info", error);
@@ -250,6 +253,20 @@ export default function IndividualExpense() {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-gray-900">Audit History</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Review who changed this expense and what changed.
+          </p>
+          <div className="mt-4">
+            <AuditTimeline
+              module="EXPENSES"
+              objectType="Expenses"
+              objectId={expense.id}
+            />
           </div>
         </div>
       </div>
