@@ -163,19 +163,39 @@ const CashierManagement = () => {
 
   const filteredOrders = useMemo(() => {
     const q = (filters.search || "").trim().toLowerCase();
+    const type = (filters.type || "").trim().toLowerCase();
+    const status = (filters.status || "").trim().toLowerCase();
+    const date = (filters.date || "").trim();
 
     return orders.filter((o) => {
-      if (!q) return true;
+      // Search filter
+      if (q) {
+        const idMatch = String(o.id).toLowerCase().includes(q);
+        const name = (o.name || o.customer || o.customer_name || "")
+          .toString()
+          .toLowerCase();
+        const tableNumber = (o.tableName || "").toString().toLowerCase();
+        if (!idMatch && !name.includes(q) && !tableNumber.includes(q))
+          return false;
+      }
 
-      const idMatch = String(o.id).toLowerCase().includes(q);
+      // Type filter
+      if (type && String(o.order_type || o.type || "").toLowerCase() !== type) {
+        return false;
+      }
 
-      const name = (o.name || o.customer || o.customer_name || "")
-        .toString()
-        .toLowerCase();
+      // Status filter
+      if (status && String(o.status || "").toLowerCase() !== status) {
+        return false;
+      }
 
-      const tableNumber = (o.tableName || "").toString().toLowerCase();
+      // Date filter
+      if (date) {
+        const orderDate = (o.created_at || o.date || "").slice(0, 10); // "YYYY-MM-DD"
+        if (orderDate !== date) return false;
+      }
 
-      return idMatch || name.includes(q) || tableNumber.includes(q);
+      return true;
     });
   }, [orders, filters]);
 

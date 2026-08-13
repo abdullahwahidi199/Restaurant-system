@@ -435,7 +435,7 @@ class StaffSerializer(serializers.ModelSerializer):
         restaurant = self.context.get("restaurant")
         request = self.context.get("request")
 
-        if not restaurant and self.instance is not None:
+        if not restaurant and isinstance(self.instance, Staff):
             restaurant = self.instance.restaurant
 
         if not restaurant and request and hasattr(request.user, "staff_profile"):
@@ -462,7 +462,7 @@ class StaffSerializer(serializers.ModelSerializer):
         restaurant = self.context.get("restaurant")
         request = self.context.get("request")
 
-        if not restaurant and self.instance is not None:
+        if not restaurant and isinstance(self.instance, Staff):
             restaurant = self.instance.restaurant
         if not restaurant and request and hasattr(request.user, "staff_profile"):
             restaurant = request.user.staff_profile.restaurant
