@@ -233,8 +233,7 @@ class IngredientRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView)
 
     def perform_update(self, serializer):
         old_values = snapshot_instance(self.get_object(), fields=INGREDIENT_AUDIT_FIELDS)
-        branch = get_active_branch(self.request)
-        ingredient = serializer.save(branch=branch)
+        ingredient = serializer.save()
         record_instance_update(
             request=self.request,
             instance=ingredient,

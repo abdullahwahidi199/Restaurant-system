@@ -27,8 +27,55 @@ class IngredientSerializer(serializers.ModelSerializer):
     menu_items_count = serializers.IntegerField(read_only=True)
     class Meta:
         model = Ingredient
+        validators = []
         fields = '__all__'
         read_only_fields = ["restaurant", "branch"]
+
+    def _restaurant(self):
+        request = self.context.get("request")
+        restaurant = self.context.get("restaurant")
+        if restaurant:
+            return restaurant
+        if self.instance:
+            return self.instance.restaurant
+        if request and hasattr(request.user, "staff_profile"):
+            return request.user.staff_profile.restaurant
+        return None
+
+    def _branch(self):
+        request = self.context.get("request")
+        branch = self.context.get("branch")
+        if branch:
+            return branch
+        if self.instance:
+            return self.instance.branch
+        if request:
+            return get_active_branch(request, raise_exception=False)
+        return None
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        restaurant = self._restaurant()
+        branch = self._branch()
+        name = attrs.get("name", getattr(self.instance, "name", None))
+
+        if not restaurant or not name:
+            return attrs
+
+        duplicate = Ingredient.objects.filter(
+            restaurant=restaurant,
+            branch=branch,
+            name=name,
+        )
+        if self.instance:
+            duplicate = duplicate.exclude(pk=self.instance.pk)
+
+        if duplicate.exists():
+            raise serializers.ValidationError(
+                {"name": "An ingredient with this name already exists for this branch."}
+            )
+
+        return attrs
 
     def to_representation(self, obj):
         data = super().to_representation(obj)
