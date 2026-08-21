@@ -103,6 +103,15 @@ function LandingNavbar() {
           <CTAButton to={landingLinks.login} variant={scrolled ? "ghost" : "secondary"} showArrow={false}>
             {t("landing.actions.login")}
           </CTAButton>
+          <CTAButton to={landingLinks.signup} variant={scrolled ? "ghost" : "secondary"} showArrow={false}>
+            {t("landing.actions.register")}
+          </CTAButton>
+          <CTAButton to={landingLinks.profile} variant={scrolled ? "ghost" : "secondary"} showArrow={false}>
+            {t("landing.actions.profile")}
+          </CTAButton>
+          <CTAButton to={landingLinks.orders} variant={scrolled ? "ghost" : "secondary"} showArrow={false}>
+            {t("landing.actions.orders")}
+          </CTAButton>
           <CTAButton to={landingLinks.demo}>{t("landing.actions.bookDemo")}</CTAButton>
         </div>
 
@@ -154,6 +163,15 @@ function LandingNavbar() {
             </label>
             <CTAButton to={landingLinks.login} variant="light" showArrow={false} onClick={closeMenu}>
               {t("landing.actions.login")}
+            </CTAButton>
+            <CTAButton to={landingLinks.signup} variant="light" showArrow={false} onClick={closeMenu}>
+              {t("landing.actions.register")}
+            </CTAButton>
+            <CTAButton to={landingLinks.profile} variant="light" showArrow={false} onClick={closeMenu}>
+              {t("landing.actions.profile")}
+            </CTAButton>
+            <CTAButton to={landingLinks.orders} variant="light" showArrow={false} onClick={closeMenu}>
+              {t("landing.actions.orders")}
             </CTAButton>
             <CTAButton to={landingLinks.demo} variant="primary" onClick={closeMenu}>
               {t("landing.actions.bookDemo")}

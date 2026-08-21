@@ -8,7 +8,10 @@ import BranchSelectionPage, {
   BranchSelectionSkeleton,
   BranchUnavailable,
 } from "./BranchSelectionPage";
-import { persistPublicOrderingContext } from "../../api/publicOrdering";
+import {
+  getPublicRestaurantEntryPath,
+  persistPublicOrderingContext,
+} from "../../api/publicOrdering";
 
 export default function CustomerHomepage() {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
@@ -59,8 +62,10 @@ export default function CustomerHomepage() {
         });
       }
 
-      if (!branchSlug && data.mode === "single_branch" && data.redirect_to) {
-        navigate(data.redirect_to, { replace: true });
+      if (!branchSlug && data.mode === "single_branch") {
+        navigate(getPublicRestaurantEntryPath(data, restaurantSlug), {
+          replace: true,
+        });
       }
     } catch (err) {
       console.error(err);

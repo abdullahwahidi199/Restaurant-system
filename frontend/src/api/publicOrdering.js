@@ -19,6 +19,21 @@ export function getBranchPath({ restaurantSlug, branchSlug }) {
   return `/${restaurantSlug}/${branchSlug}`;
 }
 
+export function getPublicRestaurantEntryPath(data, fallbackSlug = "") {
+  const restaurantSlug = data?.restaurant?.slug || fallbackSlug;
+  const branchSlug = data?.branch?.slug || data?.branches?.[0]?.slug;
+
+  if (restaurantSlug && data?.mode === "multi_branch") {
+    return `/${restaurantSlug}`;
+  }
+
+  if (restaurantSlug && branchSlug) {
+    return getBranchPath({ restaurantSlug, branchSlug });
+  }
+
+  return data?.redirect_to || (restaurantSlug ? `/${restaurantSlug}` : "/");
+}
+
 export function getMenuApiBase({ restaurantSlug, branchSlug }) {
   if (restaurantSlug && branchSlug) {
     return `/menu/public/${restaurantSlug}/${branchSlug}`;

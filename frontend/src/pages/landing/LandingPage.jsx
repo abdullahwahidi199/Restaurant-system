@@ -21,21 +21,19 @@ function LandingPage() {
   const direction = i18n.dir(i18n.language);
 
   return (
-    <div className="landing-page min-h-screen w-full bg-white text-slate-900" dir={direction}>
+    <div
+      className="landing-page min-h-screen w-full bg-white text-slate-900"
+      dir={direction}
+    >
       <LandingNavbar />
       <main>
         <HeroSection />
         <TrustSection />
-        <ProblemSolutionSection />
         <FeaturesSection />
-        <ProductShowcaseSection />
         <QRMenuSection />
-        <HowItWorksSection />
         <AnalyticsSection />
-        <WhyPakhlaiSection />
         <SolutionsSection />
         <PricingSection />
-        <FAQSection />
         <FinalCTASection />
       </main>
       <LandingFooter />

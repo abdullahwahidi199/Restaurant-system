@@ -34,7 +34,10 @@ import {
 export const landingLinks = {
   demo: "#contact",
   explore: "#features",
-  login: "/staff-login",
+  login: "/login",
+  signup: "/signup",
+  profile: "/profile",
+  orders: "/orders",
 };
 
 export const navItems = [

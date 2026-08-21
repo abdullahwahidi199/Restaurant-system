@@ -462,6 +462,15 @@ class StaffSerializer(serializers.ModelSerializer):
         restaurant = self.context.get("restaurant")
         request = self.context.get("request")
 
+        if self.instance is not None and hasattr(data, "__contains__") and "image" in data:
+            image_value = data.get("image")
+            if image_value in ("", None) or not (
+                hasattr(image_value, "read") or hasattr(image_value, "chunks")
+            ):
+                data = data.copy() if hasattr(data, "copy") else dict(data)
+                if hasattr(data, "pop"):
+                    data.pop("image", None)
+
         if not restaurant and isinstance(self.instance, Staff):
             restaurant = self.instance.restaurant
         if not restaurant and request and hasattr(request.user, "staff_profile"):
@@ -674,6 +683,5 @@ class StaffSerializer(serializers.ModelSerializer):
             branch_ids = [branch]
         ensure_staff_branch_assignment(instance, branch_ids)
         return instance
-
 
 

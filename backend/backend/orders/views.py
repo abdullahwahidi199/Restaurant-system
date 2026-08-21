@@ -89,6 +89,16 @@ def numeric_search_value(value):
     return int(value) if value.isdigit() else None
 
 
+FINALIZED_ORDER_STATUSES = {"completed", "delivered", "cancelled"}
+
+
+def finalized_order_response(order):
+    return Response(
+        {"error": f"Order already {order.status}"},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
 # def recalc_order_total(order):
 #     total = order.items.aggregate(
 #         total=Sum(
@@ -126,13 +136,16 @@ def get_restaurant_from_user(request):
 def get_staff_assigned_stations(user):
     """
     Returns queryset of Stations assigned to user if they are a Kitchen_manager.
-    Returns None if user is Admin/SuperAdmin/BranchAdmin (can see all stations).
+    Returns None if user can see all stations.
     """
     staff = getattr(user, "staff_profile", None)
     if not staff:
         return None
     if staff.role == "Kitchen_manager":
-        return staff.stations.filter(is_active=True)
+        stations = staff.stations.filter(is_active=True)
+        if not stations.exists():
+            return None
+        return stations
     return None
 
 def branch_scoped(request, queryset, branch_field="branch", *, allow_all=False):
@@ -1089,12 +1102,13 @@ from django.utils import timezone
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def update_order_status(request, pk):
     restaurant = get_restaurant_from_user(request)
     try:
         order = branch_scoped(
             request,
-            Order.objects.filter(pk=pk, restaurant=restaurant),
+            Order.objects.select_for_update().filter(pk=pk, restaurant=restaurant),
         ).get()
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -1104,6 +1118,9 @@ def update_order_status(request, pk):
 
     if new_status not in validated_statuses:
         return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if order.status in FINALIZED_ORDER_STATUSES and new_status != order.status:
+        return finalized_order_response(order)
 
     # 1️⃣ Get logged-in user's assigned stations (if they are a Kitchen Manager)
     assigned_stations = get_staff_assigned_stations(request.user)
@@ -1190,19 +1207,23 @@ class OrderRetrieveDestroyView(generics.RetrieveDestroyAPIView):
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def add_items_to_order(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
         order = branch_scoped(
             request,
-            Order.objects.select_related("restaurant").filter(
+            Order.objects.select_for_update().select_related("restaurant").filter(
                 pk=pk,
                 restaurant=restaurant,
             ),
         ).get()
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
+
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
 
     items_data = request.data.get('items', [])
     staff = request.user.staff_profile
@@ -1335,6 +1356,7 @@ def add_items_to_order(request, pk):
     IsAuthenticated,
     IsRestaurantActive
 ])
+@transaction.atomic
 def update_order_item_status(request, pk):
 
     restaurant = get_restaurant_from_user(request)
@@ -1342,6 +1364,7 @@ def update_order_item_status(request, pk):
     try:
         item = OrderItem.objects.select_related(
             "order"
+        ).select_for_update(
         ).get(
             pk=pk,
             order__restaurant=restaurant,
@@ -1353,6 +1376,10 @@ def update_order_item_status(request, pk):
             {"error": "Item not found"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+    order = Order.objects.select_for_update().get(pk=item.order_id)
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
 
     new_status = request.data.get("status")
 
@@ -1383,8 +1410,6 @@ def update_order_item_status(request, pk):
     # =========================================
     # AUTO UPDATE ORDER STATUS
     # =========================================
-
-    order = item.order
 
     active_items = order.items.exclude(status="cancelled")
 
@@ -1830,11 +1855,15 @@ def cancel_reservation(request,pk):
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def bulk_update_order_items(request, pk):
 
     order = get_object_or_404(
-        branch_scoped(request, Order.objects.filter(pk=pk))
+        branch_scoped(request, Order.objects.select_for_update().filter(pk=pk))
     )
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
+
     items_data = request.data.get("items", [])
 
     for i in items_data:

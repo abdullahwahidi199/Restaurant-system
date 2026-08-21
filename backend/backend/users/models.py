@@ -122,7 +122,12 @@ class Staff(models.Model):
     )
     payroll_notes = models.TextField(blank=True)
     is_payroll_active = models.BooleanField(default=True)
-    image=models.ImageField(upload_to="staff_photos/",null=True,blank=True)
+    image=models.ImageField(
+        upload_to="staff_photos/",
+        null=True,
+        blank=True,
+        max_length=500,
+    )
 
     def __str__(self):
         if self.role=="Other" and self.custom_role:
@@ -550,4 +555,3 @@ class LoginRateLimitConfig(models.Model):
     def __str__(self):
         state = "enabled" if self.enabled else "disabled"
         return f"Login rate limiting {state}"
-

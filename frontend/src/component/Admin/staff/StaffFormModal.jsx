@@ -182,6 +182,8 @@ export default function StaffFormModal({
       if (value !== "") {
         data.append(key, value);
       }
+    }
+    if (formData.role === "Kitchen_manager") {
       selectedStations.forEach((stationId) => {
         data.append("stations", stationId);
       });

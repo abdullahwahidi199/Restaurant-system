@@ -16,6 +16,7 @@ export default function OrderDetailSidebar({
   order,
   onClose,
   onOrderPrinted,
+  onOrderUpdated,
   readOnly = false,
 }) {
   const [printMode, setPrintMode] = useState("new"); // "new" or "all"
@@ -26,9 +27,10 @@ export default function OrderDetailSidebar({
   const updateOrderStatus = async (newStatus) => {
     try {
       setUpdating(true);
-      await instance.patch(`/orders/orders/${order.id}/update_status/`, {
+      const response = await instance.patch(`/orders/orders/${order.id}/update_status/`, {
         status: newStatus,
       });
+      onOrderUpdated?.(response.data);
     } catch (error) {
       console.error("Failed to update order:", error);
     } finally {

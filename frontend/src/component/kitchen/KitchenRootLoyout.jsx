@@ -25,7 +25,7 @@ export default function KitchenRootLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="kitchen-light-theme min-h-screen bg-slate-50">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="flex min-h-12 items-center gap-2 px-2 py-1.5 sm:px-3 lg:px-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white shadow-sm">
