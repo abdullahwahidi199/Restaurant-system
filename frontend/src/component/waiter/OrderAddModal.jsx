@@ -19,6 +19,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import instance from "../../api/axiosInstance";
 import { useLocation, useNavigate } from "react-router-dom";
+import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
 
 export default function TakeAwayOrderForm() {
   const { t, i18n } = useTranslation();
@@ -101,10 +102,8 @@ export default function TakeAwayOrderForm() {
   const getFilteredItems = () => {
     let items = [];
 
-    const collect = (cat) => [
-      ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-      ...(cat.platters || []).map((p) => ({ ...p, category: cat.name })),
-    ];
+    const collect = (cat) =>
+      mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name }));
 
     if (activeCategory === "All") {
       items = menuData.flatMap(collect);

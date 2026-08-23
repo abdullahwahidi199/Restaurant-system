@@ -26,6 +26,7 @@ import {
   PUBLIC_MENU_DARK_THEME,
   buildThemedImagePlaceholder,
 } from "../../theme/themeRuntime";
+import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
 
 /* ═══════════════════════════════════════════
    LANGUAGE CONFIG
@@ -565,18 +566,14 @@ export default function PublicMenu() {
   const menuItems = useMemo(() => {
     if (!categories?.length) return [];
 
-    return categories.flatMap((cat) => [
-      ...(cat.menu_items || []).map((i) => ({
-        ...i,
-        type: "menu_item",
-        cartKey: i.cartKey || `menu_item:${i.id}`,
+    return categories.flatMap((cat) =>
+      mergeCategoryEntries(cat, (item) => ({
+        ...item,
+        cartKey:
+          item.cartKey ||
+          `${item.itemType === "platter" ? "platter" : "menu_item"}:${item.id}`,
       })),
-      ...(cat.platters || []).map((p) => ({
-        ...p,
-        type: "platter",
-        cartKey: p.cartKey || `platter:${p.id}`,
-      })),
-    ]);
+    );
   }, [categories]);
   const getMenuItem = (cartKey) => {
     return menuItems.find((i) => getCartKey(i) === cartKey);
@@ -655,18 +652,15 @@ export default function PublicMenu() {
     const menuItems = selectedCategory.menu_items || [];
     const platters = selectedCategory.platters || [];
 
-    const allItems = [
-      ...menuItems.map((i) => ({
-        ...i,
-        type: "menu_item",
-        cartKey: i.cartKey || `menu_item:${i.id}`,
-      })),
-      ...platters.map((p) => ({
-        ...p,
-        type: "platter",
-        cartKey: p.cartKey || `platter:${p.id}`,
-      })),
-    ];
+    const allItems = mergeCategoryEntries(
+      { ...selectedCategory, menu_items: menuItems, platters },
+      (item) => ({
+        ...item,
+        cartKey:
+          item.cartKey ||
+          `${item.itemType === "platter" ? "platter" : "menu_item"}:${item.id}`,
+      }),
+    );
 
     if (!searchQuery.trim()) return allItems;
 

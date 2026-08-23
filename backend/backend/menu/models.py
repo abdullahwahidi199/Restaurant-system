@@ -178,15 +178,18 @@ class MenuItem(models.Model):
     is_available = models.BooleanField(default=True)
     is_manually_available = models.BooleanField(default=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, related_name='menu_items')
+    display_order = models.PositiveIntegerField(default=0)
     uses_daily_production = models.BooleanField(
         default=False
     )
 
     class Meta:
+        ordering = ["category__rank", "display_order", "id"]
         indexes = [
             models.Index(fields=["restaurant", "branch"], name="item_rest_branch_idx"),
             models.Index(fields=["restaurant", "category"], name="item_rest_cat_idx"),
             models.Index(fields=["restaurant", "is_available"], name="item_rest_avail_idx"),
+            models.Index(fields=["restaurant", "category", "display_order"], name="item_rest_cat_order_idx"),
         ]
 
     def get_production(self, branch=None):
@@ -449,6 +452,7 @@ class Platter(models.Model):
 
     is_available = models.BooleanField(default=True)
     is_manually_available = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
 
     category = models.ForeignKey(
         Category,
@@ -459,10 +463,12 @@ class Platter(models.Model):
     )
 
     class Meta:
+        ordering = ["category__rank", "display_order", "id"]
         indexes = [
             models.Index(fields=["restaurant", "branch"], name="plat_rest_branch_idx"),
             models.Index(fields=["restaurant", "category"], name="plat_rest_cat_idx"),
             models.Index(fields=["restaurant", "is_available"], name="plat_rest_avail_idx"),
+            models.Index(fields=["restaurant", "category", "display_order"], name="plat_rest_cat_order_idx"),
         ]
 
     def __str__(self):

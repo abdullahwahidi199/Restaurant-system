@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import instance from "../../api/axiosInstance";
 import toast from "react-hot-toast";
+import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
 
 export default function AddItemToOrderModal({
   orderId,
@@ -79,23 +80,13 @@ export default function AddItemToOrderModal({
     let items = [];
 
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) => [
-        ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-        ...(cat.platters || []).map((platter) => ({
-          ...platter,
-          category: cat.name,
-        })),
-      ]);
+      items = menuData.flatMap((cat) =>
+        mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name })),
+      );
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
       items = cat
-        ? [
-            ...cat.menu_items.map((item) => ({ ...item, category: cat.name })),
-            ...(cat.platters || []).map((platter) => ({
-              ...platter,
-              category: cat.name,
-            })),
-          ]
+        ? mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name }))
         : [];
     }
 

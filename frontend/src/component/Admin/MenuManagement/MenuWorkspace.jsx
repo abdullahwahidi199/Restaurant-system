@@ -1,7 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   AlertTriangle,
   Archive,
@@ -26,7 +42,6 @@ import {
   Printer,
   RefreshCw,
   Search,
-  Sparkles,
   Tag,
   Trash2,
   Utensils,
@@ -40,6 +55,11 @@ import EditCategoryModal from "./EditCategoryModal";
 import PlatterAddModal from "./PlatterAddModal";
 import instance from "../../../api/axiosInstance";
 import useCategoryItems from "./useCategoryItems";
+import {
+  canonicalReorderPayload,
+  compareMenuEntries,
+  mergeCategoryEntries,
+} from "./menuOrdering";
 
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || "";
 
@@ -67,25 +87,7 @@ function getCategoryItemCount(category) {
 }
 
 function flattenCategory(category) {
-  const categoryName = category?.name || "Uncategorized";
-  const categoryId = category?.id || null;
-
-  return [
-    ...(category?.menu_items || []).map((item) => ({
-      ...item,
-      itemType: "menu_item",
-      stableKey: `menu-${item.id}`,
-      categoryId,
-      categoryName,
-    })),
-    ...(category?.platters || []).map((item) => ({
-      ...item,
-      itemType: "platter",
-      stableKey: `platter-${item.id}`,
-      categoryId,
-      categoryName,
-    })),
-  ];
+  return mergeCategoryEntries(category);
 }
 
 function getStatus(item) {
@@ -171,6 +173,34 @@ function exportCsv(items) {
   URL.revokeObjectURL(url);
 }
 
+function splitCategoryEntries(items) {
+  return items.reduce(
+    (acc, item, index) => {
+      const nextItem = { ...item, display_order: index };
+      if (item.itemType === "platter") {
+        acc.platters.push(nextItem);
+      } else {
+        acc.menu_items.push(nextItem);
+      }
+      return acc;
+    },
+    { menu_items: [], platters: [] },
+  );
+}
+
+function moveEntry(items, activeKey, overKey) {
+  const activeIndex = items.findIndex((item) => item.stableKey === activeKey);
+  const overIndex = items.findIndex((item) => item.stableKey === overKey);
+  if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) {
+    return items;
+  }
+
+  const next = [...items];
+  const [moved] = next.splice(activeIndex, 1);
+  next.splice(overIndex, 0, moved);
+  return next.map((item, index) => ({ ...item, display_order: index }));
+}
+
 function Badge({ children, className = "", icon: Icon }) {
   return (
     <span
@@ -186,7 +216,7 @@ function IconButton({ children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -198,7 +228,7 @@ function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gray-950 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -210,7 +240,7 @@ function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -230,18 +260,17 @@ function StatCard({ icon: Icon, label, value, tone = "slate" }) {
 
   return (
     <motion.div
-      whileHover={{ y: -3 }}
-      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+      className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-2xl font-semibold text-gray-950">{value}</p>
-          <p className="mt-1 text-sm font-medium text-gray-500">{label}</p>
+          <p className="text-lg font-semibold text-gray-950">{value}</p>
+          <p className="text-xs font-medium text-gray-500">{label}</p>
         </div>
         <span
-          className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 ${tones[tone]}`}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ring-1 ${tones[tone]}`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-4 w-4" />
         </span>
       </div>
     </motion.div>
@@ -314,8 +343,8 @@ function CategoryRail({
   onEdit,
 }) {
   return (
-    <aside className="rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+    <aside className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+      <div className="mb-2 flex items-center justify-between px-1">
         <div>
           <p className="text-sm font-semibold text-gray-950">Categories</p>
           <p className="text-xs text-gray-500">Menu groups and sort order</p>
@@ -325,18 +354,18 @@ function CategoryRail({
         </Badge>
       </div>
 
-      <div className="max-h-[640px] space-y-1 overflow-y-auto p-2">
+      <div className="flex gap-2 overflow-x-auto">
         <button
           type="button"
           onClick={() => onSelect("all")}
-          className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+          className={`flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
             String(selectedCategoryId) === "all"
               ? "bg-gray-950 text-white shadow-sm"
               : "text-gray-700 hover:bg-gray-50"
           }`}
         >
           <span
-            className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+            className={`flex h-6 w-6 items-center justify-center rounded-md ${
               String(selectedCategoryId) === "all"
                 ? "bg-white/15"
                 : "bg-gray-100"
@@ -345,11 +374,11 @@ function CategoryRail({
             <Utensils className="h-4 w-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">
+            <span className="block truncate text-xs font-semibold">
               All categories
             </span>
             <span
-              className={`block text-xs ${
+              className={`hidden text-xs ${
                 String(selectedCategoryId) === "all"
                   ? "text-white/70"
                   : "text-gray-500"
@@ -365,11 +394,11 @@ function CategoryRail({
           const count = getCategoryItemCount(category);
 
           return (
-            <div key={category.id} className="group relative">
+            <div key={category.id} className="group relative shrink-0">
               <button
                 type="button"
                 onClick={() => onSelect(category.id)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+                className={`flex h-10 min-w-[150px] max-w-[220px] items-center gap-2 rounded-lg px-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
                   isSelected
                     ? "bg-gray-950 text-white shadow-sm"
                     : "text-gray-700 hover:bg-gray-50"
@@ -380,10 +409,10 @@ function CategoryRail({
                     isSelected ? "text-white/70" : "text-gray-300"
                   }`}
                 >
-                  <GripVertical className="h-4 w-4" />
+                  <GripVertical className="h-3.5 w-3.5" />
                 </span>
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md ${
                     isSelected ? "bg-white/15" : "bg-gray-100"
                   }`}
                 >
@@ -395,15 +424,15 @@ function CategoryRail({
                       loading="lazy"
                     />
                   ) : (
-                    <Tag className="h-4 w-4" />
+                    <Tag className="h-3.5 w-3.5" />
                   )}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">
+                  <span className="block truncate text-xs font-semibold">
                     {category.name}
                   </span>
                   <span
-                    className={`block text-xs ${
+                    className={`block text-[11px] ${
                       isSelected ? "text-white/70" : "text-gray-500"
                     }`}
                   >
@@ -418,13 +447,13 @@ function CategoryRail({
                   type="button"
                   onClick={() => onEdit(category)}
                   aria-label={`Edit ${category.name}`}
-                  className={`absolute right-3 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border transition group-hover:flex ${
+                  className={`absolute right-1 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border transition group-hover:flex ${
                     isSelected
                       ? "border-white/20 bg-white/10 text-white hover:bg-white/20"
                       : "border-gray-200 bg-white text-gray-500 shadow-sm hover:text-gray-950"
                   }`}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -435,7 +464,7 @@ function CategoryRail({
   );
 }
 
-function ItemActionMenu({ item, detailPath, canManage }) {
+function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveItem }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -485,6 +514,24 @@ function ItemActionMenu({ item, detailPath, canManage }) {
               <Download className="h-4 w-4" />
               Export row
             </button>
+            {canManage && onMoveItem && (
+              <label className="block border-t border-gray-100 px-3 py-2">
+                <span className="mb-1 block text-xs font-semibold text-gray-500">
+                  Move to
+                </span>
+                <select
+                  value={item.categoryId || ""}
+                  onChange={(event) => onMoveItem(item, event.target.value)}
+                  className="h-8 w-full rounded-md border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none focus:border-gray-950"
+                >
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -492,58 +539,66 @@ function ItemActionMenu({ item, detailPath, canManage }) {
   );
 }
 
-function ItemImage({ item }) {
-  const src = normalizeImageUrl(item.image);
+function SortableMenuItem({ item, disabled, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.stableKey, disabled });
 
   return (
     <div
-      className={`relative aspect-[4/3] overflow-hidden rounded-lg bg-gray-100 ${
-        !item.final_availability ? "opacity-80" : ""
-      }`}
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "z-20 opacity-70" : ""}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={item.name}
-          loading="lazy"
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-gray-300">
-          <ImageIcon className="h-9 w-9" />
-        </div>
-      )}
-      <div className="absolute left-3 top-3">
-        <Badge
-          className={
-            item.itemType === "platter"
-              ? "bg-violet-50 text-violet-700 ring-violet-200"
-              : "bg-white/90 text-gray-700 ring-white/80"
-          }
-          icon={item.itemType === "platter" ? Layers3 : Utensils}
-        >
-          {item.itemType === "platter" ? "Platter" : "Item"}
-        </Badge>
-      </div>
+      {children({
+        isDragging,
+        dragHandleProps: { ...attributes, ...listeners },
+      })}
     </div>
   );
 }
 
-function ItemCard({ item, canManage, detailBase, selected, onToggleSelected }) {
+function ItemCard({
+  item,
+  canManage,
+  detailBase,
+  selected,
+  onToggleSelected,
+  dragHandleProps,
+  isDragging,
+  categories,
+  onMoveItem,
+}) {
   const status = getStatus(item);
   const detailPath = getDetailPath(item, detailBase);
-  const StatusIcon = status.icon;
 
-  const card = (
+  return (
     <motion.article
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
+      className={`group rounded-lg border bg-white p-2 shadow-sm transition hover:border-gray-300 hover:shadow-md ${
+        isDragging ? "border-gray-950 shadow-xl" : "border-gray-200"
+      }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-2">
+        {canManage && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            className="inline-flex h-8 w-6 shrink-0 cursor-grab items-center justify-center rounded-md text-gray-300 transition hover:bg-gray-50 hover:text-gray-700 active:cursor-grabbing"
+            aria-label={`Drag ${item.name}`}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <label
-          className="mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center"
+          className="inline-flex h-5 w-5 shrink-0 items-center justify-center"
           onClick={(event) => event.stopPropagation()}
         >
           <input
@@ -554,72 +609,58 @@ function ItemCard({ item, canManage, detailBase, selected, onToggleSelected }) {
             aria-label={`Select ${item.name}`}
           />
         </label>
-        <div className="min-w-0 flex-1">
-          <ItemImage item={item} />
+        <div className="h-12 w-14 shrink-0 overflow-hidden rounded-md bg-gray-100">
+          {item.image ? (
+            <img
+              src={normalizeImageUrl(item.image)}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-gray-300">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+          )}
         </div>
-      </div>
 
-      <div className="mt-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-gray-950">
-            {item.name}
-          </h3>
-          <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
-            <Tag className="h-3.5 w-3.5" />
-            <span className="truncate">{item.categoryName}</span>
-          </p>
+        <div className="min-w-0 flex-1">
+          {detailPath ? (
+            <Link
+              to={detailPath}
+              className="block truncate text-sm font-semibold text-gray-950 hover:underline"
+            >
+              {item.name}
+            </Link>
+          ) : (
+            <h3 className="truncate text-sm font-semibold text-gray-950">
+              {item.name}
+            </h3>
+          )}
+          <div className="mt-1 flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-sm font-semibold text-gray-950">
+              AFN {formatPrice(item.price)}
+            </span>
+            <span
+              className={`inline-flex h-2 w-2 shrink-0 rounded-full ${
+                item.final_availability ? "bg-emerald-500" : "bg-rose-500"
+              }`}
+              title={status.label}
+            />
+            <span className="truncate text-xs text-gray-500">
+              {item.itemType === "platter" ? "Platter" : item.categoryName}
+            </span>
+          </div>
         </div>
         <ItemActionMenu
           item={item}
           detailPath={detailPath}
           canManage={canManage}
+          categories={categories}
+          onMoveItem={onMoveItem}
         />
       </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Badge className={status.className} icon={StatusIcon}>
-          {status.label}
-        </Badge>
-        {item.uses_daily_production && (
-          <Badge
-            className="bg-cyan-50 text-cyan-700 ring-cyan-200"
-            icon={Boxes}
-          >
-            Production
-          </Badge>
-        )}
-      </div>
-
-      <div className="mt-4 flex items-end justify-between border-t border-gray-100 pt-4">
-        <div>
-          <p className="text-xs font-medium uppercase text-gray-400">Price</p>
-          <p className="text-lg font-semibold text-gray-950">
-            AFN {formatPrice(item.price)}
-          </p>
-        </div>
-        {item.uses_daily_production && (
-          <div className="text-right">
-            <p className="text-xs font-medium uppercase text-gray-400">
-              Remaining
-            </p>
-            <p className="text-sm font-semibold text-gray-700">
-              {item.production_remaining ?? 0}
-            </p>
-          </div>
-        )}
-      </div>
     </motion.article>
-  );
-
-  if (!detailPath) return card;
-
-  return (
-    <Link
-      to={detailPath}
-      className="block focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2"
-    >
-      {card}
-    </Link>
   );
 }
 
@@ -771,7 +812,7 @@ export default function MenuWorkspace({
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stationFilter, setStationFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("menu_order");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [printMode, setPrintMode] = useState("all");
@@ -779,6 +820,14 @@ export default function MenuWorkspace({
   const [stations, setStations] = useState([]);
 
   const queryClient = useQueryClient();
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   // 1️⃣ Initialize from localStorage safely (handling string, number, and "all")
   const [selectedCategoryId, setSelectedCategoryIdState] = useState(() => {
@@ -929,6 +978,7 @@ export default function MenuWorkspace({
         return true;
       })
       .sort((a, b) => {
+        if (sortBy === "menu_order") return compareMenuEntries(a, b);
         if (sortBy === "price_high")
           return Number(b.price || 0) - Number(a.price || 0);
         if (sortBy === "price_low")
@@ -936,6 +986,8 @@ export default function MenuWorkspace({
         if (sortBy === "availability") {
           return Number(b.final_availability) - Number(a.final_availability);
         }
+        if (sortBy === "name_desc")
+          return String(b.name || "").localeCompare(String(a.name || ""));
         return String(a.name || "").localeCompare(String(b.name || ""));
       });
   }, [
@@ -1011,6 +1063,133 @@ export default function MenuWorkspace({
     onRefresh?.();
   };
 
+  const applyCategoryOrder = useCallback(
+    (categoryId, orderedItems) => {
+      const split = splitCategoryEntries(orderedItems);
+      setCategories?.((previous) =>
+        previous.map((category) =>
+          String(category.id) === String(categoryId)
+            ? { ...category, ...split }
+            : category,
+        ),
+      );
+      queryClient.setQueryData(["categoryItems", categoryId], (previous) =>
+        previous ? { ...previous, ...split } : previous,
+      );
+    },
+    [queryClient, setCategories],
+  );
+
+  const handleItemDragEnd = useCallback(
+    async ({ active, over }) => {
+      if (
+        !active?.id ||
+        !over?.id ||
+        active.id === over.id ||
+        !canManage ||
+        sortBy !== "menu_order" ||
+        selectedCategoryId === "all"
+      ) {
+        return;
+      }
+
+      const fullOrder = [...scopedItems].sort(compareMenuEntries);
+      const nextOrder = moveEntry(fullOrder, active.id, over.id);
+      if (nextOrder === fullOrder) return;
+
+      const previousCategories = categories;
+      const previousCategoryItems = queryClient.getQueryData([
+        "categoryItems",
+        selectedCategoryId,
+      ]);
+
+      applyCategoryOrder(selectedCategoryId, nextOrder);
+
+      try {
+        await instance.post("/menu/menu-items/reorder/", {
+          category_id: selectedCategoryId,
+          items: canonicalReorderPayload(nextOrder),
+        });
+      } catch (error) {
+        console.error("Failed to save menu order:", error);
+        setCategories?.(previousCategories);
+        queryClient.setQueryData(
+          ["categoryItems", selectedCategoryId],
+          previousCategoryItems,
+        );
+        toast.error("Failed to save menu order");
+      }
+    },
+    [
+      applyCategoryOrder,
+      canManage,
+      categories,
+      queryClient,
+      scopedItems,
+      selectedCategoryId,
+      setCategories,
+      sortBy,
+    ],
+  );
+
+  const handleMoveItem = useCallback(
+    async (item, targetCategoryId) => {
+      if (!targetCategoryId || String(targetCategoryId) === String(item.categoryId)) {
+        return;
+      }
+
+      const targetCategory = categories.find(
+        (category) => String(category.id) === String(targetCategoryId),
+      );
+      const sourceCategory = categories.find(
+        (category) => String(category.id) === String(item.categoryId),
+      );
+      if (!targetCategory || !sourceCategory) return;
+
+      const sourceItems = flattenCategory(sourceCategory).filter(
+        (entry) => entry.stableKey !== item.stableKey,
+      );
+      const targetItems = [
+        ...flattenCategory(targetCategory),
+        {
+          ...item,
+          categoryId: targetCategory.id,
+          categoryName: targetCategory.name,
+          display_order: getCategoryItemCount(targetCategory),
+        },
+      ].sort(compareMenuEntries);
+
+      const previousCategories = categories;
+      const previousSourceCache = queryClient.getQueryData([
+        "categoryItems",
+        sourceCategory.id,
+      ]);
+      const previousTargetCache = queryClient.getQueryData([
+        "categoryItems",
+        targetCategory.id,
+      ]);
+
+      applyCategoryOrder(sourceCategory.id, sourceItems);
+      applyCategoryOrder(targetCategory.id, targetItems);
+
+      try {
+        await instance.post("/menu/menu-items/reorder/", {
+          category_id: targetCategory.id,
+          source_category_id: sourceCategory.id,
+          items: canonicalReorderPayload(targetItems),
+        });
+        setSelectedCategoryId(targetCategory.id);
+      } catch (error) {
+        console.error("Failed to move menu item:", error);
+        setCategories?.(previousCategories);
+        queryClient.setQueryData(["categoryItems", sourceCategory.id], previousSourceCache);
+        queryClient.setQueryData(["categoryItems", targetCategory.id], previousTargetCache);
+        toast.error("Failed to save menu order");
+      }
+    },
+    [applyCategoryOrder, categories, queryClient, setCategories, setSelectedCategoryId],
+  );
+
   const handlePrint = async () => {
     setPrinting(true);
     try {
@@ -1053,7 +1232,7 @@ export default function MenuWorkspace({
     setSearchTerm("");
     setAvailabilityFilter("all");
     setStatusFilter("all");
-    setSortBy("name");
+    setSortBy("menu_order");
     setStationFilter("all");
   };
 
@@ -1062,18 +1241,18 @@ export default function MenuWorkspace({
     availabilityFilter !== "all" ||
     statusFilter !== "all" ||
     stationFilter !== "all" ||
-    sortBy !== "name";
+    sortBy !== "menu_order";
 
   return (
     <div className="min-h-screen bg-gray-50" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+      <div className="mx-auto max-w-7xl space-y-3">
+        <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <h1 className="text-3xl font-semibold text-gray-950 md:text-4xl">
+              <h1 className="text-xl font-semibold text-gray-950">
                 {title}
               </h1>
-              <p className="mt-2 text-sm leading-6 text-gray-500 md:text-base">
+              <p className="mt-1 text-xs leading-5 text-gray-500">
                 {description}
               </p>
             </div>
@@ -1124,7 +1303,7 @@ export default function MenuWorkspace({
           <MenuSkeleton />
         ) : (
           <>
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
               <StatCard
                 icon={Layers3}
                 label="Categories"
@@ -1163,15 +1342,15 @@ export default function MenuWorkspace({
               />
             </section>
 
-            <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-              <div className="grid gap-3 lg:grid-cols-[minmax(240px,1.2fr)_repeat(4,minmax(140px,auto))]">
+            <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+              <div className="grid gap-2 lg:grid-cols-[minmax(220px,1.2fr)_repeat(4,minmax(130px,auto))]">
                 <label className="relative block">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder="Search dishes, platters, categories..."
-                    className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-xs text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   />
                 </label>
 
@@ -1180,7 +1359,7 @@ export default function MenuWorkspace({
                   <select
                     value={stationFilter}
                     onChange={(event) => setStationFilter(event.target.value)}
-                    className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
                     <option value="all">All stations</option>
                     {stations.map((st) => (
@@ -1198,7 +1377,7 @@ export default function MenuWorkspace({
                     onChange={(event) =>
                       setAvailabilityFilter(event.target.value)
                     }
-                    className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
                     <option value="all">All availability</option>
                     <option value="available">Available</option>
@@ -1214,7 +1393,7 @@ export default function MenuWorkspace({
                   <select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value)}
-                    className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
                     <option value="all">All visibility</option>
                     <option value="visible">Visible</option>
@@ -1228,9 +1407,11 @@ export default function MenuWorkspace({
                   <select
                     value={sortBy}
                     onChange={(event) => setSortBy(event.target.value)}
-                    className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
+                    <option value="menu_order">Menu order</option>
                     <option value="name">Name A-Z</option>
+                    <option value="name_desc">Name Z-A</option>
                     <option value="price_high">Price high-low</option>
                     <option value="price_low">Price low-high</option>
                     <option value="availability">Availability</option>
@@ -1239,12 +1420,12 @@ export default function MenuWorkspace({
                 </label>
 
                 <div className="flex items-center gap-2">
-                  <div className="inline-flex h-11 rounded-lg border border-gray-200 bg-gray-50 p-1">
+                  <div className="inline-flex h-9 rounded-lg border border-gray-200 bg-gray-50 p-1">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
                       aria-label="Grid view"
-                      className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition ${
+                      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition ${
                         viewMode === "grid"
                           ? "bg-white text-gray-950 shadow-sm"
                           : "text-gray-500 hover:text-gray-950"
@@ -1256,7 +1437,7 @@ export default function MenuWorkspace({
                       type="button"
                       onClick={() => setViewMode("list")}
                       aria-label="List view"
-                      className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition ${
+                      className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition ${
                         viewMode === "list"
                           ? "bg-white text-gray-950 shadow-sm"
                           : "text-gray-500 hover:text-gray-950"
@@ -1271,7 +1452,7 @@ export default function MenuWorkspace({
                       value={printMode}
                       onChange={(event) => setPrintMode(event.target.value)}
                       aria-label="PDF export mode"
-                      className="h-11 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
+                    className="h-9 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                     >
                       <option value="all">PDF: all</option>
                       <option value="available">PDF: available</option>
@@ -1300,7 +1481,7 @@ export default function MenuWorkspace({
               )}
             </section>
 
-            <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
+            <section className="space-y-3">
               <CategoryRail
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -1310,14 +1491,14 @@ export default function MenuWorkspace({
               />
 
               <div className="min-w-0 space-y-4">
-                <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-950">
+                    <h2 className="text-base font-semibold text-gray-950">
                       {String(selectedCategoryId) === "all"
                         ? "All menu records"
                         : selectedCategory?.name || "Menu items"}
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-0.5 text-xs text-gray-500">
                       {visibleItems.length} visible after filters
                     </p>
                   </div>
@@ -1365,21 +1546,47 @@ export default function MenuWorkspace({
                   </div>
                 ) : visibleItems.length ? (
                   viewMode === "grid" ? (
-                    <motion.div
-                      layout
-                      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleItemDragEnd}
                     >
-                      {visibleItems.map((item) => (
-                        <ItemCard
-                          key={item.stableKey}
-                          item={item}
-                          canManage={canManage}
-                          detailBase={detailBase}
-                          selected={selectedKeys.includes(item.stableKey)}
-                          onToggleSelected={toggleSelected}
-                        />
-                      ))}
-                    </motion.div>
+                      <SortableContext
+                        items={visibleItems.map((item) => item.stableKey)}
+                        strategy={rectSortingStrategy}
+                      >
+                        <motion.div
+                          layout
+                          className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                        >
+                          {visibleItems.map((item) => (
+                            <SortableMenuItem
+                              key={item.stableKey}
+                              item={item}
+                              disabled={
+                                !canManage ||
+                                sortBy !== "menu_order" ||
+                                selectedCategoryId === "all"
+                              }
+                            >
+                              {({ dragHandleProps, isDragging }) => (
+                                <ItemCard
+                                  item={item}
+                                  canManage={canManage}
+                                  detailBase={detailBase}
+                                  selected={selectedKeys.includes(item.stableKey)}
+                                  onToggleSelected={toggleSelected}
+                                  dragHandleProps={dragHandleProps}
+                                  isDragging={isDragging}
+                                  categories={categories}
+                                  onMoveItem={handleMoveItem}
+                                />
+                              )}
+                            </SortableMenuItem>
+                          ))}
+                        </motion.div>
+                      </SortableContext>
+                    </DndContext>
                   ) : (
                     <ItemTable
                       items={visibleItems}

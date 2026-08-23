@@ -4,15 +4,18 @@ from django.urls import path
 from .views import category_list_create, CategoryRetrieveDestroyView,MenuItemRetrieveUpdateDestroyView,menu_item_list_create_view,platter_list_create_view,PlatterRetrieveUpdateDestroyView
 from .views import (review_list_create,ReviewRetrieveDestroyView,public_categories,public_menu_items,public_menu_item_detail,
                     send_review,public_platters,public_platter_detail,MenuPrintView,menu_item_sales,
-                    production_list_create,production_detail,station_list_create,StationRetrieveUpdateDestroyView
+                    production_list_create,production_detail,station_list_create,StationRetrieveUpdateDestroyView,
+                    category_reorder, menu_item_reorder,
                     )
 
 
 urlpatterns = [
     path('categories/', category_list_create, name='category-list-create'),
+    path('categories/reorder/', category_reorder, name='category-reorder'),
     path('categories/<int:pk>/', CategoryRetrieveDestroyView.as_view(), name='category-detail-destroy'),
 
     path('menu-items/', menu_item_list_create_view, name='menuitem-list-create'),
+    path('menu-items/reorder/', menu_item_reorder, name='menuitem-reorder'),
     path('menu-items/<int:pk>/', MenuItemRetrieveUpdateDestroyView.as_view(), name='menuitem-detail-destroy'),
     path('production/', production_list_create, name='production-list-create'),
     path('production/<int:pk>/', production_detail, name='production-detail'),

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
+import { mergeCategoryEntries } from "../../Admin/MenuManagement/menuOrdering";
 
 export default function ManagerAddItem({
   orderId,
@@ -69,36 +70,22 @@ export default function ManagerAddItem({
     let items = [];
 
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) => [
-        ...cat.menu_items.map((item) => ({
+      items = menuData.flatMap((cat) =>
+        mergeCategoryEntries(cat, (item) => ({
           ...item,
           category: cat.name,
-          item_type: "menu_item",
+          item_type: item.itemType === "platter" ? "platter" : "menu_item",
         })),
-
-        ...cat.platters.map((platter) => ({
-          ...platter,
-          category: cat.name,
-          item_type: "platter",
-        })),
-      ]);
+      );
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
 
       items = cat
-        ? [
-            ...cat.menu_items.map((item) => ({
-              ...item,
-              category: cat.name,
-              item_type: "menu_item",
-            })),
-
-            ...cat.platters.map((platter) => ({
-              ...platter,
-              category: cat.name,
-              item_type: "platter",
-            })),
-          ]
+        ? mergeCategoryEntries(cat, (item) => ({
+            ...item,
+            category: cat.name,
+            item_type: item.itemType === "platter" ? "platter" : "menu_item",
+          }))
         : [];
     }
 

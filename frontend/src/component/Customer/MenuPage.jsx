@@ -29,6 +29,7 @@ import {
   getPublicContextFromParams,
   persistPublicOrderingContext,
 } from "../../api/publicOrdering";
+import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
@@ -167,32 +168,18 @@ export default function MenuPage({
 
       setCategories(["All", ...data.map((cat) => cat.name)]);
 
-      const items = data.flatMap((cat) => {
-        const menuItems = cat.menu_items.map((item) => ({
+      const items = data.flatMap((cat) =>
+        mergeCategoryEntries(cat, (item) => ({
           ...item,
-          type: "menu_item",
           category: cat.name,
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_MEDIA_URL}${item.image}`
             : "/images/placeholder.png",
-        }));
-
-        const platters = cat.platters.map((platter) => ({
-          ...platter,
-          type: "platter",
-          category: cat.name,
-          image: platter.image
-            ? platter.image.startsWith("http")
-              ? platter.image
-              : `${BASE_MEDIA_URL}${platter.image}`
-            : "/images/placeholder.png",
-          reviews: platter.reviews || [],
-        }));
-
-        return [...menuItems, ...platters];
-      });
+          reviews: item.reviews || [],
+        })),
+      );
       setMenuItems(items);
     } catch (err) {
       console.error(err);

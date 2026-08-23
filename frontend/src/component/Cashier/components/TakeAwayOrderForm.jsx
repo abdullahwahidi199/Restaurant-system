@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
+import { mergeCategoryEntries } from "../../Admin/MenuManagement/menuOrdering";
 
 export default function TakeAwayForm() {
   const { t, i18n } = useTranslation();
@@ -91,32 +92,14 @@ export default function TakeAwayForm() {
     let items = [];
 
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) => [
-        ...cat.menu_items.map((item) => ({
-          ...item,
-          category: cat.name,
-        })),
-
-        ...(cat.platters || []).map((platter) => ({
-          ...platter,
-          category: cat.name,
-        })),
-      ]);
+      items = menuData.flatMap((cat) =>
+        mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name })),
+      );
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
 
       items = cat
-        ? [
-            ...cat.menu_items.map((item) => ({
-              ...item,
-              category: cat.name,
-            })),
-
-            ...(cat.platters || []).map((platter) => ({
-              ...platter,
-              category: cat.name,
-            })),
-          ]
+        ? mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name }))
         : [];
     }
 

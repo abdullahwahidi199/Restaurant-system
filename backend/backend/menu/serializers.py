@@ -14,6 +14,7 @@ from decimal import Decimal
 from inventory.serializers import MenuItemIngredientSerializer
 from restaurants.branching import get_active_branch
 from inventory.services import get_effective_quantity, get_recipe_items
+from .services import next_display_order
 # from .serializers import PlatterSerializer
 
 
@@ -85,7 +86,7 @@ class MenuItemMiniSerializer(serializers.ModelSerializer):
         model = MenuItem
         fields = ['id', 'name','name_dari','name_pashto', 'price','image','is_available',
             'is_manually_available',
-            'final_availability','category','reviews','uses_daily_production', 'production_remaining','station','station_name'] 
+            'final_availability','category','display_order','reviews','uses_daily_production', 'production_remaining','station','station_name'] 
     def get_image(self, obj):
         return obj.image.url if obj.image else None
 
@@ -182,6 +183,7 @@ class PlatterSerializer(serializers.ModelSerializer):
             'image',
             'is_available',
             'is_manually_available',
+            'display_order',
             'final_availability',
             'unavailable_reasons',
             'items',
@@ -297,6 +299,12 @@ class PlatterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
 
         items_data = validated_data.pop('items')
+        request_data = getattr(self, "initial_data", {}) or {}
+        if "display_order" not in request_data and validated_data.get("category"):
+            validated_data["display_order"] = next_display_order(
+                validated_data.get("restaurant"),
+                validated_data.get("category"),
+            )
 
         platter = Platter.objects.create(
             **validated_data
@@ -420,7 +428,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
         model = MenuItem
         fields = ['id', 'branch', 'name','name_dari','name_pashto', 'description','description_dari','description_pashto', 'price', 'image', 'is_available',
             'is_manually_available','unavailable_reasons',
-            'final_availability','category','reviews','ingredients','cost_per_unit','profit_per_unit',
+            'final_availability','category','display_order','reviews','ingredients','cost_per_unit','profit_per_unit',
             'uses_daily_production',         # 🆕
             'production_remaining',          # 🆕
             'production_produced',
@@ -524,6 +532,15 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        request_data = getattr(self, "initial_data", {}) or {}
+        if "display_order" not in request_data and validated_data.get("category"):
+            validated_data["display_order"] = next_display_order(
+                validated_data.get("restaurant"),
+                validated_data.get("category"),
+            )
+        return super().create(validated_data)
 
 # serializers.py
 
