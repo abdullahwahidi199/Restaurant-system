@@ -15,6 +15,29 @@ export function compareMenuEntries(a, b) {
   return String(getMenuEntryKey(a)).localeCompare(String(getMenuEntryKey(b)));
 }
 
+export function compareMenuCategories(a, b) {
+  const rankA = Number.isFinite(Number(a?.rank))
+    ? Number(a.rank)
+    : Number.MAX_SAFE_INTEGER;
+  const rankB = Number.isFinite(Number(b?.rank))
+    ? Number(b.rank)
+    : Number.MAX_SAFE_INTEGER;
+
+  if (rankA !== rankB) return rankA - rankB;
+
+  const idA = Number(a?.id);
+  const idB = Number(b?.id);
+  if (Number.isFinite(idA) && Number.isFinite(idB) && idA !== idB) {
+    return idA - idB;
+  }
+
+  return String(a?.name || "").localeCompare(String(b?.name || ""));
+}
+
+export function sortMenuCategories(categories) {
+  return [...(categories || [])].sort(compareMenuCategories);
+}
+
 export function mergeCategoryEntries(category, mapEntry = (item) => item) {
   const categoryName = category?.name || "Uncategorized";
   const categoryId = category?.id || null;
@@ -41,6 +64,12 @@ export function mergeCategoryEntries(category, mapEntry = (item) => item) {
       }),
     ),
   ].sort(compareMenuEntries);
+}
+
+export function flattenMenuCategories(categories, mapEntry = (item) => item) {
+  return sortMenuCategories(categories).flatMap((category) =>
+    mergeCategoryEntries(category, mapEntry),
+  );
 }
 
 export function canonicalReorderPayload(items) {

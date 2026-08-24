@@ -58,6 +58,7 @@ import useCategoryItems from "./useCategoryItems";
 import {
   canonicalReorderPayload,
   compareMenuEntries,
+  flattenMenuCategories,
   mergeCategoryEntries,
 } from "./menuOrdering";
 
@@ -903,7 +904,7 @@ export default function MenuWorkspace({
   );
 
   const allItems = useMemo(
-    () => categories.flatMap((category) => flattenCategory(category)),
+    () => flattenMenuCategories(categories),
     [categories],
   );
 

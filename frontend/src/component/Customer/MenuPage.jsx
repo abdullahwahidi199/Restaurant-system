@@ -29,7 +29,10 @@ import {
   getPublicContextFromParams,
   persistPublicOrderingContext,
 } from "../../api/publicOrdering";
-import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
+import {
+  flattenMenuCategories,
+  sortMenuCategories,
+} from "../Admin/MenuManagement/menuOrdering";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
@@ -166,20 +169,19 @@ export default function MenuPage({
       if (!res.ok) throw new Error("Failed to fetch menu data");
       const data = await res.json();
 
-      setCategories(["All", ...data.map((cat) => cat.name)]);
+      const orderedCategories = sortMenuCategories(data);
+      setCategories(["All", ...orderedCategories.map((cat) => cat.name)]);
 
-      const items = data.flatMap((cat) =>
-        mergeCategoryEntries(cat, (item) => ({
+      const items = flattenMenuCategories(orderedCategories, (item) => ({
           ...item,
-          category: cat.name,
+          category: item.categoryName,
           image: item.image
             ? item.image.startsWith("http")
               ? item.image
               : `${BASE_MEDIA_URL}${item.image}`
             : "/images/placeholder.png",
           reviews: item.reviews || [],
-        })),
-      );
+        }));
       setMenuItems(items);
     } catch (err) {
       console.error(err);
@@ -215,6 +217,8 @@ export default function MenuPage({
   const toastRef = useRef(false);
 
   const addToCart = (item) => {
+    if (!item?.final_availability) return;
+
     const exists = cart.find((i) => i.id === item.id && i.type === item.type);
 
     if (!exists && !toastRef.current) {
@@ -253,7 +257,7 @@ export default function MenuPage({
 
   const incrementItem = (id, type) => {
     const item = menuItems.find((i) => i.id === id && i.type === type);
-    if (!item) return;
+    if (!item?.final_availability) return;
 
     setCart((prev) =>
       prev.map((i) => {

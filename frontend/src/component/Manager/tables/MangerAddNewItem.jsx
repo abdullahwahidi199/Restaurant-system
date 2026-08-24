@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
-import { mergeCategoryEntries } from "../../Admin/MenuManagement/menuOrdering";
+import {
+  flattenMenuCategories,
+  mergeCategoryEntries,
+  sortMenuCategories,
+} from "../../Admin/MenuManagement/menuOrdering";
 
 export default function ManagerAddItem({
   orderId,
@@ -48,9 +52,10 @@ export default function ManagerAddItem({
         })),
       }));
 
-      setMenuData(enriched);
-      if (data.length > 0 && data[0].menu_items.length > 0) {
-        setActiveCategory(data[0].name);
+      const ordered = sortMenuCategories(enriched);
+      setMenuData(ordered);
+      if (ordered.length > 0 && ordered[0].menu_items.length > 0) {
+        setActiveCategory(ordered[0].name);
       }
     } catch (err) {
       console.error(err);
@@ -70,13 +75,11 @@ export default function ManagerAddItem({
     let items = [];
 
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        mergeCategoryEntries(cat, (item) => ({
-          ...item,
-          category: cat.name,
-          item_type: item.itemType === "platter" ? "platter" : "menu_item",
-        })),
-      );
+      items = flattenMenuCategories(menuData, (item) => ({
+        ...item,
+        category: item.categoryName,
+        item_type: item.itemType === "platter" ? "platter" : "menu_item",
+      }));
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
 

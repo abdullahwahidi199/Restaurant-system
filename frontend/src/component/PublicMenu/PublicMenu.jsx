@@ -26,7 +26,11 @@ import {
   PUBLIC_MENU_DARK_THEME,
   buildThemedImagePlaceholder,
 } from "../../theme/themeRuntime";
-import { mergeCategoryEntries } from "../Admin/MenuManagement/menuOrdering";
+import {
+  flattenMenuCategories,
+  mergeCategoryEntries,
+  sortMenuCategories,
+} from "../Admin/MenuManagement/menuOrdering";
 
 /* ═══════════════════════════════════════════
    LANGUAGE CONFIG
@@ -252,15 +256,21 @@ const normalizeMenuCollection = (items, type, categoryId = null) => {
 };
 
 const normalizePublicCategories = (categoriesData) => {
-  const realCategories = (categoriesData || []).map((category) => ({
-    ...category,
-    menu_items: normalizeMenuCollection(
-      category.menu_items,
-      "menu_item",
-      category.id,
-    ),
-    platters: normalizeMenuCollection(category.platters, "platter", category.id),
-  }));
+  const realCategories = sortMenuCategories(
+    (categoriesData || []).map((category) => ({
+      ...category,
+      menu_items: normalizeMenuCollection(
+        category.menu_items,
+        "menu_item",
+        category.id,
+      ),
+      platters: normalizeMenuCollection(
+        category.platters,
+        "platter",
+        category.id,
+      ),
+    })),
+  );
 
   const allItems = normalizeMenuCollection(
     realCategories.flatMap((category) => category.menu_items || []),
@@ -532,6 +542,8 @@ export default function PublicMenu() {
     item.cartKey || `${item.type || "menu_item"}:${item.id}`;
 
   const addToCart = useCallback((item) => {
+    if (!item?.final_availability) return;
+
     const cartKey = getCartKey(item);
 
     setCart((prev) => {
@@ -566,13 +578,14 @@ export default function PublicMenu() {
   const menuItems = useMemo(() => {
     if (!categories?.length) return [];
 
-    return categories.flatMap((cat) =>
-      mergeCategoryEntries(cat, (item) => ({
+    return flattenMenuCategories(
+      categories.filter((cat) => cat.id !== "all"),
+      (item) => ({
         ...item,
         cartKey:
           item.cartKey ||
           `${item.itemType === "platter" ? "platter" : "menu_item"}:${item.id}`,
-      })),
+      }),
     );
   }, [categories]);
   const getMenuItem = (cartKey) => {
@@ -580,7 +593,7 @@ export default function PublicMenu() {
   };
   const incrementItem = (cartKey) => {
     const item = getMenuItem(cartKey);
-    if (!item) return;
+    if (!item?.final_availability) return;
 
     setCart((prev) =>
       prev.map((i) => {
@@ -649,18 +662,19 @@ export default function PublicMenu() {
   const filteredItems = useMemo(() => {
     if (!selectedCategory) return [];
 
-    const menuItems = selectedCategory.menu_items || [];
-    const platters = selectedCategory.platters || [];
-
-    const allItems = mergeCategoryEntries(
-      { ...selectedCategory, menu_items: menuItems, platters },
-      (item) => ({
-        ...item,
-        cartKey:
-          item.cartKey ||
-          `${item.itemType === "platter" ? "platter" : "menu_item"}:${item.id}`,
-      }),
-    );
+    const mapCartEntry = (item) => ({
+      ...item,
+      cartKey:
+        item.cartKey ||
+        `${item.itemType === "platter" ? "platter" : "menu_item"}:${item.id}`,
+    });
+    const allItems =
+      selectedCategory.id === "all"
+        ? flattenMenuCategories(
+            categories.filter((cat) => cat.id !== "all"),
+            mapCartEntry,
+          )
+        : mergeCategoryEntries(selectedCategory, mapCartEntry);
 
     if (!searchQuery.trim()) return allItems;
 

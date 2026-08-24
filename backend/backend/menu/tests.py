@@ -91,6 +91,89 @@ class PublicMenuCategoryTests(TestCase):
         self.assertEqual(categories["Meat"]["menu_items"][0]["category"], meat.id)
         self.assertEqual(categories["Drinks"]["menu_items"][0]["category"], drinks.id)
 
+    def test_public_categories_include_unavailable_menu_items_and_platters(self):
+        category = Category.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Specials",
+            rank=1,
+        )
+        available_item = MenuItem.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            category=category,
+            name="Kabuli",
+            price=250,
+        )
+        unavailable_item = MenuItem.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            category=category,
+            name="Mantu",
+            price=180,
+            is_available=False,
+        )
+        unavailable_platter = Platter.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            category=category,
+            name="Family Platter",
+            price=900,
+            is_manually_available=False,
+        )
+
+        response = self.client.get(
+            f"/api/menu/public/{self.restaurant.slug}/categories/",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        public_category = response.data[0]
+        menu_items = {item["name"]: item for item in public_category["menu_items"]}
+        platters = {platter["name"]: platter for platter in public_category["platters"]}
+
+        self.assertIn(available_item.name, menu_items)
+        self.assertIn(unavailable_item.name, menu_items)
+        self.assertTrue(menu_items[available_item.name]["final_availability"])
+        self.assertFalse(menu_items[unavailable_item.name]["final_availability"])
+        self.assertIn(unavailable_platter.name, platters)
+        self.assertFalse(platters[unavailable_platter.name]["final_availability"])
+
+    def test_public_detail_endpoints_allow_unavailable_entries(self):
+        category = Category.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Unavailable",
+            rank=1,
+        )
+        unavailable_item = MenuItem.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            category=category,
+            name="Bolani",
+            price=120,
+            is_manually_available=False,
+        )
+        unavailable_platter = Platter.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            category=category,
+            name="Lunch Platter",
+            price=500,
+            is_available=False,
+        )
+
+        item_response = self.client.get(
+            f"/api/menu/public/{self.restaurant.slug}/menu-items/{unavailable_item.id}/",
+        )
+        platter_response = self.client.get(
+            f"/api/menu/public/{self.restaurant.slug}/platters/{unavailable_platter.id}/",
+        )
+
+        self.assertEqual(item_response.status_code, 200)
+        self.assertFalse(item_response.data["final_availability"])
+        self.assertEqual(platter_response.status_code, 200)
+        self.assertFalse(platter_response.data["final_availability"])
+
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class MenuOrderingTests(TestCase):

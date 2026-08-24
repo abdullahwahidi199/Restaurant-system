@@ -17,7 +17,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
-import { mergeCategoryEntries } from "../../Admin/MenuManagement/menuOrdering";
+import {
+  flattenMenuCategories,
+  mergeCategoryEntries,
+  sortMenuCategories,
+} from "../../Admin/MenuManagement/menuOrdering";
 
 export default function DeliveryOrderForm() {
   const { t, i18n } = useTranslation();
@@ -71,9 +75,10 @@ export default function DeliveryOrderForm() {
         })),
       }));
 
-      setMenuData(enriched);
-      if (data.length > 0) {
-        setActiveCategory(data[0].name);
+      const ordered = sortMenuCategories(enriched);
+      setMenuData(ordered);
+      if (ordered.length > 0) {
+        setActiveCategory(ordered[0].name);
       }
     } catch (err) {
       console.error(err);
@@ -93,9 +98,10 @@ export default function DeliveryOrderForm() {
     let items = [];
 
     if (activeCategory === "All") {
-      items = menuData.flatMap((cat) =>
-        mergeCategoryEntries(cat, (item) => ({ ...item, category: cat.name })),
-      );
+      items = flattenMenuCategories(menuData, (item) => ({
+        ...item,
+        category: item.categoryName,
+      }));
     } else {
       const cat = menuData.find((c) => c.name === activeCategory);
 

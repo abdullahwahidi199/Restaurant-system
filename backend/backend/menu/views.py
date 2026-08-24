@@ -180,29 +180,6 @@ def public_platter_queryset(restaurant, branch):
     )
 
 
-def public_visible_menu_item_queryset(restaurant, branch):
-    return public_menu_item_queryset(restaurant, branch).filter(
-        Q(
-            uses_daily_production=False,
-            is_available=True,
-            is_manually_available=True,
-        )
-        | Q(
-            uses_daily_production=True,
-            is_manually_available=True,
-            productions__branch=branch,
-            productions__quantity_remaining__gt=0,
-        )
-    ).distinct()
-
-
-def public_visible_platter_queryset(restaurant, branch):
-    return public_platter_queryset(restaurant, branch).filter(
-        is_available=True,
-        is_manually_available=True,
-    )
-
-
 def get_category_menu_prefetches(restaurant, branch):
     return (
         Prefetch(
@@ -220,11 +197,11 @@ def get_public_category_menu_prefetches(restaurant, branch):
     return (
         Prefetch(
             "menu_items",
-            queryset=public_visible_menu_item_queryset(restaurant, branch),
+            queryset=public_menu_item_queryset(restaurant, branch),
         ),
         Prefetch(
             "platters",
-            queryset=public_visible_platter_queryset(restaurant, branch),
+            queryset=public_platter_queryset(restaurant, branch),
         ),
     )
 
@@ -655,7 +632,7 @@ def send_review(request, slug=None, restaurant_slug=None, branch_slug=None):
     menu_item_id = request.data.get("menu_item")
     if menu_item_id:
         get_object_or_404(
-            public_visible_menu_item_queryset(restaurant, branch),
+            public_menu_item_queryset(restaurant, branch),
             id=menu_item_id,
         )
 
@@ -705,7 +682,7 @@ def public_categories(request, slug=None, restaurant_slug=None, branch_slug=None
 @permission_classes([AllowAny])
 def public_menu_items(request, slug=None, restaurant_slug=None, branch_slug=None):
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
-    menu_items = public_visible_menu_item_queryset(restaurant, branch)
+    menu_items = public_menu_item_queryset(restaurant, branch)
 
     serializer = MenuItemSerializer(
         menu_items,
@@ -720,7 +697,7 @@ def public_menu_items(request, slug=None, restaurant_slug=None, branch_slug=None
 def public_menu_item_detail(request, pk, slug=None, restaurant_slug=None, branch_slug=None):
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
     item = get_object_or_404(
-        public_visible_menu_item_queryset(restaurant, branch),
+        public_menu_item_queryset(restaurant, branch),
         pk=pk,
     )
 
@@ -908,7 +885,7 @@ class PlatterRetrieveUpdateDestroyView(
 def public_platters(request, slug=None, restaurant_slug=None, branch_slug=None):
 
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
-    platters = public_visible_platter_queryset(
+    platters = public_platter_queryset(
         restaurant,
         branch,
     )
@@ -934,7 +911,7 @@ def public_platter_detail(
 
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
     platter = get_object_or_404(
-        public_visible_platter_queryset(restaurant, branch),
+        public_platter_queryset(restaurant, branch),
         pk=pk,
     )
 
