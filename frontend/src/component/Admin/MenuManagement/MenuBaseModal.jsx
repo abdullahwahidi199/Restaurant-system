@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import instance from "../../../api/axiosInstance";
 import MenuWorkspace from "./MenuWorkspace";
+import { sortMenuCategories } from "./menuOrdering";
 
 export default function Menu({
   canManage,
@@ -36,7 +37,7 @@ export default function Menu({
     setLoading(true);
     try {
       const response = await instance.get("menu/categories/");
-      setCategories(response.data);
+      setCategories(sortMenuCategories(response.data));
     } catch (error) {
       console.log(
         "Could not get categories:",

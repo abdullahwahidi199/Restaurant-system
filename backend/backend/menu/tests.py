@@ -174,6 +174,36 @@ class PublicMenuCategoryTests(TestCase):
         self.assertEqual(platter_response.status_code, 200)
         self.assertFalse(platter_response.data["final_availability"])
 
+    def test_public_categories_put_unranked_categories_last(self):
+        unranked = Category.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Unranked",
+            rank=None,
+        )
+        second = Category.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Second",
+            rank=2,
+        )
+        first = Category.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="First",
+            rank=1,
+        )
+
+        response = self.client.get(
+            f"/api/menu/public/{self.restaurant.slug}/categories/",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [category["id"] for category in response.data],
+            [first.id, second.id, unranked.id],
+        )
+
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class MenuOrderingTests(TestCase):

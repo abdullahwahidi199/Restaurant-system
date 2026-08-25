@@ -60,6 +60,7 @@ import {
   compareMenuEntries,
   flattenMenuCategories,
   mergeCategoryEntries,
+  sortMenuCategories,
 } from "./menuOrdering";
 
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || "";
@@ -438,7 +439,11 @@ function CategoryRail({
                     }`}
                   >
                     {count} item{count === 1 ? "" : "s"}
-                    {category.rank ? ` · Rank ${category.rank}` : ""}
+                    {category.rank !== null &&
+                    category.rank !== undefined &&
+                    category.rank !== ""
+                      ? ` · Rank ${category.rank}`
+                      : ""}
                   </span>
                 </span>
               </button>
@@ -821,6 +826,10 @@ export default function MenuWorkspace({
   const [stations, setStations] = useState([]);
 
   const queryClient = useQueryClient();
+  const orderedCategories = useMemo(
+    () => sortMenuCategories(categories),
+    [categories],
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -851,7 +860,7 @@ export default function MenuWorkspace({
 
   // 3️⃣ SINGLE authoritative useEffect: synchronizes selected category without overwriting user's saved choice
   useEffect(() => {
-    if (!categories || !categories.length) return;
+    if (!orderedCategories || !orderedCategories.length) return;
 
     const saved = localStorage.getItem("selectedMenuCategoryId");
 
@@ -864,8 +873,8 @@ export default function MenuWorkspace({
     }
 
     // Case B: A specific category ID is saved in localStorage and exists in our categories array
-    if (saved && categories.some((c) => String(c.id) === String(saved))) {
-      const targetCategory = categories.find(
+    if (saved && orderedCategories.some((c) => String(c.id) === String(saved))) {
+      const targetCategory = orderedCategories.find(
         (c) => String(c.id) === String(saved),
       );
       if (String(selectedCategoryId) !== String(targetCategory.id)) {
@@ -878,20 +887,22 @@ export default function MenuWorkspace({
     if (
       !selectedCategoryId ||
       (String(selectedCategoryId) !== "all" &&
-        !categories.some((c) => String(c.id) === String(selectedCategoryId)))
+        !orderedCategories.some(
+          (c) => String(c.id) === String(selectedCategoryId),
+        ))
     ) {
-      const fallbackId = categories[0].id;
+      const fallbackId = orderedCategories[0].id;
       setSelectedCategoryIdState(fallbackId);
       localStorage.setItem("selectedMenuCategoryId", String(fallbackId));
     }
-  }, [categories]);
+  }, [orderedCategories]);
 
   const selectedCategory = useMemo(
     () =>
-      categories.find(
+      orderedCategories.find(
         (category) => String(category.id) === String(selectedCategoryId),
       ),
-    [categories, selectedCategoryId],
+    [orderedCategories, selectedCategoryId],
   );
 
   const {
@@ -904,8 +915,8 @@ export default function MenuWorkspace({
   );
 
   const allItems = useMemo(
-    () => flattenMenuCategories(categories),
-    [categories],
+    () => flattenMenuCategories(orderedCategories),
+    [orderedCategories],
   );
 
   const scopedItems = useMemo(() => {
@@ -924,7 +935,7 @@ export default function MenuWorkspace({
   const stats = useMemo(() => {
     const menuItems = allItems.filter((item) => item.itemType === "menu_item");
     return {
-      categories: categories.length,
+      categories: orderedCategories.length,
       total: allItems.length,
       active: allItems.filter((item) => item.final_availability).length,
       hidden: allItems.filter((item) => item.is_manually_available === false)
@@ -932,7 +943,7 @@ export default function MenuWorkspace({
       platters: allItems.filter((item) => item.itemType === "platter").length,
       production: menuItems.filter((item) => item.uses_daily_production).length,
     };
-  }, [allItems, categories.length]);
+  }, [allItems, orderedCategories.length]);
 
   const visibleItems = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -979,7 +990,7 @@ export default function MenuWorkspace({
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === "menu_order") return compareMenuEntries(a, b);
+        if (sortBy === "menu_order") return 0;
         if (sortBy === "price_high")
           return Number(b.price || 0) - Number(a.price || 0);
         if (sortBy === "price_low")
@@ -1017,7 +1028,7 @@ export default function MenuWorkspace({
   const selectedManageCategoryId =
     selectedCategoryId && selectedCategoryId !== "all"
       ? selectedCategoryId
-      : categories[0]?.id;
+      : orderedCategories[0]?.id;
 
   const fetchStations = async () => {
     try {
@@ -1139,10 +1150,10 @@ export default function MenuWorkspace({
         return;
       }
 
-      const targetCategory = categories.find(
+      const targetCategory = orderedCategories.find(
         (category) => String(category.id) === String(targetCategoryId),
       );
-      const sourceCategory = categories.find(
+      const sourceCategory = orderedCategories.find(
         (category) => String(category.id) === String(item.categoryId),
       );
       if (!targetCategory || !sourceCategory) return;
@@ -1188,7 +1199,14 @@ export default function MenuWorkspace({
         toast.error("Failed to save menu order");
       }
     },
-    [applyCategoryOrder, categories, queryClient, setCategories, setSelectedCategoryId],
+    [
+      applyCategoryOrder,
+      categories,
+      orderedCategories,
+      queryClient,
+      setCategories,
+      setSelectedCategoryId,
+    ],
   );
 
   const handlePrint = async () => {
@@ -1484,7 +1502,7 @@ export default function MenuWorkspace({
 
             <section className="space-y-3">
               <CategoryRail
-                categories={categories}
+                categories={orderedCategories}
                 selectedCategoryId={selectedCategoryId}
                 onSelect={setSelectedCategoryId}
                 canManage={canManage}
@@ -1579,7 +1597,7 @@ export default function MenuWorkspace({
                                   onToggleSelected={toggleSelected}
                                   dragHandleProps={dragHandleProps}
                                   isDragging={isDragging}
-                                  categories={categories}
+                                  categories={orderedCategories}
                                   onMoveItem={handleMoveItem}
                                 />
                               )}

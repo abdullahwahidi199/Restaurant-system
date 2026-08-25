@@ -89,7 +89,7 @@ class Category(models.Model):
 
     rank = models.PositiveIntegerField(blank=True, null=True)
     class Meta:
-        ordering = ['rank']
+        ordering = [F("rank").asc(nulls_last=True), "id"]
         # Prevent duplicate ranks within the same restaurant
         constraints = [
             models.UniqueConstraint(
@@ -184,7 +184,12 @@ class MenuItem(models.Model):
     )
 
     class Meta:
-        ordering = ["category__rank", "display_order", "id"]
+        ordering = [
+            F("category__rank").asc(nulls_last=True),
+            "category_id",
+            "display_order",
+            "id",
+        ]
         indexes = [
             models.Index(fields=["restaurant", "branch"], name="item_rest_branch_idx"),
             models.Index(fields=["restaurant", "category"], name="item_rest_cat_idx"),
@@ -463,7 +468,12 @@ class Platter(models.Model):
     )
 
     class Meta:
-        ordering = ["category__rank", "display_order", "id"]
+        ordering = [
+            F("category__rank").asc(nulls_last=True),
+            "category_id",
+            "display_order",
+            "id",
+        ]
         indexes = [
             models.Index(fields=["restaurant", "branch"], name="plat_rest_branch_idx"),
             models.Index(fields=["restaurant", "category"], name="plat_rest_cat_idx"),

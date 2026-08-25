@@ -16,10 +16,12 @@ export function compareMenuEntries(a, b) {
 }
 
 export function compareMenuCategories(a, b) {
-  const rankA = Number.isFinite(Number(a?.rank))
+  const hasRankA = a?.rank !== null && a?.rank !== undefined && a?.rank !== "";
+  const hasRankB = b?.rank !== null && b?.rank !== undefined && b?.rank !== "";
+  const rankA = hasRankA && Number.isFinite(Number(a.rank))
     ? Number(a.rank)
     : Number.MAX_SAFE_INTEGER;
-  const rankB = Number.isFinite(Number(b?.rank))
+  const rankB = hasRankB && Number.isFinite(Number(b.rank))
     ? Number(b.rank)
     : Number.MAX_SAFE_INTEGER;
 
