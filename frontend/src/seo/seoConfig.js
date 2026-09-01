@@ -1,12 +1,12 @@
 export const SITE_URL = "https://pakhlai.com";
-export const SITE_NAME = "Pakhlai RMS";
+export const SITE_NAME = "Pakhlai";
 export const COMPANY_NAME = "Asanlink";
 export const FOUNDER_NAME = "Abdullah Wahidi";
-export const DEFAULT_IMAGE = `${SITE_URL}/rmsLogo.png`;
+export const DEFAULT_IMAGE = `${SITE_URL}/images/pakhlai-hero-feast.webp`;
 export const CURRENT_YEAR = 2026;
 
 export const ORGANIZATION_DESCRIPTION =
-  "Pakhlai RMS helps restaurants manage orders, kitchen operations, inventory, staff, procurement, finances, and multiple branches from one connected platform.";
+  "Pakhlai helps customers discover restaurants, browse real menus, and order food online, powered by a professional restaurant operations platform.";
 
 export const baseOrganization = {
   "@type": "Organization",
@@ -73,16 +73,21 @@ export const baseWebsite = {
     "@id": `${SITE_URL}/#organization`,
   },
   about: {
-    "@id": `${SITE_URL}/#software`,
+    "@id": `${SITE_URL}/#organization`,
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
   },
 };
 
 export const publicPages = [
   {
     path: "/",
-    title: "Pakhlai RMS — Restaurant Management System | Asanlink",
+    title: "Pakhlai — Find Restaurants & Order Food Online",
     description:
-      "Pakhlai RMS helps restaurants manage orders, kitchen operations, inventory, staff, procurement, finances, and multiple branches from one connected platform.",
+      "Find restaurants, browse real menus, and order your favorite food online with Pakhlai.",
     breadcrumbs: [{ name: "Home", path: "/" }],
   },
   {
@@ -103,6 +108,26 @@ export const publicPages = [
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "Founder", path: "/founder" },
+    ],
+  },
+  {
+    path: "/privacy",
+    title: "Privacy Policy | Pakhlai",
+    description:
+      "Learn how Pakhlai handles customer, delivery, account, and ordering information.",
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Privacy", path: "/privacy" },
+    ],
+  },
+  {
+    path: "/terms",
+    title: "Terms of Service | Pakhlai",
+    description:
+      "Read the terms for using Pakhlai restaurant discovery and online food ordering.",
+    breadcrumbs: [
+      { name: "Home", path: "/" },
+      { name: "Terms", path: "/terms" },
     ],
   },
 ];
@@ -165,7 +190,7 @@ export const getPageSeo = (pathname) => {
   }
 
   return {
-    title: `${SITE_NAME} | Restaurant Management System`,
+    title: `${SITE_NAME} | Restaurant Menus and Online Ordering`,
     description: ORGANIZATION_DESCRIPTION,
     canonicalPath: normalizedPath,
     robots: "index, follow",

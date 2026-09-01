@@ -105,6 +105,9 @@ class Restaurant(models.Model):
     slogan=models.TextField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
+    # Superadmins explicitly opt restaurants into marketplace discovery. This
+    # does not affect the restaurant's direct public menu URL.
+    show_on_landing = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     min_order_amount = models.DecimalField(

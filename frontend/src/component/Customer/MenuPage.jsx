@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Heart,
   ShoppingCart,
@@ -13,6 +19,8 @@ import {
   Star,
   LayoutGrid,
   List as ListIcon,
+  MapPin,
+  Clock3,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import CheckoutForm from "./CheckoutForm";
@@ -22,6 +30,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { buildThemedImagePlaceholder } from "../../theme/themeRuntime";
 import {
   getMenuApiBase,
+  getMediaUrl,
   getMenuItemPath,
   getOnlineOrderApiPath,
   getPlatterPath,
@@ -92,7 +101,6 @@ export default function MenuPage({
     }),
     [branchSlug, restaurantSlug, routeBranchSlug, routeRestaurantSlug],
   );
-  const slug = publicContext.restaurantSlug;
   const menuApiBase = useMemo(
     () => getMenuApiBase(publicContext),
     [publicContext],
@@ -162,7 +170,7 @@ export default function MenuPage({
     });
   }, [branchInfo, restaurantInfo]);
 
-  const fetchMenuData = async () => {
+  const fetchMenuData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`${BASE_URL}${menuApiBase}/categories/`);
@@ -189,13 +197,13 @@ export default function MenuPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [BASE_MEDIA_URL, BASE_URL, menuApiBase, t]);
 
   useEffect(() => {
     fetchMenuData();
     const storedFavs = JSON.parse(localStorage.getItem("favorites")) || [];
     setFavorites(storedFavs);
-  }, [menuApiBase]);
+  }, [fetchMenuData]);
 
   useEffect(() => {
     localStorage.setItem("favorites", JSON.stringify(favorites));
@@ -210,10 +218,6 @@ export default function MenuPage({
       prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id],
     );
   };
-  const getMenuItem = (id) => {
-    return menuItems.find((i) => i.id === id);
-  };
-
   const toastRef = useRef(false);
 
   const addToCart = (item) => {
@@ -391,7 +395,7 @@ export default function MenuPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center px-4">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-orange-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600 text-sm sm:text-base">
@@ -405,12 +409,68 @@ export default function MenuPage({
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
-      className="min-h-screen bg-gray-50 pb-28 sm:pb-8 font-sans"
+      className="customer-ordering-page min-h-screen bg-[#fbfaf7] pb-28 text-stone-950 sm:pb-8 font-sans"
     >
       <Toaster position="bottom-center" />
 
+      <section className="border-y border-orange-100 bg-[#fffaf3]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-4">
+            {restaurantInfo?.logo ? (
+              <img
+                src={getMediaUrl(restaurantInfo.logo)}
+                alt=""
+                className="h-20 w-20 shrink-0 rounded-lg border border-orange-100 bg-white object-cover shadow-sm"
+                width="80"
+                height="80"
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = "/rmsFavicon.png";
+                }}
+              />
+            ) : (
+              <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-orange-700">
+                <ShoppingBag className="h-8 w-8" aria-hidden="true" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase text-orange-700">
+                Online menu
+              </p>
+              <h1 className="mt-1 truncate text-2xl font-black text-stone-950 sm:text-3xl">
+                {restaurantInfo?.name || "Restaurant"}
+              </h1>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-stone-600 sm:text-sm">
+                {branchInfo?.name ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 text-orange-600" aria-hidden="true" />
+                    {branchInfo.name}
+                  </span>
+                ) : null}
+                {branchInfo?.opening_hours ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock3 className="h-4 w-4 text-orange-600" aria-hidden="true" />
+                    {branchInfo.opening_hours}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-xs font-black ${
+              orderingClosed
+                ? "bg-amber-100 text-amber-900"
+                : "bg-emerald-100 text-emerald-800"
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
+            {orderingClosed ? "Delivery unavailable" : "Accepting orders"}
+          </span>
+        </div>
+      </section>
+
       {/* ============ MAIN CONTENT ============ */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8">
         {/* Search + Sort + View Toggle */}
         <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-0 sm:flex sm:gap-3">
           {/* Search Input */}
@@ -421,7 +481,7 @@ export default function MenuPage({
               placeholder={t("menu.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-sm sm:text-base"
+              className="w-full rounded-lg border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-sm shadow-sm transition-all focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 sm:py-3 sm:pl-12 sm:pr-4 sm:text-base"
             />
           </div>
 
@@ -430,7 +490,7 @@ export default function MenuPage({
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-700 rounded-xl sm:rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-xs sm:text-sm min-w-0"
+              className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-xs text-stone-700 shadow-sm transition-all focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 sm:flex-none sm:px-5 sm:py-3 sm:text-sm"
             >
               <option>{t("menu.sort.default")}</option>
               <option>{t("menu.sort.low_high")}</option>
@@ -438,14 +498,14 @@ export default function MenuPage({
             </select>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-white border border-gray-200 rounded-xl sm:rounded-2xl p-0.5 sm:p-1 shadow-sm flex-shrink-0">
+            <div className="flex flex-shrink-0 items-center rounded-lg border border-stone-200 bg-white p-0.5 shadow-sm sm:p-1">
               <button
                 onClick={() => setViewMode("grid")}
                 aria-label="Grid view"
                 className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${
                   viewMode === "grid"
-                    ? "bg-gray-900 text-white shadow-md"
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "bg-orange-600 text-white shadow-md"
+                    : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -455,8 +515,8 @@ export default function MenuPage({
                 aria-label="List view"
                 className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${
                   viewMode === "list"
-                    ? "bg-gray-900 text-white shadow-md"
-                    : "text-gray-500 hover:bg-gray-100"
+                    ? "bg-orange-600 text-white shadow-md"
+                    : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 <ListIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -473,8 +533,8 @@ export default function MenuPage({
               onClick={() => setSelectedCategory(cat)}
               className={`snap-start flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full whitespace-nowrap transition-all duration-300 text-xs sm:text-sm ${
                 selectedCategory === cat
-                  ? "bg-gray-900 text-white shadow-lg shadow-gray-900/20"
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  ? "bg-orange-600 text-white shadow-lg shadow-orange-700/15"
+                  : "bg-white text-stone-700 hover:bg-orange-50 border border-stone-200"
               }`}
             >
               <span className="font-medium">{cat}</span>
@@ -483,7 +543,7 @@ export default function MenuPage({
                   className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
                     selectedCategory === cat
                       ? "bg-white/20 text-white"
-                      : "bg-gray-100 text-gray-500"
+                      : "bg-stone-100 text-stone-500"
                   }`}
                 >
                   {getCategoryCount(cat)}
@@ -516,10 +576,10 @@ export default function MenuPage({
                         navigate(getMenuItemPath(publicContext, item.id));
                       }
                     }}
-                    className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-lg sm:hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col cursor-pointer active:scale-[0.98] sm:active:scale-100"
+                    className="group flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:border-orange-200 hover:shadow-xl hover:shadow-stone-950/10 cursor-pointer active:scale-[0.98] sm:active:scale-100"
                   >
                     {/* Image */}
-                    <div className="relative aspect-[4/3] sm:h-40 md:h-48 lg:h-56 overflow-hidden bg-gray-100">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-stone-100 sm:h-40 md:h-48 lg:h-56">
                       <ImageWrapper
                         src={item.image}
                         alt={item.name}
@@ -564,7 +624,7 @@ export default function MenuPage({
 
                     {/* Content */}
                     <div className="p-2 sm:p-3 md:p-5 flex-1 flex flex-col min-h-0">
-                      <h3 className="text-xs sm:text-sm md:text-lg font-bold text-gray-900 leading-tight line-clamp-2 mb-1 sm:mb-2">
+                      <h3 className="mb-1 line-clamp-2 text-xs font-black leading-tight text-stone-950 sm:mb-2 sm:text-sm md:text-lg">
                         {item.name}
                       </h3>
 
@@ -610,9 +670,9 @@ export default function MenuPage({
                       )}
 
                       {/* Price + Cart */}
-                      <div className="mt-auto pt-2 sm:pt-3 border-t border-gray-100">
+                      <div className="mt-auto border-t border-stone-100 pt-2 sm:pt-3">
                         <div className="flex items-baseline gap-0.5 sm:gap-1 mb-2 sm:mb-3">
-                          <span className="text-sm sm:text-lg md:text-2xl font-bold text-gray-900">
+                          <span className="text-sm font-black text-stone-950 sm:text-lg md:text-2xl">
                             AFN{" "}
                             <span className="text-xs sm:text-sm md:text-xl">
                               {parseFloat(item.price).toFixed(2)}
@@ -629,7 +689,7 @@ export default function MenuPage({
                               e.stopPropagation();
                               addToCart(item);
                             }}
-                            className="w-full py-2 sm:py-3 bg-gray-900 text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:bg-orange-600 active:scale-95 transition-all duration-200 flex items-center justify-center gap-1 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            className="flex w-full items-center justify-center gap-1 rounded-lg bg-orange-600 py-2 text-xs font-bold text-white transition-all duration-200 hover:bg-orange-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-stone-300 sm:py-3 sm:text-sm"
                           >
                             <span>
                               {item.final_availability
@@ -641,7 +701,7 @@ export default function MenuPage({
                             )}
                           </button>
                         ) : (
-                          <div className="flex items-center justify-between bg-gray-900 rounded-lg sm:rounded-xl p-1">
+                          <div className="flex items-center justify-between rounded-lg bg-stone-950 p-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -692,7 +752,7 @@ export default function MenuPage({
                         navigate(getMenuItemPath(publicContext, item.id));
                       }
                     }}
-                    className="group bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 cursor-pointer overflow-hidden flex active:scale-[0.99] sm:active:scale-100"
+                    className="group flex cursor-pointer overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:border-orange-200 hover:shadow-md active:scale-[0.99] sm:active:scale-100"
                   >
                     {/* Image */}
                     <div className="relative w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-44 lg:h-44 flex-shrink-0 overflow-hidden bg-gray-100">
@@ -780,7 +840,7 @@ export default function MenuPage({
                       </div>
 
                       {/* Footer: Price + Add */}
-                      <div className="mt-auto flex items-center justify-between gap-2 pt-1.5 sm:pt-2 border-t border-gray-100">
+                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-stone-100 pt-1.5 sm:pt-2">
                         <div className="flex items-baseline gap-0.5 whitespace-nowrap min-w-0">
                           <span className="text-xs sm:text-lg md:text-xl font-bold text-gray-900">
                             AFN{" "}
@@ -799,7 +859,7 @@ export default function MenuPage({
                               e.stopPropagation();
                               addToCart(item);
                             }}
-                            className="px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-900 text-white rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:bg-orange-600 active:scale-95 transition-all flex items-center gap-0.5 sm:gap-1 disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
+                            className="flex flex-shrink-0 items-center gap-0.5 rounded-lg bg-orange-600 px-2 py-1.5 text-xs font-bold text-white transition-all hover:bg-orange-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-stone-300 sm:gap-1 sm:px-4 sm:py-2 sm:text-sm"
                           >
                             {item.final_availability
                               ? t("menu.buttons.add")

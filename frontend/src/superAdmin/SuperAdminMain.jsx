@@ -12,6 +12,7 @@ export default function SuperAdminMain() {
   const [securitySettings, setSecuritySettings] = useState(null);
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securitySaving, setSecuritySaving] = useState(false);
+  const [landingVisibilityStatus, setLandingVisibilityStatus] = useState({});
 
   // Modal States
   const [isRestModalOpen, setIsRestModalOpen] = useState(false);
@@ -127,6 +128,77 @@ export default function SuperAdminMain() {
     setIsSubModalOpen(true);
   };
 
+  const handleLandingVisibilityChange = async (restaurant, nextValue) => {
+    const previousValue = Boolean(restaurant.show_on_landing);
+
+    setRestaurants((current) =>
+      current.map((item) =>
+        item.id === restaurant.id
+          ? { ...item, show_on_landing: nextValue }
+          : item,
+      ),
+    );
+    setLandingVisibilityStatus((current) => ({
+      ...current,
+      [restaurant.id]: {
+        state: "pending",
+        message: nextValue ? "Adding to landing page..." : "Removing from landing page...",
+      },
+    }));
+
+    try {
+      const response = await instance.patch(
+        `/restaurant/restaurants/${restaurant.id}/`,
+        { show_on_landing: nextValue },
+      );
+      const savedValue =
+        typeof response.data?.show_on_landing === "boolean"
+          ? response.data.show_on_landing
+          : nextValue;
+
+      setRestaurants((current) =>
+        current.map((item) =>
+          item.id === restaurant.id
+            ? { ...item, show_on_landing: savedValue }
+            : item,
+        ),
+      );
+      setLandingVisibilityStatus((current) => ({
+        ...current,
+        [restaurant.id]: {
+          state: "success",
+          message: savedValue
+            ? "Now shown in landing-page collections."
+            : "Hidden from landing-page collections.",
+        },
+      }));
+    } catch (err) {
+      setRestaurants((current) =>
+        current.map((item) =>
+          item.id === restaurant.id
+            ? { ...item, show_on_landing: previousValue }
+            : item,
+        ),
+      );
+
+      const responseMessage = err.response?.data?.show_on_landing;
+      const message = Array.isArray(responseMessage)
+        ? responseMessage[0]
+        : typeof responseMessage === "string"
+          ? responseMessage
+          : "Could not update landing visibility. Try again.";
+
+      setLandingVisibilityStatus((current) => ({
+        ...current,
+        [restaurant.id]: { state: "error", message },
+      }));
+      console.error(
+        "Failed to update landing visibility:",
+        err.response?.data || err,
+      );
+    }
+  };
+
   const handleSecurityChange = (field, value) => {
     setSecuritySettings((prev) => ({
       ...prev,
@@ -215,6 +287,8 @@ export default function SuperAdminMain() {
                   onEdit={handleOpenEdit}
                   onDelete={handleDeleteRestaurant}
                   onManageSub={handleOpenSubModal}
+                  onLandingVisibilityChange={handleLandingVisibilityChange}
+                  landingVisibilityStatus={landingVisibilityStatus[rest.id]}
                 />
               ))}
             </div>

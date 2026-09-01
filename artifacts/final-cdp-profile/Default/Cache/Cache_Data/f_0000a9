@@ -1,0 +1,327 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/component/Admin/Inventory/EditStockModal.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=4cfc9868"; const Fragment = __vite__cjsImport0_react_jsxDevRuntime["Fragment"]; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+let prevRefreshReg;
+let prevRefreshSig;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  prevRefreshReg = window.$RefreshReg$;
+  prevRefreshSig = window.$RefreshSig$;
+  window.$RefreshReg$ = RefreshRuntime.getRefreshReg("C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx");
+  window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+}
+var _s = $RefreshSig$();
+import __vite__cjsImport3_react from "/node_modules/.vite/deps/react.js?v=4cfc9868"; const React = __vite__cjsImport3_react.__esModule ? __vite__cjsImport3_react.default : __vite__cjsImport3_react; const useState = __vite__cjsImport3_react["useState"];
+import { useTranslation } from "/node_modules/.vite/deps/react-i18next.js?v=4cfc9868";
+import instance from "/src/api/axiosInstance.jsx";
+export default function EditStockMovement({ movement, onClose, onSuccess }) {
+  _s();
+  const { t } = useTranslation();
+  const ingredientUnit = movement.ingredient_unit || "pcs";
+  const getDisplayQuantity = (qty, unit) => {
+    const q = parseFloat(qty);
+    if (unit === "g") return q / 1e3;
+    if (unit === "ml") return q / 1e3;
+    return q;
+  };
+  const getInputUnit = (unit) => {
+    if (unit === "g") return "kg";
+    if (unit === "ml") return "l";
+    return unit;
+  };
+  const convertQuantityToDB = (qty, unit) => {
+    const q = parseFloat(qty);
+    if (unit === "g") return q * 1e3;
+    if (unit === "ml") return q * 1e3;
+    return q;
+  };
+  const initialQuantity = getDisplayQuantity(
+    movement.change_quantity,
+    ingredientUnit
+  );
+  const initialTotalPrice = parseFloat(movement.change_quantity) * parseFloat(movement.unit_cost || 0);
+  const [formData, setFormData] = useState({
+    movement_type: movement.movement_type,
+    quantity: initialQuantity,
+    total_price: initialTotalPrice
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const dbQuantity = convertQuantityToDB(formData.quantity, ingredientUnit);
+      let unitCost = null;
+      if (movement.movement_type === "purchase") {
+        unitCost = parseFloat(formData.total_price) / dbQuantity;
+      }
+      await instance.put(`inventory/stock-movements/${movement.id}/edit/`, {
+        quantity: dbQuantity,
+        movement_type: movement.movement_type === "purchase" ? "purchase" : formData.movement_type,
+        new_unit_cost: unitCost
+      });
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      console.log(err);
+      setError(
+        err.response?.data?.detail || t("inventory_manager.stock_movements.update_failed", {
+          defaultValue: "Failed to update movement"
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  return /* @__PURE__ */ jsxDEV("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4", children: /* @__PURE__ */ jsxDEV("div", { className: "w-full max-w-md rounded-lg bg-white p-4 shadow-xl sm:p-6", children: [
+    /* @__PURE__ */ jsxDEV("h2", { className: "text-xl font-bold mb-4", children: t("inventory_manager.stock_movements.edit_title", {
+      defaultValue: "Edit Stock Movement"
+    }) }, void 0, false, {
+      fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+      lineNumber: 117,
+      columnNumber: 9
+    }, this),
+    error && /* @__PURE__ */ jsxDEV("div", { className: "text-red-500 text-sm mb-3", children: error }, void 0, false, {
+      fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+      lineNumber: 123,
+      columnNumber: 19
+    }, this),
+    /* @__PURE__ */ jsxDEV("form", { onSubmit: handleSubmit, className: "space-y-4", children: [
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "block text-sm font-medium mb-1", children: t("inventory_manager.stock_movements.movement_type", {
+          defaultValue: "Movement Type"
+        }) }, void 0, false, {
+          fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+          lineNumber: 128,
+          columnNumber: 13
+        }, this),
+        movement.movement_type === "purchase" ? /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            type: "text",
+            value: t("inventory_manager.types.purchase", { defaultValue: "Purchase" }),
+            disabled: true,
+            className: "w-full border rounded px-3 py-2 bg-gray-100 text-gray-500"
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 135,
+            columnNumber: 13
+          },
+          this
+        ) : /* @__PURE__ */ jsxDEV(
+          "select",
+          {
+            value: formData.movement_type,
+            onChange: (e) => setFormData({
+              ...formData,
+              movement_type: e.target.value
+            }),
+            className: "w-full border rounded px-3 py-2",
+            children: [
+              /* @__PURE__ */ jsxDEV("option", { value: "adjustment", children: t("inventory_manager.types.adjustment", { defaultValue: "Adjustment" }) }, void 0, false, {
+                fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+                lineNumber: 152,
+                columnNumber: 17
+              }, this),
+              /* @__PURE__ */ jsxDEV("option", { value: "waste", children: t("inventory_manager.types.waste", { defaultValue: "Waste" }) }, void 0, false, {
+                fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+                lineNumber: 155,
+                columnNumber: 17
+              }, this)
+            ]
+          },
+          void 0,
+          true,
+          {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 142,
+            columnNumber: 13
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+        lineNumber: 127,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { children: [
+        /* @__PURE__ */ jsxDEV("label", { className: "block text-sm font-medium mb-1", children: [
+          t("inventory_manager.common.quantity", { defaultValue: "Quantity" }),
+          " (",
+          getInputUnit(ingredientUnit),
+          ")"
+        ] }, void 0, true, {
+          fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+          lineNumber: 162,
+          columnNumber: 13
+        }, this),
+        /* @__PURE__ */ jsxDEV(
+          "input",
+          {
+            type: "number",
+            step: "0.001",
+            className: "w-full border rounded px-3 py-2",
+            value: formData.quantity,
+            onChange: (e) => setFormData({
+              ...formData,
+              quantity: e.target.value
+            }),
+            required: true
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 166,
+            columnNumber: 13
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+        lineNumber: 161,
+        columnNumber: 11
+      }, this),
+      movement.movement_type === "purchase" && /* @__PURE__ */ jsxDEV(Fragment, { children: [
+        /* @__PURE__ */ jsxDEV("div", { children: [
+          /* @__PURE__ */ jsxDEV("label", { className: "block text-sm font-medium mb-1", children: t("inventory_manager.stock_movements.total_purchase_price", {
+            defaultValue: "Total Purchase Price"
+          }) }, void 0, false, {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 185,
+            columnNumber: 17
+          }, this),
+          /* @__PURE__ */ jsxDEV(
+            "input",
+            {
+              type: "number",
+              step: "0.01",
+              className: "w-full border rounded px-3 py-2",
+              value: formData.total_price,
+              onChange: (e) => setFormData({
+                ...formData,
+                total_price: e.target.value
+              }),
+              required: true
+            },
+            void 0,
+            false,
+            {
+              fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+              lineNumber: 191,
+              columnNumber: 17
+            },
+            this
+          )
+        ] }, void 0, true, {
+          fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+          lineNumber: 184,
+          columnNumber: 15
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "bg-gray-50 p-3 rounded text-sm", children: /* @__PURE__ */ jsxDEV("p", { children: [
+          t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" }),
+          ":",
+          " ",
+          formData.quantity && formData.total_price ? (parseFloat(formData.total_price) / convertQuantityToDB(formData.quantity, ingredientUnit)).toFixed(2) : "0"
+        ] }, void 0, true, {
+          fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+          lineNumber: 208,
+          columnNumber: 17
+        }, this) }, void 0, false, {
+          fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+          lineNumber: 207,
+          columnNumber: 15
+        }, this)
+      ] }, void 0, true, {
+        fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+        lineNumber: 182,
+        columnNumber: 11
+      }, this),
+      /* @__PURE__ */ jsxDEV("div", { className: "grid grid-cols-2 gap-2 pt-4 sm:flex sm:justify-end", children: [
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "button",
+            onClick: onClose,
+            className: "px-4 py-2 border rounded",
+            children: t("inventory_manager.common.cancel", { defaultValue: "Cancel" })
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 222,
+            columnNumber: 13
+          },
+          this
+        ),
+        /* @__PURE__ */ jsxDEV(
+          "button",
+          {
+            type: "submit",
+            disabled: loading,
+            className: "px-4 py-2 bg-black text-white rounded disabled:opacity-50",
+            children: loading ? t("inventory_manager.common.saving", { defaultValue: "Saving..." }) : t("inventory_manager.common.save_changes", {
+              defaultValue: "Save Changes"
+            })
+          },
+          void 0,
+          false,
+          {
+            fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+            lineNumber: 230,
+            columnNumber: 13
+          },
+          this
+        )
+      ] }, void 0, true, {
+        fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+        lineNumber: 221,
+        columnNumber: 11
+      }, this)
+    ] }, void 0, true, {
+      fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+      lineNumber: 125,
+      columnNumber: 9
+    }, this)
+  ] }, void 0, true, {
+    fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+    lineNumber: 116,
+    columnNumber: 7
+  }, this) }, void 0, false, {
+    fileName: "C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx",
+    lineNumber: 115,
+    columnNumber: 5
+  }, this);
+}
+_s(EditStockMovement, "8riZQMFmnxNS61J7azrEK22saUc=", false, function() {
+  return [useTranslation];
+});
+_c = EditStockMovement;
+var _c;
+$RefreshReg$(_c, "EditStockMovement");
+if (import.meta.hot && !inWebWorker) {
+  window.$RefreshReg$ = prevRefreshReg;
+  window.$RefreshSig$ = prevRefreshSig;
+}
+if (import.meta.hot && !inWebWorker) {
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/ABDULLAH/Desktop/RMS_copy/frontend/src/component/Admin/Inventory/EditStockModal.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,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U0FpSUE7QUFFSjtBQUFDdEMsR0E1TnVCSixtQkFBaUI7QUFBQSxVQUN6QkYsY0FBYztBQUFBO0FBQUFnRCxLQUROOUM7QUFBaUIsSUFBQThDO0FBQUFDLGFBQUFELElBQUEiLCJuYW1lcyI6WyJSZWFjdCIsInVzZVN0YXRlIiwidXNlVHJhbnNsYXRpb24iLCJpbnN0YW5jZSIsIkVkaXRTdG9ja01vdmVtZW50IiwibW92ZW1lbnQiLCJvbkNsb3NlIiwib25TdWNjZXNzIiwiX3MiLCJ0IiwiaW5ncmVkaWVudFVuaXQiLCJpbmdyZWRpZW50X3VuaXQiLCJnZXREaXNwbGF5UXVhbnRpdHkiLCJxdHkiLCJ1bml0IiwicSIsInBhcnNlRmxvYXQiLCJnZXRJbnB1dFVuaXQiLCJjb252ZXJ0UXVhbnRpdHlUb0RCIiwiaW5pdGlhbFF1YW50aXR5IiwiY2hhbmdlX3F1YW50aXR5IiwiaW5pdGlhbFRvdGFsUHJpY2UiLCJ1bml0X2Nvc3QiLCJmb3JtRGF0YSIsInNldEZvcm1EYXRhIiwibW92ZW1lbnRfdHlwZSIsInF1YW50aXR5IiwidG90YWxfcHJpY2UiLCJsb2FkaW5nIiwic2V0TG9hZGluZyIsImVycm9yIiwic2V0RXJyb3IiLCJoYW5kbGVTdWJtaXQiLCJlIiwicHJldmVudERlZmF1bHQiLCJkYlF1YW50aXR5IiwidW5pdENvc3QiLCJwdXQiLCJpZCIsIm5ld191bml0X2Nvc3QiLCJlcnIiLCJjb25zb2xlIiwibG9nIiwicmVzcG9uc2UiLCJkYXRhIiwiZGV0YWlsIiwiZGVmYXVsdFZhbHVlIiwidGFyZ2V0IiwidmFsdWUiLCJ0b0ZpeGVkIiwiX2MiLCIkUmVmcmVzaFJlZyQiXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiRWRpdFN0b2NrTW9kYWwuanN4Il0sInNvdXJjZXNDb250ZW50IjpbIi8vIHNyYy9jb21wb25lbnRzL2ludmVudG9yeS9FZGl0U3RvY2tNb3ZlbWVudC5qc3hcclxuXHJcbmltcG9ydCBSZWFjdCwgeyB1c2VTdGF0ZSB9IGZyb20gXCJyZWFjdFwiO1xuaW1wb3J0IHsgdXNlVHJhbnNsYXRpb24gfSBmcm9tIFwicmVhY3QtaTE4bmV4dFwiO1xuaW1wb3J0IGluc3RhbmNlIGZyb20gXCIuLi8uLi8uLi9hcGkvYXhpb3NJbnN0YW5jZVwiO1xuXG5leHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBFZGl0U3RvY2tNb3ZlbWVudCh7IG1vdmVtZW50LCBvbkNsb3NlLCBvblN1Y2Nlc3MgfSkge1xuICBjb25zdCB7IHQgfSA9IHVzZVRyYW5zbGF0aW9uKCk7XG4gIGNvbnN0IGluZ3JlZGllbnRVbml0ID0gbW92ZW1lbnQuaW5ncmVkaWVudF91bml0IHx8IFwicGNzXCI7XG5cclxuICAvLyBDb252ZXJ0IERCIHF1YW50aXR5IGJhY2sgdG8gZGlzcGxheSBxdWFudGl0eVxyXG4gIGNvbnN0IGdldERpc3BsYXlRdWFudGl0eSA9IChxdHksIHVuaXQpID0+IHtcclxuICAgIGNvbnN0IHEgPSBwYXJzZUZsb2F0KHF0eSk7XHJcblxyXG4gICAgaWYgKHVuaXQgPT09IFwiZ1wiKSByZXR1cm4gcSAvIDEwMDA7XHJcbiAgICBpZiAodW5pdCA9PT0gXCJtbFwiKSByZXR1cm4gcSAvIDEwMDA7XHJcblxyXG4gICAgcmV0dXJuIHE7XHJcbiAgfTtcclxuXHJcbiAgY29uc3QgZ2V0SW5wdXRVbml0ID0gKHVuaXQpID0+IHtcclxuICAgIGlmICh1bml0ID09PSBcImdcIikgcmV0dXJuIFwia2dcIjtcclxuICAgIGlmICh1bml0ID09PSBcIm1sXCIpIHJldHVybiBcImxcIjtcclxuXHJcbiAgICByZXR1cm4gdW5pdDtcclxuICB9O1xyXG5cclxuICAvLyBDb252ZXJ0IGRpc3BsYXkgcXVhbnRpdHkgYmFjayB0byBEQiBxdWFudGl0eVxyXG4gIGNvbnN0IGNvbnZlcnRRdWFudGl0eVRvREIgPSAocXR5LCB1bml0KSA9PiB7XHJcbiAgICBjb25zdCBxID0gcGFyc2VGbG9hdChxdHkpO1xyXG5cclxuICAgIGlmICh1bml0ID09PSBcImdcIikgcmV0dXJuIHEgKiAxMDAwO1xyXG4gICAgaWYgKHVuaXQgPT09IFwibWxcIikgcmV0dXJuIHEgKiAxMDAwO1xyXG5cclxuICAgIHJldHVybiBxO1xyXG4gIH07XHJcblxyXG4gIGNvbnN0IGluaXRpYWxRdWFudGl0eSA9IGdldERpc3BsYXlRdWFudGl0eShcclxuICAgIG1vdmVtZW50LmNoYW5nZV9xdWFudGl0eSxcclxuICAgIGluZ3JlZGllbnRVbml0LFxyXG4gICk7XHJcblxyXG4gIGNvbnN0IGluaXRpYWxUb3RhbFByaWNlID1cclxuICAgIHBhcnNlRmxvYXQobW92ZW1lbnQuY2hhbmdlX3F1YW50aXR5KSAqIHBhcnNlRmxvYXQobW92ZW1lbnQudW5pdF9jb3N0IHx8IDApO1xyXG5cclxuICBjb25zdCBbZm9ybURhdGEsIHNldEZvcm1EYXRhXSA9IHVzZVN0YXRlKHtcclxuICAgIG1vdmVtZW50X3R5cGU6IG1vdmVtZW50Lm1vdmVtZW50X3R5cGUsXHJcbiAgICBxdWFudGl0eTogaW5pdGlhbFF1YW50aXR5LFxyXG4gICAgdG90YWxfcHJpY2U6IGluaXRpYWxUb3RhbFByaWNlLFxyXG4gIH0pO1xyXG5cclxuICBjb25zdCBbbG9hZGluZywgc2V0TG9hZGluZ10gPSB1c2VTdGF0ZShmYWxzZSk7XHJcbiAgY29uc3QgW2Vycm9yLCBzZXRFcnJvcl0gPSB1c2VTdGF0ZShcIlwiKTtcclxuXHJcbiAgY29uc3QgaGFuZGxlU3VibWl0ID0gYXN5bmMgKGUpID0+IHtcclxuICAgIGUucHJldmVudERlZmF1bHQoKTtcclxuXHJcbiAgICBzZXRMb2FkaW5nKHRydWUpO1xyXG4gICAgc2V0RXJyb3IoXCJcIik7XHJcblxyXG4gICAgdHJ5IHtcclxuICAgICAgY29uc3QgZGJRdWFudGl0eSA9IGNvbnZlcnRRdWFudGl0eVRvREIoZm9ybURhdGEucXVhbnRpdHksIGluZ3JlZGllbnRVbml0KTtcclxuXHJcbiAgICAgIGxldCB1bml0Q29zdCA9IG51bGw7XHJcblxyXG4gICAgICBpZiAobW92ZW1lbnQubW92ZW1lbnRfdHlwZSA9PT0gXCJwdXJjaGFzZVwiKSB7XHJcbiAgICAgICAgdW5pdENvc3QgPSBwYXJzZUZsb2F0KGZvcm1EYXRhLnRvdGFsX3ByaWNlKSAvIGRiUXVhbnRpdHk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGF3YWl0IGluc3RhbmNlLnB1dChgaW52ZW50b3J5L3N0b2NrLW1vdmVtZW50cy8ke21vdmVtZW50LmlkfS9lZGl0L2AsIHtcclxuICAgICAgICBxdWFudGl0eTogZGJRdWFudGl0eSxcclxuICAgICAgICBtb3ZlbWVudF90eXBlOlxyXG4gICAgICAgICAgbW92ZW1lbnQubW92ZW1lbnRfdHlwZSA9PT0gXCJwdXJjaGFzZVwiXHJcbiAgICAgICAgICAgID8gXCJwdXJjaGFzZVwiXHJcbiAgICAgICAgICAgIDogZm9ybURhdGEubW92ZW1lbnRfdHlwZSxcclxuICAgICAgICBuZXdfdW5pdF9jb3N0OiB1bml0Q29zdCxcclxuICAgICAgfSk7XHJcblxyXG4gICAgICBvblN1Y2Nlc3M/LigpO1xyXG4gICAgICBvbkNsb3NlKCk7XHJcbiAgICB9IGNhdGNoIChlcnIpIHtcclxuICAgICAgY29uc29sZS5sb2coZXJyKTtcclxuXHJcbiAgICAgIHNldEVycm9yKFxuICAgICAgICBlcnIucmVzcG9uc2U/LmRhdGE/LmRldGFpbCB8fFxuICAgICAgICAgIHQoXCJpbnZlbnRvcnlfbWFuYWdlci5zdG9ja19tb3ZlbWVudHMudXBkYXRlX2ZhaWxlZFwiLCB7XG4gICAgICAgICAgICBkZWZhdWx0VmFsdWU6IFwiRmFpbGVkIHRvIHVwZGF0ZSBtb3ZlbWVudFwiLFxuICAgICAgICAgIH0pLFxuICAgICAgKTtcbiAgICB9IGZpbmFsbHkge1xyXG4gICAgICBzZXRMb2FkaW5nKGZhbHNlKTtcclxuICAgIH1cclxuICB9O1xyXG5cclxuICByZXR1cm4gKFxyXG4gICAgPGRpdiBjbGFzc05hbWU9XCJmaXhlZCBpbnNldC0wIHotNTAgZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctYmxhY2svNTAgcC00XCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInctZnVsbCBtYXgtdy1tZCByb3VuZGVkLWxnIGJnLXdoaXRlIHAtNCBzaGFkb3cteGwgc206cC02XCI+XG4gICAgICAgIDxoMiBjbGFzc05hbWU9XCJ0ZXh0LXhsIGZvbnQtYm9sZCBtYi00XCI+XG4gICAgICAgICAge3QoXCJpbnZlbnRvcnlfbWFuYWdlci5zdG9ja19tb3ZlbWVudHMuZWRpdF90aXRsZVwiLCB7XG4gICAgICAgICAgICBkZWZhdWx0VmFsdWU6IFwiRWRpdCBTdG9jayBNb3ZlbWVudFwiLFxuICAgICAgICAgIH0pfVxuICAgICAgICA8L2gyPlxuXHJcbiAgICAgICAge2Vycm9yICYmIDxkaXYgY2xhc3NOYW1lPVwidGV4dC1yZWQtNTAwIHRleHQtc20gbWItM1wiPntlcnJvcn08L2Rpdj59XHJcblxyXG4gICAgICAgIDxmb3JtIG9uU3VibWl0PXtoYW5kbGVTdWJtaXR9IGNsYXNzTmFtZT1cInNwYWNlLXktNFwiPlxyXG4gICAgICAgICAgey8qIE1vdmVtZW50IFR5cGUgKi99XHJcbiAgICAgICAgICA8ZGl2PlxyXG4gICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPVwiYmxvY2sgdGV4dC1zbSBmb250LW1lZGl1bSBtYi0xXCI+XHJcbiAgICAgICAgICAgICAge3QoXCJpbnZlbnRvcnlfbWFuYWdlci5zdG9ja19tb3ZlbWVudHMubW92ZW1lbnRfdHlwZVwiLCB7XG4gICAgICAgICAgICAgICAgZGVmYXVsdFZhbHVlOiBcIk1vdmVtZW50IFR5cGVcIixcbiAgICAgICAgICAgICAgfSl9XG4gICAgICAgICAgICA8L2xhYmVsPlxyXG5cclxuICAgICAgICAgICAge21vdmVtZW50Lm1vdmVtZW50X3R5cGUgPT09IFwicHVyY2hhc2VcIiA/IChcclxuICAgICAgICAgICAgICA8aW5wdXRcclxuICAgICAgICAgICAgICAgIHR5cGU9XCJ0ZXh0XCJcclxuICAgICAgICAgICAgICAgIHZhbHVlPXt0KFwiaW52ZW50b3J5X21hbmFnZXIudHlwZXMucHVyY2hhc2VcIiwgeyBkZWZhdWx0VmFsdWU6IFwiUHVyY2hhc2VcIiB9KX1cbiAgICAgICAgICAgICAgICBkaXNhYmxlZFxyXG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwidy1mdWxsIGJvcmRlciByb3VuZGVkIHB4LTMgcHktMiBiZy1ncmF5LTEwMCB0ZXh0LWdyYXktNTAwXCJcclxuICAgICAgICAgICAgICAvPlxyXG4gICAgICAgICAgICApIDogKFxyXG4gICAgICAgICAgICAgIDxzZWxlY3RcclxuICAgICAgICAgICAgICAgIHZhbHVlPXtmb3JtRGF0YS5tb3ZlbWVudF90eXBlfVxyXG4gICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PlxyXG4gICAgICAgICAgICAgICAgICBzZXRGb3JtRGF0YSh7XHJcbiAgICAgICAgICAgICAgICAgICAgLi4uZm9ybURhdGEsXHJcbiAgICAgICAgICAgICAgICAgICAgbW92ZW1lbnRfdHlwZTogZS50YXJnZXQudmFsdWUsXHJcbiAgICAgICAgICAgICAgICAgIH0pXHJcbiAgICAgICAgICAgICAgICB9XHJcbiAgICAgICAgICAgICAgICBjbGFzc05hbWU9XCJ3LWZ1bGwgYm9yZGVyIHJvdW5kZWQgcHgtMyBweS0yXCJcclxuICAgICAgICAgICAgICA+XHJcbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwiYWRqdXN0bWVudFwiPlxuICAgICAgICAgICAgICAgICAge3QoXCJpbnZlbnRvcnlfbWFuYWdlci50eXBlcy5hZGp1c3RtZW50XCIsIHsgZGVmYXVsdFZhbHVlOiBcIkFkanVzdG1lbnRcIiB9KX1cbiAgICAgICAgICAgICAgICA8L29wdGlvbj5cbiAgICAgICAgICAgICAgICA8b3B0aW9uIHZhbHVlPVwid2FzdGVcIj5cbiAgICAgICAgICAgICAgICAgIHt0KFwiaW52ZW50b3J5X21hbmFnZXIudHlwZXMud2FzdGVcIiwgeyBkZWZhdWx0VmFsdWU6IFwiV2FzdGVcIiB9KX1cbiAgICAgICAgICAgICAgICA8L29wdGlvbj5cbiAgICAgICAgICAgICAgPC9zZWxlY3Q+XHJcbiAgICAgICAgICAgICl9XHJcbiAgICAgICAgICA8L2Rpdj5cclxuICAgICAgICAgIDxkaXY+XHJcbiAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJibG9jayB0ZXh0LXNtIGZvbnQtbWVkaXVtIG1iLTFcIj5cclxuICAgICAgICAgICAgICB7dChcImludmVudG9yeV9tYW5hZ2VyLmNvbW1vbi5xdWFudGl0eVwiLCB7IGRlZmF1bHRWYWx1ZTogXCJRdWFudGl0eVwiIH0pfSAoe2dldElucHV0VW5pdChpbmdyZWRpZW50VW5pdCl9KVxuICAgICAgICAgICAgPC9sYWJlbD5cclxuXHJcbiAgICAgICAgICAgIDxpbnB1dFxyXG4gICAgICAgICAgICAgIHR5cGU9XCJudW1iZXJcIlxyXG4gICAgICAgICAgICAgIHN0ZXA9XCIwLjAwMVwiXHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwidy1mdWxsIGJvcmRlciByb3VuZGVkIHB4LTMgcHktMlwiXHJcbiAgICAgICAgICAgICAgdmFsdWU9e2Zvcm1EYXRhLnF1YW50aXR5fVxyXG4gICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT5cclxuICAgICAgICAgICAgICAgIHNldEZvcm1EYXRhKHtcclxuICAgICAgICAgICAgICAgICAgLi4uZm9ybURhdGEsXHJcbiAgICAgICAgICAgICAgICAgIHF1YW50aXR5OiBlLnRhcmdldC52YWx1ZSxcclxuICAgICAgICAgICAgICAgIH0pXHJcbiAgICAgICAgICAgICAgfVxyXG4gICAgICAgICAgICAgIHJlcXVpcmVkXHJcbiAgICAgICAgICAgIC8+XHJcbiAgICAgICAgICA8L2Rpdj5cclxuXHJcbiAgICAgICAgICB7bW92ZW1lbnQubW92ZW1lbnRfdHlwZSA9PT0gXCJwdXJjaGFzZVwiICYmIChcclxuICAgICAgICAgICAgPD5cclxuICAgICAgICAgICAgICB7LyogVG90YWwgUHJpY2UgKi99XHJcbiAgICAgICAgICAgICAgPGRpdj5cclxuICAgICAgICAgICAgICAgIDxsYWJlbCBjbGFzc05hbWU9XCJibG9jayB0ZXh0LXNtIGZvbnQtbWVkaXVtIG1iLTFcIj5cclxuICAgICAgICAgICAgICAgICAge3QoXCJpbnZlbnRvcnlfbWFuYWdlci5zdG9ja19tb3ZlbWVudHMudG90YWxfcHVyY2hhc2VfcHJpY2VcIiwge1xuICAgICAgICAgICAgICAgICAgICBkZWZhdWx0VmFsdWU6IFwiVG90YWwgUHVyY2hhc2UgUHJpY2VcIixcbiAgICAgICAgICAgICAgICAgIH0pfVxuICAgICAgICAgICAgICAgIDwvbGFiZWw+XHJcblxyXG4gICAgICAgICAgICAgICAgPGlucHV0XHJcbiAgICAgICAgICAgICAgICAgIHR5cGU9XCJudW1iZXJcIlxyXG4gICAgICAgICAgICAgICAgICBzdGVwPVwiMC4wMVwiXHJcbiAgICAgICAgICAgICAgICAgIGNsYXNzTmFtZT1cInctZnVsbCBib3JkZXIgcm91bmRlZCBweC0zIHB5LTJcIlxyXG4gICAgICAgICAgICAgICAgICB2YWx1ZT17Zm9ybURhdGEudG90YWxfcHJpY2V9XHJcbiAgICAgICAgICAgICAgICAgIG9uQ2hhbmdlPXsoZSkgPT5cclxuICAgICAgICAgICAgICAgICAgICBzZXRGb3JtRGF0YSh7XHJcbiAgICAgICAgICAgICAgICAgICAgICAuLi5mb3JtRGF0YSxcclxuICAgICAgICAgICAgICAgICAgICAgIHRvdGFsX3ByaWNlOiBlLnRhcmdldC52YWx1ZSxcclxuICAgICAgICAgICAgICAgICAgICB9KVxyXG4gICAgICAgICAgICAgICAgICB9XHJcbiAgICAgICAgICAgICAgICAgIHJlcXVpcmVkXHJcbiAgICAgICAgICAgICAgICAvPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG5cclxuICAgICAgICAgICAgICB7LyogUHJldmlldyAqL31cclxuICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT1cImJnLWdyYXktNTAgcC0zIHJvdW5kZWQgdGV4dC1zbVwiPlxyXG4gICAgICAgICAgICAgICAgPHA+XHJcbiAgICAgICAgICAgICAgICAgIHt0KFwiaW52ZW50b3J5X21hbmFnZXIuY29tbW9uLnVuaXRfY29zdFwiLCB7IGRlZmF1bHRWYWx1ZTogXCJVbml0IENvc3RcIiB9KX06e1wiIFwifVxuICAgICAgICAgICAgICAgICAge2Zvcm1EYXRhLnF1YW50aXR5ICYmIGZvcm1EYXRhLnRvdGFsX3ByaWNlXHJcbiAgICAgICAgICAgICAgICAgICAgPyAoXHJcbiAgICAgICAgICAgICAgICAgICAgICAgIHBhcnNlRmxvYXQoZm9ybURhdGEudG90YWxfcHJpY2UpIC9cclxuICAgICAgICAgICAgICAgICAgICAgICAgY29udmVydFF1YW50aXR5VG9EQihmb3JtRGF0YS5xdWFudGl0eSwgaW5ncmVkaWVudFVuaXQpXHJcbiAgICAgICAgICAgICAgICAgICAgICApLnRvRml4ZWQoMilcclxuICAgICAgICAgICAgICAgICAgICA6IFwiMFwifVxyXG4gICAgICAgICAgICAgICAgPC9wPlxyXG4gICAgICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgICAgICA8Lz5cclxuICAgICAgICAgICl9XHJcblxyXG4gICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJncmlkIGdyaWQtY29scy0yIGdhcC0yIHB0LTQgc206ZmxleCBzbTpqdXN0aWZ5LWVuZFwiPlxuICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgIHR5cGU9XCJidXR0b25cIlxyXG4gICAgICAgICAgICAgIG9uQ2xpY2s9e29uQ2xvc2V9XHJcbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwicHgtNCBweS0yIGJvcmRlciByb3VuZGVkXCJcclxuICAgICAgICAgICAgPlxyXG4gICAgICAgICAgICAgIHt0KFwiaW52ZW50b3J5X21hbmFnZXIuY29tbW9uLmNhbmNlbFwiLCB7IGRlZmF1bHRWYWx1ZTogXCJDYW5jZWxcIiB9KX1cbiAgICAgICAgICAgIDwvYnV0dG9uPlxyXG5cclxuICAgICAgICAgICAgPGJ1dHRvblxyXG4gICAgICAgICAgICAgIHR5cGU9XCJzdWJtaXRcIlxyXG4gICAgICAgICAgICAgIGRpc2FibGVkPXtsb2FkaW5nfVxyXG4gICAgICAgICAgICAgIGNsYXNzTmFtZT1cInB4LTQgcHktMiBiZy1ibGFjayB0ZXh0LXdoaXRlIHJvdW5kZWQgZGlzYWJsZWQ6b3BhY2l0eS01MFwiXHJcbiAgICAgICAgICAgID5cclxuICAgICAgICAgICAgICB7bG9hZGluZ1xuICAgICAgICAgICAgICAgID8gdChcImludmVudG9yeV9tYW5hZ2VyLmNvbW1vbi5zYXZpbmdcIiwgeyBkZWZhdWx0VmFsdWU6IFwiU2F2aW5nLi4uXCIgfSlcbiAgICAgICAgICAgICAgICA6IHQoXCJpbnZlbnRvcnlfbWFuYWdlci5jb21tb24uc2F2ZV9jaGFuZ2VzXCIsIHtcbiAgICAgICAgICAgICAgICAgICAgZGVmYXVsdFZhbHVlOiBcIlNhdmUgQ2hhbmdlc1wiLFxuICAgICAgICAgICAgICAgICAgfSl9XG4gICAgICAgICAgICA8L2J1dHRvbj5cclxuICAgICAgICAgIDwvZGl2PlxyXG4gICAgICAgIDwvZm9ybT5cclxuICAgICAgPC9kaXY+XHJcbiAgICA8L2Rpdj5cclxuICApO1xyXG59XHJcbiJdLCJmaWxlIjoiQzovVXNlcnMvQUJEVUxMQUgvRGVza3RvcC9STVNfY29weS9mcm9udGVuZC9zcmMvY29tcG9uZW50L0FkbWluL0ludmVudG9yeS9FZGl0U3RvY2tNb2RhbC5qc3gifQ==

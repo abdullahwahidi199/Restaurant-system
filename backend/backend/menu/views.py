@@ -1192,150 +1192,43 @@ from restaurants.branching import get_active_branch
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, IsSameRestaurant, IsRestaurantActive])
 def menu_item_sales(request):
+    """Compatibility lookup backed by the reports aggregation service.
+
+    The Orders Report still consumes the legacy list shape. Keeping this thin
+    adapter avoids a second set of sales-status, branch, date, and price rules.
+    """
+    from reports.services.menu_items import MenuItemSalesReportService
+
     restaurant = request.user.staff_profile.restaurant
     branch = get_active_branch(request)
-
-    name = (request.GET.get("name") or "").strip()
-    start = request.GET.get("start")
-    end = request.GET.get("end")
-
-    # ---------------------------------------------------------
-    # DATE RANGE
-    # ---------------------------------------------------------
-    today = timezone.localdate()
-
-    start_date = parse_date(start) if start else today
-    end_date = parse_date(end) if end else today
-
-    if not start_date:
-        start_date = today
-
-    if not end_date:
-        end_date = start_date
-
-    start_dt = timezone.make_aware(
-        datetime.combine(start_date, time.min)
-    )
-
-    end_dt = timezone.make_aware(
-        datetime.combine(end_date, time.max)
-    )
-
-    # ---------------------------------------------------------
-    # COMMON ORDER FILTERS
-    # ---------------------------------------------------------
-    order_filters = {
-        "order__restaurant": restaurant,
-        "order__created_at__range": [start_dt, end_dt],
-        "order__status__in": ["ready","served","completed", "delivered"],
-    }
-
-    if branch:
-        order_filters["order__branch"] = branch
-
-    # ---------------------------------------------------------
-    # 1. MENU ITEM SALES
-    # ---------------------------------------------------------
-    menu_qs = OrderItem.objects.filter(
-        menu_item__isnull=False,
-        **order_filters,
-    )
-
-    if name:
-        menu_qs = menu_qs.filter(
-            menu_item__name__icontains=name
+    try:
+        report = MenuItemSalesReportService.generate(
+            request.GET.get("start"),
+            request.GET.get("end"),
+            restaurant,
+            branch=branch,
+            params={
+                "search": request.GET.get("name", ""),
+                "ranking": "all",
+                "sales_status": "selling",
+                "page_size": 200,
+            },
         )
+    except ValueError as exc:
+        return Response({"error": str(exc)}, status=400)
 
-    menu_grouped = (
-        menu_qs
-        .values(
-            "menu_item__id",
-            "menu_item__name",
-        )
-        .annotate(
-            total_sold=Sum("quantity"),
-            total_revenue=Sum(
-                ExpressionWrapper(
-                    F("quantity")
-                    * Coalesce(
-                        F("price_at_order"),
-                        F("menu_item__price"),
-                        Value(0),
-                        output_field=DecimalField(
-                            max_digits=12,
-                            decimal_places=2,
-                        ),
-                    ),
-                    output_field=DecimalField(
-                        max_digits=12,
-                        decimal_places=2,
-                    ),
-                )
-            ),
-        )
-        .annotate(
-            type=Value(
-                "menu_item",
-                output_field=CharField(),
-            )
-        )
-        .order_by("-total_sold")
-    )
-
-    # ---------------------------------------------------------
-    # 2. PLATTER SALES
-    # ---------------------------------------------------------
-    platter_qs = OrderItem.objects.filter(
-        platter__isnull=False,
-        **order_filters,
-    )
-
-    if name:
-        platter_qs = platter_qs.filter(
-            platter__name__icontains=name
-        )
-
-    platter_grouped = (
-        platter_qs
-        .values(
-            "platter__id",
-            "platter__name",
-        )
-        .annotate(
-            total_sold=Sum("quantity"),
-            total_revenue=Sum(
-                ExpressionWrapper(
-                    F("quantity")
-                    * Coalesce(
-                        F("price_at_order"),
-                        F("platter__price"),
-                        Value(0),
-                        output_field=DecimalField(
-                            max_digits=12,
-                            decimal_places=2,
-                        ),
-                    ),
-                    output_field=DecimalField(
-                        max_digits=12,
-                        decimal_places=2,
-                    ),
-                )
-            ),
-        )
-        .annotate(
-            type=Value(
-                "platter",
-                output_field=CharField(),
-            )
-        )
-        .order_by("-total_sold")
-    )
-
-    # ---------------------------------------------------------
-    # 3. MERGE RESULTS
-    # ---------------------------------------------------------
-    data = list(menu_grouped) + list(platter_grouped)
-
+    data = []
+    for row in report["items"]:
+        payload = {
+            "type": row["product_type"],
+            "total_sold": row["units_sold"],
+            # Preserve the legacy gross-revenue meaning for this lookup.
+            "total_revenue": row["gross_sales"],
+        }
+        relation = "menu_item" if row["product_type"] == "menu_item" else "platter"
+        payload[f"{relation}__id"] = row["product_id"]
+        payload[f"{relation}__name"] = row["name"]
+        data.append(payload)
     return Response(data)
 
 

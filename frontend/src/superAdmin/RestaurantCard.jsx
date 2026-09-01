@@ -6,12 +6,17 @@ export default function RestaurantCard({
   onEdit,
   onDelete,
   onManageSub,
+  onLandingVisibilityChange,
+  landingVisibilityStatus,
 }) {
   // Destructure subscription if it exists
   const { subscription } = restaurant;
-  console.log(subscription);
-  console.log(restaurant);
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
+  const isLandingVisibilityPending =
+    landingVisibilityStatus?.state === "pending";
+  const isShownOnLanding = Boolean(restaurant.show_on_landing);
+  const visibilityDescriptionId = `landing-visibility-description-${restaurant.id}`;
+  const visibilityStatusId = `landing-visibility-status-${restaurant.id}`;
   const endSubscription = async (restaurantId) => {
     try {
       await instance.post(`restaurant/disable-subscription/${restaurantId}/`);
@@ -84,6 +89,65 @@ export default function RestaurantCard({
               Used
             </span>
           )}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">
+                Show on landing
+              </p>
+              <p
+                id={visibilityDescriptionId}
+                className="mt-0.5 text-xs leading-5 text-gray-600"
+              >
+                Controls curated landing-page lists only. Search, direct links,
+                menus, and ordering stay active.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isShownOnLanding}
+              aria-describedby={`${visibilityDescriptionId} ${visibilityStatusId}`}
+              aria-label={`Show ${restaurant.name} on the landing page`}
+              disabled={isLandingVisibilityPending}
+              onClick={() =>
+                onLandingVisibilityChange(restaurant, !isShownOnLanding)
+              }
+              className="inline-flex h-11 w-14 shrink-0 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            >
+              <span
+                aria-hidden="true"
+                className={`relative block h-6 w-11 rounded-full transition-colors ${
+                  isShownOnLanding ? "bg-blue-600" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    isShownOnLanding ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+            </button>
+          </div>
+          <p
+            id={visibilityStatusId}
+            role={landingVisibilityStatus?.state === "error" ? "alert" : "status"}
+            aria-live="polite"
+            className={`mt-2 min-h-5 text-xs font-medium ${
+              landingVisibilityStatus?.state === "error"
+                ? "text-red-700"
+                : landingVisibilityStatus?.state === "success"
+                  ? "text-green-700"
+                  : "text-gray-500"
+            }`}
+          >
+            {landingVisibilityStatus?.message ||
+              (isShownOnLanding
+                ? "Included in landing-page collections."
+                : "Not included in landing-page collections.")}
+          </p>
         </div>
 
         {/* Action Buttons */}

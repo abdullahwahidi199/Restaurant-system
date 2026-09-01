@@ -19,9 +19,11 @@ from .views import (
     public_branch_detail,
     public_restaurant_branches,
     public_restaurant_entry,
+    restaurant_discovery,
 )
 
 urlpatterns = [
+    path('discovery/', restaurant_discovery, name='restaurant-discovery'),
     path('public/<slug:restaurant_slug>/branches/', public_restaurant_branches, name='public-restaurant-branches'),
     path('public/<slug:restaurant_slug>/<slug:branch_slug>/', public_branch_detail, name='public-branch-detail'),
     path('public/<slug:restaurant_slug>/', public_restaurant_entry, name='public-restaurant-entry'),

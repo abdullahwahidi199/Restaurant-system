@@ -5,13 +5,15 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 const API_URL = import.meta.env.VITE_API_URL;
+const publicApi = axios.create({ baseURL: API_URL });
+const normalizedApiUrl = String(API_URL || "").replace(/\/+$/, "");
 
 export const refreshToken = async () => {
   const refresh = localStorage.getItem("refresh_token");
   if (!refresh) return null;
 
   try {
-    const res = await axios.post(`${API_URL}customer/token/refresh/`, {
+    const res = await axios.post(`${normalizedApiUrl}/customer/token/refresh/`, {
       refresh,
     });
     localStorage.setItem("access_token", res.data.access);
@@ -53,15 +55,15 @@ api.interceptors.response.use(
 );
 
 export const signupCustomer = async (data) => {
-  return await api.post(`/customer/signup/`, data);
+  return await publicApi.post("/customer/signup/", data);
 };
 
 export const loginCustomer = async (data) => {
-  return await api.post(`/customer/login/`, data);
+  return await publicApi.post("/customer/login/", data);
 };
 
-export const getProfile = async (slug) => {
-  return await api.get(`/customer/profile/`);
+export const getProfile = async () => {
+  return await api.get("/customer/profile/");
 };
 
 export const logoutCustomer = () => {

@@ -1,4 +1,6 @@
-from rest_framework.decorators import api_view, permission_classes
+import math
+
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
@@ -7,8 +9,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import NotFound
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.cache import cache
-from django.db.models import Prefetch
+from django.db.models import Avg, Count, Exists, OuterRef, Prefetch, Q
 from django.utils import timezone
+from menu.models import Category, MenuItem, Platter
 from .branching import get_active_branch, set_active_branch
 from .data_migration import MIGRATION_TYPES, run_branch_data_migration
 from .enterprise import BRANCH_SETTING_FIELDS
@@ -16,10 +19,13 @@ from .models import Branch, BranchDataMigrationLog, Restaurant, Subscription
 from .serializers import (
     BranchDataMigrationLogSerializer,
     BranchSerializer,
+    DiscoveryRestaurantSerializer,
     PublicBranchSerializer,
     PublicRestaurantSerializer,
     RestaurantSerializer,
     SubscriptionSerializer,
+    build_discovery_cuisines,
+    build_discovery_dishes,
 )
 from .permissions import (
     IsSuperAdmin,
@@ -55,6 +61,7 @@ RESTAURANT_AUDIT_FIELDS = [
     "cover_image",
     "slogan",
     "is_active",
+    "show_on_landing",
     "manager_discount_limit",
     "admin_discount_limit",
     "website",
@@ -203,6 +210,372 @@ def can_manage_branch_migrations(staff):
 
 
 PUBLIC_RESTAURANT_CACHE_SECONDS = 60
+DISCOVERY_DEFAULT_LIMIT = 24
+DISCOVERY_MAX_LIMIT = 50
+DISCOVERY_PREFETCH_LIMIT = 12
+
+
+def get_discovery_limit(raw_limit):
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        limit = DISCOVERY_DEFAULT_LIMIT
+    return max(1, min(limit, DISCOVERY_MAX_LIMIT))
+
+
+def get_discovery_coordinates(request):
+    raw_latitude = request.query_params.get("lat")
+    raw_longitude = request.query_params.get("lng")
+
+    if raw_latitude is None and raw_longitude is None:
+        return None, None
+    if raw_latitude is None or raw_longitude is None:
+        return None, "Both lat and lng are required when using location."
+
+    try:
+        latitude = float(raw_latitude)
+        longitude = float(raw_longitude)
+    except (TypeError, ValueError):
+        return None, "lat and lng must be valid numbers."
+
+    if not math.isfinite(latitude) or not math.isfinite(longitude):
+        return None, "lat and lng must be finite numbers."
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        return None, "lat or lng is outside its valid range."
+
+    return (latitude, longitude), None
+
+
+def haversine_distance_km(latitude_a, longitude_a, latitude_b, longitude_b):
+    earth_radius_km = 6371.0088
+    latitude_a = math.radians(latitude_a)
+    latitude_b = math.radians(latitude_b)
+    latitude_delta = latitude_b - latitude_a
+    longitude_delta = math.radians(longitude_b - longitude_a)
+
+    haversine = (
+        math.sin(latitude_delta / 2) ** 2
+        + math.cos(latitude_a)
+        * math.cos(latitude_b)
+        * math.sin(longitude_delta / 2) ** 2
+    )
+    return earth_radius_km * 2 * math.asin(math.sqrt(min(1, haversine)))
+
+
+def record_value(record, field_name):
+    if isinstance(record, dict):
+        return record.get(field_name)
+    return getattr(record, field_name)
+
+
+def calculate_branch_delivery_metrics(branch, restaurant, coordinates):
+    if coordinates is None:
+        return None, None
+
+    branch_latitude = record_value(branch, "latitude")
+    branch_longitude = record_value(branch, "longitude")
+    if branch_latitude is None or branch_longitude is None:
+        branch_latitude = record_value(restaurant, "latitude")
+        branch_longitude = record_value(restaurant, "longitude")
+
+    distance_km = None
+    if branch_latitude is not None and branch_longitude is not None:
+        distance_km = haversine_distance_km(
+            coordinates[0],
+            coordinates[1],
+            float(branch_latitude),
+            float(branch_longitude),
+        )
+
+    delivery_available = record_value(branch, "delivery_available")
+    if delivery_available is None:
+        delivery_available = record_value(restaurant, "delivery_available")
+
+    delivery_radius_km = record_value(branch, "delivery_radius_km")
+    if delivery_radius_km is None:
+        delivery_radius_km = record_value(restaurant, "delivery_radius_km")
+
+    rounded_distance = round(distance_km, 2) if distance_km is not None else None
+    if delivery_available is False:
+        return rounded_distance, False
+    if not delivery_available or distance_km is None or delivery_radius_km is None:
+        return rounded_distance, None
+
+    delivers_to_location = distance_km <= float(delivery_radius_km)
+    return rounded_distance, delivers_to_location
+
+
+def aggregate_delivery_status(branch_metrics, coordinates):
+    if coordinates is None:
+        return None
+    statuses = [status for _distance, status in branch_metrics]
+    if any(status is True for status in statuses):
+        return True
+    if statuses and all(status is False for status in statuses):
+        return False
+    return None
+
+
+def discovery_restaurant_queryset(query):
+    today = timezone.localdate()
+    active_branches = Branch.objects.filter(
+        restaurant_id=OuterRef("pk"),
+        is_active=True,
+    )
+    queryset = Restaurant.objects.select_related("subscription").annotate(
+        _has_active_discovery_branch=Exists(active_branches),
+    ).filter(
+        is_active=True,
+        subscription__is_active=True,
+        subscription__starts_at__lte=today,
+        subscription__expires_at__gte=today,
+        _has_active_discovery_branch=True,
+    )
+
+    if not query:
+        return queryset.filter(show_on_landing=True)
+
+    active_branch_match = active_branches.filter(
+        Q(name__icontains=query) | Q(address__icontains=query)
+    )
+    active_scope = Q(branch__isnull=True) | Q(branch__is_active=True)
+    category_match = Category.objects.filter(
+        restaurant_id=OuterRef("pk"),
+    ).filter(active_scope).filter(
+        Q(name__icontains=query)
+        | Q(name_dari__icontains=query)
+        | Q(name_pashto__icontains=query)
+        | Q(description__icontains=query)
+    )
+    menu_item_match = MenuItem.objects.filter(
+        restaurant_id=OuterRef("pk"),
+    ).filter(active_scope).filter(
+        Q(name__icontains=query)
+        | Q(name_dari__icontains=query)
+        | Q(name_pashto__icontains=query)
+        | Q(description__icontains=query)
+    )
+    platter_match = Platter.objects.filter(
+        restaurant_id=OuterRef("pk"),
+    ).filter(active_scope).filter(
+        Q(name__icontains=query)
+        | Q(name_dari__icontains=query)
+        | Q(name_pashto__icontains=query)
+        | Q(description__icontains=query)
+    )
+
+    return queryset.annotate(
+        _discovery_branch_match=Exists(active_branch_match),
+        _discovery_category_match=Exists(category_match),
+        _discovery_menu_item_match=Exists(menu_item_match),
+        _discovery_platter_match=Exists(platter_match),
+    ).filter(
+        Q(name__icontains=query)
+        | Q(slogan__icontains=query)
+        | Q(address__icontains=query)
+        | Q(_discovery_branch_match=True)
+        | Q(_discovery_category_match=True)
+        | Q(_discovery_menu_item_match=True)
+        | Q(_discovery_platter_match=True)
+    )
+
+
+def with_discovery_ratings(queryset):
+    return queryset.annotate(
+        rating=Avg("reviews__rating"),
+        review_count=Count("reviews", distinct=True),
+    )
+
+
+def with_discovery_prefetches(queryset):
+    active_scope = Q(branch__isnull=True) | Q(branch__is_active=True)
+    active_branches = Branch.objects.select_related("restaurant").filter(
+        is_active=True,
+    ).order_by("-is_main_branch", "name")
+    categories = Category.objects.select_related("branch").filter(
+        active_scope,
+    ).order_by("rank", "id")
+    menu_items = MenuItem.objects.select_related(
+        "restaurant",
+        "branch",
+        "category",
+    ).filter(
+        active_scope,
+        is_available=True,
+        is_manually_available=True,
+    ).order_by("display_order", "id")[:DISCOVERY_PREFETCH_LIMIT]
+    platters = Platter.objects.select_related(
+        "restaurant",
+        "branch",
+        "category",
+    ).filter(
+        active_scope,
+        is_available=True,
+        is_manually_available=True,
+    ).order_by("display_order", "id")[:DISCOVERY_PREFETCH_LIMIT]
+
+    return queryset.prefetch_related(
+        Prefetch("branches", queryset=active_branches, to_attr="_discovery_branches"),
+        Prefetch("categories", queryset=categories, to_attr="_discovery_categories"),
+        Prefetch("menu_items", queryset=menu_items, to_attr="_discovery_menu_items"),
+        Prefetch("platters", queryset=platters, to_attr="_discovery_platters"),
+    )
+
+
+def location_ordered_restaurant_ids(queryset, coordinates, limit):
+    restaurant_rows = list(queryset.values(
+        "id",
+        "name",
+        "latitude",
+        "longitude",
+        "delivery_available",
+        "delivery_radius_km",
+    ))
+    if not restaurant_rows:
+        return [], {}
+
+    restaurants_by_id = {
+        restaurant["id"]: restaurant
+        for restaurant in restaurant_rows
+    }
+    branches_by_restaurant = {restaurant_id: [] for restaurant_id in restaurants_by_id}
+    branch_rows = Branch.objects.filter(
+        restaurant_id__in=restaurants_by_id,
+        is_active=True,
+    ).values(
+        "restaurant_id",
+        "latitude",
+        "longitude",
+        "delivery_available",
+        "delivery_radius_km",
+    )
+    for branch in branch_rows:
+        branches_by_restaurant[branch["restaurant_id"]].append(branch)
+
+    metrics = {}
+    for restaurant_id, restaurant in restaurants_by_id.items():
+        branch_metrics = [
+            calculate_branch_delivery_metrics(branch, restaurant, coordinates)
+            for branch in branches_by_restaurant[restaurant_id]
+        ]
+        known_distances = [
+            distance
+            for distance, _delivers in branch_metrics
+            if distance is not None
+        ]
+        metrics[restaurant_id] = {
+            "distance_km": min(known_distances) if known_distances else None,
+            "delivers_to_location": aggregate_delivery_status(
+                branch_metrics,
+                coordinates,
+            ),
+        }
+
+    restaurant_rows.sort(
+        key=lambda restaurant: (
+            not metrics[restaurant["id"]]["delivers_to_location"],
+            metrics[restaurant["id"]]["distance_km"] is None,
+            metrics[restaurant["id"]]["distance_km"] or 0,
+            restaurant["name"].casefold(),
+        )
+    )
+    selected_ids = [restaurant["id"] for restaurant in restaurant_rows[:limit]]
+    return selected_ids, metrics
+
+
+def attach_discovery_location_metrics(restaurants, coordinates, metrics=None):
+    metrics = metrics or {}
+    for restaurant in restaurants:
+        restaurant_metrics = metrics.get(restaurant.id)
+        if restaurant_metrics is None:
+            branch_metrics = [
+                calculate_branch_delivery_metrics(branch, restaurant, coordinates)
+                for branch in restaurant._discovery_branches
+            ]
+            known_distances = [
+                distance
+                for distance, _delivers in branch_metrics
+                if distance is not None
+            ]
+            restaurant_metrics = {
+                "distance_km": min(known_distances) if known_distances else None,
+                "delivers_to_location": aggregate_delivery_status(
+                    branch_metrics,
+                    coordinates,
+                ),
+            }
+
+        restaurant._discovery_distance_km = restaurant_metrics["distance_km"]
+        restaurant._discovery_delivers_to_location = restaurant_metrics[
+            "delivers_to_location"
+        ]
+
+        for branch in restaurant._discovery_branches:
+            distance_km, delivers_to_location = calculate_branch_delivery_metrics(
+                branch,
+                restaurant,
+                coordinates,
+            )
+            branch._discovery_distance_km = distance_km
+            branch._discovery_delivers_to_location = delivers_to_location
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def restaurant_discovery(request):
+    limit = get_discovery_limit(request.query_params.get("limit"))
+    coordinates, coordinate_error = get_discovery_coordinates(request)
+    if coordinate_error:
+        return Response(
+            {"detail": coordinate_error},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    query = request.query_params.get("q", "").strip()[:120]
+    base_queryset = discovery_restaurant_queryset(query)
+    location_metrics = {}
+
+    if coordinates is not None:
+        selected_ids, location_metrics = location_ordered_restaurant_ids(
+            base_queryset,
+            coordinates,
+            limit,
+        )
+        selected_order = {
+            restaurant_id: index
+            for index, restaurant_id in enumerate(selected_ids)
+        }
+        restaurants = list(with_discovery_prefetches(
+            with_discovery_ratings(
+                Restaurant.objects.filter(id__in=selected_ids)
+            )
+        ))
+        restaurants.sort(key=lambda restaurant: selected_order[restaurant.id])
+    else:
+        restaurants = list(with_discovery_prefetches(
+            with_discovery_ratings(base_queryset).order_by(
+                "-review_count",
+                "-rating",
+                "name",
+            )[:limit]
+        ))
+
+    attach_discovery_location_metrics(
+        restaurants,
+        coordinates,
+        metrics=location_metrics,
+    )
+    serializer_context = {"request": request}
+    return Response({
+        "restaurants": DiscoveryRestaurantSerializer(
+            restaurants,
+            many=True,
+            context=serializer_context,
+        ).data,
+        "cuisines": build_discovery_cuisines(restaurants, serializer_context),
+        "dishes": build_discovery_dishes(restaurants, serializer_context),
+    })
 
 
 def is_public_restaurant_active(restaurant):

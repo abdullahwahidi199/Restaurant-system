@@ -140,12 +140,9 @@ class CustomerReviewsView(APIView):
 class SignupView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request, slug):
-        # restaurant = get_object_or_404(Restaurant, slug=slug)
-
+    def post(self, request):
         serializer = CustomerSignupSerializer(
             data=request.data,
-            
         )
 
         if serializer.is_valid():

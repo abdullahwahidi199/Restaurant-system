@@ -100,6 +100,8 @@ class FinanceReportService:
 
         for order in orders:
             for item in order.items.all():          # uses prefetch cache
+                if item.status == "cancelled":
+                    continue
                 all_items.append(item)
                 if item.menu_item_id:
                     menu_item_ids.add(item.menu_item_id)

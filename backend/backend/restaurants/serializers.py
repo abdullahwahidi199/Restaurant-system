@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import Count
 from rest_framework import serializers
+from menu.models import MenuItem, Platter
 from .branching import get_main_branch, sync_all_branch_access_staff
 from .models import Branch, BranchDataMigrationLog, Restaurant, Subscription
 from users.models import Staff
@@ -230,6 +231,7 @@ class RestaurantSerializer(serializers.ModelSerializer):
             'qr_code',
             'public_url',
             'is_active',
+            'show_on_landing',
             'manager_discount_limit',
             'admin_discount_limit',
             # extra fields
@@ -408,3 +410,361 @@ class PublicRestaurantSerializer(serializers.ModelSerializer):
 
     def get_description(self, obj):
         return getattr(obj, "description", None) or obj.address or ""
+
+
+def _branch_is_open(branch):
+    if not branch.is_active:
+        return False
+    opening_hours = " ".join((
+        branch.opening_hours
+        or branch.restaurant.opening_hours
+        or ""
+    ).lower().split())
+    if opening_hours in {"open", "open now", "always open", "24/7", "24 hours"}:
+        return True
+    if opening_hours in {"closed", "closed today"}:
+        return False
+    # Opening hours are currently free text and restaurants have no configured
+    # timezone, so guessing from a range or weekly schedule can mislabel them.
+    return None
+
+
+def _effective_branch_value(branch, field_name):
+    value = getattr(branch, field_name)
+    if value is not None:
+        return value
+    return getattr(branch.restaurant, field_name)
+
+
+class DiscoveryBranchSerializer(serializers.ModelSerializer):
+    public_url = serializers.SerializerMethodField()
+    delivery_available = serializers.SerializerMethodField()
+    delivery_radius_km = serializers.SerializerMethodField()
+    base_delivery_fee = serializers.SerializerMethodField()
+    price_per_km = serializers.SerializerMethodField()
+    min_order_amount = serializers.SerializerMethodField()
+    is_open = serializers.SerializerMethodField()
+    distance_km = serializers.SerializerMethodField()
+    delivers_to_location = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Branch
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "address",
+            "phone",
+            "latitude",
+            "longitude",
+            "logo",
+            "public_url",
+            "opening_hours",
+            "is_main_branch",
+            "delivery_available",
+            "delivery_radius_km",
+            "base_delivery_fee",
+            "price_per_km",
+            "min_order_amount",
+            "is_open",
+            "distance_km",
+            "delivers_to_location",
+        ]
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
+
+    def get_delivery_available(self, obj):
+        return _effective_branch_value(obj, "delivery_available")
+
+    def get_delivery_radius_km(self, obj):
+        return _effective_branch_value(obj, "delivery_radius_km")
+
+    def get_base_delivery_fee(self, obj):
+        return _effective_branch_value(obj, "base_delivery_fee")
+
+    def get_price_per_km(self, obj):
+        return _effective_branch_value(obj, "price_per_km")
+
+    def get_min_order_amount(self, obj):
+        return _effective_branch_value(obj, "min_order_amount")
+
+    def get_is_open(self, obj):
+        return _branch_is_open(obj)
+
+    def get_distance_km(self, obj):
+        return getattr(obj, "_discovery_distance_km", None)
+
+    def get_delivers_to_location(self, obj):
+        return getattr(obj, "_discovery_delivers_to_location", None)
+
+
+class DiscoveryMenuItemSerializer(serializers.ModelSerializer):
+    type = serializers.SerializerMethodField()
+    category = serializers.CharField(source="category.name", allow_null=True)
+    category_dari = serializers.CharField(
+        source="category.name_dari",
+        allow_null=True,
+    )
+    category_pashto = serializers.CharField(
+        source="category.name_pashto",
+        allow_null=True,
+    )
+    restaurant_name = serializers.CharField(source="restaurant.name")
+    restaurant_slug = serializers.CharField(source="restaurant.slug")
+    is_available = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MenuItem
+        fields = [
+            "id",
+            "type",
+            "name",
+            "name_dari",
+            "name_pashto",
+            "description",
+            "description_dari",
+            "description_pashto",
+            "price",
+            "image",
+            "category",
+            "category_dari",
+            "category_pashto",
+            "restaurant_id",
+            "restaurant_name",
+            "restaurant_slug",
+            "branch_id",
+            "is_available",
+        ]
+
+    def get_type(self, obj):
+        return "menu_item"
+
+    def get_is_available(self, obj):
+        return bool(obj.is_available and obj.is_manually_available)
+
+
+class DiscoveryPlatterSerializer(serializers.ModelSerializer):
+    type = serializers.SerializerMethodField()
+    category = serializers.CharField(source="category.name", allow_null=True)
+    category_dari = serializers.CharField(
+        source="category.name_dari",
+        allow_null=True,
+    )
+    category_pashto = serializers.CharField(
+        source="category.name_pashto",
+        allow_null=True,
+    )
+    restaurant_name = serializers.CharField(source="restaurant.name")
+    restaurant_slug = serializers.CharField(source="restaurant.slug")
+    is_available = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Platter
+        fields = [
+            "id",
+            "type",
+            "name",
+            "name_dari",
+            "name_pashto",
+            "description",
+            "description_dari",
+            "description_pashto",
+            "price",
+            "image",
+            "category",
+            "category_dari",
+            "category_pashto",
+            "restaurant_id",
+            "restaurant_name",
+            "restaurant_slug",
+            "branch_id",
+            "is_available",
+        ]
+
+    def get_type(self, obj):
+        return "platter"
+
+    def get_is_available(self, obj):
+        return bool(obj.is_available and obj.is_manually_available)
+
+
+def _discovery_dish_sort_key(dish):
+    return (
+        not bool(dish.image),
+        dish.display_order,
+        dish.name.casefold(),
+        dish.pk,
+    )
+
+
+def serialize_discovery_dish(dish, context):
+    serializer_class = (
+        DiscoveryPlatterSerializer
+        if isinstance(dish, Platter)
+        else DiscoveryMenuItemSerializer
+    )
+    return serializer_class(dish, context=context).data
+
+
+def serialize_discovery_cuisine(category, context):
+    image_url = None
+    if category.image:
+        try:
+            image_url = category.image.url
+            request = context.get("request")
+            if request:
+                image_url = request.build_absolute_uri(image_url)
+        except ValueError:
+            image_url = None
+
+    return {
+        "id": category.id,
+        "name": category.name.strip(),
+        "name_dari": category.name_dari,
+        "name_pashto": category.name_pashto,
+        "image": image_url,
+    }
+
+
+class DiscoveryRestaurantSerializer(serializers.ModelSerializer):
+    public_url = serializers.SerializerMethodField()
+    rating = serializers.FloatField(read_only=True, allow_null=True)
+    review_count = serializers.IntegerField(read_only=True)
+    is_open = serializers.SerializerMethodField()
+    distance_km = serializers.SerializerMethodField()
+    delivers_to_location = serializers.SerializerMethodField()
+    branches = serializers.SerializerMethodField()
+    cuisines = serializers.SerializerMethodField()
+    cuisine_details = serializers.SerializerMethodField()
+    dishes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Restaurant
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "slogan",
+            "address",
+            "phone",
+            "logo",
+            "cover_image",
+            "public_url",
+            "opening_hours",
+            "delivery_available",
+            "delivery_radius_km",
+            "base_delivery_fee",
+            "price_per_km",
+            "min_order_amount",
+            "rating",
+            "review_count",
+            "is_open",
+            "distance_km",
+            "delivers_to_location",
+            "branches",
+            "cuisines",
+            "cuisine_details",
+            "dishes",
+        ]
+
+    def get_public_url(self, obj):
+        return obj.get_public_url()
+
+    def get_is_open(self, obj):
+        branches = getattr(obj, "_discovery_branches", ())
+        states = [_branch_is_open(branch) for branch in branches]
+        if any(state is True for state in states):
+            return True
+        if states and all(state is False for state in states):
+            return False
+        return None
+
+    def get_distance_km(self, obj):
+        return getattr(obj, "_discovery_distance_km", None)
+
+    def get_delivers_to_location(self, obj):
+        return getattr(obj, "_discovery_delivers_to_location", None)
+
+    def get_branches(self, obj):
+        branches = getattr(obj, "_discovery_branches", ())
+        return DiscoveryBranchSerializer(
+            branches,
+            many=True,
+            context=self.context,
+        ).data
+
+    def get_cuisines(self, obj):
+        categories = getattr(obj, "_discovery_categories", ())
+        seen = set()
+        names = []
+        for category in categories:
+            key = category.name.strip().casefold()
+            if key and key not in seen:
+                seen.add(key)
+                names.append(category.name.strip())
+        return names
+
+    def get_cuisine_details(self, obj):
+        categories = getattr(obj, "_discovery_categories", ())
+        seen = set()
+        details = []
+        for category in categories:
+            key = category.name.strip().casefold()
+            if key and key not in seen:
+                seen.add(key)
+                details.append(serialize_discovery_cuisine(category, self.context))
+        return details
+
+    def get_dishes(self, obj):
+        dishes = [
+            *getattr(obj, "_discovery_menu_items", ()),
+            *getattr(obj, "_discovery_platters", ()),
+        ]
+        dishes.sort(key=_discovery_dish_sort_key)
+        return [
+            serialize_discovery_dish(dish, self.context)
+            for dish in dishes[:8]
+        ]
+
+
+def build_discovery_cuisines(restaurants, context):
+    cuisines = {}
+
+    for restaurant in restaurants:
+        seen_for_restaurant = set()
+        for category in getattr(restaurant, "_discovery_categories", ()):
+            name = category.name.strip()
+            key = name.casefold()
+            if not key:
+                continue
+
+            if key not in cuisines:
+                cuisines[key] = serialize_discovery_cuisine(category, context)
+                cuisines[key]["restaurant_count"] = 0
+
+            if key not in seen_for_restaurant:
+                cuisines[key]["restaurant_count"] += 1
+                seen_for_restaurant.add(key)
+
+    return sorted(
+        cuisines.values(),
+        key=lambda cuisine: (-cuisine["restaurant_count"], cuisine["name"].casefold()),
+    )
+
+
+def build_discovery_dishes(restaurants, context, limit=30):
+    dishes = []
+    for restaurant in restaurants:
+        restaurant_dishes = [
+            *getattr(restaurant, "_discovery_menu_items", ()),
+            *getattr(restaurant, "_discovery_platters", ()),
+        ]
+        restaurant_dishes.sort(key=_discovery_dish_sort_key)
+        dishes.extend(restaurant_dishes)
+
+    dishes.sort(key=_discovery_dish_sort_key)
+    return [
+        serialize_discovery_dish(dish, context)
+        for dish in dishes[:limit]
+    ]

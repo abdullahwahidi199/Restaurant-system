@@ -20,17 +20,19 @@ class OrderReportService:
     # -------------------------
     @staticmethod
     def _parse_range(start, end):
-        today = timezone.now().date()
+        today = timezone.localdate()
         start_date = parse_date(start) if start else today - timedelta(days=30)
         end_date = parse_date(end) if end else today
 
+        if start and start_date is None:
+            raise ValueError("Invalid start date. Use YYYY-MM-DD.")
+        if end and end_date is None:
+            raise ValueError("Invalid end date. Use YYYY-MM-DD.")
+        if start_date > end_date:
+            raise ValueError("Start date must be on or before end date.")
+
         start_dt = timezone.make_aware(datetime.combine(start_date, time.min))
         end_dt = timezone.make_aware(datetime.combine(end_date, time.max))
-        print(start)
-        print(end)
-        print(start_dt)
-        print(end_dt)
-        print(timezone.get_current_timezone())
 
         return start_dt, end_dt
 
@@ -121,14 +123,20 @@ class OrderReportService:
 
         for order in billable_orders:
             order_total = OrderReportService._order_total(order)
+            discount_factor = Decimal("1") - (
+                Decimal(str(order.discount_percent or 0)) / Decimal("100")
+            )
 
             total_revenue += order_total
-            service_revenue += Decimal(str(order.delivery_fee or 0))
+            if order.order_type == "delivery":
+                service_revenue += (
+                    Decimal(str(order.delivery_fee or 0)) * discount_factor
+                )
 
             if order.reservation and order.reservation.reservation_type != "free":
                 reservation_revenue += (
-                    Decimal(str(order.reservation.amount))
-                    * (Decimal("1") - (Decimal(str(order.discount_percent or 0)) / Decimal("100")))
+                    Decimal(str(order.reservation.total_price or 0))
+                    * discount_factor
                 )
 
             t = order.order_type
@@ -185,7 +193,7 @@ class OrderReportService:
         top_items_qs = OrderItem.objects.filter(
                 order__restaurant=restaurant,
                 order__created_at__range=(start_dt, end_dt),
-                order__status__in=["completed", "served", "ready"],
+                order__status__in=["completed", "delivered"],
             )
         if branch:
             top_items_qs = top_items_qs.filter(order__branch=branch)

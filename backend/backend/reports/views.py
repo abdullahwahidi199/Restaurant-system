@@ -375,6 +375,7 @@ from rest_framework.response import Response
 from .services.orders import OrderReportService
 from .services.finance import FinanceReportService
 from .services.inventory import InventoryReportService
+from .services.menu_items import MenuItemSalesReportService
 # from .services.staff import StaffReportService
 from .services.customers import CustomerReportService
 
@@ -398,6 +399,18 @@ def generate_report(request):
         data = InventoryReportService.stock_status(restaurant, branch=branch)
     elif report_type == "staff":
         data = StaffReportService.summary(start, end, restaurant, branch=branch)
+
+    elif report_type == "menu_items":
+        try:
+            data = MenuItemSalesReportService.generate(
+                start,
+                end,
+                restaurant,
+                branch=branch,
+                params=request.GET,
+            )
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=400)
 
     elif report_type == "stock_movements":
         data = InventoryReportService.movement_report(start, end, restaurant, branch=branch)

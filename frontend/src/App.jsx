@@ -122,6 +122,7 @@ import AuditLogPage from "./modules/audit/AuditLogPage";
 import BranchSelectionPage from "./component/branch/BranchSelectionPage";
 import FinanceManagerLayout from "./component/FinanceManager/FinanceManagerLayout";
 import OperationsManagerLayout from "./component/OperationsManager/OperationsManagerLayout";
+import LegalPage from "./pages/LegalPage";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -132,6 +133,8 @@ function App() {
         <Route index element={<SystemLanding />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="founder" element={<FounderPage />} />
+        <Route path="privacy" element={<LegalPage type="privacy" />} />
+        <Route path="terms" element={<LegalPage type="terms" />} />
         <Route path=":restaurantSlug/:branchSlug">
           <Route index element={<CustomerHomepage />} />
           <Route path="menu/item/:id" element={<OnlineMenuItemDetails />} />

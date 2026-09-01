@@ -73,7 +73,7 @@ export default function Seo() {
           "@id": `${SITE_URL}/#website`,
         },
         about: {
-          "@id": `${SITE_URL}/#software`,
+          "@id": `${SITE_URL}/#organization`,
         },
         primaryImageOfPage: DEFAULT_IMAGE,
       },
@@ -89,7 +89,7 @@ export default function Seo() {
     setMetaName("author", "Abdullah Wahidi");
     setMetaName(
       "keywords",
-      "Pakhlai, Abdullah Wahidi, restaurant management system, RMS, cloud restaurant software, menu management, order management, billing software",
+      "Pakhlai, restaurants, food delivery, online food ordering, restaurant menus, Afghan food, restaurant discovery, restaurant management platform",
     );
     setLink("canonical", canonical);
 

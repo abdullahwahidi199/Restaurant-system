@@ -12,11 +12,6 @@ class Customer(models.Model):
     address=models.TextField(null=True)
     joined_at = models.DateTimeField(auto_now_add=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(
-        max_length=10,
-        choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
-        null=True, blank=True
-    )
 
     def __str__(self):
         return self.user.username if self.user else self.phone

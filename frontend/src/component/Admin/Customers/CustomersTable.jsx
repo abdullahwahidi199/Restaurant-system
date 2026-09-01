@@ -13,7 +13,6 @@ export default function CustomersTable({ customers }) {
               "phone",
               "address",
               "email",
-              "gender",
               "Orders",
               "DOB",
               "joined_at",
@@ -45,11 +44,6 @@ export default function CustomersTable({ customers }) {
               )}
               {c.email ? (
                 <td className="px-4 py-2 border-b">{c.email}</td>
-              ) : (
-                <tr>N/A</tr>
-              )}
-              {c.gender ? (
-                <td className="px-4 py-2 border-b">{c.gender}</td>
               ) : (
                 <tr>N/A</tr>
               )}

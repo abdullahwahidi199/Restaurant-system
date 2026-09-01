@@ -12,7 +12,7 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ['username','email','id', 'phone', 'joined_at','address','date_of_birth','gender','orders_count']
+        fields = ['username','email','id', 'phone', 'joined_at','address','date_of_birth','orders_count']
     
     def get_orders_count(self, obj):
         return obj.orders.count()
@@ -24,11 +24,6 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(required=True)
     address = serializers.CharField(required=True)
     date_of_birth = serializers.DateField(required=True)
-    gender = serializers.ChoiceField(
-        choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
-        required=True
-    )
-
     email = serializers.EmailField(required=False, allow_blank=True)
 
     class Meta:
@@ -39,16 +34,13 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
             'email',
             'phone',
             'address',
-            'date_of_birth',
-            'gender'
+            'date_of_birth'
         ]
     def create(self, validated_data):
 
         phone=validated_data.pop('phone')
         address=validated_data.pop('address')
         date_of_birth=validated_data.pop('date_of_birth')
-        gender=validated_data.pop('gender')
-
         password = validated_data.pop('password')
         email = validated_data.pop('email', "")
         username = validated_data['username']
@@ -61,8 +53,7 @@ class CustomerSignupSerializer(serializers.ModelSerializer):
             user=user,
             phone=phone,
             address=address,
-            date_of_birth=date_of_birth,
-            gender=gender
+            date_of_birth=date_of_birth
         )
         return user
         # phone = validated_data.pop('phone')
@@ -83,4 +74,4 @@ class CustomerLoginSerializer(serializers.Serializer):
         if user and hasattr(user, 'customer'):
             data['user'] = user
             return data
-        raise serializers.ValidationError("Invalid credentials or no customer profile")    
+        raise serializers.ValidationError("Invalid credentials or no customer profile")

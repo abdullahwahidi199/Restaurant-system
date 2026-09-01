@@ -107,7 +107,7 @@ export default function CustomerHomepage() {
   const orderingClosed = !deliveryAvailable;
 
   return (
-    <div>
+    <div className="customer-ordering-page min-h-screen bg-[#fbfaf7]">
       <Header
         restaurantInfo={restaurantInfo}
         branchInfo={branchInfo}
@@ -116,8 +116,8 @@ export default function CustomerHomepage() {
       />
 
       {orderingClosed && (
-        <div className="mx-4 mt-4">
-          <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-sm">
+        <div className="mx-auto mt-3 max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 shadow-sm">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
               <span className="text-lg">!</span>
             </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import {
@@ -47,6 +48,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
   });
   const [mapInput, setMapInput] = useState("");
   const locationWatchRef = useRef({ watchId: null, timeoutId: null });
+  const closeButtonRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: user?.username || "",
@@ -70,6 +72,22 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
   };
 
   useEffect(() => clearLocationWatch, []);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    closeButtonRef.current?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   const validateName = (name) => /^[A-Za-z\s]{2,50}$/.test(name.trim());
   const validatePhone = (phone) => /^[0-9]{7,15}$/.test(phone);
@@ -153,38 +171,6 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
       accuracy !== null ? ` (accuracy ${Math.round(accuracy)}m)` : "";
     toast.success(`Current location set${accuracyText}`);
     return true;
-  };
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error(t("checkout.location.notSupported"));
-      return;
-    }
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        if (!latitude || !longitude) {
-          toast.error("Could not detect location properly");
-          setLocationLoading(false);
-          return;
-        }
-        setLocation({ lat: latitude, lng: longitude });
-        setLocationLoading(false);
-        toast.success(`Location detected (±${Math.round(accuracy)}m)`);
-      },
-      (err) => {
-        setLocationLoading(false);
-        if (err.code === 1)
-          toast.error(t("checkout.location.permissionDenied"));
-        else if (err.code === 2)
-          toast.error(t("checkout.location.unavailable"));
-        else if (err.code === 3) toast.error(t("checkout.location.timeout"));
-        else toast.error(t("checkout.location.failed"));
-        g;
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
   };
 
   const getAccurateCurrentLocation = () => {
@@ -328,7 +314,8 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event) => {
+    event?.preventDefault();
     if (loading) return;
     if (!validate()) return;
     if (!isValidCoordinate(location.lat, location.lng)) {
@@ -350,81 +337,105 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
   };
 
   const inputClasses = (name) =>
-    `w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500
-     outline-none transition-all duration-200 text-sm
+    `w-full min-h-12 rounded-xl border bg-white px-4 py-3 text-base text-stone-950
+     shadow-sm outline-none transition placeholder:text-stone-400 sm:text-sm
      ${
        errors[name] && touched[name]
-         ? "border-red-500/60 focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
-         : "border-white/10 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+         ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+         : "border-stone-300 hover:border-stone-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
      }`;
 
   const iconClasses = (name) =>
     `absolute top-1/2 -translate-y-1/2 ${isRTL ? "right-3" : "left-3"} w-4 h-4 ${
-      errors[name] && touched[name] ? "text-red-400" : "text-gray-500"
+      errors[name] && touched[name] ? "text-red-500" : "text-stone-400"
     } transition-colors`;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-[100] flex items-end justify-center overflow-y-auto p-3 sm:items-center sm:p-6"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 bg-stone-950/50 backdrop-blur-[2px]"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-gradient-to-b from-gray-900 to-gray-950 rounded-2xl shadow-2xl shadow-black/50 border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <form
+        className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-2xl shadow-stone-950/20 sm:max-h-[calc(100dvh-3rem)]"
+        onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="checkout-title"
+        aria-describedby="checkout-description"
+      >
         {/* Header */}
-        <div className="relative px-6 pt-6 pb-4">
+        <div className="shrink-0 border-b border-stone-200 bg-gradient-to-r from-orange-50 via-white to-white px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-indigo-400" />
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-200 bg-orange-100 text-orange-700">
+                <ShoppingBag className="h-5 w-5" aria-hidden="true" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-white">
+              <div className="min-w-0">
+                <h2
+                  id="checkout-title"
+                  className="text-lg font-black tracking-tight text-stone-950 sm:text-xl"
+                >
                   {t("checkout.title")}
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p
+                  id="checkout-description"
+                  className="mt-0.5 text-xs leading-5 text-stone-500 sm:text-sm"
+                >
                   {t("checkout.description", "Confirm your delivery details.")}
                 </p>
               </div>
             </div>
             <button
+              ref={closeButtonRef}
+              type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors group"
+              className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              aria-label={t("common.close", "Close checkout")}
             >
-              <X className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
         {/* Form Body */}
-        <div className="px-6 py-5 space-y-4 max-h-[65vh] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overscroll-contain px-5 py-5 sm:grid-cols-2 sm:px-6">
           {/* Name Field */}
           {!user && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <label
+                htmlFor="checkout-name"
+                className="text-sm font-bold text-stone-700"
+              >
                 {t("checkout.name")}
               </label>
               <div className="relative">
                 <User className={iconClasses("name")} />
                 <input
+                  id="checkout-name"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   placeholder="John Doe"
                   className={`${inputClasses("name")} ${isRTL ? "pr-10" : "pl-10"}`}
+                  autoComplete="name"
+                  aria-invalid={Boolean(errors.name && touched.name)}
+                  aria-describedby={errors.name ? "checkout-name-error" : undefined}
                 />
               </div>
               {errors.name && touched.name && (
-                <div className="flex items-center gap-1.5 text-red-400 text-xs mt-1">
+                <div
+                  id="checkout-name-error"
+                  className="mt-1 flex items-center gap-1.5 text-xs font-medium text-red-600"
+                >
                   <AlertCircle className="w-3 h-3 flex-shrink-0" />
                   <span>{errors.name}</span>
                 </div>
@@ -434,99 +445,131 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
           {/* Phone Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <label
+              htmlFor="checkout-phone"
+              className="text-sm font-bold text-stone-700"
+            >
               {t("checkout.phone")}
             </label>
             <div className="relative">
               <Phone className={iconClasses("phone")} />
               <input
+                id="checkout-phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 placeholder="07XXXXXXXX"
                 className={`${inputClasses("phone")} ${isRTL ? "pr-10" : "pl-10"}`}
+                autoComplete="tel"
+                inputMode="tel"
+                aria-invalid={Boolean(errors.phone && touched.phone)}
+                aria-describedby={errors.phone ? "checkout-phone-error" : undefined}
               />
             </div>
             {errors.phone && touched.phone && (
-              <div className="flex items-center gap-1.5 text-red-400 text-xs mt-1">
+              <div
+                id="checkout-phone-error"
+                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-red-600"
+              >
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 <span>{errors.phone}</span>
               </div>
             )}
           </div>
 
-          {/* Address Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-              {t("checkout.address")}
-            </label>
-            <div className="relative">
-              <Home className={iconClasses("address")} />
-              <input
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Street, District, City"
-                className={`${inputClasses("address")} ${isRTL ? "pr-10" : "pl-10"}`}
-              />
-            </div>
-            {errors.address && touched.address && (
-              <div className="flex items-center gap-1.5 text-red-400 text-xs mt-1">
-                <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                <span>{errors.address}</span>
-              </div>
-            )}
-          </div>
-
           {/* Email Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+          <div className={`space-y-1.5 ${!user ? "sm:col-span-2" : ""}`}>
+            <label
+              htmlFor="checkout-email"
+              className="text-sm font-bold text-stone-700"
+            >
               {t("checkout.email")}
             </label>
             <div className="relative">
               <Mail className={iconClasses("email")} />
               <input
+                id="checkout-email"
+                type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 placeholder="you@example.com"
                 className={`${inputClasses("email")} ${isRTL ? "pr-10" : "pl-10"}`}
+                autoComplete="email"
+                aria-invalid={Boolean(errors.email && touched.email)}
+                aria-describedby={errors.email ? "checkout-email-error" : undefined}
               />
             </div>
             {errors.email && touched.email && (
-              <div className="flex items-center gap-1.5 text-red-400 text-xs mt-1">
+              <div
+                id="checkout-email-error"
+                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-red-600"
+              >
                 <AlertCircle className="w-3 h-3 flex-shrink-0" />
                 <span>{errors.email}</span>
               </div>
             )}
           </div>
 
+          {/* Address Field */}
+          <div className="space-y-1.5 sm:col-span-2">
+            <label
+              htmlFor="checkout-address"
+              className="text-sm font-bold text-stone-700"
+            >
+              {t("checkout.address")}
+            </label>
+            <div className="relative">
+              <Home className={iconClasses("address")} />
+              <input
+                id="checkout-address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="Street, District, City"
+                className={`${inputClasses("address")} ${isRTL ? "pr-10" : "pl-10"}`}
+                autoComplete="street-address"
+                aria-invalid={Boolean(errors.address && touched.address)}
+                aria-describedby={errors.address ? "checkout-address-error" : undefined}
+              />
+            </div>
+            {errors.address && touched.address && (
+              <div
+                id="checkout-address-error"
+                className="mt-1 flex items-center gap-1.5 text-xs font-medium text-red-600"
+              >
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span>{errors.address}</span>
+              </div>
+            )}
+          </div>
+
           {/* Location Section */}
-          <div className="space-y-3">
+          <div className="space-y-3 rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:col-span-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <label
+                htmlFor="checkout-map-location"
+                className="text-sm font-bold text-stone-700"
+              >
                 {t("checkout.location.deliveryLocation", "Delivery Location")}
               </label>
               {location.lat && location.lng && (
-                <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                   <CheckCircle2 className="w-3 h-3" />
                   {t("location.set")}
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={getAccurateCurrentLocation}
                 disabled={locationLoading}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
-                  bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25
-                  text-indigo-400 text-sm font-medium transition-all duration-200
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-sm font-bold text-orange-700 transition hover:border-orange-300 hover:bg-orange-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 disabled:cursor-wait disabled:opacity-50"
               >
                 {locationLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -545,9 +588,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
               <button
                 type="button"
                 onClick={openMapSelector}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
-                  bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25
-                  text-emerald-400 text-sm font-medium transition-all duration-200"
+                className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm font-bold text-stone-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
               >
                 <Map className="w-4 h-4" />
                 <span>{t("checkout.location.selectMap", "Map")}</span>
@@ -558,9 +599,10 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
               <MapPin
                 className={`absolute top-1/2 -translate-y-1/2 ${
                   isRTL ? "right-3" : "left-3"
-                } w-4 h-4 text-gray-500`}
+                } w-4 h-4 text-stone-400`}
               />
               <input
+                id="checkout-map-location"
                 type="text"
                 value={mapInput}
                 onChange={(e) => setMapInput(e.target.value)}
@@ -569,17 +611,17 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   "checkout.location.pasteHint",
                   "Paste Google Maps link or lat,lng",
                 )}
-                className={`w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white
-                  placeholder-gray-500 outline-none transition-all duration-200 text-sm
-                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
+                className={`min-h-12 w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-base text-stone-950 shadow-sm
+                  outline-none transition placeholder:text-stone-400 hover:border-stone-400
+                  focus:border-orange-500 focus:ring-4 focus:ring-orange-100 sm:text-sm
                   ${isRTL ? "pr-10" : "pl-10"}`}
               />
             </div>
 
             {isValidCoordinate(location.lat, location.lng) && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span className="text-xs text-gray-400 truncate">
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                <span className="truncate text-xs font-medium text-emerald-800">
                   {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
                   {location.accuracy
                     ? ` - accuracy ${Math.round(location.accuracy)}m`
@@ -591,16 +633,11 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        <div className="px-6 py-4">
+        <div className="shrink-0 border-t border-stone-200 bg-stone-50/90 px-5 py-4 sm:px-6">
           <button
+            type="submit"
             disabled={loading}
-            onClick={handleSubmit}
-            className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200
-              bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400
-              text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
-              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-indigo-500/25
-              flex items-center justify-center gap-2"
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-600/20 transition hover:-translate-y-0.5 hover:bg-orange-700 hover:shadow-orange-600/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500 active:translate-y-0 disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {loading ? (
               <>
@@ -615,7 +652,8 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </div>,
+    document.body,
   );
 }
