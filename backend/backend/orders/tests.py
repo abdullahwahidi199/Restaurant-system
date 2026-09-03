@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
@@ -8,7 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from menu.models import Category, MenuItem, Station
-from orders.models import Order, OrderItem
+from orders.models import Order, OrderItem, Table
 from restaurants.models import Branch, Restaurant, Subscription
 from users.models import Staff
 
@@ -337,3 +338,71 @@ class OrderPaymentIntegrityTests(TestCase):
         self.assertEqual(order.status, "ready")
         self.assertEqual(grill_item.status, "ready")
         self.assertEqual(drinks_item.status, "ready")
+
+    def test_status_update_survives_realtime_broadcast_failure(self):
+        order, item = self._create_order(status="pending", item_status="pending")
+        self.client.force_authenticate(self.kitchen_user)
+
+        with patch(
+            "orders.signals.broadcast_order",
+            side_effect=ConnectionError("channel layer unavailable"),
+        ), self.captureOnCommitCallbacks(execute=True):
+            response = self.client.patch(
+                f"/api/orders/orders/{order.id}/update_status/",
+                {"status": "in_progress"},
+                format="json",
+                HTTP_X_BRANCH_ID=str(self.branch.id),
+            )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        order.refresh_from_db()
+        item.refresh_from_db()
+        self.assertEqual(order.status, "in_progress")
+        self.assertEqual(item.status, "approved")
+
+    def test_status_update_returns_conflict_and_rolls_back_on_inventory_error(self):
+        order, item = self._create_order(status="pending", item_status="pending")
+        self.client.force_authenticate(self.kitchen_user)
+
+        with patch.object(order.__class__, "save", side_effect=ValueError("Insufficient stock")):
+            response = self.client.patch(
+                f"/api/orders/orders/{order.id}/update_status/",
+                {"status": "in_progress"},
+                format="json",
+                HTTP_X_BRANCH_ID=str(self.branch.id),
+            )
+
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(response.data["error"], "Insufficient stock")
+        order.refresh_from_db()
+        item.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.assertEqual(item.status, "pending")
+
+    def test_status_update_does_not_revalidate_existing_table_assignment(self):
+        table = Table.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Legacy duplicate table",
+        )
+        first_order, _ = self._create_order(status="pending", item_status="pending")
+        second_order, second_item = self._create_order(
+            status="pending",
+            item_status="pending",
+        )
+        Order.objects.filter(pk=first_order.pk).update(table=table)
+        Order.objects.filter(pk=second_order.pk).update(table=table)
+
+        self.client.force_authenticate(self.kitchen_user)
+        response = self.client.patch(
+            f"/api/orders/orders/{second_order.id}/update_status/",
+            {"status": "in_progress"},
+            format="json",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        second_order.refresh_from_db()
+        second_item.refresh_from_db()
+        self.assertEqual(second_order.status, "in_progress")
+        self.assertEqual(second_item.status, "approved")

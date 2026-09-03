@@ -1185,7 +1185,17 @@ def update_order_status(request, pk):
             reservation.status = "completed"
             reservation.save(update_fields=["status"])
 
-    order.save()
+    try:
+        order.save()
+    except ValueError as exc:
+        # Order.save() also performs inventory and assignment checks. Keep the
+        # entire status/item update atomic and return an actionable client error
+        # instead of leaking an unhandled 500 response.
+        transaction.set_rollback(True)
+        return Response(
+            {'error': str(exc)},
+            status=status.HTTP_409_CONFLICT,
+        )
 
     serializer = OrderSerializer(order)
     return Response(serializer.data, status=status.HTTP_200_OK)

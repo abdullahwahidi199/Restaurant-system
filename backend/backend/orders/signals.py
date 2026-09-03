@@ -277,11 +277,11 @@ def order_item_deleted(sender, instance, **kwargs):
 def order_post_save(sender, instance, created, **kwargs):
     if created:
         # New order - full broadcast is appropriate
-        transaction.on_commit(lambda: broadcast_order(instance))
+        transaction.on_commit(lambda: broadcast_order(instance), robust=True)
     else:
         # Order details changed (status, address, etc.)
         # Only broadcast if it's NOT just an item change
-        transaction.on_commit(lambda: broadcast_order(instance))
+        transaction.on_commit(lambda: broadcast_order(instance), robust=True)
 
 
 @receiver(post_delete, sender=Order)
@@ -290,7 +290,9 @@ def order_post_delete(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Table)
 def table_post_save(sender, instance, **kwargs):
-    broadcast_table(instance)
+    # Realtime delivery is best-effort. A temporary Redis/channel-layer failure
+    # must never roll back the table/order change that triggered the broadcast.
+    transaction.on_commit(lambda: broadcast_table(instance), robust=True)
 
 
 

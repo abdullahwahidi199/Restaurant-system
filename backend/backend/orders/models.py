@@ -423,10 +423,14 @@ class Order(models.Model):
         
 
         old_status = None
+        old_table_id = None
         if self.pk:
-            old_status = Order.objects.filter(
+            old_state = Order.objects.filter(
                 pk=self.pk
-            ).values_list('status', flat=True).first()
+            ).values('status', 'table_id').first()
+            if old_state:
+                old_status = old_state['status']
+                old_table_id = old_state['table_id']
 
         if not self.order_number and self.restaurant:
             last_order = Order.objects.filter(
@@ -444,17 +448,21 @@ class Order(models.Model):
 
       
         if self.table and self.status not in ['completed', 'cancelled']:
-            active_orders = Order.objects.filter(
-                table=self.table,
-                branch=self.branch,
-                status__in=['pending', 'in_progress', 'ready', 'served']
-            ).exclude(pk=self.pk)
+            # Validate occupancy when assigning a table, not on every status-only
+            # save. Historical duplicate assignments must not prevent the kitchen
+            # from progressing an already accepted order.
+            if self.pk is None or old_table_id != self.table_id:
+                active_orders = Order.objects.filter(
+                    table=self.table,
+                    branch=self.branch,
+                    status__in=['pending', 'in_progress', 'ready', 'served']
+                ).exclude(pk=self.pk)
 
-            if active_orders.exists():
-                raise ValueError(
-                    f"Table {self.table.name} already has an active order "
-                    f"(#{active_orders.first().id})."
-                )
+                if active_orders.exists():
+                    raise ValueError(
+                        f"Table {self.table.name} already has an active order "
+                        f"(#{active_orders.first().id})."
+                    )
 
             self.table.status = 'occupied'
 
