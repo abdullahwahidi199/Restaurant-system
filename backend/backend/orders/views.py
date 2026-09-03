@@ -1681,7 +1681,7 @@ def cashier_orders(request):
         allow_all=True,
     ).filter(
         Q(order_type='dine-in', status__in=['served','ready']) |
-        (Q(order_type='takeaway') & ~Q(status='completed')) |
+        (Q(order_type='takeaway') & ~Q(status__in=['completed','cancelled'])) |
         Q(order_type='delivery', status__in=['ready', 'out_for_delivery'])
     ).order_by('-created_at')
 
