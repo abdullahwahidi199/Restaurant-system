@@ -6,11 +6,13 @@ import {
   Phone,
   MapPin,
   Receipt,
+  AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import instance from "../../api/axiosInstance";
 import OrderItem from "./OrderItem";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
+import { getOrderStatusErrorMessage } from "./orderStatusError";
 
 export default function OrderDetailSidebar({
   order,
@@ -23,20 +25,27 @@ export default function OrderDetailSidebar({
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [time, setTime] = useState(0);
+  const [statusError, setStatusError] = useState("");
 
   const updateOrderStatus = async (newStatus) => {
     try {
       setUpdating(true);
+      setStatusError("");
       const response = await instance.patch(`/orders/orders/${order.id}/update_status/`, {
         status: newStatus,
       });
       onOrderUpdated?.(response.data);
     } catch (error) {
       console.error("Failed to update order:", error);
+      setStatusError(getOrderStatusErrorMessage(error));
     } finally {
       setUpdating(false);
     }
   };
+
+  useEffect(() => {
+    setStatusError("");
+  }, [order.id]);
 
   // Timer Logic
   useEffect(() => {
@@ -213,6 +222,19 @@ export default function OrderDetailSidebar({
 
         {/* Action Buttons */}
         <div className="space-y-2 pt-2">
+          {statusError && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              lang="fa-AF"
+              dir="rtl"
+              className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-right text-sm font-medium leading-6 text-red-800"
+            >
+              <AlertTriangle className="mt-0.5 shrink-0" size={18} />
+              <span>{statusError}</span>
+            </div>
+          )}
+
           {hasPendingItems && !allStationItemsReady && !readOnly && (
             <button
               disabled={updating}

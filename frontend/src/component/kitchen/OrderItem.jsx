@@ -1,9 +1,17 @@
+import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import instance from "../../api/axiosInstance";
 import { toast } from "react-hot-toast";
+import { getOrderStatusErrorMessage } from "./orderStatusError";
 
 export default function OrderItem({ item, readOnly = false }) {
+  const [statusError, setStatusError] = useState("");
+  const [updating, setUpdating] = useState(false);
+
   const updateStatus = async (status) => {
     try {
+      setUpdating(true);
+      setStatusError("");
       await instance.patch(`/orders/order-items/${item.id}/status/`, {
         status,
       });
@@ -13,7 +21,9 @@ export default function OrderItem({ item, readOnly = false }) {
       // Callback to parent to refresh the order card
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update item");
+      setStatusError(getOrderStatusErrorMessage(error));
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -113,8 +123,9 @@ export default function OrderItem({ item, readOnly = false }) {
       <div className="mt-2 flex justify-end gap-1 flex-wrap">
         {item.status === "pending" && !readOnly && (
           <button
+            disabled={updating}
             onClick={() => updateStatus("approved")}
-            className="bg-blue-500 hover:bg-blue-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm"
+            className="bg-blue-500 hover:bg-blue-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             Approve
           </button>
@@ -123,15 +134,17 @@ export default function OrderItem({ item, readOnly = false }) {
         {item.status === "approved" && !readOnly && (
           <>
             <button
+              disabled={updating}
               onClick={() => updateStatus("pending")}
-              className="bg-yellow-500 hover:bg-yellow-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm"
+              className="bg-yellow-500 hover:bg-yellow-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Re-Pending
             </button>
 
             <button
+              disabled={updating}
               onClick={() => updateStatus("ready")}
-              className="bg-green-500 hover:bg-green-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm"
+              className="bg-green-500 hover:bg-green-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Ready
             </button>
@@ -144,6 +157,19 @@ export default function OrderItem({ item, readOnly = false }) {
           </span>
         )}
       </div>
+
+      {statusError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          lang="fa-AF"
+          dir="rtl"
+          className="mt-2 flex items-start gap-1.5 rounded-md border border-red-300 bg-red-100 px-2 py-1.5 text-right text-xs font-medium leading-5 text-red-800"
+        >
+          <AlertTriangle className="mt-0.5 shrink-0" size={14} />
+          <span>{statusError}</span>
+        </div>
+      )}
     </div>
   );
 }

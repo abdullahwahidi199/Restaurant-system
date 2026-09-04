@@ -1,3 +1,4 @@
+import re
 from urllib import request
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
@@ -97,6 +98,32 @@ def finalized_order_response(order):
         {"error": f"Order already {order.status}"},
         status=status.HTTP_400_BAD_REQUEST,
     )
+
+
+def order_status_conflict_response(exc):
+    """Return a kitchen-friendly message while retaining the original detail."""
+    detail = str(exc).strip()
+    payload = {"error": detail}
+    stock_error = re.match(
+        r"^insufficient stock(?:\s+for)?\s*:?\s*(.*)$",
+        detail,
+        flags=re.IGNORECASE,
+    )
+
+    if stock_error:
+        ingredients = stock_error.group(1).strip().rstrip(".")
+        message = "وضعیت سفارش تغییر نکرد، چون موجودی مواد اولیه کافی نیست"
+        if ingredients:
+            message += f": {ingredients}"
+        message += ". لطفاً موجودی گدام را بررسی کنید."
+        payload.update(
+            {
+                "error_code": "insufficient_stock",
+                "message": message,
+            }
+        )
+
+    return Response(payload, status=status.HTTP_409_CONFLICT)
 
 
 # def recalc_order_total(order):
@@ -1192,10 +1219,7 @@ def update_order_status(request, pk):
         # entire status/item update atomic and return an actionable client error
         # instead of leaking an unhandled 500 response.
         transaction.set_rollback(True)
-        return Response(
-            {'error': str(exc)},
-            status=status.HTTP_409_CONFLICT,
-        )
+        return order_status_conflict_response(exc)
 
     serializer = OrderSerializer(order)
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1448,7 +1472,14 @@ def update_order_item_status(request, pk):
     else:
         order.status = "pending"
 
-    order.save(update_fields=["status"])
+    try:
+        order.save(update_fields=["status"])
+    except ValueError as exc:
+        # Starting one item can move the entire order to in_progress, which is
+        # also when inventory is deducted. Roll back both status changes when
+        # that deduction fails and return the same actionable kitchen error.
+        transaction.set_rollback(True)
+        return order_status_conflict_response(exc)
 
     return Response({
         "message": f"Item marked as {new_status}",

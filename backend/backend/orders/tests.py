@@ -364,7 +364,11 @@ class OrderPaymentIntegrityTests(TestCase):
         order, item = self._create_order(status="pending", item_status="pending")
         self.client.force_authenticate(self.kitchen_user)
 
-        with patch.object(order.__class__, "save", side_effect=ValueError("Insufficient stock")):
+        with patch.object(
+            order.__class__,
+            "save",
+            side_effect=ValueError("Insufficient stock for: Rice"),
+        ):
             response = self.client.patch(
                 f"/api/orders/orders/{order.id}/update_status/",
                 {"status": "in_progress"},
@@ -373,7 +377,37 @@ class OrderPaymentIntegrityTests(TestCase):
             )
 
         self.assertEqual(response.status_code, 409, response.data)
-        self.assertEqual(response.data["error"], "Insufficient stock")
+        self.assertEqual(response.data["error"], "Insufficient stock for: Rice")
+        self.assertEqual(response.data["error_code"], "insufficient_stock")
+        self.assertEqual(
+            response.data["message"],
+            "وضعیت سفارش تغییر نکرد، چون موجودی مواد اولیه کافی نیست: Rice. "
+            "لطفاً موجودی گدام را بررسی کنید.",
+        )
+        order.refresh_from_db()
+        item.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.assertEqual(item.status, "pending")
+
+    def test_item_status_update_returns_stock_conflict_and_rolls_back(self):
+        order, item = self._create_order(status="pending", item_status="pending")
+        self.client.force_authenticate(self.kitchen_user)
+
+        with patch.object(
+            order.__class__,
+            "save",
+            side_effect=ValueError("Insufficient stock for Rice"),
+        ):
+            response = self.client.patch(
+                f"/api/orders/order-items/{item.id}/status/",
+                {"status": "approved"},
+                format="json",
+                HTTP_X_BRANCH_ID=str(self.branch.id),
+            )
+
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(response.data["error_code"], "insufficient_stock")
+        self.assertIn("Rice", response.data["message"])
         order.refresh_from_db()
         item.refresh_from_db()
         self.assertEqual(order.status, "pending")
