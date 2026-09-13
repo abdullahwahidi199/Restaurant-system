@@ -20,11 +20,8 @@ python manage.py runserver
 Frontend Setup (React)
 cd frontend
 npm install 
-npm install lucide-react
-npm insall framer-motion
-npm install react-hot-toast
 
-npm install @tanstack/react-query #for caching, frequent identical API calls
+
 
 npm run dev
 
