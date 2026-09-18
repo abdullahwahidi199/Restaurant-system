@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import instance from "../../api/axiosInstance";
 import CompactOrderCard from "./CompactOrderCard";
 import OrderDetailSidebar from "./OrderDetailSidebar";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ReadyOrders() {
+                 const { t: autoT } = useAutoTranslation();
   const [readyOrders, setReadyOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -37,7 +39,7 @@ export default function ReadyOrders() {
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex justify-center items-center py-10">
-            <p className="text-gray-500">Loading ready orders...</p>
+            <p className="text-gray-500">{autoT("legacy.loading_ready_orders_2ac23eb5")}</p>
           </div>
         )}
 
@@ -49,7 +51,7 @@ export default function ReadyOrders() {
 
         {!loading && !error && readyOrders.length === 0 && (
           <div className="flex justify-center items-center py-10">
-            <p className="text-gray-500">No ready orders found.</p>
+            <p className="text-gray-500">{autoT("legacy.no_ready_orders_found_210ca9cc")}</p>
           </div>
         )}
 

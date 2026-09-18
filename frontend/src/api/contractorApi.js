@@ -12,6 +12,9 @@ export const createContractor = (data) =>
 export const updateContractor = (id, data) =>
   instance.patch(`/contractors/contractors/${id}/`, data);
 
+export const deleteContractor = (id) =>
+  instance.delete(`/contractors/contractors/${id}/`);
+
 export const getContractorLedger = (id) =>
   instance.get(`/contractors/contractors/${id}/ledger/`);
 

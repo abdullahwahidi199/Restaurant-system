@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import instance from "../../api/axiosInstance";
+import { useTranslation } from "react-i18next";
 
 const KitchenBillPrintModal = ({
   order,
@@ -7,8 +8,9 @@ const KitchenBillPrintModal = ({
   onOrderPrinted,
   printMode,
 }) => {
+  const { t, i18n } = useTranslation();
   const printedRef = useRef(false);
-  const receiptFooter = "Powered by Pakhlai - pakhlai.com";
+  const receiptFooter = t("printing.powered_by");
 
   const escapeHtml = (str) => {
     if (typeof str !== "string") return str;
@@ -52,8 +54,8 @@ const KitchenBillPrintModal = ({
   console.log(order);
 
   const generatePrintContent = useCallback(() => {
-    const tableName = order.table_name || order.tableName || "N/A";
-    const createdBy = order.created_by_name || "System";
+    const tableName = order.table_name || order.tableName || t("printing.not_available");
+    const createdBy = order.created_by_name || t("printing.system");
     const createdAt = order.created_at
       ? new Date(order.created_at).toLocaleString()
       : new Date().toLocaleString();
@@ -88,10 +90,10 @@ const KitchenBillPrintModal = ({
 
     return `
     <!doctype html>
-    <html>
+    <html lang="${i18n.resolvedLanguage || i18n.language}" dir="${i18n.dir()}">
       <head>
         <meta charset="utf-8" />
-        <title>Kitchen Order #${order.order_number || ""}</title>
+        <title>${t("printing.kitchen_order")} #${order.order_number || ""}</title>
         <style>
           @page {
             size: 60mm auto;
@@ -195,29 +197,29 @@ th {
       </head>
       <body>
         <div class="bill-wrapper">
-          <h2>Kitchen Order</h2>
+          <h2>${t("printing.kitchen_order")}</h2>
 
-          <p><strong>Order number:</strong> ${order.order_number || ""}</p>
+          <p><strong>${t("printing.order_number")}:</strong> ${order.order_number || ""}</p>
           ${
             order.order_type === "dine-in"
-              ? `<p><strong>Table:</strong> ${tableName}</p>`
+              ? `<p><strong>${t("printing.table")}:</strong> ${tableName}</p>`
               : ""
           }
           ${
             order.order_type
-              ? `<p><strong>Type:</strong> ${order.order_type}</p>`
+              ? `<p><strong>${t("printing.type")}:</strong> ${order.order_type}</p>`
               : ""
           }
-          <p><strong>Created By:</strong> ${createdBy}</p>
-          <p><strong>Created At:</strong> ${createdAt}</p>
+          <p><strong>${t("printing.created_by")}:</strong> ${createdBy}</p>
+          <p><strong>${t("printing.created_at")}:</strong> ${createdAt}</p>
 
           <hr />
 
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th class="center">Qty</th>
+                <th>${t("printing.item")}</th>
+                <th class="center">${t("printing.quantity")}</th>
               </tr>
             </thead>
             <tbody>
@@ -229,7 +231,7 @@ th {
       </body>
     </html>
   `;
-  }, [itemsToPrint, order, receiptFooter]);
+  }, [i18n, itemsToPrint, order, receiptFooter, t]);
 
   useEffect(() => {
     if (!order || printedRef.current) return;
@@ -263,7 +265,7 @@ th {
         iframeWindow.removeEventListener("afterprint", handleAfterPrint);
 
         const confirmed = window.confirm(
-          "Was the kitchen ticket printed successfully?",
+          t("printing.print_confirm"),
         );
 
         if (confirmed && printMode === "new") {
@@ -280,7 +282,7 @@ th {
 
       iframeWindow.print();
     };
-  }, [generatePrintContent, markItemsPrinted, onClose, order, printMode]);
+  }, [generatePrintContent, markItemsPrinted, onClose, order, printMode, t]);
 
   return null;
 };

@@ -16,6 +16,7 @@ import {
 } from "../services/payrollApi";
 import { blankAdvance, blankPayment, blankWizard, salaryDefaults } from "../constants";
 import { listFrom, todayISO } from "../../shared/erp/formatters";
+import i18n from "../../../i18n";
 
 export default function usePayrollWorkspace({
   initialView = "dashboard",
@@ -217,7 +218,7 @@ export default function usePayrollWorkspace({
 
   const confirmApprove = (payroll) => {
     setConfirmDialog({
-      title: "Approve Payroll",
+      title: i18n.t("legacy.approve_payroll_32b028bb"),
       message: `Approve payroll for ${payroll.staff_name}? This records the payroll expense in Finance.`,
       actionLabel: "Approve",
       action: () => approveSelectedPayroll(payroll),

@@ -96,7 +96,7 @@ export default function KitcheManagerMenuList({
                   <p
                     className={`${item.final_availability === true ? "text-lime-600" : "text-gray-400"} font-semibold mt-1`}
                   >
-                    Afs{item.price ? item.price : "N/A"}
+                    {t("legacy.afs_2050680c")}{item.price ? item.price : t("no_data")}
                   </p>
                 </div>
               </div>

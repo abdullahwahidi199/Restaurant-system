@@ -2,15 +2,17 @@ import React from "react";
 import { Eye } from "lucide-react";
 import DataTable from "../../shared/erp/components/DataTable";
 import AuditActionBadge from "./AuditActionBadge";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString() : "-";
 
 export default function AuditLogTable({ logs, loading, onOpen }) {
+                 const { t: autoT } = useAutoTranslation();
   if (loading) {
     return (
       <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-        Loading audit logs...
+        {autoT("legacy.loading_audit_logs_89449b9b")}
       </div>
     );
   }
@@ -18,7 +20,7 @@ export default function AuditLogTable({ logs, loading, onOpen }) {
   return (
     <DataTable
       rows={logs}
-      empty="No audit logs found."
+      empty={autoT("legacy.no_audit_logs_found_ac37e765")}
       columns={[
         { key: "time", header: "Time", render: (log) => formatDateTime(log.created_at) },
         { key: "user", header: "User", render: (log) => log.user_name || "System" },
@@ -36,7 +38,7 @@ export default function AuditLogTable({ logs, loading, onOpen }) {
               type="button"
               onClick={() => onOpen(log)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-950"
-              title="View audit details"
+              title={autoT("legacy.view_audit_details_0dee30c3")}
             >
               <Eye className="h-4 w-4" />
             </button>

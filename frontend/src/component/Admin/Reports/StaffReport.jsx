@@ -12,6 +12,9 @@ import {
   Activity,
   Download,
 } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
+import ErpStatusBadge from "../../../modules/shared/erp/components/StatusBadge";
 const formatCurrency = (value = 0) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -56,41 +59,8 @@ const formatValue = (key, value) => {
   return value;
 };
 
-const getStatusClasses = (status = "") => {
-  switch (status.toLowerCase()) {
-    case "present":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-    case "absent":
-      return "bg-rose-50 text-rose-700 ring-rose-200";
-    case "late":
-      return "bg-amber-50 text-amber-700 ring-amber-200";
-    case "leave":
-      return "bg-violet-50 text-violet-700 ring-violet-200";
-    case "draft":
-      return "bg-slate-100 text-slate-700 ring-slate-200";
-    case "approved":
-      return "bg-blue-50 text-blue-700 ring-blue-200";
-    case "paid":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-    case "open":
-      return "bg-amber-50 text-amber-700 ring-amber-200";
-    case "applied":
-      return "bg-emerald-50 text-emerald-700 ring-emerald-200";
-    default:
-      return "bg-slate-100 text-slate-700 ring-slate-200";
-  }
-};
-
 function StatusBadge({ status }) {
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${getStatusClasses(
-        status,
-      )}`}
-    >
-      {status || "-"}
-    </span>
-  );
+  return <ErpStatusBadge status={String(status || "unknown").toLowerCase()} label={status || "-"} />;
 }
 
 function SectionCard({ title, subtitle, children }) {
@@ -148,7 +118,7 @@ function LoadingSkeleton() {
   );
 }
 
-function DataTable({ columns, rows, emptyText = "No data available." }) {
+function DataTable({ columns, rows, emptyText = i18n.t("legacy.no_data_available_929ebf20") }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200">
       <div className="overflow-x-auto">
@@ -203,6 +173,7 @@ function DataTable({ columns, rows, emptyText = "No data available." }) {
 }
 
 export default function StaffReport({ startDate, endDate }) {
+                 const { t: autoT } = useAutoTranslation();
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -226,7 +197,7 @@ export default function StaffReport({ startDate, endDate }) {
       console.log("Fetched Staff Report:", res.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch report data.");
+      setError(autoT("legacy.failed_to_fetch_report_data_7b534284"));
     } finally {
       setLoading(false);
     }
@@ -303,26 +274,26 @@ export default function StaffReport({ startDate, endDate }) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-              {formatLabel(reportData?.type || "staff")} Report
+              {formatLabel(reportData?.type || "staff")} {autoT("legacy.report_ee45c303")}
             </p>
 
             <h2 className="mt-1 text-2xl font-bold text-slate-900">
-              Staff Performance & Attendance Overview
+              {autoT("legacy.staff_performance_attendance_overview_0b144846")}
             </h2>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <span className="rounded-full bg-slate-100 px-3 py-1">
-                Requested:{" "}
+                {autoT("legacy.requested_0bb6adcc")}{" "}
                 {reportData?.start && reportData?.end
                   ? `${formatDate(reportData.start)} - ${formatDate(reportData.end)}`
-                  : "No date selected"}
+                  : autoT("legacy.no_date_selected_d4ee6469")}
               </span>
 
               <span className="rounded-full bg-slate-100 px-3 py-1">
-                Range:{" "}
+                {autoT("legacy.range_92b69b2b")}{" "}
                 {range?.start && range?.end
                   ? `${formatDate(range.start)} - ${formatDate(range.end)}`
-                  : "N/A"}
+                  : autoT("no_data")}
               </span>
             </div>
           </div>
@@ -333,7 +304,7 @@ export default function StaffReport({ startDate, endDate }) {
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow"
             >
               <Download size={16} />
-              Generate PDF
+              {autoT("inventory_manager.reports.generate_pdf")}
             </button>
           </div>
         </div>
@@ -351,74 +322,74 @@ export default function StaffReport({ startDate, endDate }) {
         <LoadingSkeleton />
       ) : !hasReport ? (
         <SectionCard
-          title="No Report Data"
-          subtitle="Select a valid date range to load the staff report."
+          title={autoT("legacy.no_report_data_61d72fc6")}
+          subtitle={autoT("legacy.select_a_valid_date_range_to_load_the_staff_report_c7143bbd")}
         >
-          <EmptyState message="No staff report available yet." />
+          <EmptyState message={autoT("legacy.no_staff_report_available_yet_5e1e5d5c")} />
         </SectionCard>
       ) : (
         <>
           {/* Summary Stats */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
-              label="Total Staff"
+              label={autoT("dashboard.stats.total_staff")}
               value={totals.total_staff ?? 0}
-              helper="All registered staff members"
+              helper={autoT("legacy.all_registered_staff_members_825188be")}
               dotClass="bg-blue-500"
             />
             <StatCard
-              label="Active Staff"
+              label={autoT("legacy.active_staff_3734abf7")}
               value={totals.active_staff ?? 0}
-              helper="Currently active employees"
+              helper={autoT("legacy.currently_active_employees_6fbc4a13")}
               dotClass="bg-emerald-500"
             />
             <StatCard
-              label="Inactive Staff"
+              label={autoT("legacy.inactive_staff_1430cb8f")}
               value={totals.inactive_staff ?? 0}
-              helper="Currently inactive employees"
+              helper={autoT("legacy.currently_inactive_employees_ba038caf")}
               dotClass="bg-rose-500"
             />
 
             <StatCard
-              label="Attendance Rate"
+              label={autoT("dashboard.stats.attendance_rate")}
               value={formatPercent(totals.attendance_rate_percent ?? 0)}
-              helper="Overall attendance percentage"
+              helper={autoT("legacy.overall_attendance_percentage_0db46369")}
               dotClass="bg-amber-500"
             />
             <StatCard
-              label="Present Days"
+              label={autoT("legacy.present_days_c4551e54")}
               value={totals.present_days ?? 0}
-              helper="Total present attendance entries"
+              helper={autoT("legacy.total_present_attendance_entries_6b20774d")}
               dotClass="bg-emerald-500"
             />
             <StatCard
-              label="Attendance Records"
+              label={autoT("legacy.attendance_records_28a8490d")}
               value={totals.total_attendance_records ?? 0}
-              helper="All attendance records in period"
+              helper={autoT("legacy.all_attendance_records_in_period_f421d4de")}
               dotClass="bg-cyan-500"
             />
             <StatCard
-              label="Payroll Cost"
+              label={autoT("legacy.payroll_cost_36af4f9a")}
               value={formatCurrency(totals.total_payroll_cost ?? 0)}
-              helper="Approved salary expense"
+              helper={autoT("legacy.approved_salary_expense_aeda26fb")}
               dotClass="bg-slate-700"
             />
             <StatCard
-              label="Payroll Paid"
+              label={autoT("legacy.payroll_paid_33886cf9")}
               value={formatCurrency(totals.total_payroll_paid ?? 0)}
-              helper="Salary cash paid"
+              helper={autoT("legacy.salary_cash_paid_49018b17")}
               dotClass="bg-emerald-500"
             />
             <StatCard
-              label="Outstanding Salaries"
+              label={autoT("legacy.outstanding_salaries_d5f97e4e")}
               value={formatCurrency(totals.outstanding_salaries ?? 0)}
-              helper="Approved salaries unpaid"
+              helper={autoT("legacy.approved_salaries_unpaid_01284335")}
               dotClass="bg-rose-500"
             />
             <StatCard
-              label="Salary Advances"
+              label={autoT("legacy.salary_advances_e8cda02b")}
               value={formatCurrency(totals.salary_advances ?? 0)}
-              helper="Advances issued in period"
+              helper={autoT("legacy.advances_issued_in_period_f256c140")}
               dotClass="bg-amber-500"
             />
           </div>
@@ -426,8 +397,8 @@ export default function StaffReport({ startDate, endDate }) {
           {/* Role + Attendance Breakdown */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <SectionCard
-              title="Staff by Role"
-              subtitle="Distribution of employees across roles"
+              title={autoT("legacy.staff_by_role_bbcc24bd")}
+              subtitle={autoT("legacy.distribution_of_employees_across_roles_672132d0")}
             >
               {byRole.length ? (
                 <div className="space-y-4">
@@ -444,7 +415,7 @@ export default function StaffReport({ startDate, endDate }) {
                               {formatLabel(item.role)}
                             </p>
                             <p className="text-xs text-slate-500">
-                              {formatPercent(percentage)} of total staff
+                              {formatPercent(percentage)} {autoT("legacy.of_total_staff_b9a1e0ed")}
                             </p>
                           </div>
                           <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
@@ -463,13 +434,13 @@ export default function StaffReport({ startDate, endDate }) {
                   })}
                 </div>
               ) : (
-                <EmptyState message="No role breakdown available." />
+                <EmptyState message={autoT("legacy.no_role_breakdown_available_7b3d1125")} />
               )}
             </SectionCard>
 
             <SectionCard
-              title="Attendance Summary"
-              subtitle="Attendance status distribution for the selected period"
+              title={autoT("legacy.attendance_summary_8324113f")}
+              subtitle={autoT("legacy.attendance_status_distribution_for_the_selected_period_1f157c17")}
             >
               {attendanceSummary.length ? (
                 <div className="space-y-4">
@@ -504,94 +475,94 @@ export default function StaffReport({ startDate, endDate }) {
                   })}
                 </div>
               ) : (
-                <EmptyState message="No attendance summary found." />
+                <EmptyState message={autoT("legacy.no_attendance_summary_found_d83b7986")} />
               )}
             </SectionCard>
           </div>
 
           {/* Daily Attendance */}
           <SectionCard
-            title="Daily Attendance"
-            subtitle="Daily attendance records by date and status"
+            title={autoT("legacy.daily_attendance_24aeb891")}
+            subtitle={autoT("legacy.daily_attendance_records_by_date_and_status_722af982")}
           >
             <DataTable
               columns={[
                 {
                   key: "date",
-                  label: "Date",
+                  label: autoT("table.date"),
                   render: (value) => formatDate(value),
                 },
                 {
                   key: "status",
-                  label: "Status",
+                  label: autoT("table.status"),
                   render: (value) => <StatusBadge status={value} />,
                 },
                 {
                   key: "count",
-                  label: "Count",
+                  label: autoT("legacy.count_66e12969"),
                 },
               ]}
               rows={dailyAttendance}
-              emptyText="No daily attendance records found."
+              emptyText={autoT("legacy.no_daily_attendance_records_found_45c8a68e")}
             />
           </SectionCard>
 
           {/* Performance Tables */}
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
             <SectionCard
-              title="Waiter Performance"
-              subtitle="Orders handled, completed orders, and revenue"
+              title={autoT("legacy.waiter_performance_bc62cb45")}
+              subtitle={autoT("legacy.orders_handled_completed_orders_and_revenue_1695bf4e")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_id", label: "Staff ID" },
-                  { key: "staff_name", label: "Staff Name" },
-                  { key: "orders_handled", label: "Orders Handled" },
-                  { key: "completed_orders", label: "Completed Orders" },
+                  { key: "staff_id", label: autoT("legacy.staff_id_e46c7ef1") },
+                  { key: "staff_name", label: autoT("staff_name") },
+                  { key: "orders_handled", label: autoT("legacy.orders_handled_5b686e77") },
+                  { key: "completed_orders", label: autoT("legacy.completed_orders_1d9ba042") },
                   {
                     key: "revenue",
-                    label: "Revenue",
+                    label: autoT("dashboard.best_selling.revenue"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={waiterPerformance}
-                emptyText="No waiter performance data found."
+                emptyText={autoT("legacy.no_waiter_performance_data_found_20eb1f59")}
               />
             </SectionCard>
 
             <SectionCard
-              title="Delivery Performance"
-              subtitle="Deliveries handled, delivered orders, and revenue"
+              title={autoT("legacy.delivery_performance_79ed520d")}
+              subtitle={autoT("legacy.deliveries_handled_delivered_orders_and_revenue_09efe039")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_id", label: "Staff ID" },
-                  { key: "staff_name", label: "Staff Name" },
-                  { key: "deliveries_handled", label: "Deliveries Handled" },
-                  { key: "delivered", label: "Delivered" },
+                  { key: "staff_id", label: autoT("legacy.staff_id_e46c7ef1") },
+                  { key: "staff_name", label: autoT("staff_name") },
+                  { key: "deliveries_handled", label: autoT("legacy.deliveries_handled_3b9298cd") },
+                  { key: "delivered", label: autoT("legacy.delivered_eea956cd") },
                   {
                     key: "revenue",
-                    label: "Revenue",
+                    label: autoT("dashboard.best_selling.revenue"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={deliveryPerformance}
-                emptyText="No delivery performance data found."
+                emptyText={autoT("legacy.no_delivery_performance_data_found_07607942")}
               />
             </SectionCard>
 
             <SectionCard
-              title="Cashier Performance"
-              subtitle="Reservations, paid orders, and total cash handled"
+              title={autoT("legacy.cashier_performance_71046d34")}
+              subtitle={autoT("legacy.reservations_paid_orders_and_total_cash_handled_97ef9b2c")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_id", label: "Staff ID" },
-                  { key: "staff_name", label: "Staff Name" },
+                  { key: "staff_id", label: autoT("legacy.staff_id_e46c7ef1") },
+                  { key: "staff_name", label: autoT("staff_name") },
 
                   {
                     key: "reservations_created",
-                    label: "Reservations",
+                    label: autoT("landing.features.groups.operations.items.reservations"),
                   },
                   // {
                   //   key: "reservation_total_paid",
@@ -601,237 +572,237 @@ export default function StaffReport({ startDate, endDate }) {
 
                   {
                     key: "orders_paid",
-                    label: "Orders Paid",
+                    label: autoT("legacy.orders_paid_0456b225"),
                   },
 
                   {
                     key: "total_cash_handled",
-                    label: "Total Cash Handled",
+                    label: autoT("legacy.total_cash_handled_d8bd9412"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={cashierPerformance}
-                emptyText="No cashier performance data found."
+                emptyText={autoT("legacy.no_cashier_performance_data_found_9ee8303c")}
               />
             </SectionCard>
           </div>
 
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
             <SectionCard
-              title="Salary History"
-              subtitle="Current salary profile configured for each employee"
+              title={autoT("legacy.salary_history_f6ce559d")}
+              subtitle={autoT("legacy.current_salary_profile_configured_for_each_employee_6f4cecb0")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_name", label: "Staff" },
-                  { key: "role", label: "Role" },
-                  { key: "salary_type", label: "Type" },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "role", label: autoT("attendance.table.role") },
+                  { key: "salary_type", label: autoT("inventory_manager.common.type") },
                   {
                     key: "base_salary",
-                    label: "Base",
+                    label: autoT("legacy.base_077fe9c5"),
                     render: (value) => formatCurrency(value),
                   },
-                  { key: "payment_day", label: "Pay Day" },
+                  { key: "payment_day", label: autoT("legacy.pay_day_25cdefe2") },
                   {
                     key: "allowances",
-                    label: "Allowances",
+                    label: autoT("legacy.allowances_60a83b2a"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "deductions",
-                    label: "Deductions",
+                    label: autoT("legacy.deductions_757bbae2"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "payroll_active",
-                    label: "Active",
+                    label: autoT("staff.status.active"),
                     render: (value) => (value ? "Yes" : "No"),
                   },
                 ]}
                 rows={salaryHistory}
-                emptyText="No salary profiles found."
+                emptyText={autoT("legacy.no_salary_profiles_found_386a0f86")}
               />
             </SectionCard>
 
             <SectionCard
-              title="Payroll Summary"
-              subtitle="Earnings, deductions, advances, paid amounts, and balances"
+              title={autoT("legacy.payroll_summary_abe5cf54")}
+              subtitle={autoT("legacy.earnings_deductions_advances_paid_amounts_and_balances_f9ccdbdf")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_name", label: "Staff" },
-                  { key: "role", label: "Role" },
-                  { key: "payroll_count", label: "Payrolls" },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "role", label: autoT("attendance.table.role") },
+                  { key: "payroll_count", label: autoT("legacy.payrolls_36b4dbb8") },
                   {
                     key: "total_gross",
-                    label: "Gross",
+                    label: autoT("legacy.gross_9580a617"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "total_deductions",
-                    label: "Deductions",
+                    label: autoT("legacy.deductions_757bbae2"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "total_advances",
-                    label: "Advances",
+                    label: autoT("legacy.advances_232e6c98"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "total_net",
-                    label: "Net",
+                    label: autoT("legacy.net_9bb81c2e"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "outstanding",
-                    label: "Balance",
+                    label: autoT("legacy.balance_90eef613"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={payrollSummary}
-                emptyText="No payroll summary found."
+                emptyText={autoT("legacy.no_payroll_summary_found_0f9695e0")}
               />
             </SectionCard>
           </div>
 
           <SectionCard
-            title="Payroll History"
-            subtitle="Generated payroll records by employee and period"
+            title={autoT("legacy.payroll_history_b278e655")}
+            subtitle={autoT("legacy.generated_payroll_records_by_employee_and_period_5621df2d")}
           >
             <DataTable
               columns={[
-                { key: "staff_name", label: "Staff" },
-                { key: "period_type", label: "Type" },
-                { key: "period_start", label: "Start" },
-                { key: "period_end", label: "End" },
+                { key: "staff_name", label: autoT("nav.staff") },
+                { key: "period_type", label: autoT("inventory_manager.common.type") },
+                { key: "period_start", label: autoT("legacy.start_952f3754") },
+                { key: "period_end", label: autoT("legacy.end_a2bb9d34") },
                 {
                   key: "status",
-                  label: "Status",
+                  label: autoT("table.status"),
                   render: (value) => <StatusBadge status={value} />,
                 },
                 {
                   key: "gross_salary",
-                  label: "Gross",
+                  label: autoT("legacy.gross_9580a617"),
                   render: (value) => formatCurrency(value),
                 },
                 {
                   key: "net_salary",
-                  label: "Net",
+                  label: autoT("legacy.net_9bb81c2e"),
                   render: (value) => formatCurrency(value),
                 },
                 {
                   key: "remaining_balance",
-                  label: "Balance",
+                  label: autoT("legacy.balance_90eef613"),
                   render: (value) => formatCurrency(value),
                 },
               ]}
               rows={payrollHistory}
-              emptyText="No payroll history found."
+              emptyText={autoT("legacy.no_payroll_history_found_05194e5e")}
             />
           </SectionCard>
 
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
             <SectionCard
-              title="Payment History"
-              subtitle="Salary payment trail and references"
+              title={autoT("legacy.payment_history_cfeba031")}
+              subtitle={autoT("legacy.salary_payment_trail_and_references_3c4f960c")}
             >
               <DataTable
                 columns={[
-                  { key: "date", label: "Date" },
-                  { key: "staff_name", label: "Staff" },
-                  { key: "period", label: "Period" },
-                  { key: "payment_method", label: "Method" },
-                  { key: "reference_number", label: "Reference" },
+                  { key: "date", label: autoT("table.date") },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "period", label: autoT("legacy.period_170a28a9") },
+                  { key: "payment_method", label: autoT("legacy.method_88306943") },
+                  { key: "reference_number", label: autoT("legacy.reference_db1c7845") },
                   {
                     key: "amount",
-                    label: "Amount",
+                    label: autoT("legacy.amount_43dc8532"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={payrollPaymentHistory}
-                emptyText="No payroll payments found."
+                emptyText={autoT("legacy.no_payroll_payments_found_7102ebdc")}
               />
             </SectionCard>
 
             <SectionCard
-              title="Advance History"
-              subtitle="Salary advances and payroll application status"
+              title={autoT("legacy.advance_history_66715fe3")}
+              subtitle={autoT("legacy.salary_advances_and_payroll_application_status_b20b3b23")}
             >
               <DataTable
                 columns={[
-                  { key: "date", label: "Date" },
-                  { key: "staff_name", label: "Staff" },
-                  { key: "reason", label: "Reason" },
+                  { key: "date", label: autoT("table.date") },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "reason", label: autoT("legacy.reason_f219cc06") },
                   {
                     key: "is_applied",
-                    label: "Status",
+                    label: autoT("table.status"),
                     render: (value) => (
                       <StatusBadge status={value ? "applied" : "open"} />
                     ),
                   },
                   {
                     key: "amount",
-                    label: "Amount",
+                    label: autoT("legacy.amount_43dc8532"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={advanceHistory}
-                emptyText="No salary advances found."
+                emptyText={autoT("legacy.no_salary_advances_found_f5d5d0eb")}
               />
             </SectionCard>
           </div>
 
           <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
             <SectionCard
-              title="Employee Earnings"
-              subtitle="Approved payroll earnings, payments, and outstanding balances"
+              title={autoT("legacy.employee_earnings_141e24ce")}
+              subtitle={autoT("legacy.approved_payroll_earnings_payments_and_outstanding_bal_acda231c")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_name", label: "Staff" },
-                  { key: "role", label: "Role" },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "role", label: autoT("attendance.table.role") },
                   {
                     key: "earnings",
-                    label: "Earnings",
+                    label: autoT("legacy.earnings_ad772fd4"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "paid",
-                    label: "Paid",
+                    label: autoT("legacy.paid_dc9d4584"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "outstanding",
-                    label: "Outstanding",
+                    label: autoT("legacy.outstanding_f8ee57ec"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={employeeEarnings}
-                emptyText="No employee earnings found."
+                emptyText={autoT("legacy.no_employee_earnings_found_355d8c86")}
               />
             </SectionCard>
 
             <SectionCard
-              title="Employee Deductions"
-              subtitle="Deductions and salary advances by employee"
+              title={autoT("legacy.employee_deductions_6e43b78d")}
+              subtitle={autoT("legacy.deductions_and_salary_advances_by_employee_c6f05703")}
             >
               <DataTable
                 columns={[
-                  { key: "staff_name", label: "Staff" },
-                  { key: "role", label: "Role" },
+                  { key: "staff_name", label: autoT("nav.staff") },
+                  { key: "role", label: autoT("attendance.table.role") },
                   {
                     key: "deductions",
-                    label: "Deductions",
+                    label: autoT("legacy.deductions_757bbae2"),
                     render: (value) => formatCurrency(value),
                   },
                   {
                     key: "salary_advances",
-                    label: "Advances",
+                    label: autoT("legacy.advances_232e6c98"),
                     render: (value) => formatCurrency(value),
                   },
                 ]}
                 rows={employeeDeductions}
-                emptyText="No employee deductions found."
+                emptyText={autoT("legacy.no_employee_deductions_found_18852c51")}
               />
             </SectionCard>
           </div>

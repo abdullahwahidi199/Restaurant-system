@@ -20,6 +20,7 @@ import ProcurementDashboard from "./pages/ProcurementDashboard";
 import PurchaseInvoices from "./pages/PurchaseInvoices";
 import SupplierPayments from "./pages/SupplierPayments";
 import Suppliers from "./pages/Suppliers";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const getEntityId = (value) => value?.id ?? value;
 
@@ -29,6 +30,7 @@ export default function ProcurementWorkspace({
   openInvoiceId,
   openSupplierId,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -75,7 +77,7 @@ export default function ProcurementWorkspace({
   }, [basePath, openInvoiceId, openSupplierId]);
 
   const content = () => {
-    if (model.loading) return <LoadingState label="Loading procurement..." />;
+    if (model.loading) return <LoadingState label={autoT("legacy.loading_procurement_9585f582")} />;
     if (model.activeTab === "create") {
       return (
         <CreatePurchaseInvoice
@@ -110,7 +112,9 @@ export default function ProcurementWorkspace({
       return (
         <Suppliers
           suppliers={model.suppliers}
-          onAdd={() => model.setShowSupplierDialog(true)}
+          onAdd={model.startAddSupplier}
+          onEdit={model.startEditSupplier}
+          onDelete={model.removeSupplier}
           onOpen={handleOpenSupplier}
           onToggle={model.toggleSupplier}
         />
@@ -154,26 +158,26 @@ export default function ProcurementWorkspace({
   };
 
   return (
-    <section className="space-y-5 px-4 pb-6 lg:px-5">
+    <section className="space-y-4 px-4 pb-6 lg:px-5">
       <PageHeader
-        eyebrow="Pakhlai Procurement"
+        eyebrow={autoT("legacy.pakhlai_procurement_34a99e6f")}
         breadcrumb={
           isFinance
-            ? "Finance / Procurement"
+            ? autoT("legacy.finance_procurement_4eccf9c9")
             : isOperations
-              ? "Operations / Procurement"
-              : "Admin / Finance / Procurement"
+              ? autoT("legacy.operations_procurement_35ba51e4")
+              : autoT("legacy.admin_finance_procurement_278fbdf0")
         }
         icon={Wallet}
         title={pageMeta.title}
         description={pageMeta.description}
         quickStats={[
           {
-            label: "Month Spend",
+            label: autoT("legacy.month_spend_d7018ca9"),
             value: money(model.stats.purchasesThisMonth),
           },
           {
-            label: "Payables",
+            label: autoT("legacy.payables_a4fb9796"),
             value: money(model.stats.outstandingSupplierPayables),
           },
         ]}
@@ -183,16 +187,16 @@ export default function ProcurementWorkspace({
           <>
             <Link
               to={`${basePath}/procurement/purchase-invoices/new`}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="theme-btn theme-btn-primary h-[38px] px-4"
             >
               <FilePlus2 className="h-4 w-4" />
-              New Invoice
+              {autoT("legacy.new_invoice_878bae99")}
             </Link>
             <ActionButton
               icon={UserPlus}
-              onClick={() => model.setShowSupplierDialog(true)}
+              onClick={model.startAddSupplier}
             >
-              Supplier
+              {autoT("inventory_manager.common.supplier")}
             </ActionButton>
           </>
         }
@@ -218,6 +222,7 @@ export default function ProcurementWorkspace({
       {model.showSupplierDialog && (
         <SupplierFormModal
           form={model.supplierForm}
+          editing={model.editingSupplier}
           saving={model.saving}
           onChange={model.setSupplierForm}
           onSubmit={model.submitSupplier}

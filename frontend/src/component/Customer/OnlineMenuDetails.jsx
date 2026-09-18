@@ -19,9 +19,11 @@ import {
   getPublicCartKey,
   getPublicContextFromParams,
 } from "../../api/publicOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 // Reusable Image fallback
 const ImageWrapper = ({ src, alt, className }) => {
+                       const { t: autoT } = useAutoTranslation();
   if (!src) {
     return (
       <div
@@ -46,7 +48,7 @@ const ImageWrapper = ({ src, alt, className }) => {
         e.target.onerror = null;
         e.target.src = buildThemedImagePlaceholder({
           fontSize: 18,
-          label: "Image not available",
+          label: autoT("legacy.image_not_available_ddb6d35d"),
         });
       }}
     />
@@ -54,6 +56,7 @@ const ImageWrapper = ({ src, alt, className }) => {
 };
 
 export default function OnlineMenuItemDetails() {
+                 const { t: autoT } = useAutoTranslation();
   const params = useParams();
   const { id } = params;
   const publicContext = getPublicContextFromParams(params);
@@ -76,7 +79,7 @@ export default function OnlineMenuItemDetails() {
       setItemDetails(res.data);
     } catch (err) {
       console.error(err);
-      setError("Unable to load item details. Please try again.");
+      setError(autoT("legacy.unable_to_load_item_details_please_try_again_96e6972b"));
     } finally {
       setLoading(false);
     }
@@ -133,7 +136,7 @@ export default function OnlineMenuItemDetails() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-orange-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading item details...</p>
+          <p className="text-gray-600">{autoT("labels.loading_item")}</p>
         </div>
       </div>
     );
@@ -146,24 +149,24 @@ export default function OnlineMenuItemDetails() {
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-800 mb-2">
-            Item Not Found
+            {autoT("labels.item_not_found")}
           </h2>
           <p className="text-gray-600 mb-6">
-            {error || "This item is unavailable right now."}
+            {error || autoT("labels.item_not_found_desc")}
           </p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={fetchItemDetails}
               className="bg-orange-600 text-white px-6 py-2 rounded-full hover:bg-orange-700 transition-colors"
             >
-              Try Again
+              {autoT("labels.try_again")}
             </button>
 
             <button
               onClick={() => navigate(-1)}
               className="bg-gray-100 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-200 transition-colors"
             >
-              Back
+              {autoT("legacy.back_b52b36b7")}
             </button>
           </div>
         </div>
@@ -190,7 +193,7 @@ export default function OnlineMenuItemDetails() {
             <button
               onClick={() => navigate(-1)}
               className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-              aria-label="Go back"
+              aria-label={autoT("legacy.go_back_e84712fb")}
             >
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
@@ -224,8 +227,8 @@ export default function OnlineMenuItemDetails() {
                 }`}
               >
                 {itemDetails.final_availability
-                  ? "● Available"
-                  : "● Unavailable"}
+                  ? autoT("legacy.available_6d76e0ee")
+                  : autoT("legacy.unavailable_9e3fc805")}
               </span>
             </div>
 
@@ -257,15 +260,15 @@ export default function OnlineMenuItemDetails() {
                   </p>
                 ) : (
                   <p className="text-gray-400 italic text-sm">
-                    A delicious dish made with the finest ingredients.
+                    {autoT("legacy.a_delicious_dish_made_with_the_finest_ingredients_a4da7748")}
                   </p>
                 )}
               </div>
               <div className="text-right">
                 <span className="text-3xl font-bold text-orange-600">
-                  AFN {parseFloat(itemDetails.price).toFixed(2)}
+                  {autoT("labels.afn")} {parseFloat(itemDetails.price).toFixed(2)}
                 </span>
-                <p className="text-xs text-gray-500">per piece</p>
+                <p className="text-xs text-gray-500">{autoT("labels.per_piece")}</p>
               </div>
             </div>
 
@@ -275,7 +278,7 @@ export default function OnlineMenuItemDetails() {
                 <div className="flex items-center gap-2 mb-3">
                   <Utensils className="w-5 h-5 text-orange-600" />
                   <h3 className="text-lg font-bold text-gray-900">
-                    Ingredients
+                    {autoT("menuDetails.ingredients")}
                   </h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -296,7 +299,7 @@ export default function OnlineMenuItemDetails() {
               <div className="flex items-center gap-2 mb-4">
                 <MessageSquare className="w-5 h-5 text-orange-600" />
                 <h3 className="text-lg font-bold text-gray-900">
-                  Customer Reviews
+                  {autoT("labels.customer_reviews")}
                 </h3>
                 {itemDetails.reviews.length > 0 && (
                   <span className="text-sm text-gray-500">
@@ -309,7 +312,7 @@ export default function OnlineMenuItemDetails() {
                 <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 text-center">
                   <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500 text-sm">
-                    No reviews yet. Be the first to share your experience!
+                    {autoT("labels.no_reviews_yet")}
                   </p>
                 </div>
               ) : (
@@ -327,7 +330,7 @@ export default function OnlineMenuItemDetails() {
                               .toUpperCase()}
                           </div>
                           <span className="font-semibold text-gray-900 text-sm">
-                            {review.user_name || review.user || "Anonymous"}
+                            {review.user_name || review.user || autoT("labels.anonymous")}
                           </span>
                         </div>
                         <div className="flex items-center gap-0.5">
@@ -393,13 +396,13 @@ export default function OnlineMenuItemDetails() {
               {added ? (
                 <>
                   <Check className="w-5 h-5" />
-                  <span>Added to Cart</span>
+                  <span>{autoT("labels.added_to_cart")}</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-5 h-5" />
-                  <span className="hidden sm:inline">Add to Cart —</span>
-                  <span>AFN {totalPrice}</span>
+                  <span className="hidden sm:inline">{autoT("legacy.add_to_cart_d2403740")}</span>
+                  <span>{autoT("labels.afn")} {totalPrice}</span>
                 </>
               )}
             </button>
@@ -412,7 +415,7 @@ export default function OnlineMenuItemDetails() {
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-gray-900 text-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
             <p className="font-medium">
-              This item is currently unavailable. Please check back later.
+              {autoT("labels.item_unavailable_notice")}
             </p>
           </div>
         </div>

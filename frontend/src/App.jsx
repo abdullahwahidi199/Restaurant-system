@@ -123,10 +123,12 @@ import BranchSelectionPage from "./component/branch/BranchSelectionPage";
 import FinanceManagerLayout from "./component/FinanceManager/FinanceManagerLayout";
 import OperationsManagerLayout from "./component/OperationsManager/OperationsManagerLayout";
 import LegalPage from "./pages/LegalPage";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 function App() {
+  const { t: autoT } = useAutoTranslation();
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<RootLayout />}>
@@ -327,8 +329,8 @@ function App() {
             element={
               <Menu
                 canManage={false}
-                title="Menu Management"
-                description="Browse menu pricing, visibility and availability for the active branch."
+                title={autoT("menu_management")}
+                description={autoT("legacy.browse_menu_pricing_visibility_and_availability_for_th_e1e32256")}
               />
             }
           />

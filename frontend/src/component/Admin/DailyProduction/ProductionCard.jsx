@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ProductionCard({
   item,
@@ -6,6 +7,7 @@ export default function ProductionCard({
   onDecrement,
   onClear,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [qty, setQty] = useState(1);
   const prod = item.production;
   const hasProd = !!prod;
@@ -25,11 +27,11 @@ export default function ProductionCard({
                   : "bg-green-100 text-green-700"
               }`}
             >
-              {soldOut ? "Sold out" : "Active"}
+              {soldOut ? autoT("legacy.sold_out_02ff6590") : autoT("staff.status.active")}
             </span>
           ) : (
             <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-              No batch
+              {autoT("legacy.no_batch_514402aa")}
             </span>
           )}
         </div>
@@ -42,17 +44,17 @@ export default function ProductionCard({
               <span className="font-medium text-gray-900">
                 {prod.quantity_remaining}
               </span>{" "}
-              remaining
+              {autoT("legacy.remaining_398658a6")}
               <span className="text-gray-400">
                 {" "}
-                / {prod.quantity_produced} cooked
+                / {prod.quantity_produced} {autoT("legacy.cooked_045d92ef")}
               </span>
               {sold > 0 && (
-                <span className="text-gray-400"> / {sold} sold</span>
+                <span className="text-gray-400"> / {sold} {autoT("legacy.sold_147f6d85")}</span>
               )}
             </>
           ) : (
-            <span className="text-gray-400">Not cooked yet</span>
+            <span className="text-gray-400">{autoT("legacy.not_cooked_yet_af56dfef")}</span>
           )}
         </p>
       </div>
@@ -68,25 +70,25 @@ export default function ProductionCard({
         <button
           onClick={() => onIncrement(qty)}
           className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-          title="Cook more / add to batch"
+          title={autoT("legacy.cook_more_add_to_batch_66e39279")}
         >
-          + Cook
+          {autoT("legacy.cook_d8402b40")}
         </button>
         <button
           onClick={() => onDecrement(qty)}
           disabled={!hasProd}
           className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-40"
-          title="Reduce batch"
+          title={autoT("legacy.reduce_batch_0c0db485")}
         >
-          − Reduce
+          {autoT("legacy.reduce_24267c81")}
         </button>
         {hasProd && (
           <button
             onClick={() => onClear(false)}
             className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium"
-            title="Clear production"
+            title={autoT("legacy.clear_production_b938db48")}
           >
-            Clear
+            {autoT("legacy.clear_719ea396")}
           </button>
         )}
       </div>

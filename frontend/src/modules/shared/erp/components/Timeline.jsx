@@ -2,27 +2,30 @@ import React from "react";
 import { Activity } from "lucide-react";
 import { formatMethod, money } from "../formatters";
 import EmptyState from "./EmptyState";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../../i18n";
 
-export default function Timeline({ items, empty = "No activity yet." }) {
+export default function Timeline({ items, empty = i18n.t("legacy.no_activity_yet_8bdea321") }) {
+                 const { t: autoT } = useAutoTranslation();
   if (!items?.length) {
-    return <EmptyState title={empty} description="Recent activity will appear here as records are posted." />;
+    return <EmptyState title={empty} description={autoT("legacy.recent_activity_will_appear_here_as_records_are_posted_163d5990")} />;
   }
 
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-[var(--theme-border)]">
       {items.map((item) => (
-        <div key={item.id} className="relative pl-7">
-          <span className="absolute left-0 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-white ring-4 ring-slate-100">
+        <div key={item.id} className="relative min-h-[52px] py-2.5 pl-7">
+          <span className="absolute left-0 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--theme-secondary)] text-[var(--theme-text-inverse)]">
             <Activity className="h-3 w-3" />
           </span>
-          <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition hover:border-slate-200 hover:shadow-md">
+          <div>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-950">
+              <p className="text-[13px] font-semibold theme-text-primary">
                 {item.title || item.staff_name || item.supplier_name || item.contractor_name}
               </p>
-              <p className="text-sm font-bold text-slate-950">{money(item.amount)}</p>
+              <p className="text-[13px] font-semibold tabular-nums theme-text-primary">{money(item.amount)}</p>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs theme-text-muted">
               {item.date || item.created_at || "-"} - {formatMethod(item.payment_method)}
             </p>
           </div>

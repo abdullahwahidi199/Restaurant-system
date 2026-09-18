@@ -64,7 +64,7 @@ export default function CategoryDeleteModal({
                 {title || t("confirm_delete")}
               </h2>
               <p className="mt-1 text-sm leading-6 text-rose-700">
-                This action is permanent.
+                {t("legacy.this_action_is_permanent_ce117e53")}
               </p>
             </div>
           </div>
@@ -72,7 +72,7 @@ export default function CategoryDeleteModal({
             type="button"
             onClick={onClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-500 transition hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-rose-500"
-            aria-label="Close delete confirmation"
+            aria-label={t("legacy.close_delete_confirmation_7d6e51db")}
           >
             <X className="h-4 w-4" />
           </button>

@@ -4,8 +4,10 @@ import RestaurantCard from "./RestaurantCard";
 import RestaurantModal from "./RestaurantModal";
 import SubscriptionModal from "./SubscriptionModal";
 import { Building2, Save, ShieldCheck } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function SuperAdminMain() {
+                 const { t: autoT } = useAutoTranslation();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("restaurants");
@@ -241,7 +243,7 @@ export default function SuperAdminMain() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-gray-800">
-            Super Admin Dashboard
+            {autoT("legacy.super_admin_dashboard_0bb62d40")}
           </h1>
           <div className="flex flex-wrap items-center gap-2">
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-1">
@@ -251,7 +253,7 @@ export default function SuperAdminMain() {
                 className={tabClasses("restaurants")}
               >
                 <Building2 size={16} />
-                Restaurants
+                {autoT("landing.marketplace.nav.restaurants")}
               </button>
               <button
                 type="button"
@@ -259,7 +261,7 @@ export default function SuperAdminMain() {
                 className={tabClasses("security")}
               >
                 <ShieldCheck size={16} />
-                Security
+                {autoT("legacy.security_f25ce1b8")}
               </button>
             </div>
             {activeTab === "restaurants" && (
@@ -267,7 +269,7 @@ export default function SuperAdminMain() {
                 onClick={handleOpenAdd}
                 className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 transition"
               >
-                + Add Restaurant
+                {autoT("legacy.add_restaurant_c51e6e4b")}
               </button>
             )}
           </div>
@@ -276,7 +278,7 @@ export default function SuperAdminMain() {
         {activeTab === "restaurants" &&
           (loading ? (
             <div className="text-center py-10 text-gray-500">
-              Loading restaurants...
+              {autoT("legacy.loading_restaurants_9dcb7c90")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -302,10 +304,10 @@ export default function SuperAdminMain() {
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Login Rate Limiting
+                  {autoT("legacy.login_rate_limiting_774dd4c8")}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Applies separately to staff and customer login attempts.
+                  {autoT("legacy.applies_separately_to_staff_and_customer_login_attempt_84923cd4")}
                 </p>
               </div>
               <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -316,19 +318,19 @@ export default function SuperAdminMain() {
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   disabled={securityLoading || !securitySettings}
                 />
-                Enabled
+                {autoT("settings_center.fields.enabled")}
               </label>
             </div>
 
             {securityLoading || !securitySettings ? (
               <div className="py-8 text-center text-sm text-gray-500">
-                Loading security settings...
+                {autoT("legacy.loading_security_settings_50859510")}
               </div>
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <label className="text-sm font-medium text-gray-700">
-                    Failed attempts
+                    {autoT("legacy.failed_attempts_84c21ef2")}
                     <input
                       type="number"
                       min="1"
@@ -341,7 +343,7 @@ export default function SuperAdminMain() {
                     />
                   </label>
                   <label className="text-sm font-medium text-gray-700">
-                    Window minutes
+                    {autoT("legacy.window_minutes_c4425df7")}
                     <input
                       type="number"
                       min="1"
@@ -354,7 +356,7 @@ export default function SuperAdminMain() {
                     />
                   </label>
                   <label className="text-sm font-medium text-gray-700">
-                    Lockout minutes
+                    {autoT("legacy.lockout_minutes_19c44bd0")}
                     <input
                       type="number"
                       min="1"
@@ -374,7 +376,7 @@ export default function SuperAdminMain() {
                     className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-500"
                   >
                     <Save size={16} />
-                    {securitySaving ? "Saving..." : "Save"}
+                    {securitySaving ? autoT("saving") : autoT("legacy.save_efc007a3")}
                   </button>
                 </div>
               </>

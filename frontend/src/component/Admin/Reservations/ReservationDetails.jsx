@@ -10,8 +10,11 @@ import {
   User,
 } from "lucide-react";
 import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
+import StatusBadge from "../../../modules/shared/erp/components/StatusBadge";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ReservationDetails({ reservation, onClose }) {
+                 const { t: autoT } = useAutoTranslation();
   if (!reservation) return null;
 
   // Arrow Functions
@@ -25,120 +28,88 @@ export default function ReservationDetails({ reservation, onClose }) {
     });
   };
 
-  const getStatusConfig = (status) => {
-    const configs = {
-      completed: {
-        bg: "bg-emerald-50",
-        text: "text-emerald-700",
-        border: "border-emerald-200",
-        label: "Completed",
-      },
-      cancelled: {
-        bg: "bg-red-50",
-        text: "text-red-700",
-        border: "border-red-200",
-        label: "Cancelled",
-      },
-      reserved: {
-        bg: "bg-blue-50",
-        text: "text-blue-700",
-        border: "border-blue-200",
-        label: "Reserved",
-      },
-      pending: {
-        bg: "bg-amber-50",
-        text: "text-amber-700",
-        border: "border-amber-200",
-        label: "Pending",
-      },
-    };
-    return (
-      configs[status] || {
-        bg: "bg-gray-50",
-        text: "text-gray-700",
-        border: "border-gray-200",
-        label: status,
-      }
-    );
-  };
+  const getStatusLabel = (status) =>
+    ({
+      completed: autoT("stats.completed"),
+      cancelled: autoT("status.cancelled"),
+      reserved: autoT("legacy.reserved_67a6ff10"),
+      pending: autoT("stats.pending"),
+    })[status] || status;
 
   const handleClose = () => {
     onClose?.();
   };
 
-  const statusConfig = getStatusConfig(reservation.status);
+  const statusLabel = getStatusLabel(reservation.status);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--theme-overlay)] p-4 backdrop-blur-sm"
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden animate-in fade-in"
+        className="theme-surface max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-xl border shadow-[var(--theme-shadow-lg)] animate-in fade-in"
+        role="dialog"
+        aria-modal="true"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+        <div className="flex min-h-14 items-center justify-between border-b px-5 py-3 theme-muted">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
-              Reservation #{reservation.id}
+            <h2 className="text-lg font-semibold theme-text-primary">
+              {autoT("legacy.reservation_c574ce11")}{reservation.id}
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              {reservation.reservation_type?.replace("_", " ") || "Standard"}{" "}
-              Reservation
+            <p className="mt-1 text-xs theme-text-muted">
+              {reservation.reservation_type?.replace("_", " ") || autoT("legacy.standard_2dfa6607")}{" "}
+              {autoT("legacy.reservation_18d5c8fe")}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-all duration-200"
-            aria-label="Close modal"
+            className="theme-btn theme-btn-ghost theme-btn-icon"
+            aria-label={autoT("legacy.close_modal_70d3a544")}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <div className="max-h-[calc(90vh-56px)] overflow-y-auto p-5">
           {/* Status Badge */}
-          <div className="mb-6">
-            <span
-              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border}`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current mr-2"></span>
-              {statusConfig.label}
-            </span>
+          <div className="mb-5">
+            <StatusBadge status={reservation.status} label={statusLabel} />
           </div>
 
           {/* Main Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <InfoItem
               icon={<User className="w-5 h-5" />}
-              label="Customer Name"
+              label={autoT("legacy.customer_name_75636316")}
               value={reservation.customer_name}
             />
             <InfoItem
               icon={<Phone className="w-5 h-5" />}
-              label="Phone Number"
+              label={autoT("staff.form.phone")}
               value={reservation.phone}
             />
             <InfoItem
               icon={<Users className="w-5 h-5" />}
-              label="Guests"
+              label={autoT("legacy.guests_3c23a670")}
               value={reservation.guests}
             />
             <InfoItem
               icon={<Calendar className="w-5 h-5" />}
-              label="Table"
+              label={autoT("legacy.table_0424f6e7")}
               value={reservation.table_name}
             />
             <InfoItem
               icon={<Clock className="w-5 h-5" />}
-              label="Reservation Date"
+              label={autoT("legacy.reservation_date_aefe975e")}
               value={formatDateTime(reservation.start_time)}
             />
             <InfoItem
               icon={<Clock className="w-5 h-5" />}
-              label="Duration"
+              label={autoT("legacy.duration_1370004d")}
               value={`${reservation.duration_minutes} minutes`}
             />
           </div>
@@ -147,31 +118,31 @@ export default function ReservationDetails({ reservation, onClose }) {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-6 mb-6 border border-slate-200">
             <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              Payment Details
+              {autoT("legacy.payment_details_b8579d99")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Total Price</p>
+                <p className="text-sm text-slate-500 mb-1">{autoT("legacy.total_price_a2a7c604")}</p>
                 <p className="text-2xl font-bold text-slate-900">
-                  AFN{reservation.total_price?.toFixed(2)}
+                  {autoT("labels.afn")}{reservation.total_price?.toFixed(2)}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-500 mb-1">Pre-paid Amount</p>
+                <p className="text-sm text-slate-500 mb-1">{autoT("legacy.pre_paid_amount_bd03e1ea")}</p>
                 <p className="text-2xl font-bold text-emerald-600">
-                  AFN{reservation.paid_amount}
+                  {autoT("labels.afn")}{reservation.paid_amount}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-slate-500 mb-1">
                   {reservation.status !== "completed"
-                    ? "Balance Due"
-                    : "Post-paid"}
+                    ? autoT("legacy.balance_due_5a6bd4c7")
+                    : autoT("legacy.post_paid_17f98ce3")}
                 </p>
                 <p
                   className={`text-2xl font-bold ${reservation.status !== "completed" ? "text-red-600" : "text-blue-600"}`}
                 >
-                  AFN
+                  {autoT("labels.afn")}
                   {(reservation.total_price - reservation.paid_amount)?.toFixed(
                     2,
                   )}
@@ -187,7 +158,7 @@ export default function ReservationDetails({ reservation, onClose }) {
                 <FileText className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-blue-900 mb-1">
-                    Notes
+                    {autoT("inventory_manager.common.notes")}
                   </p>
                   <p className="text-sm text-blue-800">{reservation.notes}</p>
                 </div>
@@ -199,7 +170,7 @@ export default function ReservationDetails({ reservation, onClose }) {
             <div className="flex items-center gap-2 text-sm text-slate-500 pt-4 border-t border-slate-200">
               <User className="w-4 h-4" />
               <span>
-                Created by{" "}
+                {autoT("legacy.created_by_5d73cc30")}{" "}
                 <strong className="text-slate-700">
                   {reservation.created_by_name}
                 </strong>
@@ -209,7 +180,7 @@ export default function ReservationDetails({ reservation, onClose }) {
 
           <div className="mt-6 rounded-lg border border-slate-200 p-4">
             <h3 className="mb-3 text-sm font-bold text-slate-900">
-              Audit History
+              {autoT("inventory_manager.ingredients.audit_history")}
             </h3>
             <AuditTimeline
               module="RESERVATIONS"
@@ -225,7 +196,7 @@ export default function ReservationDetails({ reservation, onClose }) {
             onClick={handleClose}
             className="px-6 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all duration-200 shadow-sm"
           >
-            Close
+            {autoT("menuDetails.close")}
           </button>
         </div>
       </div>

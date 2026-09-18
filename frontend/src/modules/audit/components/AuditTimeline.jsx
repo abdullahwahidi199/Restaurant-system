@@ -3,11 +3,13 @@ import { History } from "lucide-react";
 import { getAuditLogs } from "../../../api/auditApi";
 import AuditActionBadge from "./AuditActionBadge";
 import AuditChangeDiff from "./AuditChangeDiff";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const formatDateTime = (value) =>
   value ? new Date(value).toLocaleString() : "-";
 
 export default function AuditTimeline({ objectType, objectId, module }) {
+                 const { t: autoT } = useAutoTranslation();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,7 +29,7 @@ export default function AuditTimeline({ objectType, objectId, module }) {
         if (!cancelled) setLogs(res.data?.results || []);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load audit history.");
+        if (!cancelled) setError(autoT("legacy.failed_to_load_audit_history_b6682b8d"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -38,7 +40,7 @@ export default function AuditTimeline({ objectType, objectId, module }) {
   }, [module, objectId, objectType]);
 
   if (loading) {
-    return <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">Loading audit history...</p>;
+    return <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">{autoT("legacy.loading_audit_history_ed3fa4fe")}</p>;
   }
 
   if (error) {
@@ -48,7 +50,7 @@ export default function AuditTimeline({ objectType, objectId, module }) {
   if (!logs.length) {
     return (
       <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">
-        No audit history recorded for this item yet.
+        {autoT("legacy.no_audit_history_recorded_for_this_item_yet_d73c0c7d")}
       </p>
     );
   }
@@ -64,7 +66,7 @@ export default function AuditTimeline({ objectType, objectId, module }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-semibold text-slate-950">
-                  {log.user_name || "System"} {String(log.action || "").toLowerCase().replace("_", " ")}
+                  {log.user_name || autoT("inventory_manager.common.system")} {String(log.action || "").toLowerCase().replace("_", " ")}
                 </p>
                 <p className="text-sm text-slate-500">{formatDateTime(log.created_at)}</p>
               </div>

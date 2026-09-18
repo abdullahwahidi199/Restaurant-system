@@ -1,9 +1,9 @@
 export const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "AFN",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
-export const money = (value) => currency.format(Number(value || 0));
+export const money = (value) => `AFN ${currency.format(Number(value || 0))}`;
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 

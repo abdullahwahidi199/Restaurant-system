@@ -1,5 +1,9 @@
 import React from "react";
 import { Printer } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+
+const voucherMoney = (value, currency = "AFN") =>
+  `${currency} ${Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
 function VoucherGrid({ rows }) {
   return (
@@ -28,6 +32,7 @@ function VoucherSection({ title, children }) {
 }
 
 export default function PaymentVoucherModal({ voucher, onClose }) {
+                 const { t: autoT } = useAutoTranslation();
   const { company = {}, payment = {}, invoice = {} } = voucher || {};
 
   return (
@@ -48,16 +53,16 @@ export default function PaymentVoucherModal({ voucher, onClose }) {
             className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
           >
             <Printer className="h-4 w-4" />
-            Print
+            {autoT("legacy.print_5b221e9c")}
           </button>
           <button type="button" onClick={onClose} className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">
-            Close
+            {autoT("menuDetails.close")}
           </button>
         </div>
         <div className="voucher-print relative bg-white p-8 text-slate-950 shadow-2xl">
           {payment.is_invoice_completed && (
             <div className="pointer-events-none absolute inset-0 flex rotate-[-25deg] items-center justify-center text-8xl font-bold text-slate-900/5">
-              PAID
+              {autoT("legacy.paid_f3534db5")}
             </div>
           )}
           <div className="relative">
@@ -66,50 +71,50 @@ export default function PaymentVoucherModal({ voucher, onClose }) {
                 {company.logo_url ? (
                   <img src={company.logo_url} alt={company.name} className="h-16 w-16 object-contain" />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center border text-xs font-semibold">LOGO</div>
+                  <div className="flex h-16 w-16 items-center justify-center border text-xs font-semibold">{autoT("legacy.logo_2c2d6bb5")}</div>
                 )}
                 <div>
                   <h2 className="text-xl font-bold uppercase">{company.name}</h2>
-                  <p className="text-sm">Branch: {company.branch_name || "-"}</p>
-                  <p className="text-sm">Address: {company.address || "-"}</p>
-                  <p className="text-sm">Phone: {company.phone || "-"}</p>
+                  <p className="text-sm">{autoT("legacy.branch_8b31d33d")} {company.branch_name || "-"}</p>
+                  <p className="text-sm">{autoT("legacy.address_303d9813")} {company.address || "-"}</p>
+                  <p className="text-sm">{autoT("legacy.phone_daeea4d0")} {company.phone || "-"}</p>
                 </div>
               </div>
               <div className="text-right">
-                <h1 className="text-2xl font-bold uppercase">Payment Voucher</h1>
+                <h1 className="text-2xl font-bold uppercase">{autoT("legacy.payment_voucher_d3d40e82")}</h1>
                 <p className="mt-1 text-sm font-semibold">{payment.voucher_number}</p>
-                <p className="text-xs">Payment ID: {payment.id}</p>
+                <p className="text-xs">{autoT("legacy.payment_id_9524f4eb")} {payment.id}</p>
               </div>
             </div>
-            <VoucherSection title="Payment Information">
+            <VoucherSection title={autoT("legacy.payment_information_88b8328c")}>
               <VoucherGrid
                 rows={[
                   ["Voucher Number", payment.voucher_number, "Payment Date", payment.date],
                   ["Supplier", payment.supplier_name, "Invoice Number", payment.invoice_number],
                   ["Method", payment.payment_method, "Reference", payment.reference_number || "-"],
-                  ["Amount Paid", `${payment.currency || "AFN"} ${payment.amount_paid}`, "Remaining", `${payment.currency || "AFN"} ${payment.remaining_balance_after_payment}`],
+                  ["Amount Paid", voucherMoney(payment.amount_paid, payment.currency), "Remaining", voucherMoney(payment.remaining_balance_after_payment, payment.currency)],
                 ]}
               />
             </VoucherSection>
-            <VoucherSection title="Invoice Information">
+            <VoucherSection title={autoT("legacy.invoice_information_d1cad6dc")}>
               <VoucherGrid
                 rows={[
-                  ["Invoice Total", `AFN ${invoice.original_invoice_total || 0}`, "Paid Before", `AFN ${invoice.total_paid_before_this_payment || 0}`],
-                  ["Current Payment", `AFN ${invoice.current_payment || 0}`, "Total Paid", `AFN ${invoice.total_paid || 0}`],
-                  ["Remaining", `AFN ${invoice.remaining_balance || 0}`, "Status", String(invoice.status || "").replaceAll("_", " ")],
+                  ["Invoice Total", voucherMoney(invoice.original_invoice_total), "Paid Before", voucherMoney(invoice.total_paid_before_this_payment)],
+                  ["Current Payment", voucherMoney(invoice.current_payment), "Total Paid", voucherMoney(invoice.total_paid)],
+                  ["Remaining", voucherMoney(invoice.remaining_balance), "Status", String(invoice.status || "").replaceAll("_", " ")],
                 ]}
               />
             </VoucherSection>
-            <VoucherSection title="Notes">
-              <div className="min-h-14 border border-slate-950 p-3 text-sm">{payment.notes || "No notes."}</div>
+            <VoucherSection title={autoT("inventory_manager.common.notes")}>
+              <div className="min-h-14 border border-slate-950 p-3 text-sm">{payment.notes || autoT("legacy.no_notes_c0e8f375")}</div>
             </VoucherSection>
-            <VoucherSection title="Signatures">
+            <VoucherSection title={autoT("legacy.signatures_e4cf0392")}>
               <div className="grid grid-cols-4 gap-3 text-center text-xs">
                 {["Prepared By", "Checked By", "Approved By", "Supplier Representative"].map((label) => (
                   <div key={label} className="space-y-5">
                     <p className="font-semibold">{label}</p>
                     <div className="border-b border-slate-950 pt-4" />
-                    <p>Signature</p>
+                    <p>{autoT("legacy.signature_2f32be1d")}</p>
                   </div>
                 ))}
               </div>

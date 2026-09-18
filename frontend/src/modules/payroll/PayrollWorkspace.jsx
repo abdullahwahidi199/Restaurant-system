@@ -18,6 +18,7 @@ import PayrollRecordDetail from "./pages/PayrollRecordDetail";
 import PayrollRecords from "./pages/PayrollRecords";
 import PayrollRun from "./pages/PayrollRun";
 import SalaryAdvances from "./pages/SalaryAdvances";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function PayrollWorkspace({
   initialView = "dashboard",
@@ -25,6 +26,7 @@ export default function PayrollWorkspace({
   openPayrollId,
   openStaffId,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const location = useLocation();
   const isFinance = location.pathname.startsWith("/finance-manager");
   const basePath = isFinance ? "/finance-manager" : "/admin/dashboard";
@@ -45,7 +47,7 @@ export default function PayrollWorkspace({
       : [];
 
   const content = () => {
-    if (model.loading) return <LoadingState label="Loading payroll workspace..." />;
+    if (model.loading) return <LoadingState label={autoT("legacy.loading_payroll_workspace_3ac1e2ec")} />;
     if (openPayrollId) {
       return <PayrollRecordDetail payroll={model.selectedPayroll} saving={model.saving} onApprove={model.confirmApprove} onPayment={model.openPaymentDialog} basePath={basePath} />;
     }
@@ -67,28 +69,37 @@ export default function PayrollWorkspace({
     return <PayrollDashboard dashboard={model.dashboard} payrolls={model.payrolls} advances={model.advances} onPayment={model.openPaymentDialog} basePath={basePath} />;
   };
 
+  const isAdvancesView = model.activeTab === "advances";
+
   return (
-    <section className="space-y-5 px-4 pb-6 lg:px-5">
+    <section
+      className={
+        isAdvancesView
+          ? "space-y-3 px-0 pb-4 sm:space-y-5 sm:px-4 sm:pb-6 lg:px-5"
+          : "space-y-4 px-4 pb-6 lg:px-5"
+      }
+    >
       <PageHeader
-        eyebrow="Pakhlai Payroll"
-        breadcrumb={isFinance ? "Finance / Payroll" : "Admin / Finance / Payroll"}
+        eyebrow={autoT("legacy.pakhlai_payroll_d8b27f68")}
+        breadcrumb={isFinance ? autoT("legacy.finance_payroll_593d4f70") : autoT("legacy.admin_finance_payroll_170af40e")}
         icon={Wallet}
         title={pageMeta.title}
         description={pageMeta.description}
         quickStats={[
-          { label: "This Month", value: money(model.dashboard?.payroll_cost_this_month) },
-          { label: "Outstanding", value: money(model.dashboard?.outstanding_salaries) },
+          { label: autoT("legacy.this_month_0f6cc3a8"), value: money(model.dashboard?.payroll_cost_this_month) },
+          { label: autoT("legacy.outstanding_f8ee57ec"), value: money(model.dashboard?.outstanding_salaries) },
         ]}
         tabs={tabs}
         activeTab={model.activeTab}
+        compactMobile={isAdvancesView}
         actions={
           <>
-            <Link to={`${basePath}/payroll/run`} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+            <Link to={`${basePath}/payroll/run`} className="theme-btn theme-btn-primary h-[38px] min-w-0 flex-1 whitespace-nowrap px-3 sm:flex-none sm:px-4">
               <FilePlus2 className="h-4 w-4" />
-              Run Payroll
+              {autoT("legacy.run_payroll_e6657ad6")}
             </Link>
-            <ActionButton icon={Plus} onClick={() => model.setShowAdvanceDialog(true)}>
-              Advance
+            <ActionButton className="h-[38px] min-w-0 flex-1 whitespace-nowrap px-3 sm:flex-none sm:px-4" icon={Plus} onClick={() => model.setShowAdvanceDialog(true)}>
+              {autoT("legacy.advance_67e70c3c")}
             </ActionButton>
           </>
         }

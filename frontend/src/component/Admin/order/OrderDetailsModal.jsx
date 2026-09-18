@@ -73,7 +73,7 @@ export default function OrderDetailsModal({ order, onClose }) {
 
         <div className="px-6 py-4 space-y-5">
           {/* Customer Info */}
-          <Section title="Customer Info">
+          <Section title={t("legacy.customer_info_5051e8bf")}>
             <InfoRow
               icon={<User size={15} />}
               label={t("modal.customer")}
@@ -87,21 +87,21 @@ export default function OrderDetailsModal({ order, onClose }) {
             {order.address && (
               <InfoRow
                 icon={<MapPin size={15} />}
-                label="Address"
+                label={t("modal.address")}
                 value={order.address}
               />
             )}
             {order.latitude && order.longitude && (
               <InfoRow
                 icon={<MapPin size={15} />}
-                label="Location"
+                label={t("settings_center.nav.location")}
                 value={`${order.latitude}, ${order.longitude}`}
               />
             )}
           </Section>
 
           {/* Order Info */}
-          <Section title="Order Info">
+          <Section title={t("legacy.order_info_835437bf")}>
             <InfoRow
               icon={<ShoppingBag size={15} />}
               label={t("modal.order_type")}
@@ -110,13 +110,13 @@ export default function OrderDetailsModal({ order, onClose }) {
             {order.tableName && (
               <InfoRow
                 icon={<Table2 size={15} />}
-                label="Table"
+                label={t("legacy.table_0424f6e7")}
                 value={order.tableName}
               />
             )}
             <InfoRow
               icon={<Clock size={15} />}
-              label="Preparation Time"
+              label={t("legacy.preparation_time_850cc504")}
               value={
                 order.preparation_time ? `${order.preparation_time} min` : "—"
               }
@@ -131,41 +131,41 @@ export default function OrderDetailsModal({ order, onClose }) {
           </Section>
 
           {/* Staff Info */}
-          <Section title="Staff">
+          <Section title={t("nav.staff")}>
             {order.created_by_name && (
               <InfoRow
                 icon={<User size={15} />}
-                label="Created By"
+                label={t("inventory_manager.common.created_by")}
                 value={order.created_by_name}
               />
             )}
             {order.received_by_name && (
               <InfoRow
                 icon={<User size={15} />}
-                label="Received By (Cashier)"
+                label={t("legacy.received_by_cashier_4933c755")}
                 value={order.received_by_name}
               />
             )}
             {order.order_type === "delivery" && order.delivery_boy_details && (
               <InfoRow
                 icon={<Truck size={15} />}
-                label="Delivery By"
+                label={t("legacy.delivery_by_b5aa13ed")}
                 value={`${order.delivery_boy_details.name} (${order.delivery_boy_details.vehicle_number})`}
               />
             )}
           </Section>
 
           {/* Timeline */}
-          <Section title="Timeline">
+          <Section title={t("legacy.timeline_018514a3")}>
             <InfoRow
               icon={<Clock size={15} />}
-              label="Created At"
+              label={t("legacy.created_at_5db1542e")}
               value={formatDate(order.created_at)}
             />
             {order.paid_at && (
               <InfoRow
                 icon={<CheckCircle size={15} />}
-                label="Paid At"
+                label={t("legacy.paid_at_55c62e1a")}
                 value={formatDate(order.paid_at)}
               />
             )}
@@ -173,26 +173,26 @@ export default function OrderDetailsModal({ order, onClose }) {
 
           {/* Reservation Payment */}
           {order.reservation_payment && (
-            <Section title="Reservation Payment">
+            <Section title={t("legacy.reservation_payment_e93a5f8e")}>
               <InfoRow
                 icon={<CreditCard size={15} />}
-                label="Type"
+                label={t("inventory_manager.common.type")}
                 value={order.reservation_payment.reservation_type}
               />
               <InfoRow
                 icon={<CreditCard size={15} />}
-                label="Total"
+                label={t("table.total")}
                 value={`${order.reservation_payment.total} AFN`}
               />
               <InfoRow
                 icon={<CreditCard size={15} />}
-                label="Pre-paid"
+                label={t("legacy.pre_paid_95dcec04")}
                 value={`${order.reservation_payment.paid} AFN`}
               />
               <InfoRow
                 icon={<CreditCard size={15} />}
                 // ✅ Same logic as ReservationDetails
-                label={isCompleted ? "Post-paid" : "Balance Due"}
+                label={isCompleted ? t("legacy.post_paid_17f98ce3") : t("legacy.balance_due_5a6bd4c7")}
                 value={`${order.reservation_payment.remaining} AFN`}
                 valueClass={isCompleted ? "text-blue-600" : "text-red-600"}
               />
@@ -225,13 +225,13 @@ export default function OrderDetailsModal({ order, onClose }) {
 
                       {item.status === "cancelled" && (
                         <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                          Cancelled
+                          {t("status.cancelled")}
                         </span>
                       )}
 
                       {item.is_new && item.status !== "cancelled" && (
                         <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          New
+                          {t("landing.marketplace.card.new")}
                           {item.added_by_name ? ` • ${item.added_by_name}` : ""}
                         </span>
                       )}
@@ -247,7 +247,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                         : "text-gray-700"
                     }`}
                   >
-                    {item.subtotal} AFN
+                    {item.subtotal} {t("labels.afn")}
                   </span>
                 </li>
               ))}
@@ -258,20 +258,20 @@ export default function OrderDetailsModal({ order, onClose }) {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-5 border border-slate-200">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4 flex items-center gap-2">
               <CreditCard size={15} />
-              Payment Summary
+              {t("legacy.payment_summary_dad7cf7f")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {order.order_type === "delivery" && (
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Delivery Fee</p>
+                  <p className="text-sm text-slate-500 mb-1">{t("legacy.delivery_fee_9c12c6cb")}</p>
                   <p className="text-xl font-bold text-slate-900">
-                    {order.delivery_fee} AFN
+                    {order.delivery_fee} {t("labels.afn")}
                   </p>
                 </div>
               )}
               {Number(order.discount_percent) > 0 && (
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Discount</p>
+                  <p className="text-sm text-slate-500 mb-1">{t("menu_item_sales.discount")}</p>
                   <p className="text-xl font-bold text-green-600">
                     {order.discount_percent}%
                   </p>
@@ -282,7 +282,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                   {t("modal.total")}
                 </p>
                 <p className="text-2xl font-bold text-slate-900">
-                  {order.total} AFN
+                  {order.total} {t("labels.afn")}
                 </p>
               </div>
 
@@ -290,14 +290,14 @@ export default function OrderDetailsModal({ order, onClose }) {
                 <div>
                   {/* ✅ Same pattern: completed = Post-paid, else = Balance Due */}
                   <p className="text-sm text-slate-500 mb-1">
-                    {isCompleted ? "Post-paid" : "Balance Due"}
+                    {isCompleted ? t("legacy.post_paid_17f98ce3") : t("legacy.balance_due_5a6bd4c7")}
                   </p>
                   <p
                     className={`text-2xl font-bold ${
                       isCompleted ? "text-blue-600" : "text-red-600"
                     }`}
                   >
-                    {order.remaining_total} AFN
+                    {order.remaining_total} {t("labels.afn")}
                   </p>
                 </div>
               )}

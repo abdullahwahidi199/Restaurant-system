@@ -1,16 +1,14 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 class OrdersConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        print("🔥 CONNECT HIT")
-
         try:
-            print("SCOPE:", self.scope)
-
             self.restaurant_id = self.scope["url_route"]["kwargs"]["restaurant_id"]
-            print("Restaurant ID:", self.restaurant_id)
-
             self.group_name = f"orders_{self.restaurant_id}"
 
             await self.channel_layer.group_add(
@@ -19,10 +17,14 @@ class OrdersConsumer(AsyncWebsocketConsumer):
             )
 
             await self.accept()
-            print("✅ WS ACCEPTED")
+            logger.info(
+                "orders_websocket_connected restaurant_id=%s channel=%s",
+                self.restaurant_id,
+                self.channel_name,
+            )
 
-        except Exception as e:
-            print("❌ WS ERROR:", e)
+        except Exception:
+            logger.exception("orders_websocket_connection_failed")
             await self.close()
 
     async def disconnect(self, close_code):
@@ -30,7 +32,11 @@ class OrdersConsumer(AsyncWebsocketConsumer):
             self.group_name,
             self.channel_name
         )
-        print(f"🔌 DISCONNECTED code={close_code}")
+        logger.info(
+            "orders_websocket_disconnected restaurant_id=%s code=%s",
+            getattr(self, "restaurant_id", None),
+            close_code,
+        )
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -41,13 +47,13 @@ class OrdersConsumer(AsyncWebsocketConsumer):
             return
 
         # Normal message → broadcast
-        await self.channel_layer.group_send(
-            self.group_name,
-            {
-                "type": "order_message",
-                "message": data,
-            }
-        )
+        # Order events are server-push only. Accepting arbitrary client payloads
+        # here allowed one browser to inject a stale/fake order into every UI in
+        # the restaurant group.
+        await self.send(text_data=json.dumps({
+            "type": "error",
+            "code": "client_order_events_not_allowed",
+        }))
 
     async def order_message(self, event):
         await self.send(text_data=json.dumps(event["message"]))

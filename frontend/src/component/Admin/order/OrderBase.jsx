@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import OrderStats from "./OrderStats";
 import OrderFilters from "./OrderFilters";
 import OrdersTable from "./OrdersTable";
@@ -10,6 +10,12 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import OrderCancellationToast from "../../OrderCancellationToast";
 import { AuthContext } from "../../../api/authforRBC";
+import PaginationControls from "../../ui/PaginationControls";
+import {
+  freshestOrderSnapshot,
+  reconcileOrderSnapshots,
+  upsertOrderSnapshot,
+} from "../../../utils/orderSnapshot";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -19,6 +25,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showCancelToast, setShowCancelToast] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState(null);
+  const latestSnapshotsRef = useRef(new Map());
+  const socketRevisionRef = useRef(0);
   const { t } = useTranslation();
   const [filters, setFilters] = useState({
     search: "",
@@ -29,6 +37,7 @@ export default function OrdersPage() {
   const role = JSON.parse(localStorage.getItem("user"))?.role;
 
   const fetchOrders = async (pageNumber = 1) => {
+    const revisionAtStart = socketRevisionRef.current;
     // ensure it's always a number
     const page = typeof pageNumber === "number" ? pageNumber : 1;
 
@@ -38,8 +47,20 @@ export default function OrdersPage() {
     }).toString();
 
     const res = await instance.get(`/orders/orders/?${query}`);
+    const incomingOrders = res.data.results || [];
+    for (const incoming of incomingOrders) {
+      const id = String(incoming.id);
+      latestSnapshotsRef.current.set(
+        id,
+        freshestOrderSnapshot(latestSnapshotsRef.current.get(id), incoming),
+      );
+    }
 
-    setOrders(res.data.results);
+    setOrders((current) =>
+      reconcileOrderSnapshots(current, incomingOrders, {
+        preserveMissing: socketRevisionRef.current !== revisionAtStart,
+      }),
+    );
     setCount(res.data.count);
     setPage(page);
     setTotalPages(Math.ceil(res.data.count / 10));
@@ -48,8 +69,18 @@ export default function OrdersPage() {
   const handleViewOrder = async (orderId) => {
     try {
       const response = await instance.get(`/orders/orders/${orderId}/`);
+      const id = String(response.data.id);
+      const incoming = freshestOrderSnapshot(
+        latestSnapshotsRef.current.get(id),
+        response.data,
+      );
+      latestSnapshotsRef.current.set(id, incoming);
 
-      setSelectedOrder(response.data);
+      setSelectedOrder((current) =>
+        current?.id === incoming.id
+          ? freshestOrderSnapshot(current, incoming)
+          : incoming,
+      );
     } catch (error) {
       console.error("Failed to fetch order details:", error);
     }
@@ -59,19 +90,25 @@ export default function OrdersPage() {
 
     if (!msg || !msg.order) return;
     const incoming = msg.order;
+    socketRevisionRef.current++;
+    const id = String(incoming.id);
+    const accepted = freshestOrderSnapshot(
+      latestSnapshotsRef.current.get(id),
+      incoming,
+    );
+    latestSnapshotsRef.current.set(
+      id,
+      accepted,
+    );
 
-    setOrders((prev) => {
-      const idx = prev.findIndex((o) => o.id === incoming.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = incoming;
-        return copy;
-      } else {
-        return [incoming, ...prev];
-      }
-    });
+    setOrders((prev) => upsertOrderSnapshot(prev, accepted));
+    setSelectedOrder((current) =>
+      current?.id === accepted.id
+        ? freshestOrderSnapshot(current, accepted)
+        : current,
+    );
   }, []);
-  useOrdersSocket(handleWsMessage);
+  useOrdersSocket(handleWsMessage, () => fetchOrders(page));
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -125,27 +162,14 @@ export default function OrdersPage() {
         role={role}
       />
 
-      <div className="flex justify-center items-center gap-3 mt-4">
-        <button
-          onClick={() => fetchOrders(page - 1)}
-          disabled={page === 1}
-          className="px-4 py-2 border rounded disabled:opacity-40"
-        >
-          Prev
-        </button>
-
-        <span className="font-medium">
-          {page} / {totalPages}
-        </span>
-
-        <button
-          onClick={() => fetchOrders(page + 1)}
-          disabled={page === totalPages}
-          className="px-4 py-2 border rounded disabled:opacity-40"
-        >
-          Next
-        </button>
-      </div>
+      <PaginationControls
+        page={page}
+        count={count}
+        pageSize={10}
+        hasPrevious={page > 1}
+        hasNext={page < totalPages}
+        onPageChange={fetchOrders}
+      />
 
       <OrderDetailsModal
         order={selectedOrder}

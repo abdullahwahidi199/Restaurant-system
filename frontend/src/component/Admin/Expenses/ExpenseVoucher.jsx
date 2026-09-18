@@ -1,14 +1,16 @@
 // src/pages/expenses/ExpenseVoucher.jsx
 import { formatCurrency, formatDate } from "./helpers";
+import i18n from "../../../i18n";
 
 /**
  * Generates an HTML string for a printable payment voucher.
  */
 const buildVoucherHTML = (
   expense,
-  restaurantName = "Restaurant",
+  restaurantName = i18n.t("legacy.restaurant_3585d755"),
   logo = null,
 ) => {
+  const tr = (key) => i18n.t(key);
   const themeValue = (name) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const printThemeVars = [
@@ -281,10 +283,10 @@ const buildVoucherHTML = (
   `;
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${i18n.resolvedLanguage || i18n.language}" dir="${i18n.dir()}">
 <head>
   <meta charset="utf-8" />
-  <title>Payment Voucher - ${voucherNumber}</title>
+  <title>${tr("printing.payment_voucher")} - ${voucherNumber}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>${styles}</style>
 </head>
@@ -297,67 +299,67 @@ const buildVoucherHTML = (
       </div>
 
       <div class="voucher-meta">
-        <div class="label-sm">Voucher No.</div>
+        <div class="label-sm">${tr("printing.voucher_number")}</div>
         <div class="number">${voucherNumber}</div>
       </div>
     </div>
 
-    <div class="title-bar">Payment Voucher</div>
+    <div class="title-bar">${tr("printing.payment_voucher")}</div>
 
     <div class="body">
       <div class="section">
         <div class="grid-2">
-          <div class="field-label">Date</div>
+          <div class="field-label">${tr("printing.date")}</div>
           <div class="field-value">${formatDate(expense.date)}</div>
 
-          <div class="field-label">Expense</div>
+          <div class="field-label">${tr("printing.expense")}</div>
           <div class="field-value">${expense.name ?? "-"}</div>
 
-          <div class="field-label">Currency</div>
+          <div class="field-label">${tr("printing.currency")}</div>
           <div class="field-value">
-            ${expense.currency === "USD" ? "Foreign Currency (USD)" : "Local Currency (AFN)"}
+            ${expense.currency === "USD" ? tr("printing.foreign_currency") : tr("printing.local_currency")}
           </div>
         </div>
       </div>
 
       <div class="amount-section">
-        <div class="amt-label">Total Amount</div>
+        <div class="amt-label">${tr("printing.total_amount")}</div>
         <div class="amt-value">${formatCurrency(expense.amount, expense.currency)}</div>
 
         ${
           isUSD
             ? `<div class="amt-sub">
-                Exchange Rate: 1 USD = ${expense.exchange_rate} AFN<br/>
-                AFN Equivalent: <strong>${formatCurrency(expense.amount_afn, "AFN")}</strong>
+                ${tr("printing.exchange_rate")}: 1 USD = ${expense.exchange_rate} AFN<br/>
+                ${tr("printing.afn_equivalent")}: <strong>${formatCurrency(expense.amount_afn, "AFN")}</strong>
               </div>`
-            : `<div class="amt-sub">Local currency payment recorded.</div>`
+            : `<div class="amt-sub">${tr("printing.local_payment")}</div>`
         }
       </div>
 
       ${
         expense.description
-          ? `<div class="desc-title">Description</div>
+          ? `<div class="desc-title">${tr("printing.description")}</div>
              <div class="desc-text">${expense.description}</div>`
           : ""
       }
 
       <div class="signatures">
         <div class="signature-box">
-          <div class="signature-title">Authorized By</div>
+          <div class="signature-title">${tr("printing.authorized_by")}</div>
           <div class="signature-line"></div>
-          <div class="signature-note">Signature / Stamp</div>
+          <div class="signature-note">${tr("printing.signature_stamp")}</div>
         </div>
 
         <div class="signature-box">
-          <div class="signature-title">Received By</div>
+          <div class="signature-title">${tr("printing.received_by")}</div>
           <div class="signature-line"></div>
-          <div class="signature-note">Signature / Stamp</div>
+          <div class="signature-note">${tr("printing.signature_stamp")}</div>
         </div>
       </div>
     </div>
 
     <div class="footer">
-      This is a system-generated payment voucher • Printed on ${new Date().toLocaleString()}
+      ${tr("printing.system_voucher_footer")} ${new Date().toLocaleString(i18n.resolvedLanguage || i18n.language)}
     </div>
   </div>
 </body>
@@ -372,12 +374,12 @@ const buildVoucherHTML = (
  */
 export const printVoucher = (
   expense,
-  restaurantName = "Restaurant",
+  restaurantName = i18n.t("legacy.restaurant_3585d755"),
   logo = null,
 ) => {
   const printWindow = window.open("", "_blank", "width=850,height=950");
   if (!printWindow) {
-    alert("Please allow popups to print vouchers");
+    alert(i18n.t("printing.popup_blocked"));
     return;
   }
   printWindow.document.write(buildVoucherHTML(expense, restaurantName, logo));

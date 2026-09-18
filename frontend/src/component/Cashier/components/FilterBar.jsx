@@ -1,27 +1,30 @@
 // src/pages/cashier/components/FilterBar.jsx
 import React from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 // Provide value options as backend keys
 const ORDER_TYPES = [
-  { value: "", label: "All Types" },
-  { value: "dine-in", label: "Dine-in" },
-  { value: "takeaway", label: "Takeaway" },
-  { value: "delivery", label: "Delivery" },
+  { value: "", label: i18n.t("inventory_manager.stock_movements.all_types") },
+  { value: "dine-in", label: i18n.t("landing.features.groups.operations.items.dineIn") },
+  { value: "takeaway", label: i18n.t("landing.features.groups.operations.items.takeaway") },
+  { value: "delivery", label: i18n.t("settings_center.nav.delivery") },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All Statuses" },
-  { value: "pending", label: "Pending" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "ready", label: "Ready" },
-  { value: "served", label: "Served" },
-  { value: "picked_up", label: "Picked Up" },
-  { value: "out_for_delivery", label: "Out for Delivery" },
-  { value: "delivered", label: "Delivered" },
-  { value: "completed", label: "Completed" },
+  { value: "", label: i18n.t("filters.all_statuses") },
+  { value: "pending", label: i18n.t("stats.pending") },
+  { value: "in_progress", label: i18n.t("status.in_progress") },
+  { value: "ready", label: i18n.t("status.ready") },
+  { value: "served", label: i18n.t("legacy.served_4de0b10a") },
+  { value: "picked_up", label: i18n.t("legacy.picked_up_6b173470") },
+  { value: "out_for_delivery", label: i18n.t("legacy.out_for_delivery_dd25c6ef") },
+  { value: "delivered", label: i18n.t("legacy.delivered_eea956cd") },
+  { value: "completed", label: i18n.t("stats.completed") },
 ];
 
 const FilterBar = ({ filters, setFilters }) => {
+                    const { t: autoT } = useAutoTranslation();
   const f = { search: "", type: "", status: "", date: "", ...filters };
 
   const handleChange = (e) => {
@@ -36,9 +39,9 @@ const FilterBar = ({ filters, setFilters }) => {
         name="search"
         value={f.search}
         onChange={handleChange}
-        placeholder="Search by Order ID, Customer or Table"
+        placeholder={autoT("legacy.search_by_order_id_customer_or_table_88f20d66")}
         className="border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-1/4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        aria-label="Search orders"
+        aria-label={autoT("legacy.search_orders_7ab30154")}
       />
 
       <select
@@ -46,7 +49,7 @@ const FilterBar = ({ filters, setFilters }) => {
         value={f.type}
         onChange={handleChange}
         className="border border-gray-300 rounded-lg px-3 py-2 w-full sm:w-1/5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        aria-label="Filter by type"
+        aria-label={autoT("legacy.filter_by_type_e55aa1d9")}
       >
         {ORDER_TYPES.map((t) => (
           <option key={t.value} value={t.value}>

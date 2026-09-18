@@ -194,20 +194,20 @@ export default function EditCategoryModal({
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
-              Category
+              {t("menu_item_sales.category")}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-gray-950">
               {t("edit_category")}
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Update the category name, ordering and menu image.
+              {t("legacy.update_the_category_name_ordering_and_menu_image_395ba939")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
-            aria-label="Close edit category modal"
+            aria-label={t("legacy.close_edit_category_modal_af7c30c7")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -216,14 +216,14 @@ export default function EditCategoryModal({
         <form onSubmit={handleUpdateCategory} className="overflow-y-auto p-5">
           <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
             <div className="space-y-4">
-              <Panel icon={Layers3} title="General">
+              <Panel icon={Layers3} title={t("settings_center.nav.general")}>
                 <div className="space-y-4">
                   <Field label={`${t("category_name")} (English)`}>
                     <input
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                       required
-                      placeholder="Category name"
+                      placeholder={t("category_name")}
                       className={inputClass}
                     />
                   </Field>
@@ -231,7 +231,7 @@ export default function EditCategoryModal({
                     <textarea
                       value={description}
                       onChange={(event) => setDescription(event.target.value)}
-                      placeholder="Short description for this category"
+                      placeholder={t("legacy.short_description_for_this_category_4a09a40b")}
                       rows={3}
                       className={textAreaClass}
                     />
@@ -239,22 +239,22 @@ export default function EditCategoryModal({
                 </div>
               </Panel>
 
-              <Panel icon={Languages} title="Translations">
+              <Panel icon={Languages} title={t("legacy.translations_8ad8302d")}>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Dari name">
+                  <Field label={t("legacy.dari_name_39072a2e")}>
                     <input
                       value={nameDari}
                       onChange={(event) => setNameDari(event.target.value)}
-                      placeholder="Category name in Dari"
+                      placeholder={t("legacy.category_name_in_dari_fbb87039")}
                       dir="rtl"
                       className={inputClass}
                     />
                   </Field>
-                  <Field label="Pashto name">
+                  <Field label={t("legacy.pashto_name_fcbb52c5")}>
                     <input
                       value={namePashto}
                       onChange={(event) => setNamePashto(event.target.value)}
-                      placeholder="Category name in Pashto"
+                      placeholder={t("legacy.category_name_in_pashto_91939887")}
                       dir="rtl"
                       className={inputClass}
                     />
@@ -264,13 +264,13 @@ export default function EditCategoryModal({
             </div>
 
             <div className="space-y-4">
-              <Panel icon={Hash} title="Display">
+              <Panel icon={Hash} title={t("legacy.display_574ff9b0")}>
                 <Field
-                  label="Display rank"
+                  label={t("legacy.display_rank_71adbeaf")}
                   hint={
                     takenRanks.length
                       ? `Taken ranks: ${[...takenRanks].sort((a, b) => a - b).join(", ")}`
-                      : "Optional order for menu category sorting."
+                      : t("legacy.optional_order_for_menu_category_sorting_81762fdd")
                   }
                 >
                   <input
@@ -278,7 +278,7 @@ export default function EditCategoryModal({
                     min="1"
                     value={rank}
                     onChange={handleRankChange}
-                    placeholder="e.g. 1"
+                    placeholder={t("legacy.e_g_1_5f1bad64")}
                     className={`${inputClass} ${
                       rankError
                         ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/10"
@@ -293,22 +293,22 @@ export default function EditCategoryModal({
                 )}
               </Panel>
 
-              <Panel icon={ImagePlus} title="Image">
+              <Panel icon={ImagePlus} title={t("legacy.image_50e19fda")}>
                 <div className="overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50">
                   {preview ? (
                     <img
                       src={preview}
-                      alt="Category preview"
+                      alt={t("legacy.category_preview_2508e7a7")}
                       className="aspect-square w-full object-cover"
                     />
                   ) : (
                     <label className="flex aspect-square cursor-pointer flex-col items-center justify-center px-4 text-center transition hover:bg-white">
                       <Upload className="h-8 w-8 text-gray-400" />
                       <span className="mt-3 text-sm font-semibold text-gray-700">
-                        Upload image
+                        {t("legacy.upload_image_f35dec5f")}
                       </span>
                       <span className="mt-1 text-xs text-gray-500">
-                        Square images work best
+                        {t("legacy.square_images_work_best_48883c0f")}
                       </span>
                       <input
                         type="file"
@@ -322,7 +322,7 @@ export default function EditCategoryModal({
                 {preview && (
                   <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                     <Upload className="h-4 w-4" />
-                    Replace image
+                    {t("legacy.replace_image_bc0a102a")}
                     <input
                       type="file"
                       accept="image/*"
@@ -353,7 +353,7 @@ export default function EditCategoryModal({
               ) : (
                 <Layers3 className="h-4 w-4" />
               )}
-              {loading ? "Updating..." : t("update")}
+              {loading ? t("updating") : t("inventory_manager.common.update")}
             </button>
           </div>
         </form>

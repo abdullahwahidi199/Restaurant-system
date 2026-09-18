@@ -151,7 +151,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     const longitude = Number(lng);
 
     if (!isValidCoordinate(latitude, longitude)) {
-      toast.error("Could not detect location properly.");
+      toast.error(t("legacy.could_not_detect_location_properly_2cb0c8f6"));
       return false;
     }
 
@@ -175,7 +175,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
 
   const getAccurateCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error("Your browser does not support location detection.");
+      toast.error(t("legacy.your_browser_does_not_support_location_detection_78ba6e10"));
       return;
     }
 
@@ -192,7 +192,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
       setLocationLoading(false);
 
       if (!position) {
-        toast.error("Could not detect your current location.");
+        toast.error(t("legacy.could_not_detect_your_current_location_34ea4dff"));
         return;
       }
 
@@ -238,13 +238,13 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
       setLocationLoading(false);
       clearLocationWatch();
       if (err.code === 1) {
-        toast.error("Location permission was denied.");
+        toast.error(t("legacy.location_permission_was_denied_65d7e696"));
       } else if (err.code === 2) {
-        toast.error("Your current location is unavailable.");
+        toast.error(t("legacy.your_current_location_is_unavailable_dd17a3c3"));
       } else if (err.code === 3) {
-        toast.error("Location detection timed out.");
+        toast.error(t("legacy.location_detection_timed_out_b913bf7d"));
       } else {
-        toast.error("Could not detect your current location.");
+        toast.error(t("legacy.could_not_detect_your_current_location_34ea4dff"));
       }
     };
 
@@ -310,7 +310,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     if (coords) {
       applyLocation(coords);
     } else {
-      toast.error("Invalid location format");
+      toast.error(t("legacy.invalid_location_format_0fea4f35"));
     }
   };
 
@@ -319,7 +319,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
     if (loading) return;
     if (!validate()) return;
     if (!isValidCoordinate(location.lat, location.lng)) {
-      toast.error("Please set your delivery location.");
+      toast.error(t("legacy.please_set_your_delivery_location_9779bfe0"));
       return;
     }
     try {
@@ -330,7 +330,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
         longitude: location.lng,
       });
     } catch {
-      toast.error("Failed to place order");
+      toast.error(t("menu.messages.order_failed"));
     } finally {
       setLoading(false);
     }
@@ -398,7 +398,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
               type="button"
               onClick={onClose}
               className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
-              aria-label={t("common.close", "Close checkout")}
+            aria-label={t("inventory_manager.common.close")}
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
@@ -424,7 +424,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="John Doe"
+                  placeholder={t("legacy.john_doe_ae6e4d12")}
                   className={`${inputClasses("name")} ${isRTL ? "pr-10" : "pl-10"}`}
                   autoComplete="name"
                   aria-invalid={Boolean(errors.name && touched.name)}
@@ -459,7 +459,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="07XXXXXXXX"
+                placeholder={t("legacy.07xxxxxxxx_89a2e30b")}
                 className={`${inputClasses("phone")} ${isRTL ? "pr-10" : "pl-10"}`}
                 autoComplete="tel"
                 inputMode="tel"
@@ -495,7 +495,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={formData.email}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="you@example.com"
+                placeholder={t("customerAuth.signup.emailPlaceholder")}
                 className={`${inputClasses("email")} ${isRTL ? "pr-10" : "pl-10"}`}
                 autoComplete="email"
                 aria-invalid={Boolean(errors.email && touched.email)}
@@ -529,7 +529,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
                 value={formData.address}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="Street, District, City"
+                placeholder={t("legacy.street_district_city_03447b04")}
                 className={`${inputClasses("address")} ${isRTL ? "pr-10" : "pl-10"}`}
                 autoComplete="street-address"
                 aria-invalid={Boolean(errors.address && touched.address)}
@@ -559,7 +559,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
               {location.lat && location.lng && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                   <CheckCircle2 className="w-3 h-3" />
-                  {t("location.set")}
+                  {t("checkout.location.set")}
                 </span>
               )}
             </div>
@@ -642,7 +642,7 @@ export default function CheckoutForm({ user, onSubmit, onClose }) {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{t("order.placeing")}</span>
+                <span>{t("checkout.order.placing")}</span>
               </>
             ) : (
               <>

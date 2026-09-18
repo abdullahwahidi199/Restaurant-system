@@ -1,6 +1,7 @@
 import React from "react";
 import { BadgeCheck, CreditCard, FileDown, Printer } from "lucide-react";
 import { formatMethod, money } from "../../shared/erp/formatters";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function PurchasePaymentHistory({
   invoice,
@@ -8,17 +9,18 @@ export default function PurchasePaymentHistory({
   onPrintVoucher,
   onDownloadVoucher,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const payments = invoice.payments || [];
   if (!payments.length) {
     return (
       <div className="space-y-4">
         <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">
-          No supplier payments recorded for this invoice.
+          {autoT("legacy.no_supplier_payments_recorded_for_this_invoice_1f610ceb")}
         </p>
         {invoice.supplier && Number(invoice.remaining_balance) > 0 && (
           <button type="button" onClick={() => onPayment(invoice)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
             <CreditCard className="h-4 w-4" />
-            Record Payment
+            {autoT("legacy.record_payment_6577ced3")}
           </button>
         )}
       </div>
@@ -45,11 +47,11 @@ export default function PurchasePaymentHistory({
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => onPrintVoucher(payment)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50">
                 <Printer className="h-3.5 w-3.5" />
-                Print Voucher
+                {autoT("legacy.print_voucher_e313002f")}
               </button>
               <button type="button" onClick={() => onDownloadVoucher(payment)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50">
                 <FileDown className="h-3.5 w-3.5" />
-                PDF
+                {autoT("legacy.pdf_d613d88c")}
               </button>
             </div>
           </div>

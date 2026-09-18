@@ -31,14 +31,16 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "../Admin/MenuManagement/menuOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 /* ═══════════════════════════════════════════
    LANGUAGE CONFIG
 ═══════════════════════════════════════════ */
 const LANGUAGES = [
-  { code: "en", label: "English", nativeLabel: "English", dir: "ltr" },
-  { code: "fa", label: "Dari", nativeLabel: "دری", dir: "rtl" },
-  { code: "ps", label: "Pashto", nativeLabel: "پښتو", dir: "rtl" },
+  { code: "en", label: i18n.t("inventory_manager.languages.english"), nativeLabel: "English", dir: "ltr" },
+  { code: "fa", label: i18n.t("inventory_manager.languages.dari"), nativeLabel: "دری", dir: "rtl" },
+  { code: "ps", label: i18n.t("inventory_manager.languages.pashto"), nativeLabel: "پښتو", dir: "rtl" },
 ];
 
 /* ═══════════════════════════════════════════
@@ -285,7 +287,7 @@ const normalizePublicCategories = (categoriesData) => {
     {
       id: "all",
       name: "All",
-      description: "Explore our complete curated collection",
+      description: i18n.t("legacy.explore_our_complete_curated_collection_09a5b02f"),
       menu_items: allItems,
       platters: allPlatters,
     },
@@ -294,6 +296,7 @@ const normalizePublicCategories = (categoriesData) => {
 };
 
 const LanguageSwitcher = ({ i18n }) => {
+                           const { t: autoT } = useAutoTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -329,7 +332,7 @@ const LanguageSwitcher = ({ i18n }) => {
               : "border-[var(--theme-secondary)]/15 text-gray-400 hover:text-[var(--theme-secondary)] hover:border-[var(--theme-secondary)]/30"
           }
         `}
-        aria-label="Change language"
+        aria-label={autoT("legacy.change_language_789b14df")}
       >
         <Globe className="w-4 h-4" />
         <span className="text-[11px] sm:text-xs font-medium tracking-wider uppercase">
@@ -364,7 +367,7 @@ const LanguageSwitcher = ({ i18n }) => {
           {/* Dropdown header */}
           <div className="px-4 pt-3 pb-2">
             <p className="text-[10px] text-gray-500 tracking-[0.25em] uppercase font-light">
-              Language
+              {autoT("inventory_manager.languages.language")}
             </p>
           </div>
 
@@ -489,7 +492,7 @@ export default function PublicMenu() {
       setCategories(normalizePublicCategories(categoriesData));
     } catch (err) {
       console.error("Error fetching menu:", err);
-      setError("Unable to load menu. Please try again later.");
+      setError(t("legacy.unable_to_load_menu_please_try_again_later_87c2f7a6"));
     } finally {
       setLoading(false);
     }
@@ -606,7 +609,7 @@ export default function PublicMenu() {
           item.uses_daily_production &&
           i.quantity >= item.production_remaining
         ) {
-          toast.error("Not enough remaining quantity");
+          toast.error(t("legacy.not_enough_remaining_quantity_18670c33"));
           return i;
         }
 
@@ -756,7 +759,7 @@ export default function PublicMenu() {
             </div>
           </div>
           <ShimmerText className="text-lg sm:text-xl font-light tracking-[0.3em] uppercase">
-            Preparing Your Experience
+            {t("labels.preparing_experience")}
           </ShimmerText>
         </div>
       </div>
@@ -1266,7 +1269,7 @@ export default function PublicMenu() {
               className="menu-kicker mb-2"
               style={{ animation: "fadeIn 1.5s ease-out 0.5s both" }}
             >
-              Fine Dining
+              {t("legacy.fine_dining_a3fb7a78")}
             </p>
 
             <OrnamentalDivider />
@@ -1294,7 +1297,7 @@ export default function PublicMenu() {
                 {restaurantInfo?.logo ? (
                   <img
                     src={getLogoUrl(restaurantInfo.logo)}
-                    alt="logo"
+                    alt={t("legacy.logo_5807dd60")}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -1306,7 +1309,7 @@ export default function PublicMenu() {
                   {restaurantInfo?.name || slug?.replace(/-/g, " ")}
                 </span>
                 <span className="menu-compact-subtitle truncate">
-                  Fine Dining
+                  {t("legacy.fine_dining_a3fb7a78")}
                 </span>
               </div>
             </div>
@@ -1322,7 +1325,7 @@ export default function PublicMenu() {
               <input
                 type="text"
                 dir={isRTL ? "rtl" : "ltr"}
-                placeholder={t("labels.search_menu") || "Search our menu..."}
+                placeholder={t("labels.search_menu") || t("labels.search_menu")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`menu-search-input input-luxury w-full py-2.5 sm:py-3 bg-[var(--theme-text-primary)]/60 border border-[var(--theme-secondary)]/10 rounded-full focus:outline-none transition-all duration-300 ${
@@ -1565,7 +1568,7 @@ export default function PublicMenu() {
                         {/* Price on image */}
                         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
                           <span className="menu-price">
-                            <span className="menu-price-currency">AFN</span>
+                            <span className="menu-price-currency">{t("labels.afn")}</span>
                             {parseFloat(item.price).toFixed(2)}
                           </span>
                         </div>
@@ -1720,7 +1723,7 @@ export default function PublicMenu() {
 
                         <div className="mt-auto flex items-center justify-between pt-2 border-t border-[var(--theme-secondary)]/5">
                           <div className="menu-price">
-                            <span className="menu-price-currency">AFN</span>
+                            <span className="menu-price-currency">{t("labels.afn")}</span>
                             <span>
                               {parseFloat(item.price).toFixed(2)}
                             </span>
@@ -1737,7 +1740,7 @@ export default function PublicMenu() {
                             >
                               {item.final_availability
                                 ? t("labels.add_to_order")
-                                : "N/A"}
+                                : t("no_data")}
                               {item.final_availability && (
                                 <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               )}
@@ -1835,7 +1838,7 @@ export default function PublicMenu() {
               </span>
             </div>
             <span className="font-medium text-sm tracking-wide">
-              AFN {cartTotals.total.toFixed(2)}
+              {t("labels.afn")} {cartTotals.total.toFixed(2)}
             </span>
           </button>
         </div>
@@ -1871,7 +1874,7 @@ export default function PublicMenu() {
               </h2>
               <p className="text-[10px] text-gray-500 tracking-[0.2em] uppercase">
                 {cartTotals.itemCount}{" "}
-                {cartTotals.itemCount === 1 ? "item" : "items"}
+                {cartTotals.itemCount === 1 ? t("labels.item") : t("labels.items")}
               </p>
             </div>
           </div>
@@ -1944,7 +1947,7 @@ export default function PublicMenu() {
                       </button>
                     </div>
                     <p className="text-xs text-[var(--theme-secondary)]/70 font-light mt-0.5 mb-2">
-                      AFN {item.price.toFixed(2)}
+                      {t("labels.afn")} {item.price.toFixed(2)}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between">
@@ -1975,7 +1978,7 @@ export default function PublicMenu() {
                       </div>
 
                       <span className="text-white text-sm font-light">
-                        AFN {(item.price * item.quantity).toFixed(2)}
+                        {t("labels.afn")} {(item.price * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -2003,7 +2006,7 @@ export default function PublicMenu() {
               </span>
               <div className="text-right">
                 <span className="text-[var(--theme-secondary)] text-xs tracking-wider mr-1">
-                  AFN
+                  {t("labels.afn")}
                 </span>
                 <span className="text-white text-2xl font-light">
                   {cartTotals.total.toFixed(2)}

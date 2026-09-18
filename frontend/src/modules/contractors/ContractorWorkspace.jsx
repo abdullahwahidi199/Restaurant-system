@@ -21,12 +21,14 @@ import ContractorsDashboard from "./pages/ContractorsDashboard";
 import ContractorsList from "./pages/ContractorsList";
 import CreateContractorInvoice from "./pages/CreateContractorInvoice";
 import ServiceContracts from "./pages/ServiceContracts";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ContractorWorkspace({
   initialView = "dashboard",
   openInvoiceId,
   openContractorId,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,7 +68,7 @@ export default function ContractorWorkspace({
 
   const content = () => {
     if (model.loading)
-      return <LoadingState label="Loading contractor workspace..." />;
+      return <LoadingState label={autoT("legacy.loading_contractor_workspace_edec0ddd")} />;
     if (model.activeTab === "create") {
       return (
         <CreateContractorInvoice
@@ -101,6 +103,7 @@ export default function ContractorWorkspace({
           contractors={model.contractors}
           onAdd={model.startAddContractor}
           onEdit={model.startEditContractor}
+          onDelete={model.removeContractor}
           onOpen={handleOpenContractor}
         />
       );
@@ -154,17 +157,17 @@ export default function ContractorWorkspace({
   return (
     <section className="space-y-5 px-4 pb-6 lg:px-5">
       <PageHeader
-        eyebrow="Contractor Management"
+        eyebrow={autoT("legacy.contractor_management_0367d787")}
         breadcrumb={
-          isFinance ? "Finance / Contractors" : "Admin / Finance / Contractors"
+          isFinance ? autoT("legacy.finance_contractors_b0b500e3") : autoT("legacy.admin_finance_contractors_b16a0329")
         }
         icon={Wrench}
         title={pageMeta.title}
         description={pageMeta.description}
         quickStats={[
-          { label: "Active", value: model.summary?.active_contractors || 0 },
+          { label: autoT("staff.status.active"), value: model.summary?.active_contractors || 0 },
           {
-            label: "Outstanding",
+            label: autoT("legacy.outstanding_f8ee57ec"),
             value: money(model.summary?.outstanding_balance),
           },
         ]}
@@ -173,14 +176,14 @@ export default function ContractorWorkspace({
         actions={
           <>
             <ActionButton icon={UserPlus} onClick={model.startAddContractor}>
-              Contractor
+              {autoT("legacy.contractor_76bb2328")}
             </ActionButton>
             <Link
               to={`${basePath}/contractors/invoices/new`}
               className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
             >
               <FilePlus2 className="h-4 w-4" />
-              Invoice
+              {autoT("inventory_manager.common.invoice")}
             </Link>
           </>
         }

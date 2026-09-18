@@ -62,6 +62,8 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "./menuOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || "";
 
@@ -95,7 +97,7 @@ function flattenCategory(category) {
 function getStatus(item) {
   if (item.final_availability) {
     return {
-      label: "Available",
+      label: i18n.t("available"),
       className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
       icon: BadgeCheck,
     };
@@ -103,7 +105,7 @@ function getStatus(item) {
 
   if (item.is_manually_available === false) {
     return {
-      label: "Hidden",
+      label: i18n.t("legacy.hidden_d4c2792a"),
       className: "bg-slate-100 text-slate-600 ring-slate-200",
       icon: Eye,
     };
@@ -114,7 +116,7 @@ function getStatus(item) {
     Number(item.production_remaining || 0) <= 0
   ) {
     return {
-      label: "Sold out",
+      label: i18n.t("legacy.sold_out_02ff6590"),
       className: "bg-rose-50 text-rose-700 ring-rose-200",
       icon: AlertTriangle,
     };
@@ -122,14 +124,14 @@ function getStatus(item) {
 
   if (item.is_available === false) {
     return {
-      label: "Out of stock",
+      label: i18n.t("legacy.out_of_stock_8b78c7ae"),
       className: "bg-rose-50 text-rose-700 ring-rose-200",
       icon: AlertTriangle,
     };
   }
 
   return {
-    label: "Unavailable",
+    label: i18n.t("menu.unavailable"),
     className: "bg-amber-50 text-amber-700 ring-amber-200",
     icon: AlertTriangle,
   };
@@ -307,6 +309,7 @@ function MenuSkeleton() {
 }
 
 function EmptyState({ canManage, onAddCategory, onAddItem, hasCategory }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <div className="flex min-h-[380px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
       <div className="max-w-sm">
@@ -314,21 +317,20 @@ function EmptyState({ canManage, onAddCategory, onAddItem, hasCategory }) {
           <PackageOpen className="h-7 w-7" />
         </div>
         <h3 className="mt-5 text-lg font-semibold text-gray-950">
-          No menu items yet
+          {autoT("legacy.no_menu_items_yet_2c9493f4")}
         </h3>
         <p className="mt-2 text-sm leading-6 text-gray-500">
-          Create a category and add the first dish so staff can browse a clean,
-          organized menu.
+          {autoT("legacy.create_a_category_and_add_the_first_dish_so_staff_can__d2e6ddb6")}
         </p>
         {canManage && (
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <SecondaryButton onClick={onAddCategory}>
               <Layers3 className="h-4 w-4" />
-              Add category
+              {autoT("legacy.add_category_d169b7f3")}
             </SecondaryButton>
             <PrimaryButton onClick={onAddItem} disabled={!hasCategory}>
               <Plus className="h-4 w-4" />
-              Add first item
+              {autoT("legacy.add_first_item_fe1b5250")}
             </PrimaryButton>
           </div>
         )}
@@ -344,12 +346,13 @@ function CategoryRail({
   canManage,
   onEdit,
 }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <aside className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
       <div className="mb-2 flex items-center justify-between px-1">
         <div>
-          <p className="text-sm font-semibold text-gray-950">Categories</p>
-          <p className="text-xs text-gray-500">Menu groups and sort order</p>
+          <p className="text-sm font-semibold text-gray-950">{autoT("legacy.categories_6ccb6007")}</p>
+          <p className="text-xs text-gray-500">{autoT("legacy.menu_groups_and_sort_order_4ebf4957")}</p>
         </div>
         <Badge className="bg-gray-50 text-gray-600 ring-gray-200">
           {categories.length}
@@ -377,7 +380,7 @@ function CategoryRail({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-xs font-semibold">
-              All categories
+              {autoT("legacy.all_categories_060be00f")}
             </span>
             <span
               className={`hidden text-xs ${
@@ -386,7 +389,7 @@ function CategoryRail({
                   : "text-gray-500"
               }`}
             >
-              Complete menu
+              {autoT("legacy.complete_menu_c78f38fa")}
             </span>
           </span>
         </button>
@@ -438,7 +441,7 @@ function CategoryRail({
                       isSelected ? "text-white/70" : "text-gray-500"
                     }`}
                   >
-                    {count} item{count === 1 ? "" : "s"}
+                    {count} {autoT("labels.item")}{count === 1 ? "" : "s"}
                     {category.rank !== null &&
                     category.rank !== undefined &&
                     category.rank !== ""
@@ -471,6 +474,7 @@ function CategoryRail({
 }
 
 function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveItem }) {
+  const { t: autoT } = useAutoTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -507,10 +511,10 @@ function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveIt
                 ) : (
                   <Eye className="h-4 w-4" />
                 )}
-                {canManage ? "Edit details" : "View details"}
+                {canManage ? autoT("legacy.edit_details_4173a96a") : autoT("legacy.view_details_badd3851")}
               </Link>
             ) : (
-              <div className="px-3 py-2 text-sm text-gray-400">View only</div>
+              <div className="px-3 py-2 text-sm text-gray-400">{autoT("legacy.view_only_5559dd04")}</div>
             )}
             <button
               type="button"
@@ -518,12 +522,12 @@ function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveIt
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
             >
               <Download className="h-4 w-4" />
-              Export row
+              {autoT("legacy.export_row_80fb7b19")}
             </button>
             {canManage && onMoveItem && (
               <label className="block border-t border-gray-100 px-3 py-2">
                 <span className="mb-1 block text-xs font-semibold text-gray-500">
-                  Move to
+                  {autoT("legacy.move_to_349f807a")}
                 </span>
                 <select
                   value={item.categoryId || ""}
@@ -580,6 +584,7 @@ function ItemCard({
   categories,
   onMoveItem,
 }) {
+  const { t: autoT } = useAutoTranslation();
   const status = getStatus(item);
   const detailPath = getDetailPath(item, detailBase);
 
@@ -645,7 +650,7 @@ function ItemCard({
           )}
           <div className="mt-1 flex min-w-0 items-center gap-2">
             <span className="shrink-0 text-sm font-semibold text-gray-950">
-              AFN {formatPrice(item.price)}
+              {autoT("labels.afn")} {formatPrice(item.price)}
             </span>
             <span
               className={`inline-flex h-2 w-2 shrink-0 rounded-full ${
@@ -654,7 +659,7 @@ function ItemCard({
               title={status.label}
             />
             <span className="truncate text-xs text-gray-500">
-              {item.itemType === "platter" ? "Platter" : item.categoryName}
+              {item.itemType === "platter" ? autoT("labels.platter") : item.categoryName}
             </span>
           </div>
         </div>
@@ -677,6 +682,7 @@ function ItemTable({
   selectedKeys,
   onToggleSelected,
 }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="hidden min-w-full lg:block">
@@ -685,16 +691,16 @@ function ItemTable({
             <tr>
               <th className="w-12 px-4 py-3" />
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                Item
+                {autoT("legacy.item_ecdda59a")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                Category
+                {autoT("menu_item_sales.category")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                Status
+                {autoT("table.status")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">
-                Price
+                {autoT("menuDetails.price")}
               </th>
               <th className="w-16 px-4 py-3" />
             </tr>
@@ -750,8 +756,8 @@ function ItemTable({
                         )}
                         <p className="text-xs text-gray-500">
                           {item.itemType === "platter"
-                            ? "Platter"
-                            : "Menu item"}
+                            ? autoT("labels.platter")
+                            : autoT("legacy.menu_item_f23d4cbe")}
                         </p>
                       </div>
                     </div>
@@ -765,7 +771,7 @@ function ItemTable({
                     </Badge>
                   </td>
                   <td className="px-4 py-4 text-sm font-semibold text-gray-950">
-                    AFN {formatPrice(item.price)}
+                    {autoT("labels.afn")} {formatPrice(item.price)}
                   </td>
                   <td className="px-4 py-4">
                     <ItemActionMenu
@@ -804,11 +810,12 @@ export default function MenuWorkspace({
   onRefresh,
   canManage = true,
   detailBase = "/admin/dashboard",
-  title = "Menu Management",
-  description = "Manage your restaurant menu, pricing, visibility and availability.",
+  title = i18n.t("menu_management"),
+  description = i18n.t("legacy.manage_your_restaurant_menu_pricing_visibility_and_ava_8d0f2eb3"),
   showPrintActions = true,
   isRTL = false,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showAddPlatter, setShowAddPlatter] = useState(false);
@@ -1129,7 +1136,7 @@ export default function MenuWorkspace({
           ["categoryItems", selectedCategoryId],
           previousCategoryItems,
         );
-        toast.error("Failed to save menu order");
+        toast.error(autoT("legacy.failed_to_save_menu_order_8569d6e8"));
       }
     },
     [
@@ -1196,7 +1203,7 @@ export default function MenuWorkspace({
         setCategories?.(previousCategories);
         queryClient.setQueryData(["categoryItems", sourceCategory.id], previousSourceCache);
         queryClient.setQueryData(["categoryItems", targetCategory.id], previousTargetCache);
-        toast.error("Failed to save menu order");
+        toast.error(autoT("legacy.failed_to_save_menu_order_8569d6e8"));
       }
     },
     [
@@ -1279,14 +1286,14 @@ export default function MenuWorkspace({
             <div className="flex flex-wrap items-center gap-2">
               <SecondaryButton onClick={onRefresh}>
                 <RefreshCw className="h-4 w-4" />
-                Refresh
+                {autoT("legacy.refresh_56e3badc")}
               </SecondaryButton>
               <SecondaryButton
                 onClick={() => exportCsv(visibleItems)}
                 disabled={!visibleItems.length}
               >
                 <Download className="h-4 w-4" />
-                Export
+                {autoT("legacy.export_f3e4fadb")}
               </SecondaryButton>
               {showPrintActions && (
                 <SecondaryButton
@@ -1302,7 +1309,7 @@ export default function MenuWorkspace({
                   ) : (
                     <Printer className="h-4 w-4" />
                   )}
-                  PDF
+                  {autoT("legacy.pdf_d613d88c")}
                 </SecondaryButton>
               )}
               {canManage && (
@@ -1311,7 +1318,7 @@ export default function MenuWorkspace({
                   disabled={!selectedManageCategoryId}
                 >
                   <Plus className="h-4 w-4" />
-                  New item
+                  {autoT("legacy.new_item_4a91d6da")}
                 </PrimaryButton>
               )}
             </div>
@@ -1325,37 +1332,37 @@ export default function MenuWorkspace({
             <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
               <StatCard
                 icon={Layers3}
-                label="Categories"
+                label={autoT("legacy.categories_6ccb6007")}
                 value={stats.categories}
                 tone="slate"
               />
               <StatCard
                 icon={Utensils}
-                label="Menu items"
+                label={autoT("legacy.menu_items_dd7b9faa")}
                 value={stats.total}
                 tone="cyan"
               />
               <StatCard
                 icon={BadgeCheck}
-                label="Active"
+                label={autoT("staff.status.active")}
                 value={stats.active}
                 tone="emerald"
               />
               <StatCard
                 icon={Archive}
-                label="Hidden"
+                label={autoT("legacy.hidden_d4c2792a")}
                 value={stats.hidden}
                 tone="amber"
               />
               <StatCard
                 icon={ClipboardList}
-                label="Platters"
+                label={autoT("legacy.platters_84cf7710")}
                 value={stats.platters}
                 tone="violet"
               />
               <StatCard
                 icon={Boxes}
-                label="Production"
+                label={autoT("landing.mockups.kitchen.stats.production")}
                 value={stats.production}
                 tone="rose"
               />
@@ -1368,7 +1375,7 @@ export default function MenuWorkspace({
                   <input
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Search dishes, platters, categories..."
+                    placeholder={autoT("legacy.search_dishes_platters_categories_88613ecd")}
                     className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-3 text-xs text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   />
                 </label>
@@ -1380,10 +1387,10 @@ export default function MenuWorkspace({
                     onChange={(event) => setStationFilter(event.target.value)}
                     className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
-                    <option value="all">All stations</option>
+                    <option value="all">{autoT("legacy.all_stations_19238dd3")}</option>
                     {stations.map((st) => (
                       <option key={st.id} value={st.id}>
-                        {st.name} {st.is_default ? "(Default)" : ""}
+                        {st.name} {st.is_default ? autoT("legacy.default_c32f3c82") : ""}
                       </option>
                     ))}
                   </select>
@@ -1398,11 +1405,11 @@ export default function MenuWorkspace({
                     }
                     className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
-                    <option value="all">All availability</option>
-                    <option value="available">Available</option>
-                    <option value="unavailable">Unavailable</option>
-                    <option value="production">Production items</option>
-                    <option value="platter">Platters</option>
+                    <option value="all">{autoT("legacy.all_availability_fafe3022")}</option>
+                    <option value="available">{autoT("available")}</option>
+                    <option value="unavailable">{autoT("menu.unavailable")}</option>
+                    <option value="production">{autoT("legacy.production_items_ed179751")}</option>
+                    <option value="platter">{autoT("legacy.platters_84cf7710")}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 </label>
@@ -1414,9 +1421,9 @@ export default function MenuWorkspace({
                     onChange={(event) => setStatusFilter(event.target.value)}
                     className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
-                    <option value="all">All visibility</option>
-                    <option value="visible">Visible</option>
-                    <option value="hidden">Hidden</option>
+                    <option value="all">{autoT("legacy.all_visibility_058d9fce")}</option>
+                    <option value="visible">{autoT("legacy.visible_1fe59390")}</option>
+                    <option value="hidden">{autoT("legacy.hidden_d4c2792a")}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 </label>
@@ -1428,12 +1435,12 @@ export default function MenuWorkspace({
                     onChange={(event) => setSortBy(event.target.value)}
                     className="h-9 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-9 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                   >
-                    <option value="menu_order">Menu order</option>
-                    <option value="name">Name A-Z</option>
-                    <option value="name_desc">Name Z-A</option>
-                    <option value="price_high">Price high-low</option>
-                    <option value="price_low">Price low-high</option>
-                    <option value="availability">Availability</option>
+                    <option value="menu_order">{autoT("legacy.menu_order_76a6fe43")}</option>
+                    <option value="name">{autoT("legacy.name_a_z_257c1c4b")}</option>
+                    <option value="name_desc">{autoT("legacy.name_z_a_daabfb6a")}</option>
+                    <option value="price_high">{autoT("legacy.price_high_low_b2b28e4a")}</option>
+                    <option value="price_low">{autoT("legacy.price_low_high_bb74a1c2")}</option>
+                    <option value="availability">{autoT("legacy.availability_681b5b5a")}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 </label>
@@ -1443,7 +1450,7 @@ export default function MenuWorkspace({
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
-                      aria-label="Grid view"
+                      aria-label={autoT("legacy.grid_view_d44ec861")}
                       className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition ${
                         viewMode === "grid"
                           ? "bg-white text-gray-950 shadow-sm"
@@ -1455,7 +1462,7 @@ export default function MenuWorkspace({
                     <button
                       type="button"
                       onClick={() => setViewMode("list")}
-                      aria-label="List view"
+                      aria-label={autoT("legacy.list_view_694bbd75")}
                       className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition ${
                         viewMode === "list"
                           ? "bg-white text-gray-950 shadow-sm"
@@ -1470,13 +1477,13 @@ export default function MenuWorkspace({
                     <select
                       value={printMode}
                       onChange={(event) => setPrintMode(event.target.value)}
-                      aria-label="PDF export mode"
+                      aria-label={autoT("legacy.pdf_export_mode_991d8583")}
                     className="h-9 min-w-0 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs text-gray-700 outline-none transition focus:border-gray-950 focus:bg-white focus:ring-2 focus:ring-gray-950/10"
                     >
-                      <option value="all">PDF: all</option>
-                      <option value="available">PDF: available</option>
-                      <option value="unavailable">PDF: unavailable</option>
-                      <option value="category">PDF: category</option>
+                      <option value="all">{autoT("legacy.pdf_all_cef3595f")}</option>
+                      <option value="available">{autoT("legacy.pdf_available_0ac1592e")}</option>
+                      <option value="unavailable">{autoT("legacy.pdf_unavailable_284340d3")}</option>
+                      <option value="category">{autoT("legacy.pdf_category_5ca79ba9")}</option>
                     </select>
                   )}
                 </div>
@@ -1485,8 +1492,8 @@ export default function MenuWorkspace({
               {filtersActive && (
                 <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
                   <p className="text-sm text-gray-500">
-                    Showing {visibleItems.length} of {scopedItems.length}{" "}
-                    records
+                    {autoT("legacy.showing_163d8174")} {visibleItems.length} {autoT("legacy.of_de04fa0e")} {scopedItems.length}{" "}
+                    {autoT("legacy.records_86761b63")}
                   </p>
                   <button
                     type="button"
@@ -1494,7 +1501,7 @@ export default function MenuWorkspace({
                     className="inline-flex items-center gap-1 text-sm font-semibold text-gray-700 transition hover:text-gray-950"
                   >
                     <X className="h-4 w-4" />
-                    Clear filters
+                    {autoT("legacy.clear_filters_41222671")}
                   </button>
                 </div>
               )}
@@ -1514,11 +1521,11 @@ export default function MenuWorkspace({
                   <div>
                     <h2 className="text-base font-semibold text-gray-950">
                       {String(selectedCategoryId) === "all"
-                        ? "All menu records"
-                        : selectedCategory?.name || "Menu items"}
+                        ? autoT("legacy.all_menu_records_e986ecb5")
+                        : selectedCategory?.name || autoT("legacy.menu_items_dd7b9faa")}
                     </h2>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      {visibleItems.length} visible after filters
+                      {visibleItems.length} {autoT("legacy.visible_after_filters_9017a05f")}
                     </p>
                   </div>
 
@@ -1526,7 +1533,7 @@ export default function MenuWorkspace({
                     <div className="flex flex-wrap items-center gap-2">
                       <SecondaryButton onClick={() => setShowAddCategory(true)}>
                         <Layers3 className="h-4 w-4" />
-                        Category
+                        {autoT("menu_item_sales.category")}
                       </SecondaryButton>
                       <SecondaryButton
                         onClick={() => setShowDeleteCategory(true)}
@@ -1537,14 +1544,14 @@ export default function MenuWorkspace({
                         className="text-rose-700 hover:text-rose-800"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete category
+                        {autoT("legacy.delete_category_a82b0f89")}
                       </SecondaryButton>
                       <SecondaryButton
                         onClick={() => setShowAddPlatter(true)}
                         disabled={!selectedManageCategoryId}
                       >
                         <Layers3 className="h-4 w-4" />
-                        Platter
+                        {autoT("labels.platter")}
                       </SecondaryButton>
                     </div>
                   )}
@@ -1561,7 +1568,7 @@ export default function MenuWorkspace({
                   </div>
                 ) : isError ? (
                   <div className="rounded-lg border border-rose-200 bg-rose-50 p-6 text-sm font-medium text-rose-700">
-                    Failed to load category items.
+                    {autoT("failed_load_items")}
                   </div>
                 ) : visibleItems.length ? (
                   viewMode === "grid" ? (
@@ -1639,7 +1646,7 @@ export default function MenuWorkspace({
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-semibold text-gray-950">
-                {selectedItems.length} selected
+                {selectedItems.length} {autoT("legacy.selected_835f3b50")}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <SecondaryButton
@@ -1647,13 +1654,13 @@ export default function MenuWorkspace({
                   onClick={() => exportCsv(selectedItems)}
                 >
                   <Download className="h-4 w-4" />
-                  Export selected
+                  {autoT("legacy.export_selected_7a6e835d")}
                 </SecondaryButton>
                 <SecondaryButton
                   className="h-10"
                   onClick={() => setSelectedKeys([])}
                 >
-                  Clear
+                  {autoT("legacy.clear_719ea396")}
                 </SecondaryButton>
               </div>
             </div>
@@ -1696,7 +1703,7 @@ export default function MenuWorkspace({
         <CategoryDeleteModal
           categoryId={selectedCategory.id}
           title={`Delete ${selectedCategory.name}?`}
-          message="This removes the category and the menu records attached to it. This action cannot be undone."
+          message={autoT("legacy.this_removes_the_category_and_the_menu_records_attache_a77a0dc4")}
           onClose={() => setShowDeleteCategory(false)}
           onDelete={handleCategoryDeleted}
         />

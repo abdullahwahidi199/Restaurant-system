@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import instance from "../../../api/axiosInstance";
 import ReservationUpdateForm from "../../Cashier/components/ReservationUpdateForms";
 import ReservationCancellationToast from "../../Cashier/components/ReservationCancellationToast";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ManagerReservationsTable({
   reservations,
@@ -12,6 +13,7 @@ export default function ManagerReservationsTable({
   onReservationSaved,
   showLocalFilters = true,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [viewReservation, setViewReservation] = useState(null);
   const [editReservation, setEditReservation] = useState(null);
   const [searchName, setSearchName] = useState("");
@@ -111,10 +113,10 @@ export default function ManagerReservationsTable({
           </svg>
         </div>
         <p className="text-gray-500 text-lg font-medium">
-          No reservations found
+          {autoT("legacy.no_reservations_found_f321e81a")}
         </p>
         <p className="text-gray-400 text-sm mt-1">
-          Your reservations will appear here
+          {autoT("legacy.your_reservations_will_appear_here_340ce69f")}
         </p>
       </div>
     );
@@ -123,30 +125,30 @@ export default function ManagerReservationsTable({
   const markArrived = async (id) => {
     try {
       await instance.post(`/orders/cashier/reservations/${id}/arrive/`);
-      toast.success("Marked as arrived");
+      toast.success(autoT("legacy.marked_as_arrived_0a8ba09e"));
       onUpdate();
     } catch (err) {
-      toast.error("Failed to update reservation status");
+      toast.error(autoT("legacy.failed_to_update_reservation_status_ea97683a"));
     }
   };
 
   const markNOShow = async (id) => {
     try {
       await instance.post(`/orders/cashier/reservations/${id}/no_show/`);
-      toast.success("Marked as No Show");
+      toast.success(autoT("legacy.marked_as_no_show_b56ea0d0"));
       onUpdate();
     } catch (err) {
-      toast.error("Failed to mark as No Show");
+      toast.error(autoT("legacy.failed_to_mark_as_no_show_11badb27"));
     }
   };
 
   const markCancel = async (id) => {
     try {
       await instance.patch(`/orders/cancel-reservation/${id}/`);
-      toast.success("Reservation cancelled");
+      toast.success(autoT("legacy.reservation_cancelled_01ebfe58"));
       onUpdate();
     } catch (err) {
-      toast.error("Failed to cancel reservation");
+      toast.error(autoT("legacy.failed_to_cancel_reservation_95ed558b"));
     }
   };
 
@@ -165,7 +167,7 @@ export default function ManagerReservationsTable({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
-            placeholder="Search customer..."
+            placeholder={autoT("legacy.search_customer_2b6cb473")}
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             className="border rounded-lg px-3 py-2 text-sm"
@@ -176,11 +178,11 @@ export default function ManagerReservationsTable({
             onChange={(e) => setStatusFilter(e.target.value)}
             className="border rounded-lg px-3 py-2 text-sm"
           >
-            <option value="">All Status</option>
-            <option value="reserved">Reserved</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="no_show">No Show</option>
+            <option value="">{autoT("legacy.all_status_6b308de7")}</option>
+            <option value="reserved">{autoT("legacy.reserved_67a6ff10")}</option>
+            <option value="completed">{autoT("stats.completed")}</option>
+            <option value="cancelled">{autoT("status.cancelled")}</option>
+            <option value="no_show">{autoT("legacy.no_show_7ed172ed")}</option>
           </select>
           <input
             type="date"
@@ -204,41 +206,41 @@ export default function ManagerReservationsTable({
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  ID
+                  {autoT("legacy.id_89f89c02")}
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  Customer
+                  {autoT("table.customer")}
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  Table
+                  {autoT("legacy.table_0424f6e7")}
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  Date & Time
+                  {autoT("legacy.date_time_63ae7caf")}
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  Guests
+                  {autoT("legacy.guests_3c23a670")}
                 </div>
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                  Status
+                  {autoT("table.status")}
                 </div>
               </th>
               <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Actions
+                {autoT("table.actions")}
               </th>
             </tr>
           </thead>
@@ -323,7 +325,7 @@ export default function ManagerReservationsTable({
                       <span className="font-semibold text-gray-700">
                         {reservation.guests}
                       </span>
-                      <span className="text-xs text-gray-400">guests</span>
+                      <span className="text-xs text-gray-400">{autoT("legacy.guests_f8122851")}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5">
@@ -354,7 +356,7 @@ export default function ManagerReservationsTable({
         : "bg-blue-100 text-blue-700 hover:bg-blue-200"
     }`}
                       >
-                        ✏️ Edit
+                        {autoT("legacy.edit_46d11d96")}
                       </button>
                       {reservation.status === "reserved" && (
                         <>
@@ -362,7 +364,7 @@ export default function ManagerReservationsTable({
                             onClick={() => markArrived(reservation.id)}
                             className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
                           >
-                            Arrived
+                            {autoT("legacy.arrived_a22d66c8")}
                           </button>
 
                           {canMarkNoShow ? (
@@ -370,7 +372,7 @@ export default function ManagerReservationsTable({
                               onClick={() => markNOShow(reservation.id)}
                               className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
                             >
-                              No Show
+                              {autoT("legacy.no_show_7ed172ed")}
                             </button>
                           ) : (
                             <button
@@ -378,9 +380,9 @@ export default function ManagerReservationsTable({
                                 setReservationToCancel(reservation)
                               }
                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
-                              title="Cancel reservation"
+                              title={autoT("legacy.cancel_reservation_bb3c1d62")}
                             >
-                              Cancel
+                              {autoT("staff.cancel")}
                             </button>
                           )}
                         </>
@@ -402,11 +404,11 @@ export default function ManagerReservationsTable({
                       <button
                         onClick={() => setViewReservation(reservation)}
                         className="group/btn relative p-2.5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 ml-2"
-                        title="View Details"
+                        title={autoT("legacy.view_details_907b3bee")}
                       >
                         <Eye className="w-4.5 h-4.5 text-gray-500 group-hover/btn:text-blue-600 transition-colors" />
                         <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                          View Details
+                          {autoT("legacy.view_details_907b3bee")}
                         </span>
                       </button>
                     </div>
@@ -475,7 +477,7 @@ export default function ManagerReservationsTable({
                     </svg>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Table</p>
+                    <p className="text-xs text-gray-400">{autoT("legacy.table_0424f6e7")}</p>
                     <p className="font-semibold text-gray-800 text-sm">
                       {reservation.table_name}
                     </p>
@@ -487,7 +489,7 @@ export default function ManagerReservationsTable({
                     <Users className="w-4 h-4 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Guests</p>
+                    <p className="text-xs text-gray-400">{autoT("legacy.guests_3c23a670")}</p>
                     <p className="font-semibold text-gray-800 text-sm">
                       {reservation.guests}
                     </p>
@@ -499,7 +501,7 @@ export default function ManagerReservationsTable({
                     <Calendar className="w-4 h-4 text-slate-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Date & Time</p>
+                    <p className="text-xs text-gray-400">{autoT("legacy.date_time_63ae7caf")}</p>
                     <p className="font-semibold text-gray-800 text-sm">
                       {formatDate(reservation.reservation_date)} •{" "}
                       {formatTime(reservation.start_time)} -{" "}
@@ -521,7 +523,7 @@ export default function ManagerReservationsTable({
                       onClick={() => markArrived(reservation.id)}
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                     >
-                      Arrived
+                      {autoT("legacy.arrived_a22d66c8")}
                     </button>
 
                     {canMarkNoShow ? (
@@ -529,14 +531,14 @@ export default function ManagerReservationsTable({
                         onClick={() => markNOShow(reservation.id)}
                         className="flex-1 bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                       >
-                        No Show
+                        {autoT("legacy.no_show_7ed172ed")}
                       </button>
                     ) : (
                       <button
                         onClick={() => markCancel(reservation.id)}
                         className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
                       >
-                        Cancel
+                        {autoT("staff.cancel")}
                       </button>
                     )}
                   </div>
@@ -548,7 +550,7 @@ export default function ManagerReservationsTable({
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium text-sm shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
                   >
                     <Eye className="w-4 h-4" />
-                    View Details
+                    {autoT("legacy.view_details_907b3bee")}
                   </button>
                 )}
                 <button
@@ -563,13 +565,13 @@ export default function ManagerReservationsTable({
           : "bg-blue-50 text-blue-600 hover:bg-blue-100"
       }`}
                 >
-                  ✏️ Edit
+                  {autoT("legacy.edit_46d11d96")}
                 </button>
                 {reservation.status === "reserved" && (
                   <button
                     onClick={() => setViewReservation(reservation)}
                     className="p-2.5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 hover:bg-blue-50 transition-all duration-200"
-                    title="View Details"
+                    title={autoT("legacy.view_details_907b3bee")}
                   >
                     <Eye className="w-4.5 h-4.5 text-gray-500" />
                   </button>

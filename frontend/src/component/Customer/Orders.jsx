@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../api/auth";
 import ReviewItemModel from "./ReviewPage";
 import useOrdersSocket from "../../hooks/useOrdersSocket";
@@ -11,6 +11,11 @@ import {
   getPublicContextFromParams,
   getStoredPublicOrderingContext,
 } from "../../api/publicOrdering";
+import {
+  freshestOrderSnapshot,
+  reconcileOrderSnapshots,
+  upsertOrderSnapshot,
+} from "../../utils/orderSnapshot";
 
 export default function Orders() {
   const { t, i18n } = useTranslation();
@@ -32,6 +37,7 @@ export default function Orders() {
   const [showCancelToast, setShowCancelToast] = useState(false);
   const [orderToBeCancelled, setOrderToBeCanceled] = useState(null);
   const [now, setNow] = useState(Date.now());
+  const socketRevisionRef = useRef(0);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -50,38 +56,71 @@ export default function Orders() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  useOrdersSocket((data) => {
+  const fetchOrders = useCallback(async () => {
+    const revisionAtStart = socketRevisionRef.current;
+    try {
+      const res = await api.get(`/customer/orders`);
+      setOrders((current) =>
+        reconcileOrderSnapshots(current, res.data, {
+          preserveMissing: socketRevisionRef.current !== revisionAtStart,
+        }),
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleSocketMessage = (data) => {
+    if (!data) return;
+    socketRevisionRef.current++;
+
     setOrders((prev) => {
       if (data.action === "order_created") {
-        return [data.order, ...prev];
+        return upsertOrderSnapshot(prev, data.order);
       }
 
       if (data.action === "order_updated") {
-        return prev.map((o) => (o.id === data.order.id ? data.order : o));
+        return prev.map((order) =>
+          order.id === data.order?.id
+            ? freshestOrderSnapshot(order, data.order)
+            : order,
+        );
       }
 
       if (data.action === "order_deleted") {
         return prev.filter((o) => o.id !== data.order.id);
       }
 
+      if (data.type === "NEW_ORDER" && data.order) {
+        // The restaurant-wide socket also carries other customers' orders.
+        // Update only a row already owned by this customer and retain its
+        // customer-list item shape while applying the versioned status fields.
+        return prev.map((order) => {
+          if (order.id !== data.order.id) return order;
+          const freshest = freshestOrderSnapshot(order, data.order);
+          return freshest === order
+            ? order
+            : {
+                ...order,
+                status: data.order.status,
+                status_display: data.order.status_display,
+                updated_at: data.order.updated_at,
+                paid_at: data.order.paid_at,
+              };
+        });
+      }
+
       return prev;
     });
-  });
+  };
+
+  useOrdersSocket(handleSocketMessage, fetchOrders);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await api.get(`/customer/orders`);
-        setOrders(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const canCancel = (order) => {
     if (order.status !== "pending") return false;
@@ -159,7 +198,7 @@ export default function Orders() {
         {orders.length === 0 ? (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center shadow-lg">
             <PackageCheck className="mx-auto mb-4 text-gray-500" size={44} />
-            <p className="text-gray-400 text-lg">{t("orders.empty")}</p>
+            <p className="text-gray-400 text-lg">{t("orders.no_orders")}</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -182,7 +221,7 @@ export default function Orders() {
                       </span>
 
                       <span className="text-sm text-gray-400 flex items-center gap-1">
-                        from: {order.restaurant}
+                        {t("legacy.from_df3e524f")} {order.restaurant}
                       </span>
                     </div>
 
@@ -209,7 +248,7 @@ export default function Orders() {
                         </div>
 
                         <p className="font-bold text-red-400 whitespace-nowrap">
-                          {item.subtotal} AFN
+                          {item.subtotal} {t("labels.afn")}
                         </p>
                       </div>
                     ))}
@@ -237,7 +276,7 @@ export default function Orders() {
                     </div>
 
                     <div className="text-lg font-bold text-red-500">
-                      {t("orders.labels.total")}: {order.total} AFN
+                      {t("orders.labels.total")}: {order.total} {t("labels.afn")}
                     </div>
                   </div>
 

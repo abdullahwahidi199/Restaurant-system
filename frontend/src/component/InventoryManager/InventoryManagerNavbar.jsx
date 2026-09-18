@@ -12,15 +12,16 @@ import {
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import i18n from "../../i18n";
 
 function Tooltip({ label }) {
   return <span className="admin-nav-tooltip">{label}</span>;
 }
 
 const languageOptions = [
-  { code: "en", label: "EN", nameKey: "inventory_manager.languages.english" },
-  { code: "fa", label: "FA", nameKey: "inventory_manager.languages.dari" },
-  { code: "ps", label: "PS", nameKey: "inventory_manager.languages.pashto" },
+  { code: "en", label: i18n.t("legacy.en_734a78cd"), nameKey: "inventory_manager.languages.english" },
+  { code: "fa", label: i18n.t("legacy.fa_c919853c"), nameKey: "inventory_manager.languages.dari" },
+  { code: "ps", label: i18n.t("legacy.ps_02543e7a"), nameKey: "inventory_manager.languages.pashto" },
 ];
 
 function LanguageControl({ expanded, i18n, t }) {

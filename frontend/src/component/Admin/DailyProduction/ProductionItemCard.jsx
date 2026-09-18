@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ProductionItemCard({
   item,
@@ -6,6 +7,7 @@ export default function ProductionItemCard({
   onDecrement,
   onCustomAmount,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [showCustom, setShowCustom] = useState(false);
   const [customAmount, setCustomAmount] = useState(1);
   const [customAction, setCustomAction] = useState("increment");
@@ -50,7 +52,7 @@ export default function ProductionItemCard({
                 : "bg-gray-100 text-gray-600"
           }`}
         >
-          {isActive ? "Active" : hasProduction ? "Sold Out" : "Not Started"}
+          {isActive ? autoT("staff.status.active") : hasProduction ? autoT("legacy.sold_out_76fd5600") : autoT("legacy.not_started_8e9f1d6e")}
         </span>
       </div>
 
@@ -58,11 +60,11 @@ export default function ProductionItemCard({
       {hasProduction ? (
         <div className="space-y-2 mb-4">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Produced</span>
+            <span className="text-gray-500">{autoT("legacy.produced_5d717336")}</span>
             <span className="font-medium">{production.quantity_produced}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Remaining</span>
+            <span className="text-gray-500">{autoT("legacy.remaining_cc632b5e")}</span>
             <span
               className={`font-medium ${production.quantity_remaining === 0 ? "text-red-500" : ""}`}
             >
@@ -86,7 +88,7 @@ export default function ProductionItemCard({
         </div>
       ) : (
         <div className="text-center py-4 text-gray-400 mb-4">
-          No production yet
+          {autoT("legacy.no_production_yet_0d23d4d1")}
         </div>
       )}
 
@@ -96,7 +98,7 @@ export default function ProductionItemCard({
           onClick={onIncrement}
           className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
         >
-          + Cook
+          {autoT("legacy.cook_d8402b40")}
         </button>
 
         {hasProduction && (
@@ -104,7 +106,7 @@ export default function ProductionItemCard({
             onClick={onDecrement}
             className="flex-1 bg-red-100 text-red-600 py-2 rounded-lg hover:bg-red-200 transition-colors font-medium"
           >
-            - Remove
+            {autoT("legacy.remove_d74a7695")}
           </button>
         )}
       </div>
@@ -114,7 +116,7 @@ export default function ProductionItemCard({
         onClick={() => setShowCustom(!showCustom)}
         className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700"
       >
-        {showCustom ? "Hide custom amount" : "Custom amount..."}
+        {showCustom ? autoT("legacy.hide_custom_amount_89727160") : autoT("legacy.custom_amount_9251757a")}
       </button>
 
       {showCustom && (
@@ -125,8 +127,8 @@ export default function ProductionItemCard({
               onChange={(e) => setCustomAction(e.target.value)}
               className="flex-1 border rounded-lg px-2 py-1 text-sm"
             >
-              <option value="increment">Cook More</option>
-              <option value="decrement">Remove</option>
+              <option value="increment">{autoT("legacy.cook_more_3a116871")}</option>
+              <option value="decrement">{autoT("legacy.remove_e963907d")}</option>
             </select>
             <input
               type="number"
@@ -143,7 +145,7 @@ export default function ProductionItemCard({
             }}
             className="w-full bg-indigo-600 text-white py-1 rounded-lg text-sm hover:bg-indigo-700"
           >
-            Apply
+            {autoT("filters.apply")}
           </button>
         </div>
       )}

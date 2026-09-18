@@ -12,8 +12,11 @@ import {
   Download,
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import ErpStatusBadge from "../../../modules/shared/erp/components/StatusBadge";
 
 export default function OrdersReport({ startDate, endDate }) {
+                 const { t: autoT } = useAutoTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +34,7 @@ export default function OrdersReport({ startDate, endDate }) {
       console.log("Fetched Orders Report:", res.data.data);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch report data.");
+      setError(autoT("legacy.failed_to_fetch_report_data_7b534284"));
     } finally {
       setLoading(false);
     }
@@ -120,16 +123,16 @@ export default function OrdersReport({ startDate, endDate }) {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Orders Report</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{autoT("menu_item_sales.orders_report")}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Showing data from{" "}
-              <span className="font-medium">{data.range.start}</span> to{" "}
+              {autoT("legacy.showing_data_from_255a40bc")}{" "}
+              <span className="font-medium">{data.range.start}</span> {autoT("to")}{" "}
               <span className="font-medium">{data.range.end}</span>
             </p>
           </div>
           <div className="flex gap-3">
             <div className="px-3 py-2 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-              Total Orders: {data.totals.total_orders}
+              {autoT("legacy.total_orders_7c2384ae")} {data.totals.total_orders}
             </div>
 
             {/* ✅ PDF Button */}
@@ -138,7 +141,7 @@ export default function OrdersReport({ startDate, endDate }) {
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow"
             >
               <Download size={16} />
-              Generate PDF
+              {autoT("inventory_manager.reports.generate_pdf")}
             </button>
           </div>
         </div>
@@ -146,7 +149,7 @@ export default function OrdersReport({ startDate, endDate }) {
         {/* Menu Item Search */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Menu Item Sales Lookup
+            {autoT("legacy.menu_item_sales_lookup_2299fa52")}
           </h3>
 
           <div className="flex gap-2">
@@ -154,7 +157,7 @@ export default function OrdersReport({ startDate, endDate }) {
               type="text"
               value={itemSearch}
               onChange={(e) => setItemSearch(e.target.value)}
-              placeholder="Enter menu item name..."
+              placeholder={autoT("legacy.enter_menu_item_name_b5b27bc8")}
               className="flex-1 border rounded-lg px-3 py-2 text-sm"
             />
 
@@ -162,12 +165,12 @@ export default function OrdersReport({ startDate, endDate }) {
               onClick={handleItemSearch}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
             >
-              Search
+              {autoT("legacy.search_bce06414")}
             </button>
           </div>
 
           {searchLoading && (
-            <p className="text-xs text-gray-400 mt-2">Searching...</p>
+            <p className="text-xs text-gray-400 mt-2">{autoT("legacy.searching_ba2b5a5f")}</p>
           )}
 
           {itemResult && itemResult.length > 0 && (
@@ -185,7 +188,7 @@ export default function OrdersReport({ startDate, endDate }) {
 
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-700">
-                      {item.total_sold} sold
+                      {item.total_sold} {autoT("legacy.sold_147f6d85")}
                     </p>
                     <p className="text-xs text-gray-500">
                       {formatCurrency(item.total_revenue)}
@@ -197,36 +200,36 @@ export default function OrdersReport({ startDate, endDate }) {
           )}
 
           {itemResult && itemResult.length === 0 && (
-            <p className="text-xs text-gray-400 mt-2">No results found</p>
+            <p className="text-xs text-gray-400 mt-2">{autoT("legacy.no_results_found_658e79f9")}</p>
           )}
         </div>
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            title="Total Revenue"
+            title={autoT("overview.totalRevenue")}
             value={formatCurrency(data.totals.total_revenue)}
             icon={<DollarSign className="text-green-600" size={20} />}
             subtext={`Lost: ${formatCurrency(data.totals.lost_revenue)}`}
             color="bg-green-50"
           />
           <MetricCard
-            title="Total Orders"
+            title={autoT("stats.total_orders")}
             value={data.totals.total_orders}
             icon={<ShoppingBag className="text-blue-600" size={20} />}
             subtext={`Avg Value: ${formatCurrency(data.totals.average_order_value)}`}
             color="bg-blue-50"
           />
           <MetricCard
-            title="Completed"
+            title={autoT("stats.completed")}
             value={data.totals.completed_orders}
             icon={<CheckCircle className="text-emerald-600" size={20} />}
             color="bg-emerald-50"
           />
           <MetricCard
-            title="Cancelled"
+            title={autoT("status.cancelled")}
             value={data.totals.cancelled_orders}
             icon={<XCircle className="text-red-600" size={20} />}
-            subtext="Orders"
+            subtext={autoT("nav.orders")}
             color="bg-red-50"
           />
         </div>
@@ -234,19 +237,19 @@ export default function OrdersReport({ startDate, endDate }) {
         {/* NEW: Revenue Breakdown Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard
-            title="Food Revenue"
+            title={autoT("legacy.food_revenue_fb1c5455")}
             value={formatCurrency(data.totals.food_revenue)}
             icon={<Utensils className="text-orange-600" size={20} />}
             color="bg-orange-50"
           />
           <MetricCard
-            title="Delivery Revenue"
+            title={autoT("legacy.delivery_revenue_39546555")}
             value={formatCurrency(data.totals.delivery_revenue)}
             icon={<Truck className="text-blue-600" size={20} />}
             color="bg-blue-50"
           />
           <MetricCard
-            title="Reservation Revenue"
+            title={autoT("legacy.reservation_revenue_96c94fb3")}
             value={formatCurrency(data.totals.reservation_revenue)}
             icon={<Users className="text-purple-600" size={20} />}
             color="bg-purple-50"
@@ -258,7 +261,7 @@ export default function OrdersReport({ startDate, endDate }) {
           {/* By Order Type */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              By Order Type
+              {autoT("legacy.by_order_type_6fd39576")}
             </h3>
             <div className="space-y-4">
               {data.by_type.map((type, index) => (
@@ -267,7 +270,7 @@ export default function OrdersReport({ startDate, endDate }) {
                     <span className="capitalize font-medium text-gray-700">
                       {type.order_type}
                     </span>
-                    <span className="text-gray-500">{type.count} orders</span>
+                    <span className="text-gray-500">{type.count} {autoT("legacy.orders_96584038")}</span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2.5">
                     <div
@@ -288,7 +291,7 @@ export default function OrdersReport({ startDate, endDate }) {
           {/* By Status */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Order Status
+              {autoT("legacy.order_status_a15b0b10")}
             </h3>
             <div className="space-y-3">
               {data.by_status.map((status, index) => (
@@ -308,7 +311,7 @@ export default function OrdersReport({ startDate, endDate }) {
           {/* Top Items */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Top Selling Items
+              {autoT("menu_item_sales.top_selling_items")}
             </h3>
             <div className="space-y-4">
               {data.top_items.map((item, index) => (
@@ -322,7 +325,7 @@ export default function OrdersReport({ startDate, endDate }) {
                         {item.name}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {item.quantity_sold} sold
+                        {item.quantity_sold} {autoT("legacy.sold_147f6d85")}
                       </p>
                     </div>
                   </div>
@@ -342,17 +345,17 @@ export default function OrdersReport({ startDate, endDate }) {
             <div className="flex items-center gap-2 mb-4">
               <Activity size={20} className="text-gray-400" />
               <h3 className="text-lg font-semibold text-gray-800">
-                Daily Breakdown
+                {autoT("legacy.daily_breakdown_b37690b6")}
               </h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Date</th>
-                    <th className="px-4 py-3">Orders</th>
+                    <th className="px-4 py-3 rounded-l-lg">{autoT("table.date")}</th>
+                    <th className="px-4 py-3">{autoT("nav.orders")}</th>
                     <th className="px-4 py-3 rounded-r-lg text-right">
-                      Revenue
+                      {autoT("dashboard.best_selling.revenue")}
                     </th>
                   </tr>
                 </thead>
@@ -376,8 +379,8 @@ export default function OrdersReport({ startDate, endDate }) {
 
         {/* Average Prep Time (Footer Note) */}
         <div className="text-center text-xs text-gray-400 mt-8">
-          Average Preparation Time:{" "}
-          {formatNumber(data.totals.average_preparation_minutes)} minutes
+          {autoT("legacy.average_preparation_time_2daaeca2")}{" "}
+          {formatNumber(data.totals.average_preparation_minutes)} {autoT("legacy.minutes_be2e2bb6")}
         </div>
       </div>
     </div>
@@ -398,30 +401,5 @@ function MetricCard({ title, value, icon, subtext, color }) {
 }
 
 function StatusBadge({ count, status }) {
-  const getColors = (s) => {
-    switch (s) {
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "in_progress":
-        return "bg-blue-100 text-blue-800";
-      case "ready":
-        return "bg-purple-100 text-purple-800";
-      case "delivered":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  return (
-    <span
-      className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getColors(status)}`}
-    >
-      {count}
-    </span>
-  );
+  return <ErpStatusBadge status={status} count={count} showIcon={false} />;
 }

@@ -46,7 +46,7 @@ export default function StationManagement() {
       setStations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch stations:", err);
-      setError("Failed to load kitchen stations.");
+      setError(t("legacy.failed_to_load_kitchen_stations_8d8a1a41"));
     } finally {
       setLoading(false);
     }
@@ -114,11 +114,10 @@ export default function StationManagement() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-[var(--theme-text-primary)]">
-                Kitchen Station Management
+                {t("legacy.kitchen_station_management_363e5554")}
               </h1>
               <p className="text-sm text-[var(--theme-text-secondary)]">
-                Create and manage kitchen preparation stations (e.g., Juice Bar,
-                Main Kitchen, Grill).
+                {t("legacy.create_and_manage_kitchen_preparation_stations_e_g_jui_66f1c7ef")}
               </p>
             </div>
           </div>
@@ -131,7 +130,7 @@ export default function StationManagement() {
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] font-bold text-sm shadow-sm transition"
           >
             <Plus className="h-4 w-4" />
-            Add New Station
+            {t("legacy.add_new_station_4b527d7a")}
           </button>
         </div>
 
@@ -144,7 +143,7 @@ export default function StationManagement() {
             />
             <input
               type="text"
-              placeholder="Search stations..."
+              placeholder={t("legacy.search_stations_ebbb8b4b")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--theme-input-border)] bg-[var(--theme-input-bg)] text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-input-focus)] focus:ring-2 focus:ring-[var(--theme-input-ring)] outline-none transition"
@@ -153,16 +152,16 @@ export default function StationManagement() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <label className="text-xs font-semibold text-[var(--theme-text-secondary)] shrink-0">
-              Filter Branch:
+              {t("legacy.filter_branch_004d590f")}
             </label>
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
               className="w-full sm:w-48 rounded-lg border border-[var(--theme-input-border)] bg-[var(--theme-input-bg)] px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-input-focus)] focus:ring-2 focus:ring-[var(--theme-input-ring)] outline-none transition"
             >
-              <option value="all">All Stations</option>
+              <option value="all">{t("legacy.all_stations_a0c5c58f")}</option>
               <option value="restaurant_wide">
-                Restaurant Wide (All Branches)
+                {t("legacy.restaurant_wide_all_branches_e0008c68")}
               </option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -178,7 +177,7 @@ export default function StationManagement() {
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--theme-primary)]" />
             <p className="text-sm text-[var(--theme-text-muted)]">
-              Loading kitchen stations...
+              {t("legacy.loading_kitchen_stations_4af45596")}
             </p>
           </div>
         ) : error ? (
@@ -188,18 +187,17 @@ export default function StationManagement() {
               onClick={fetchStations}
               className="mt-3 px-4 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold"
             >
-              Retry
+              {t("menu_item_sales.retry")}
             </button>
           </div>
         ) : filteredStations.length === 0 ? (
           <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-12 text-center space-y-3">
             <Utensils className="h-10 w-10 mx-auto text-[var(--theme-text-muted)] opacity-50" />
             <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
-              No Kitchen Stations Found
+              {t("legacy.no_kitchen_stations_found_a1ab41f3")}
             </h3>
             <p className="text-sm text-[var(--theme-text-secondary)] max-w-sm mx-auto">
-              No stations match your current search or filter criteria. Add a
-              new station or reset filters.
+              {t("legacy.no_stations_match_your_current_search_or_filter_criter_185114d2")}
             </p>
           </div>
         ) : (
@@ -207,12 +205,12 @@ export default function StationManagement() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[var(--theme-table-header)] border-b border-[var(--theme-border)] text-xs uppercase font-semibold text-[var(--theme-text-secondary)] tracking-wider">
-                  <th className="py-3.5 px-4">Station Name</th>
-                  <th className="py-3.5 px-4">Dari / Pashto</th>
-                  <th className="py-3.5 px-4">Assigned Branch</th>
-                  <th className="py-3.5 px-4">Routing Status</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-4">{t("legacy.station_name_5b1bffe8")}</th>
+                  <th className="py-3.5 px-4">{t("legacy.dari_pashto_34998a20")}</th>
+                  <th className="py-3.5 px-4">{t("legacy.assigned_branch_fa5d2147")}</th>
+                  <th className="py-3.5 px-4">{t("legacy.routing_status_6d49509a")}</th>
+                  <th className="py-3.5 px-4">{t("table.status")}</th>
+                  <th className="py-3.5 px-4 text-right">{t("table.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--theme-border)]">
@@ -253,7 +251,7 @@ export default function StationManagement() {
                     <td className="py-4 px-4">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--theme-muted)] text-[var(--theme-text-secondary)]">
                         <Building2 className="h-3.5 w-3.5 text-[var(--theme-text-muted)]" />
-                        {st.branch_name || "All Branches"}
+                        {st.branch_name || t("legacy.all_branches_0bf51d9a")}
                       </span>
                     </td>
 
@@ -262,11 +260,11 @@ export default function StationManagement() {
                       {st.is_default ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[var(--theme-primary-soft)] text-[var(--theme-primary)]">
                           <CheckCircle2 className="h-3.5 w-3.5" />
-                          Default (Main Kitchen)
+                          {t("legacy.default_main_kitchen_bed6b239")}
                         </span>
                       ) : (
                         <span className="text-xs text-[var(--theme-text-muted)] font-medium">
-                          Custom Station
+                          {t("legacy.custom_station_371f48b7")}
                         </span>
                       )}
                     </td>
@@ -276,12 +274,12 @@ export default function StationManagement() {
                       {st.is_active ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                          Active
+                          {t("staff.status.active")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                          Inactive
+                          {t("staff.status.inactive")}
                         </span>
                       )}
                     </td>
@@ -295,7 +293,7 @@ export default function StationManagement() {
                             setIsFormOpen(true);
                           }}
                           className="p-1.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:bg-[var(--theme-hover)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-primary)] transition"
-                          title="Edit Station"
+                          title={t("legacy.edit_station_f89858eb")}
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -308,8 +306,8 @@ export default function StationManagement() {
                           className="p-1.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:bg-red-50 text-[var(--theme-text-secondary)] hover:text-red-600 transition disabled:opacity-30 disabled:cursor-not-allowed"
                           title={
                             st.is_default
-                              ? "Default station cannot be deleted"
-                              : "Delete Station"
+                              ? t("legacy.default_station_cannot_be_deleted_3646bb6e")
+                              : t("legacy.delete_station_a59e5f4f")
                           }
                         >
                           <Trash2 className="h-4 w-4" />

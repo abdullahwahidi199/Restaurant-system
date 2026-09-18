@@ -16,7 +16,7 @@ export default function BestSellingItems({ summary }) {
   return (
     <div dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-700">
+        <h3 className="text-base font-semibold theme-text-primary">
           {t("dashboard.best_selling.title")}
         </h3>
 
@@ -25,10 +25,10 @@ export default function BestSellingItems({ summary }) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 text-sm rounded-md ${
+              className={`theme-btn h-8 px-3 text-xs ${
                 activeTab === tab
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 hover:bg-gray-300"
+                  ? "theme-btn-primary"
+                  : "theme-btn-ghost"
               }`}
             >
               {t(`dashboard.best_selling.${tab}`)}
@@ -45,18 +45,18 @@ export default function BestSellingItems({ summary }) {
                 <p className="font-medium">{item.item_name}</p>
                 <p className="text-sm text-gray-500">
                   {t("dashboard.best_selling.sold")}: {item.total_sales} |{" "}
-                  {t("dashboard.best_selling.revenue")}: Afs
+                  {t("dashboard.best_selling.revenue")}{t("legacy.afs_9eff30c8")}
                   {Number(item.total_revenue || 0).toFixed(2)}
                 </p>
               </div>
               <span className="font-semibold">
-                Afs{Number(item.unit_price || 0).toFixed(2)}
+                {t("legacy.afs_2050680c")}{Number(item.unit_price || 0).toFixed(2)}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-center text-gray-500">
+        <p className="rounded-lg bg-[var(--theme-muted)] px-4 py-6 text-center text-[13px] theme-text-muted">
           {t("dashboard.best_selling.no_data")}
         </p>
       )}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
+                 const { t: autoT } = useAutoTranslation();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -96,13 +98,13 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
     <div className="fixed inset-0 overflow-auto bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
         <h2 className="text-xl font-semibold mb-4">
-          {editData ? "Edit Restaurant" : "Add New Restaurant"}
+          {editData ? autoT("legacy.edit_restaurant_808eed25") : autoT("legacy.add_new_restaurant_210585c2")}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Name
+              {autoT("attendance.table.name")}
             </label>
             <input
               type="text"
@@ -116,7 +118,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Email
+              {autoT("staff.table.email")}
             </label>
             <input
               type="email"
@@ -130,7 +132,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Phone
+              {autoT("modal.phone")}
             </label>
             <input
               type="text"
@@ -143,7 +145,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Address
+              {autoT("modal.address")}
             </label>
             <textarea
               name="address"
@@ -155,7 +157,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Logo
+              {autoT("logo")}
             </label>
             <input
               type="file"
@@ -174,16 +176,16 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
               className="h-4 w-4 text-blue-600 border-gray-300 rounded"
             />
             <label className="ml-2 block text-sm text-gray-900">
-              Is Active
+              {autoT("legacy.is_active_f913cedd")}
             </label>
           </div>
           <div className="border p-3 rounded bg-gray-50 mb-4">
-            <h3 className="text-sm font-semibold mb-2">Restaurant Admin</h3>
+            <h3 className="text-sm font-semibold mb-2">{autoT("legacy.restaurant_admin_31a78e8a")}</h3>
 
             <input
               type="text"
               name="admin_name"
-              placeholder="Admin Name"
+              placeholder={autoT("legacy.admin_name_0ec96e88")}
               value={formData.admin_name}
               onChange={handleChange}
               className="w-full border p-2 rounded mb-2"
@@ -192,7 +194,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
             <input
               type="email"
               name="admin_email"
-              placeholder="Admin Email"
+              placeholder={autoT("legacy.admin_email_3a75fe24")}
               value={formData.admin_email}
               onChange={handleChange}
               className="w-full border p-2 rounded mb-2"
@@ -201,7 +203,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
             <input
               type="text"
               name="admin_phone"
-              placeholder="Admin Phone"
+              placeholder={autoT("legacy.admin_phone_3f300caa")}
               value={formData.admin_phone}
               onChange={handleChange}
               className="w-full border p-2 rounded mb-2"
@@ -210,7 +212,7 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
             <input
               type="password"
               name="admin_password"
-              placeholder="Password (optional)"
+              placeholder={autoT("legacy.password_optional_408255ed")}
               value={formData.admin_password}
               onChange={handleChange}
               className="w-full border p-2 rounded"
@@ -222,13 +224,13 @@ export default function RestaurantModal({ isOpen, onClose, onSave, editData }) {
               onClick={onClose}
               className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
-              Cancel
+              {autoT("staff.cancel")}
             </button>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              {editData ? "Update" : "Create"}
+              {editData ? autoT("inventory_manager.common.update") : autoT("inventory_manager.common.create")}
             </button>
           </div>
         </form>

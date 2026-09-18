@@ -35,7 +35,7 @@ export default function MarketplaceFooter() {
             </p>
             <a href="mailto:contact@pakhlai.com" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-orange-300 transition hover:text-orange-200">
               <Mail className="h-4 w-4" aria-hidden="true" />
-              contact@pakhlai.com
+              {t("legacy.contact_pakhlai_com_18a17676")}
             </a>
           </div>
 

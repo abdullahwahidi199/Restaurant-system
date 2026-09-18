@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function CreateDiscountCard() {
+                 const { t: autoT } = useAutoTranslation();
   const initialFormState = {
     card_name: "",
     card_number: "",
@@ -227,11 +229,10 @@ export default function CreateDiscountCard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <CreditCard className="w-8 h-8 text-blue-600" />
-            Create Discount Card
+            {autoT("legacy.create_discount_card_51aab7fe")}
           </h1>
           <p className="mt-2 text-gray-600">
-            Create a new discount card for your customers. All fields marked
-            with * are required.
+            {autoT("legacy.create_a_new_discount_card_for_your_customers_all_fiel_6dbbfbb8")}
           </p>
         </div>
 
@@ -240,10 +241,9 @@ export default function CreateDiscountCard() {
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 animate-fade-in">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-green-900">Success!</h3>
+              <h3 className="font-semibold text-green-900">{autoT("legacy.success_7ce01f63")}</h3>
               <p className="text-green-800 mt-1">
-                Discount card has been created successfully. You can create
-                another one or close this form.
+                {autoT("legacy.discount_card_has_been_created_successfully_you_can_cr_de48f96f")}
               </p>
             </div>
           </div>
@@ -263,14 +263,14 @@ export default function CreateDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Hash className="w-5 h-5 text-gray-500" />
-                Card Information
+                {autoT("legacy.card_information_8b192f70")}
               </h2>
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Card Name <span className="text-red-500">*</span>
+                  {autoT("legacy.card_name_0f5975c9")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -278,7 +278,7 @@ export default function CreateDiscountCard() {
                   value={formData.card_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="e.g., Gold Member Discount"
+                  placeholder={autoT("legacy.e_g_gold_member_discount_a6591849")}
                   className={inputClass("card_name")}
                 />
                 {errors.card_name && touched.card_name && (
@@ -290,7 +290,7 @@ export default function CreateDiscountCard() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Card Number <span className="text-red-500">*</span>
+                  {autoT("legacy.card_number_b5e9a5e8")} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -299,14 +299,14 @@ export default function CreateDiscountCard() {
                     value={formData.card_number}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="DC-XXXXXXXX"
+                    placeholder={autoT("legacy.dc_xxxxxxxx_b5671b86")}
                     className={`${inputClass("card_number")} pr-10`}
                   />
                   <button
                     type="button"
                     onClick={generateCardNumber}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="Generate random card number"
+                    title={autoT("legacy.generate_random_card_number_4fc48226")}
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -317,13 +317,13 @@ export default function CreateDiscountCard() {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  Must be unique across all cards
+                  {autoT("legacy.must_be_unique_across_all_cards_899607c7")}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
+                  {autoT("table.status")}
                 </label>
                 <select
                   name="status"
@@ -331,9 +331,9 @@ export default function CreateDiscountCard() {
                   onChange={handleChange}
                   className={inputClass("status")}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="expired">Expired</option>
+                  <option value="active">{autoT("staff.status.active")}</option>
+                  <option value="inactive">{autoT("staff.status.inactive")}</option>
+                  <option value="expired">{autoT("legacy.expired_a689a999")}</option>
                 </select>
               </div>
             </div>
@@ -344,14 +344,14 @@ export default function CreateDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-500" />
-                Customer Information
+                {autoT("legacy.customer_information_c996cd10")}
               </h2>
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer Name <span className="text-red-500">*</span>
+                  {autoT("legacy.customer_name_75636316")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -359,7 +359,7 @@ export default function CreateDiscountCard() {
                   value={formData.customer_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Ali"
+                  placeholder={autoT("legacy.ali_93f0a0d8")}
                   className={inputClass("customer_name")}
                 />
                 {errors.customer_name && touched.customer_name && (
@@ -371,7 +371,7 @@ export default function CreateDiscountCard() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number
+                  {autoT("staff.form.phone")}
                 </label>
                 <input
                   type="tel"
@@ -396,14 +396,14 @@ export default function CreateDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Percent className="w-5 h-5 text-gray-500" />
-                Discount Details
+                {autoT("legacy.discount_details_405a24bb")}
               </h2>
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Discount Percentage <span className="text-red-500">*</span>
+                  {autoT("legacy.discount_percentage_449188f4")} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <input
@@ -429,7 +429,7 @@ export default function CreateDiscountCard() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Minimum Order Amount
+                  {autoT("settings_center.fields.minimum_order")}
                 </label>
                 <div className="relative">
                   <input
@@ -446,7 +446,7 @@ export default function CreateDiscountCard() {
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Leave empty or 0 for no minimum
+                  {autoT("legacy.leave_empty_or_0_for_no_minimum_e64299aa")}
                 </p>
               </div>
             </div>
@@ -457,14 +457,14 @@ export default function CreateDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-gray-500" />
-                Validity & Usage Limits
+                {autoT("legacy.validity_usage_limits_02b327c9")}
               </h2>
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valid From <span className="text-red-500">*</span>
+                  {autoT("legacy.valid_from_5366942a")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -483,7 +483,7 @@ export default function CreateDiscountCard() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valid Until <span className="text-red-500">*</span>
+                  {autoT("legacy.valid_until_a144230d")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -502,7 +502,7 @@ export default function CreateDiscountCard() {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Usage Limit
+                  {autoT("legacy.usage_limit_b456dc42")}
                 </label>
                 <input
                   type="number"
@@ -511,12 +511,11 @@ export default function CreateDiscountCard() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   min="1"
-                  placeholder="Unlimited"
+                  placeholder={autoT("legacy.unlimited_b8bef37b")}
                   className={inputClass("usage_limit")}
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Maximum number of times this card can be used. Leave empty for
-                  unlimited usage.
+                  {autoT("legacy.maximum_number_of_times_this_card_can_be_used_leave_em_6e671dfc")}
                 </p>
                 {errors.usage_limit && touched.usage_limit && (
                   <p className="mt-1 text-sm text-red-600">
@@ -527,7 +526,7 @@ export default function CreateDiscountCard() {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
+                  {autoT("inventory_manager.common.notes")}
                 </label>
                 <div className="relative">
                   <textarea
@@ -535,7 +534,7 @@ export default function CreateDiscountCard() {
                     value={formData.notes}
                     onChange={handleChange}
                     rows="3"
-                    placeholder="Additional notes about this discount card..."
+                    placeholder={autoT("legacy.additional_notes_about_this_discount_card_1de88868")}
                     className={`${inputClass("notes")} resize-none`}
                   />
                   <FileText className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
@@ -557,7 +556,7 @@ export default function CreateDiscountCard() {
               className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               disabled={loading}
             >
-              Reset Form
+              {autoT("legacy.reset_form_6c3b2103")}
             </button>
 
             <button
@@ -568,12 +567,12 @@ export default function CreateDiscountCard() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating...
+                  {autoT("legacy.creating_28ea7667")}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  Create Discount Card
+                  {autoT("legacy.create_discount_card_51aab7fe")}
                 </>
               )}
             </button>

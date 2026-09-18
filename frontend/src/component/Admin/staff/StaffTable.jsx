@@ -13,7 +13,7 @@ const actionButtonBase =
 
 const StaffTable = ({ staff, editStaff, deleteStaff }) => {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -40,7 +40,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
               {t("staff.table.shift")}
             </th>
             <th className="px-4 py-3 font-semibold">
-              Salary
+              {t("legacy.salary_595a803c")}
             </th>
             <th className="px-4 py-3 font-semibold">
               {t("staff.table.status")}
@@ -90,7 +90,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                     {currency.format(Number(s.payroll_base_salary || 0))}
                   </div>
                   <div className="text-xs capitalize text-slate-500">
-                    {s.salary_type || "monthly"}
+                    {s.salary_type || t("menu_item_sales.monthly")}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">
@@ -101,7 +101,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                         : "bg-green-100 text-green-700"
                     }`}
                   >
-                    {s.status === "Inactive" ? "Inactive" : "Active"}
+                    {s.status === "Inactive" ? t("staff.status.inactive") : t("staff.status.active")}
                   </span>
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? "text-left" : "text-right"}`}>
@@ -146,7 +146,7 @@ const StaffTable = ({ staff, editStaff, deleteStaff }) => {
                 colSpan={8}
                 className="px-6 py-8 text-center text-gray-500 dark:text-gray-400 italic"
               >
-                {t("staff.search.no_staff")}
+                {t("staff.no_staff")}
               </td>
             </tr>
           )}

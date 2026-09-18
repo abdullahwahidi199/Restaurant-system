@@ -1,5 +1,11 @@
 // src/pages/cashier/CashierManagement.jsx
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import DeliveryAssignmentModal from "./components/DeliveryAssignmentModal";
 import OrderDetailsModal from "./components/OrderDetailsModal";
 import BillPrintModal from "./components/BillPrintModal";
@@ -16,6 +22,16 @@ import toast from "react-hot-toast";
 import instance from "../../api/axiosInstance";
 import useOrdersSocket from "../../hooks/useOrdersSocket";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import {
+  freshestOrderSnapshot,
+  isBlockedByFinalizedSnapshot,
+  isFinalizedOrder,
+  orderSnapshotId,
+  reconcileOrderSnapshots,
+  shouldApplyOrderSnapshot,
+  upsertOrderSnapshot,
+} from "../../utils/orderSnapshot";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-200 text-yellow-800",
@@ -42,6 +58,7 @@ const defaultFilters = {
 };
 
 const CashierManagement = () => {
+                            const { t: autoT } = useAutoTranslation();
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDeliveryModalOpen, setDeliveryModalOpen] = useState(false);
@@ -51,6 +68,8 @@ const CashierManagement = () => {
   const [loading, setLoading] = useState(false);
   const [deliveryBoys, setDeliveryBoys] = useState([]);
   const [showTakeaway, setShowTakeAway] = useState(false);
+  const finalizedSnapshotsRef = useRef(new Map());
+  const socketRevisionRef = useRef(0);
   const navigate = useNavigate();
 
   const CASHIER_STATUSES = [
@@ -60,18 +79,50 @@ const CashierManagement = () => {
     "out_for_delivery",
     "ready",
   ];
-  const handleMarkCompleted = (id) => {
-    setOrders((prev) => prev.filter((order) => order.id !== id));
-  };
+  const rememberFinalizedSnapshot = useCallback((incoming) => {
+    if (!isFinalizedOrder(incoming)) return;
+
+    const id = orderSnapshotId(incoming);
+    const previous = finalizedSnapshotsRef.current.get(id);
+    finalizedSnapshotsRef.current.set(
+      id,
+      freshestOrderSnapshot(previous, incoming),
+    );
+  }, []);
+
+  const handleMarkCompleted = useCallback(
+    (finalizedOrder) => {
+      const orderId =
+        typeof finalizedOrder === "object" ? finalizedOrder?.id : finalizedOrder;
+      if (orderId === undefined || orderId === null) return;
+
+      // The payment response is authoritative and survives removal as a
+      // tombstone, so a delayed READY payload cannot re-add the order.
+      if (typeof finalizedOrder === "object") {
+        rememberFinalizedSnapshot(finalizedOrder);
+      }
+
+      setOrders((prev) => prev.filter((order) => order.id !== orderId));
+      setSelectedOrder((prev) => (prev?.id === orderId ? null : prev));
+    },
+    [rememberFinalizedSnapshot],
+  );
   const fetchOrders = useCallback(async () => {
+    const revisionAtStart = socketRevisionRef.current;
     try {
       setLoading(true);
       const data = await getOrders();
-      setOrders(Array.isArray(data) ? data : []);
+      setOrders((current) =>
+        reconcileOrderSnapshots(current, Array.isArray(data) ? data : [], {
+          finalizedSnapshots: finalizedSnapshotsRef.current,
+          excludeFinalized: true,
+          preserveMissing: socketRevisionRef.current !== revisionAtStart,
+        }),
+      );
       console.log(data);
     } catch (err) {
       console.error("fetchOrders error:", err);
-      toast.error("Failed to fetch orders");
+      toast.error(autoT("legacy.failed_to_fetch_orders_06e762f8"));
     } finally {
       setLoading(false);
     }
@@ -83,12 +134,27 @@ const CashierManagement = () => {
 
   const handleMessage = (msg) => {
     if (!msg || !msg.order) return;
+    socketRevisionRef.current++;
 
     const incoming = msg.order;
     const isCashierRelevant = CASHIER_STATUSES.includes(incoming.status);
 
+    if (isFinalizedOrder(incoming)) {
+      rememberFinalizedSnapshot(incoming);
+    }
+
     setOrders((prev) => {
       const idx = prev.findIndex((o) => o.id === incoming.id);
+      const current = idx >= 0 ? prev[idx] : null;
+      const finalizedSnapshot = finalizedSnapshotsRef.current.get(
+        orderSnapshotId(incoming),
+      );
+
+      if (isBlockedByFinalizedSnapshot(incoming, finalizedSnapshot)) {
+        return prev;
+      }
+
+      if (current && !shouldApplyOrderSnapshot(current, incoming)) return prev;
 
       if (!isCashierRelevant) {
         if (idx >= 0) {
@@ -97,17 +163,17 @@ const CashierManagement = () => {
         return prev;
       }
 
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = incoming;
-        return copy;
-      }
+      return upsertOrderSnapshot(prev, incoming);
+    });
 
-      return [incoming, ...prev];
+    setSelectedOrder((current) => {
+      if (current?.id !== incoming.id) return current;
+      if (!isCashierRelevant || isFinalizedOrder(incoming)) return null;
+      return freshestOrderSnapshot(current, incoming);
     });
   };
 
-  useOrdersSocket(handleMessage);
+  useOrdersSocket(handleMessage, fetchOrders);
 
   const handleOpenDetails = useCallback((order) => {
     setSelectedOrder(order);
@@ -141,7 +207,7 @@ const CashierManagement = () => {
         toast.success(`Assigned to ${deliveryPersonName}`);
       } catch (err) {
         console.error("assignDelivery error:", err);
-        toast.error("Failed to assign delivery person");
+        toast.error(autoT("legacy.failed_to_assign_delivery_person_51b7aebf"));
       }
     },
     [],
@@ -243,30 +309,30 @@ const CashierManagement = () => {
     getDeliveryBoys();
   }, []);
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="rms-standalone-workspace min-h-screen bg-[var(--theme-background)] p-4 sm:p-5 lg:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h1 className="text-2xl font-bold">Cashier — Orders</h1>
+          <h1 className="text-2xl font-bold">{autoT("legacy.cashier_orders_c2c457fc")}</h1>
 
           <div className="flex gap-2">
             <button
               onClick={() => navigate("/cashier/reservations/")}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition"
             >
-              Reservation
+              {autoT("legacy.reservation_18d5c8fe")}
             </button>
 
             <button
               onClick={() => navigate("/cashier/takeaway/")}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl shadow transition"
             >
-              + TakeAway
+              {autoT("legacy.takeaway_4028c33f")}
             </button>
             <button
               onClick={() => navigate("/cashier/delivery/")}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl shadow transition"
             >
-              + Delivery
+              {autoT("legacy.delivery_c6816a33")}
             </button>
           </div>
         </div>
@@ -275,7 +341,7 @@ const CashierManagement = () => {
 
         {loading ? (
           <div className="text-center text-gray-600 mt-10">
-            Loading orders...
+            {autoT("legacy.loading_orders_34d5edf3")}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -289,25 +355,25 @@ const CashierManagement = () => {
               />
             </div>
 
-            <aside className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-lg font-semibold mb-3">Orders Summary</h2>
+            <aside className="theme-card rounded-xl p-4 sm:p-5">
+              <h2 className="text-lg font-semibold mb-3">{autoT("legacy.orders_summary_d9601791")}</h2>
 
               <p className="text-gray-700 mb-2">
-                Total Orders:{" "}
+                {autoT("legacy.total_orders_7c2384ae")}{" "}
                 <span className="font-medium">{summary.totalOrders}</span>
               </p>
               <p className="text-gray-700 mb-2">
-                Total Revenue:{" "}
+                {autoT("legacy.total_revenue_dcab0b29")}{" "}
                 <span className="font-medium">
-                  {summary.totalRevenue.toFixed(2)} AFN
+                  {summary.totalRevenue.toFixed(2)} {autoT("labels.afn")}
                 </span>
               </p>
 
               <div className="mt-4">
-                <h3 className="font-semibold mb-2">By Status</h3>
+                <h3 className="font-semibold mb-2">{autoT("legacy.by_status_555c7698")}</h3>
                 <div className="flex flex-col gap-2">
                   {Object.entries(summary.statusCount).length === 0 ? (
-                    <div className="text-gray-500">No orders yet</div>
+                    <div className="text-gray-500">{autoT("legacy.no_orders_yet_9f61f6df")}</div>
                   ) : (
                     Object.entries(summary.statusCount).map(
                       ([status, count]) => (
@@ -335,14 +401,14 @@ const CashierManagement = () => {
                   onClick={fetchOrders}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition"
                 >
-                  Refresh Orders
+                  {autoT("legacy.refresh_orders_ac7223ef")}
                 </button>
 
                 <button
                   onClick={() => setFilters(defaultFilters)}
                   className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition"
                 >
-                  Reset Filters
+                  {autoT("legacy.reset_filters_5be69856")}
                 </button>
               </div>
             </aside>

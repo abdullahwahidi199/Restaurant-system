@@ -6,6 +6,7 @@ import {
   createContractorInvoice,
   createContractorPayment,
   createServiceContract,
+  deleteContractor,
   deleteContractorInvoiceAttachment,
   getContractorInvoice,
   getContractorInvoiceAttachmentBlob,
@@ -225,6 +226,25 @@ export default function useContractorWorkspace({
       await Promise.all([loadContractors(), loadSummary()]);
     } catch (err) {
       handleApiError(err, "Failed to save contractor.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeContractor = async (contractor) => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await deleteContractor(contractor.id);
+      setContractors((current) => current.filter((item) => item.id !== contractor.id));
+      if (selectedLedger?.contractor?.id === contractor.id) {
+        setSelectedLedger(null);
+      }
+      await Promise.all([loadSummary(), loadContracts(), loadInvoices(), loadPayments()]);
+      setNotice("Contractor deleted.");
+    } catch (err) {
+      handleApiError(err, "Failed to delete contractor.");
     } finally {
       setSaving(false);
     }
@@ -452,6 +472,7 @@ export default function useContractorWorkspace({
     startAddContractor,
     startEditContractor,
     submitContractor,
+    removeContractor,
     submitContract,
     updateInvoiceLine,
     submitInvoice,

@@ -1,10 +1,12 @@
 import React, { useRef, useContext } from "react";
 import { AuthContext } from "../../../api/authforRBC";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const ReservationPrintModal = ({ reservation, onClose }) => {
+  const { t: autoT, i18n } = useAutoTranslation();
   const printRef = useRef();
   const { restaurantDetails } = useContext(AuthContext);
-  const receiptFooter = "Powered by Pakhlai - pakhlai.com";
+  const receiptFooter = autoT("printing.powered_by");
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const logo = restaurantDetails?.logo
     ? `${BASE_URL}${restaurantDetails.logo}`
@@ -51,10 +53,10 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
     return `
       <!doctype html>
-      <html>
+      <html lang="${i18n.resolvedLanguage || i18n.language}" dir="${i18n.dir()}">
         <head>
           <meta charset="utf-8" />
-          <title>Reservation - ${escapeHtml(String(reservationNumber))}</title>
+          <title>${autoT("printing.reservation")} - ${escapeHtml(String(reservationNumber))}</title>
           <style>
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -85,7 +87,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             restaurantDetails?.logo
               ? `
             <div class="center mb-1">
-              <img src="${escapeHtml(logo)}" alt="Restaurant Logo" style="max-width:60px;height:auto;">
+              <img src="${escapeHtml(logo)}" alt="${escapeHtml(autoT("printing.restaurant_logo"))}" style="max-width:60px;height:auto;">
             </div>
           `
               : ""
@@ -105,50 +107,50 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             restaurantDetails?.phone || restaurantDetails?.address
               ? `
             <div class="center" style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px dashed var(--theme-border-strong);font-size:10px">
-              ${restaurantDetails?.phone ? `<p style="margin:0 0 1px"><strong>Phone:</strong> ${escapeHtml(restaurantDetails.phone)}</p>` : ""}
-              ${restaurantDetails?.address ? `<p style="margin:0"><strong>Address:</strong> ${escapeHtml(restaurantDetails.address)}</p>` : ""}
+              ${restaurantDetails?.phone ? `<p style="margin:0 0 1px"><strong>${autoT("printing.phone")}:</strong> ${escapeHtml(restaurantDetails.phone)}</p>` : ""}
+              ${restaurantDetails?.address ? `<p style="margin:0"><strong>${autoT("printing.address")}:</strong> ${escapeHtml(restaurantDetails.address)}</p>` : ""}
             </div>
           `
               : ""
           }
 
           <h2 class="center" style="margin:0 0 6px;font-size:14px;font-weight:bold;letter-spacing:1px">
-            RESERVATION RECEIPT
+            ${autoT("printing.reservation_receipt")}
           </h2>
 
           <p style="margin:0 0 2px;font-size:11px">
-            <strong>Reservation #</strong> ${escapeHtml(String(reservationNumber))}
+            <strong>${autoT("printing.reservation_number")}:</strong> ${escapeHtml(String(reservationNumber))}
           </p>
           <p style="margin:0 0 2px;font-size:11px">
-            <strong>Customer:</strong> ${escapeHtml(reservation.customer_name || "")}
+            <strong>${autoT("printing.customer")}:</strong> ${escapeHtml(reservation.customer_name || "")}
           </p>
           <p style="margin:0 0 2px;font-size:11px">
-            <strong>Phone:</strong> ${escapeHtml(reservation.phone || "")}
+            <strong>${autoT("printing.phone")}:</strong> ${escapeHtml(reservation.phone || "")}
           </p>
 
           <table style="margin:4px 0">
             <tr>
               <td style="padding:2px 8px 2px 0;width:50%">
-                <strong>Table:</strong> ${escapeHtml(reservation.table_name || "—")}
+                <strong>${autoT("printing.table")}:</strong> ${escapeHtml(reservation.table_name || "—")}
               </td>
               <td style="padding:2px 0;width:50%">
-                <strong>Guests:</strong> ${escapeHtml(String(reservation.guests || "—"))}
+                <strong>${autoT("printing.guests")}:</strong> ${escapeHtml(String(reservation.guests || "—"))}
               </td>
             </tr>
             <tr>
               <td style="padding:2px 8px 2px 0">
-                <strong>Date:</strong> ${escapeHtml(formatDate(reservation.start_time))}
+                <strong>${autoT("printing.date")}:</strong> ${escapeHtml(formatDate(reservation.start_time))}
               </td>
               <td style="padding:2px 0">
-                <strong>Time:</strong> ${escapeHtml(`${formatTime(reservation.start_time)} – ${formatTime(reservation.end_time)}`)}
+                <strong>${autoT("printing.time")}:</strong> ${escapeHtml(`${formatTime(reservation.start_time)} – ${formatTime(reservation.end_time)}`)}
               </td>
             </tr>
             <tr>
               <td style="padding:2px 8px 2px 0">
-                <strong>Type:</strong> ${escapeHtml(reservation.reservation_type || "—")}
+                <strong>${autoT("printing.type")}:</strong> ${escapeHtml(reservation.reservation_type || "—")}
               </td>
               <td style="padding:2px 0">
-                <strong>Duration:</strong> ${escapeHtml(`${reservation.duration_minutes || 0} min`)}
+                <strong>${autoT("printing.duration")}:</strong> ${escapeHtml(`${reservation.duration_minutes || 0} ${autoT("printing.minutes")}`)}
               </td>
             </tr>
           </table>
@@ -157,15 +159,15 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
           <table>
             <tr>
-              <td style="padding:2px 0;width:60%">Reservation Fee</td>
+              <td style="padding:2px 0;width:60%">${autoT("printing.reservation_fee")}</td>
               <td class="right" style="padding:2px 0;width:40%">${escapeHtml(String(reservation.amount || "0"))}</td>
             </tr>
             <tr>
-              <td style="padding:2px 0">Paid</td>
+              <td style="padding:2px 0">${autoT("printing.paid")}</td>
               <td class="right" style="padding:2px 0">${escapeHtml(String(reservation.paid_amount || "0"))}</td>
             </tr>
             <tr>
-              <td class="bold" style="padding:2px 0">Total</td>
+              <td class="bold" style="padding:2px 0">${autoT("printing.total")}</td>
               <td class="right bold" style="padding:2px 0">${escapeHtml(String(reservation.total_price || "0"))}</td>
             </tr>
           </table>
@@ -174,15 +176,15 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
           <table>
             <tr>
-              <td style="padding:2px 0;width:60%">Status</td>
+              <td style="padding:2px 0;width:60%">${autoT("printing.status")}</td>
               <td style="padding:2px 0;width:40%">${escapeHtml(reservation.status || "—")}</td>
             </tr>
             <tr>
-              <td style="padding:2px 0">Created By</td>
+              <td style="padding:2px 0">${autoT("printing.created_by")}</td>
               <td style="padding:2px 0">${escapeHtml(reservation.created_by_name || "—")}</td>
             </tr>
             <tr>
-              <td style="padding:2px 0">Created At</td>
+              <td style="padding:2px 0">${autoT("printing.created_at")}</td>
               <td style="padding:2px 0">${escapeHtml(formatDateTime(reservation.created_at))}</td>
             </tr>
           </table>
@@ -192,7 +194,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
               ? `
             <div class="dashed" style="margin:6px 0"></div>
             <div style="margin-top:4px">
-              <p style="margin:0 0 2px;font-weight:bold;font-size:11px">Notes:</p>
+              <p style="margin:0 0 2px;font-weight:bold;font-size:11px">${autoT("printing.notes")}:</p>
               <p style="margin:0;font-size:11px;white-space:pre-line">${escapeHtml(reservation.notes)}</p>
             </div>
           `
@@ -212,7 +214,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
     try {
       const printWindow = window.open("", "_blank", "width=600,height=700");
       if (!printWindow) {
-        alert("Pop-up blocked. Please allow pop-ups to print.");
+        alert(autoT("printing.popup_blocked"));
         return;
       }
 
@@ -226,7 +228,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
       }, 300);
     } catch (err) {
       console.error("Print error:", err);
-      alert("Could not open print window.");
+      alert(autoT("printing.print_window_error"));
     }
   };
 
@@ -240,7 +242,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
       <div className="bg-white w-11/12 md:w-2/3 lg:w-1/3 rounded-2xl shadow-lg p-4 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={autoT("menuDetails.close")}
           className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl"
         >
           ✕
@@ -251,7 +253,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             <div className="text-center mb-2">
               <img
                 src={logo}
-                alt="Restaurant Logo"
+                alt={autoT("legacy.restaurant_logo_aeb74aea")}
                 className="max-w-16 h-auto mx-auto"
               />
             </div>
@@ -267,40 +269,40 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             <div className="text-center mb-2 pb-2 border-b border-dashed border-gray-300">
               {restaurantDetails?.phone && (
                 <p className="text-[10px] text-gray-600 mb-0.5">
-                  <strong>Phone:</strong> {restaurantDetails.phone}
+                  <strong>{autoT("legacy.phone_daeea4d0")}</strong> {restaurantDetails.phone}
                 </p>
               )}
               {restaurantDetails?.address && (
                 <p className="text-[10px] text-gray-600">
-                  <strong>Address:</strong> {restaurantDetails.address}
+                  <strong>{autoT("legacy.address_303d9813")}</strong> {restaurantDetails.address}
                 </p>
               )}
             </div>
           )}
 
           <h2 className="text-base font-bold mb-1 text-center text-gray-800">
-            Reservation Receipt
+            {autoT("legacy.reservation_receipt_d3815df2")}
           </h2>
           <p className="text-[11px] text-gray-600 mb-0.5">
-            <strong>Reservation #</strong>{" "}
+            <strong>{autoT("legacy.reservation_c574ce11")}</strong>{" "}
             {reservation.reservation_number ?? reservation.id}
           </p>
           <p className="text-[11px] text-gray-600 mb-0.5">
-            <strong>Customer:</strong> {reservation.customer_name}
+            <strong>{autoT("legacy.customer_5e0d7363")}</strong> {reservation.customer_name}
           </p>
           <p className="text-[11px] text-gray-600 mb-0.5">
-            <strong>Phone:</strong> {reservation.phone}
+            <strong>{autoT("legacy.phone_daeea4d0")}</strong> {reservation.phone}
           </p>
 
           <div className="flex gap-4 my-1">
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Table:</strong> {reservation.table_name}
+                <strong>{autoT("legacy.table_692eeda0")}</strong> {reservation.table_name}
               </p>
             </div>
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Guests:</strong> {reservation.guests}
+                <strong>{autoT("legacy.guests_3c018d6d")}</strong> {reservation.guests}
               </p>
             </div>
           </div>
@@ -308,12 +310,12 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
           <div className="flex gap-4">
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Date:</strong> {formatDate(reservation.start_time)}
+                <strong>{autoT("legacy.date_81b7d2ea")}</strong> {formatDate(reservation.start_time)}
               </p>
             </div>
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Time:</strong>{" "}
+                <strong>{autoT("legacy.time_179578fe")}</strong>{" "}
                 {`${formatTime(reservation.start_time)} – ${formatTime(reservation.end_time)}`}
               </p>
             </div>
@@ -322,12 +324,12 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
           <div className="flex gap-4">
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Type:</strong> {reservation.reservation_type}
+                <strong>{autoT("legacy.type_ee3fb11d")}</strong> {reservation.reservation_type}
               </p>
             </div>
             <div className="flex-1">
               <p className="text-[11px] text-gray-600 mb-0.5">
-                <strong>Duration:</strong>{" "}
+                <strong>{autoT("legacy.duration_9693aeaa")}</strong>{" "}
                 {`${reservation.duration_minutes} min`}
               </p>
             </div>
@@ -337,15 +339,15 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
           <div className="space-y-0.5">
             <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Reservation Fee</span>
+              <span className="text-gray-600">{autoT("legacy.reservation_fee_9f754091")}</span>
               <span className="text-gray-800">{reservation.amount}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Paid</span>
+              <span className="text-gray-600">{autoT("legacy.paid_dc9d4584")}</span>
               <span className="text-gray-800">{reservation.paid_amount}</span>
             </div>
             <div className="flex justify-between text-[11px] font-bold">
-              <span className="text-gray-600">Total</span>
+              <span className="text-gray-600">{autoT("table.total")}</span>
               <span className="text-gray-800">{reservation.total_price}</span>
             </div>
           </div>
@@ -354,17 +356,17 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
 
           <div className="space-y-0.5">
             <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Status</span>
+              <span className="text-gray-600">{autoT("table.status")}</span>
               <span className="text-gray-800">{reservation.status}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Created By</span>
+              <span className="text-gray-600">{autoT("inventory_manager.common.created_by")}</span>
               <span className="text-gray-800">
                 {reservation.created_by_name}
               </span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Created At</span>
+              <span className="text-gray-600">{autoT("legacy.created_at_5db1542e")}</span>
               <span className="text-gray-800">
                 {formatDateTime(reservation.created_at)}
               </span>
@@ -376,7 +378,7 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
               <div className="border-t border-dashed border-gray-300 my-2"></div>
               <div className="py-1">
                 <span className="text-gray-600 text-[11px] font-medium">
-                  Notes:
+                  {autoT("legacy.notes_9c3befe7")}
                 </span>
                 <p className="text-[11px] text-gray-800 mt-1 whitespace-pre-line leading-relaxed">
                   {reservation.notes}
@@ -395,13 +397,13 @@ const ReservationPrintModal = ({ reservation, onClose }) => {
             onClick={onClose}
             className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
           >
-            Close
+            {autoT("menuDetails.close")}
           </button>
           <button
             onClick={handlePrint}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm"
           >
-            Print Receipt
+            {autoT("legacy.print_receipt_4e896ec2")}
           </button>
         </div>
       </div>

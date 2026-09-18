@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import ReservationsTable from "./ReservationsTable";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -15,6 +16,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function ReservationsMainPage() {
+                 const { t: autoT } = useAutoTranslation();
   const [reservations, setReservations] = useState([]);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -73,7 +75,7 @@ export default function ReservationsMainPage() {
           type="search"
           value={filters.search}
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="Search name, phone, table..."
+          placeholder={autoT("legacy.search_name_phone_table_7703d5f9")}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm md:col-span-2"
         />
         <select
@@ -81,12 +83,12 @@ export default function ReservationsMainPage() {
           onChange={(event) => updateFilter("status", event.target.value)}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm"
         >
-          <option value="">All status</option>
-          <option value="reserved">Reserved</option>
-          <option value="arrived">Arrived</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="no_show">No Show</option>
+          <option value="">{autoT("legacy.all_status_543fccc9")}</option>
+          <option value="reserved">{autoT("legacy.reserved_67a6ff10")}</option>
+          <option value="arrived">{autoT("legacy.arrived_a22d66c8")}</option>
+          <option value="completed">{autoT("stats.completed")}</option>
+          <option value="cancelled">{autoT("status.cancelled")}</option>
+          <option value="no_show">{autoT("legacy.no_show_7ed172ed")}</option>
         </select>
         <input
           type="date"
@@ -106,7 +108,7 @@ export default function ReservationsMainPage() {
             onClick={resetFilters}
             className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
-            Reset
+            {autoT("inventory_manager.common.reset")}
           </button>
         </div>
       </div>

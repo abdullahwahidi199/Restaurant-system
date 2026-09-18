@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function NotFound() {
+                 const { t: autoT } = useAutoTranslation();
   const location = useLocation();
   const path = location.pathname;
 
@@ -45,7 +47,7 @@ export default function NotFound() {
         to="/"
         className="mt-6 px-5 py-2 bg-black text-white rounded-xl hover:bg-gray-800"
       >
-        Go Home
+        {autoT("legacy.go_home_19445d72")}
       </Link>
     </div>
   );

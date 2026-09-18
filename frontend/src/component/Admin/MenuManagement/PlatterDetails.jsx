@@ -12,8 +12,10 @@ import {
   CheckCircle,
   Utensils,
 } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function PlatterDetails() {
+                 const { t: autoT } = useAutoTranslation();
   const { id } = useParams();
   const location = useLocation();
   const dashboardBase = location.pathname.startsWith("/operations-manager")
@@ -56,7 +58,7 @@ export default function PlatterDetails() {
       navigate(`${dashboardBase}/menu`, { replace: true });
     } catch (err) {
       console.error("Failed to delete platter:", err);
-      setError("Failed to delete platter.");
+      setError(autoT("legacy.failed_to_delete_platter_10ba4dfd"));
     } finally {
       setDeleting(false);
     }
@@ -112,7 +114,7 @@ export default function PlatterDetails() {
       fetchStations(currentStationId);
     } catch (error) {
       console.log(error);
-      setError("Failed to fetch platter details");
+      setError(autoT("legacy.failed_to_fetch_platter_details_5f6371fe"));
     } finally {
       setLoading(false);
     }
@@ -227,7 +229,7 @@ export default function PlatterDetails() {
       console.log(error);
       console.log(error.response?.data);
 
-      setError("Failed to update platter");
+      setError(autoT("legacy.failed_to_update_platter_21808ab0"));
     } finally {
       setSaving(false);
     }
@@ -243,7 +245,7 @@ export default function PlatterDetails() {
 
   if (loading) {
     return (
-      <div className="p-5 text-[var(--theme-text-primary)]">Loading...</div>
+      <div className="p-5 text-[var(--theme-text-primary)]">{autoT("dashboard.loading")}</div>
     );
   }
 
@@ -258,7 +260,7 @@ export default function PlatterDetails() {
       {/* HEADER WITH DELETE BUTTON */}
       <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4 mb-6">
         <h1 className="text-3xl font-bold text-[var(--theme-text-primary)]">
-          Update Platter
+          {autoT("legacy.update_platter_eebcdbcc")}
         </h1>
         <button
           type="button"
@@ -266,7 +268,7 @@ export default function PlatterDetails() {
           className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm transition"
         >
           <Trash2 className="h-4 w-4" />
-          Delete Platter
+          {autoT("legacy.delete_platter_5e2a9e0f")}
         </button>
       </div>
 
@@ -280,17 +282,17 @@ export default function PlatterDetails() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  Delete Platter
+                  {autoT("legacy.delete_platter_5e2a9e0f")}
                 </h3>
-                <p className="text-xs text-gray-500">Confirmation Required</p>
+                <p className="text-xs text-gray-500">{autoT("legacy.confirmation_required_416b7875")}</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to permanently delete{" "}
+              {autoT("legacy.are_you_sure_you_want_to_permanently_delete_a4fae6ba")}{" "}
               <strong className="text-gray-900">
-                "{formData.name || "this platter"}"
+                "{formData.name || autoT("legacy.this_platter_39a957aa")}"
               </strong>
-              ? This action cannot be undone and will remove it from all menus.
+              {autoT("legacy.this_action_cannot_be_undone_and_will_remove_it_from_a_d5e4f252")}
             </p>
             <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
               <button
@@ -298,7 +300,7 @@ export default function PlatterDetails() {
                 onClick={() => setShowDelete(false)}
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm transition"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 type="button"
@@ -307,7 +309,7 @@ export default function PlatterDetails() {
                 className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
-                {deleting ? "Deleting..." : "Delete Platter"}
+                {deleting ? autoT("legacy.deleting_e16cac65") : autoT("legacy.delete_platter_5e2a9e0f")}
               </button>
             </div>
           </div>
@@ -324,7 +326,7 @@ export default function PlatterDetails() {
           <div className="flex items-center gap-2">
             <span className="flex h-3 w-3 rounded-full bg-red-500" />
             <span className="font-semibold text-red-700 text-sm uppercase tracking-wide">
-              Currently Unavailable
+              {autoT("legacy.currently_unavailable_a19bd026")}
             </span>
           </div>
 
@@ -332,8 +334,8 @@ export default function PlatterDetails() {
             <div className="flex items-start gap-2 text-sm text-red-700 bg-red-100 rounded-md px-3 py-2">
               <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
               <span>
-                This platter has been{" "}
-                <strong>manually marked unavailable</strong>.
+                {autoT("legacy.this_platter_has_been_b9ca07a9")}{" "}
+                <strong>{autoT("legacy.manually_marked_unavailable_9667c21d")}</strong>.
               </span>
             </div>
           )}
@@ -341,7 +343,7 @@ export default function PlatterDetails() {
           {hasUnavailableReasons && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-red-800">
-                The following menu items in this platter are unavailable:
+                {autoT("legacy.the_following_menu_items_in_this_platter_are_unavailab_798c7700")}
               </p>
 
               {unavailableReasons.map((reason) => (
@@ -360,10 +362,10 @@ export default function PlatterDetails() {
                       </p>
                       <p className="text-xs text-gray-500">
                         {reason.type === "menu_item"
-                          ? "Menu item is unavailable"
+                          ? autoT("legacy.menu_item_is_unavailable_5d22814c")
                           : reason.type === "ingredient"
                             ? `Need ${Number(reason.required).toFixed(2)} ${reason.unit}, only ${Number(reason.available).toFixed(2)} ${reason.unit} in stock`
-                            : "Unavailable"}
+                            : autoT("menu.unavailable")}
                       </p>
                     </div>
                   </div>
@@ -373,7 +375,7 @@ export default function PlatterDetails() {
                       to={`${dashboardBase}/menu/item/${reason.id}`}
                       className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline whitespace-nowrap"
                     >
-                      View Item →
+                      {autoT("legacy.view_item_e0beed3e")}
                     </Link>
                   )}
                 </div>
@@ -387,7 +389,7 @@ export default function PlatterDetails() {
         <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-center gap-2 mb-6">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <span className="font-semibold text-green-700 text-sm">
-            Available
+            {autoT("available")}
           </span>
         </div>
       )}
@@ -398,19 +400,18 @@ export default function PlatterDetails() {
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm font-bold text-[var(--theme-text-primary)]">
               <Utensils className="h-4 w-4 text-[var(--theme-primary)]" />
-              <span>Platter Station Routing</span>
+              <span>{autoT("legacy.platter_station_routing_43cee4e9")}</span>
             </label>
             <span className="text-xs font-semibold text-[var(--theme-text-muted)]">
-              Where should this platter be prepared?
+              {autoT("legacy.where_should_this_platter_be_prepared_15b45f7c")}
             </span>
           </div>
           <p className="text-xs text-[var(--theme-text-secondary)]">
-            Select which kitchen station prepares this entire platter when
-            ordered:
+            {autoT("legacy.select_which_kitchen_station_prepares_this_entire_plat_33f4e9da")}
           </p>
           {stations.length === 0 ? (
             <p className="text-xs text-[var(--theme-text-muted)] italic py-2">
-              No stations available. Using default Main Kitchen.
+              {autoT("legacy.no_stations_available_using_default_main_kitchen_b17db0ce")}
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
@@ -445,7 +446,7 @@ export default function PlatterDetails() {
                     {st.is_default && (
                       <div className="mt-2 flex justify-start">
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] uppercase shrink-0">
-                          Default
+                          {autoT("menu.sort.default")}
                         </span>
                       </div>
                     )}
@@ -459,13 +460,13 @@ export default function PlatterDetails() {
         {/* image */}
         <div>
           <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
-            Platter Image
+            {autoT("legacy.platter_image_373b40c5")}
           </label>
 
           {formData.image && !selectedImage && (
             <img
               src={formData.image}
-              alt="platter"
+              alt={autoT("legacy.platter_d8899626")}
               className="w-40 h-40 object-cover rounded mb-3 border border-[var(--theme-border)]"
             />
           )}
@@ -473,7 +474,7 @@ export default function PlatterDetails() {
           {selectedImage && (
             <img
               src={URL.createObjectURL(selectedImage)}
-              alt="preview"
+              alt={autoT("legacy.preview_1aa787fe")}
               className="w-40 h-40 object-cover rounded mb-3 border border-[var(--theme-border)]"
             />
           )}
@@ -494,7 +495,7 @@ export default function PlatterDetails() {
         {/* English Name */}
         <div>
           <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
-            Name (English)
+            {autoT("legacy.name_english_3f8bd4a4")}
           </label>
           <input
             type="text"
@@ -540,7 +541,7 @@ export default function PlatterDetails() {
         {/* English Description */}
         <div>
           <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
-            Description (English)
+            {autoT("legacy.description_english_57b179b0")}
           </label>
           <textarea
             name="description"
@@ -586,7 +587,7 @@ export default function PlatterDetails() {
         {/* price */}
         <div>
           <label className="block mb-2 font-semibold text-[var(--theme-text-primary)]">
-            Price
+            {autoT("menuDetails.price")}
           </label>
 
           <input
@@ -600,12 +601,12 @@ export default function PlatterDetails() {
 
           <div className="mt-3 space-y-1 text-sm text-[var(--theme-text-primary)]">
             <p>
-              <span className="font-semibold">Total Cost:</span>{" "}
+              <span className="font-semibold">{autoT("legacy.total_cost_21e39a52")}</span>{" "}
               {totalCost.toFixed(2)}
             </p>
 
             <p className="text-[var(--theme-success)]">
-              <span className="font-semibold">Profit:</span> {profit.toFixed(2)}
+              <span className="font-semibold">{autoT("legacy.profit_16bfae30")}</span> {profit.toFixed(2)}
             </p>
           </div>
         </div>
@@ -621,7 +622,7 @@ export default function PlatterDetails() {
           />
 
           <label className="font-semibold text-[var(--theme-text-primary)]">
-            Available
+            {autoT("available")}
           </label>
         </div>
 
@@ -629,7 +630,7 @@ export default function PlatterDetails() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-[var(--theme-text-primary)]">
-              Platter Items
+              {autoT("legacy.platter_items_cb6b7440")}
             </h2>
 
             <button
@@ -638,7 +639,7 @@ export default function PlatterDetails() {
               className="flex items-center gap-2 bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] px-4 py-2 rounded-lg font-semibold transition"
             >
               <Plus className="h-4 w-4" />
-              Add Item
+              {autoT("add_item")}
             </button>
           </div>
 
@@ -685,14 +686,14 @@ export default function PlatterDetails() {
                       {unavailableReason && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                           <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                          Unavailable
+                          {autoT("menu.unavailable")}
                         </span>
                       )}
 
                       {!unavailableReason && selectedMenuItem && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                          Available
+                          {autoT("available")}
                         </span>
                       )}
                     </div>
@@ -704,7 +705,7 @@ export default function PlatterDetails() {
                       {/* Menu Item Select */}
                       <div className="md:col-span-6">
                         <label className="block mb-1.5 text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
-                          Menu Item
+                          {autoT("menu_item")}
                         </label>
                         <Select
                           options={menuOptions}
@@ -718,7 +719,7 @@ export default function PlatterDetails() {
                               selected ? selected.value : "",
                             )
                           }
-                          placeholder="Select menu item..."
+                          placeholder={autoT("legacy.select_menu_item_59579899")}
                           menuPortalTarget={document.body}
                           menuPosition="fixed"
                           styles={{
@@ -749,7 +750,7 @@ export default function PlatterDetails() {
                       {/* Quantity (Supports fractional floats like 0.2, 0.5) */}
                       <div className="md:col-span-3">
                         <label className="block mb-1.5 text-xs font-semibold text-[var(--theme-text-secondary)] uppercase tracking-wider">
-                          Quantity
+                          {autoT("inventory_manager.common.quantity")}
                         </label>
                         <input
                           type="number"
@@ -775,7 +776,7 @@ export default function PlatterDetails() {
                           className="w-full flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 text-sm font-medium hover:bg-red-50 hover:border-red-300 active:bg-red-100 transition-all duration-200"
                         >
                           <Trash2 className="h-4 w-4" />
-                          Remove
+                          {autoT("legacy.remove_e963907d")}
                         </button>
                       </div>
                     </div>
@@ -789,11 +790,10 @@ export default function PlatterDetails() {
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-red-800">
-                            {unavailableReason.name} is currently unavailable
+                            {unavailableReason.name} {autoT("legacy.is_currently_unavailable_ada3ae24")}
                           </p>
                           <p className="text-xs text-red-600 mt-0.5">
-                            This item cannot be served due to stock or
-                            availability issues.
+                            {autoT("legacy.this_item_cannot_be_served_due_to_stock_or_availabilit_3b6021b0")}
                           </p>
                         </div>
 
@@ -801,7 +801,7 @@ export default function PlatterDetails() {
                           to={`${dashboardBase}/menu/item/${unavailableReason.id}`}
                           className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-red-200 text-xs font-semibold text-red-700 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
                         >
-                          View Details
+                          {autoT("legacy.view_details_907b3bee")}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
@@ -819,7 +819,7 @@ export default function PlatterDetails() {
           className="flex items-center gap-2 bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] font-bold px-6 py-3 rounded-lg shadow-sm disabled:opacity-50 transition"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          {saving ? "Updating..." : "Update Platter"}
+          {saving ? autoT("updating") : autoT("legacy.update_platter_eebcdbcc")}
         </button>
       </form>
     </div>

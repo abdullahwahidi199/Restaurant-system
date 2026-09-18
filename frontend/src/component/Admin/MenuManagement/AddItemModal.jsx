@@ -17,6 +17,7 @@ import { AuthContext } from "../../../api/authforRBC";
 import { addRecipeIngredient, getIngredients } from "../../../api/inventoryApi";
 import RestrictedToast from "../../RistrictedAction";
 import RecipeIngredientRow from "./RecipeIngredientRow";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 function Section({ icon: Icon, title, description, children }) {
   return (
@@ -56,6 +57,7 @@ export default function AddItemModal({
   onItemAdded,
   selectedcategoryid,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
@@ -190,20 +192,20 @@ export default function AddItemModal({
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
-              Menu item
+              {autoT("legacy.menu_item_f23d4cbe")}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-gray-950">
-              Add New Item
+              {autoT("legacy.add_new_item_1cc26e7e")}
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Create the dish, attach media, price it, and link recipe usage.
+              {autoT("legacy.create_the_dish_attach_media_price_it_and_link_recipe__459f60bb")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
-            aria-label="Close add item modal"
+            aria-label={autoT("legacy.close_add_item_modal_ef037490")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -214,23 +216,23 @@ export default function AddItemModal({
             <div className="space-y-4">
               <Section
                 icon={Utensils}
-                title="General"
-                description="Core naming and description shown to staff and customers."
+                title={autoT("settings_center.nav.general")}
+                description={autoT("legacy.core_naming_and_description_shown_to_staff_and_custome_b2932076")}
               >
                 <div className="space-y-4">
-                  <Field label="Item name" hint="Use the name staff will search for most often.">
+                  <Field label={autoT("legacy.item_name_b56b71bb")} hint={autoT("legacy.use_the_name_staff_will_search_for_most_often_a6cf835a")}>
                     <input
                       className={inputClass}
-                      placeholder="e.g. Chicken Karahi"
+                      placeholder={autoT("legacy.e_g_chicken_karahi_50844b49")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
                     />
                   </Field>
-                  <Field label="Description">
+                  <Field label={autoT("description")}>
                     <textarea
                       className={textAreaClass}
-                      placeholder="Short customer-facing description..."
+                      placeholder={autoT("legacy.short_customer_facing_description_7b01de1c")}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
@@ -240,41 +242,41 @@ export default function AddItemModal({
 
               <Section
                 icon={Languages}
-                title="Translations"
-                description="Optional localized names and descriptions for multilingual menus."
+                title={autoT("legacy.translations_8ad8302d")}
+                description={autoT("legacy.optional_localized_names_and_descriptions_for_multilin_dbedfa9e")}
               >
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Dari name">
+                  <Field label={autoT("legacy.dari_name_39072a2e")}>
                     <input
                       className={inputClass}
-                      placeholder="Item name in Dari"
+                      placeholder={autoT("legacy.item_name_in_dari_7561085c")}
                       dir="rtl"
                       value={nameDari}
                       onChange={(e) => setNameDari(e.target.value)}
                     />
                   </Field>
-                  <Field label="Pashto name">
+                  <Field label={autoT("legacy.pashto_name_fcbb52c5")}>
                     <input
                       className={inputClass}
-                      placeholder="Item name in Pashto"
+                      placeholder={autoT("legacy.item_name_in_pashto_6d8225d5")}
                       dir="rtl"
                       value={namePashto}
                       onChange={(e) => setNamePashto(e.target.value)}
                     />
                   </Field>
-                  <Field label="Dari description">
+                  <Field label={autoT("legacy.dari_description_f2d9dcc8")}>
                     <textarea
                       className={textAreaClass}
-                      placeholder="Description in Dari"
+                      placeholder={autoT("legacy.description_in_dari_ee53e8af")}
                       dir="rtl"
                       value={descriptionDari}
                       onChange={(e) => setDescriptionDari(e.target.value)}
                     />
                   </Field>
-                  <Field label="Pashto description">
+                  <Field label={autoT("legacy.pashto_description_4c13a593")}>
                     <textarea
                       className={textAreaClass}
-                      placeholder="Description in Pashto"
+                      placeholder={autoT("legacy.description_in_pashto_e7e4e941")}
                       dir="rtl"
                       value={descriptionPashto}
                       onChange={(e) => setDescriptionPashto(e.target.value)}
@@ -287,22 +289,22 @@ export default function AddItemModal({
             <div className="space-y-4">
               <Section
                 icon={ImagePlus}
-                title="Image"
-                description="Upload a clear item photo for ordering screens and menu browsing."
+                title={autoT("legacy.image_50e19fda")}
+                description={autoT("legacy.upload_a_clear_item_photo_for_ordering_screens_and_men_0223f722")}
               >
                 <div className="overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50">
                   {imagePreview ? (
                     <div className="relative">
                       <img
                         src={imagePreview}
-                        alt="Menu item preview"
+                        alt={autoT("legacy.menu_item_preview_0b7e03e3")}
                         className="aspect-[4/3] w-full object-cover"
                       />
                       <button
                         type="button"
                         onClick={removeImage}
                         className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-gray-700 shadow-sm transition hover:bg-white hover:text-rose-600"
-                        aria-label="Remove selected image"
+                        aria-label={autoT("legacy.remove_selected_image_5e01adf1")}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -311,10 +313,10 @@ export default function AddItemModal({
                     <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center px-6 text-center transition hover:bg-white">
                       <Upload className="h-8 w-8 text-gray-400" />
                       <span className="mt-3 text-sm font-semibold text-gray-700">
-                        Upload item image
+                        {autoT("legacy.upload_item_image_d1dc4ac5")}
                       </span>
                       <span className="mt-1 text-xs text-gray-500">
-                        PNG or JPG, ideally square or 4:3
+                        {autoT("legacy.png_or_jpg_ideally_square_or_4_3_8f4e13b5")}
                       </span>
                       <input
                         type="file"
@@ -328,7 +330,7 @@ export default function AddItemModal({
                 {imagePreview && (
                   <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                     <Upload className="h-4 w-4" />
-                    Replace image
+                    {autoT("legacy.replace_image_bc0a102a")}
                     <input
                       type="file"
                       accept="image/*"
@@ -341,13 +343,13 @@ export default function AddItemModal({
 
               <Section
                 icon={DollarSign}
-                title="Pricing"
-                description="Set the selling price for this branch menu item."
+                title={autoT("landing.marketplace.footer.links.pricing")}
+                description={autoT("legacy.set_the_selling_price_for_this_branch_menu_item_d0541016")}
               >
-                <Field label="Price">
+                <Field label={autoT("menuDetails.price")}>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
-                      AFN
+                      {autoT("labels.afn")}
                     </span>
                     <input
                       type="number"
@@ -365,8 +367,8 @@ export default function AddItemModal({
 
               <Section
                 icon={BookOpen}
-                title="Recipe"
-                description="Link ingredients so inventory and availability stay accurate."
+                title={autoT("legacy.recipe_1dcda804")}
+                description={autoT("legacy.link_ingredients_so_inventory_and_availability_stay_ac_6b9c267f")}
               >
                 <div className="space-y-3">
                   {recipe.map((row, index) => (
@@ -384,7 +386,7 @@ export default function AddItemModal({
                     className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
                   >
                     <Plus className="h-4 w-4" />
-                    Add ingredient
+                    {autoT("legacy.add_ingredient_4ca518bb")}
                   </button>
                 </div>
               </Section>
@@ -397,7 +399,7 @@ export default function AddItemModal({
               onClick={onClose}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
             >
-              Cancel
+              {autoT("staff.cancel")}
             </button>
             <button
               type="submit"
@@ -409,7 +411,7 @@ export default function AddItemModal({
               ) : (
                 <Plus className="h-4 w-4" />
               )}
-              {loading ? "Saving..." : "Add item"}
+              {loading ? autoT("saving") : autoT("legacy.add_item_5bcf4db4")}
             </button>
           </div>
         </form>

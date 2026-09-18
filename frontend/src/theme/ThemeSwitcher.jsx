@@ -1,16 +1,22 @@
 import React from "react";
 import { Check } from "lucide-react";
 import { useTheme } from "./ThemeContext";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ThemeSwitcher() {
+  const { t: autoT } = useAutoTranslation();
   const { theme, setTheme, themes } = useTheme();
 
   return (
     <section className="theme-card p-5">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold theme-text-primary">Theme</h2>
+        <h2 className="text-lg font-semibold theme-text-primary">
+          {autoT("legacy.theme_a797e309")}
+        </h2>
         <p className="mt-1 text-sm theme-text-secondary">
-          Choose the visual style used across the application.
+          {autoT(
+            "legacy.choose_the_visual_style_used_across_the_application_ad5d4788",
+          )}
         </p>
       </div>
 
@@ -22,10 +28,10 @@ export default function ThemeSwitcher() {
               key={item.id}
               type="button"
               onClick={() => setTheme(item.id)}
-              className={`flex items-start justify-between gap-4 rounded-lg border p-4 text-left transition ${
+              className={`theme-switcher-option flex items-start justify-between gap-4 rounded-lg border p-4 text-left transition ${
                 selected
-                  ? "border-emerald-500 bg-emerald-50"
-                  : "border-slate-200 bg-white hover:bg-slate-50"
+                  ? "border-[var(--theme-primary)] bg-[var(--theme-primary-subtle)] shadow-[var(--theme-shadow-xs)]"
+                  : "border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-[var(--theme-shadow-xs)] hover:border-[var(--theme-border-strong)] hover:bg-[var(--theme-hover)]"
               }`}
               aria-pressed={selected}
             >
@@ -40,8 +46,8 @@ export default function ThemeSwitcher() {
               <span
                 className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                   selected
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-slate-300 text-transparent"
+                    ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-white"
+                    : "border-[var(--theme-border-strong)] text-transparent"
                 }`}
               >
                 <Check className="h-4 w-4" />

@@ -1,12 +1,12 @@
 import React from "react";
 
-export default function FormSection({ title, description, children, aside }) {
+export default function FormSection({ title, description, children, aside, className = "" }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+    <section className={`theme-card p-4 ${className}`}>
+      <div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 className="text-base font-bold text-slate-950">{title}</h2>
-          {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+          <h2 className="text-[15px] font-semibold theme-text-primary">{title}</h2>
+          {description && <p className="mt-1 text-xs theme-text-muted">{description}</p>}
         </div>
         {aside}
       </div>

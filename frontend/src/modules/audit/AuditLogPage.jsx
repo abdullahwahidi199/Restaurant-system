@@ -5,8 +5,10 @@ import PageHeader from "../shared/erp/components/PageHeader";
 import AuditLogDetailsModal from "./components/AuditLogDetailsModal";
 import AuditLogFilters from "./components/AuditLogFilters";
 import AuditLogTable from "./components/AuditLogTable";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function AuditLogPage() {
+                 const { t: autoT } = useAutoTranslation();
   const [filters, setFilters] = useState({ ordering: "newest", page: 1 });
   const [logs, setLogs] = useState([]);
   const [count, setCount] = useState(0);
@@ -25,7 +27,7 @@ export default function AuditLogPage() {
         setCount(res.data?.count || 0);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load audit logs.");
+        if (!cancelled) setError(autoT("legacy.failed_to_load_audit_logs_7fad24a5"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -38,12 +40,12 @@ export default function AuditLogPage() {
   return (
     <section className="space-y-5 px-4 pb-6 lg:px-5">
       <PageHeader
-        eyebrow="Security"
-        breadcrumb="Admin / Audit Logs"
+        eyebrow={autoT("legacy.security_f25ce1b8")}
+        breadcrumb={autoT("legacy.admin_audit_logs_bbc88d74")}
         icon={ShieldCheck}
-        title="Audit Logs"
-        description="Review who changed financial and operational records, when it happened, and what changed."
-        quickStats={[{ label: "Records", value: count }]}
+        title={autoT("legacy.audit_logs_344c7ffc")}
+        description={autoT("legacy.review_who_changed_financial_and_operational_records_w_0a630a40")}
+        quickStats={[{ label: autoT("legacy.records_e51c5525"), value: count }]}
       />
       <AuditLogFilters filters={filters} onChange={setFilters} />
       {error && <p className="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
@@ -55,16 +57,16 @@ export default function AuditLogPage() {
           onClick={() => setFilters((current) => ({ ...current, page: Math.max((current.page || 1) - 1, 1) }))}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold disabled:opacity-50"
         >
-          Previous
+          {autoT("menu_item_sales.previous")}
         </button>
-        <span className="text-sm text-slate-500">Page {filters.page || 1}</span>
+        <span className="text-sm text-slate-500">{autoT("legacy.page_fb06270f")} {filters.page || 1}</span>
         <button
           type="button"
           disabled={(filters.page || 1) * 20 >= count}
           onClick={() => setFilters((current) => ({ ...current, page: (current.page || 1) + 1 }))}
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold disabled:opacity-50"
         >
-          Next
+          {autoT("inventory_manager.common.next")}
         </button>
       </div>
       <AuditLogDetailsModal log={selectedLog} onClose={() => setSelectedLog(null)} />

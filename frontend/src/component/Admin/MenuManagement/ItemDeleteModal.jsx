@@ -5,14 +5,17 @@ import { AlertTriangle, Loader2, Trash2, X } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
 import RestrictedToast from "../../RistrictedAction";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 export default function ItemDelete({
   itemID,
   onDelete,
   onClose,
-  title = "Delete menu item?",
-  message = "This menu item will be permanently removed from the active branch.",
+  title = i18n.t("legacy.delete_menu_item_e2b7753d"),
+  message = i18n.t("legacy.this_menu_item_will_be_permanently_removed_from_the_ac_ffc73c18"),
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [showRestriction, setShowRestriction] = useState(false);
   const [loading, setLoading] = useState(false);
   const { auth } = useContext(AuthContext);
@@ -61,7 +64,7 @@ export default function ItemDelete({
             <div>
               <h2 className="text-lg font-semibold text-gray-950">{title}</h2>
               <p className="mt-1 text-sm leading-6 text-rose-700">
-                This action is permanent.
+                {autoT("legacy.this_action_is_permanent_ce117e53")}
               </p>
             </div>
           </div>
@@ -69,7 +72,7 @@ export default function ItemDelete({
             type="button"
             onClick={onClose}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-500 transition hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-rose-500"
-            aria-label="Close delete confirmation"
+            aria-label={autoT("legacy.close_delete_confirmation_7d6e51db")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -85,7 +88,7 @@ export default function ItemDelete({
             onClick={onClose}
             className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
           >
-            Cancel
+            {autoT("staff.cancel")}
           </button>
           <button
             type="button"
@@ -98,7 +101,7 @@ export default function ItemDelete({
             ) : (
               <Trash2 className="h-4 w-4" />
             )}
-            Delete
+            {autoT("staff.table.delete")}
           </button>
         </div>
       </motion.div>

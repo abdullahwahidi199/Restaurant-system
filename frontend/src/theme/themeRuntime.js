@@ -1,4 +1,4 @@
-export const getThemeCssValue = (name) => {
+import i18n from "../i18n";export const getThemeCssValue = (name) => {
   if (typeof window === "undefined" || !window.document) return "";
   return window
     .getComputedStyle(window.document.documentElement)
@@ -10,7 +10,7 @@ export const buildThemedImagePlaceholder = ({
   width = 600,
   height = 400,
   fontSize = 16,
-  label = "No Image",
+  label = i18n.t("legacy.no_image_33cf70a4"),
   textOpacity = 0.4,
 } = {}) => {
   const background = getThemeCssValue("--theme-text-primary") || "CanvasText";

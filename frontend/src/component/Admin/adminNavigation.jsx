@@ -24,6 +24,7 @@ import {
   Utensils,
   Wallet,
 } from "lucide-react";
+import i18n from "../../i18n";
 
 const adminBase = "/admin/dashboard";
 
@@ -40,7 +41,7 @@ export function getAdminNavigationGroups(t, role) {
     dashboardItem(t),
     {
       id: "operations",
-      label: "Operations",
+      label: i18n.t("legacy.operations_a1fdaa6b"),
       icon: ShoppingCart,
       children: [
         {
@@ -58,39 +59,39 @@ export function getAdminNavigationGroups(t, role) {
         {
           id: "reservations",
           to: `${adminBase}/reservations`,
-          label: "Reservations",
+          label: i18n.t("landing.features.groups.operations.items.reservations"),
           icon: CalendarDays,
         },
         {
           id: "daily-production",
           to: `${adminBase}/daily_production`,
-          label: "Daily Productions",
+          label: i18n.t("legacy.daily_productions_3566ee61"),
           icon: Utensils,
         },
         {
           id: "discount-requests",
           to: `${adminBase}/pending-discount-requests`,
-          label: "Discount Requests",
+          label: i18n.t("legacy.discount_requests_c1f68f1c"),
           icon: BadgePercent,
         },
         {
           id: "all-discount-requests",
           to: `${adminBase}/all-discount-requests`,
-          label: "All Discount Requests",
+          label: i18n.t("legacy.all_discount_requests_75f16ff6"),
           icon: BadgePercent,
           hiddenInSidebar: true,
         },
         {
           id: "discount-cards",
           to: `${adminBase}/discount-cards`,
-          label: "Discount Cards",
+          label: i18n.t("legacy.discount_cards_c143a249"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "restaurant",
-      label: "Restaurant",
+      label: i18n.t("legacy.restaurant_3585d755"),
       icon: Utensils,
       children: [
         {
@@ -103,102 +104,102 @@ export function getAdminNavigationGroups(t, role) {
         {
           id: "stations",
           to: `${adminBase}/stations`,
-          label: "Kitchen Stations",
+          label: i18n.t("landing.features.groups.kitchen.items.stations"),
           icon: Utensils,
           end: false,
         },
         {
           id: "inventory",
-          label: "Inventory",
+          label: i18n.t("nav.inventory"),
           icon: Package,
           children: [
             {
               id: "inventory-dashboard",
               to: `${adminBase}/inventory`,
-              label: "Dashboard",
+              label: i18n.t("nav.dashboard"),
               icon: LayoutDashboard,
               end: true,
             },
             {
               id: "inventory-ingredients",
               to: `${adminBase}/inventory/ingredients`,
-              label: "Ingredients",
+              label: i18n.t("menuDetails.ingredients"),
               icon: ClipboardList,
             },
             {
               id: "inventory-stock-levels",
               to: `${adminBase}/inventory/stock-levels`,
-              label: "Stock Levels",
+              label: i18n.t("inventory_manager.nav.stock_levels"),
               icon: PackageSearch,
             },
             {
               id: "inventory-stock-movements",
               to: `${adminBase}/inventory/stock-movements`,
-              label: "Stock Movements",
+              label: i18n.t("inventory_manager.nav.stock_movements"),
               icon: ClipboardList,
             },
             {
               id: "inventory-stock-adjustments",
               to: `${adminBase}/inventory/stock-adjustments`,
-              label: "Stock Adjustments",
+              label: i18n.t("inventory_manager.nav.stock_adjustments"),
               icon: PackageSearch,
             },
             {
               id: "inventory-low-stock",
               to: `${adminBase}/inventory/low-stock`,
-              label: "Low Stock Alerts",
+              label: i18n.t("inventory_manager.nav.low_stock_alerts"),
               icon: Package,
             },
             {
               id: "inventory-reports",
               to: `${adminBase}/inventory/reports`,
-              label: "Reports",
+              label: i18n.t("nav.reports"),
               icon: BarChart,
             },
           ],
         },
         {
           id: "procurement",
-          label: "Procurement",
+          label: i18n.t("landing.features.groups.inventory.items.procurement"),
           icon: ShoppingCart,
           children: [
             {
               id: "procurement-dashboard",
               to: `${adminBase}/procurement`,
-              label: "Dashboard",
+              label: i18n.t("nav.dashboard"),
               icon: LayoutDashboard,
               end: true,
             },
             {
               id: "procurement-purchase-invoices",
               to: `${adminBase}/procurement/purchase-invoices`,
-              label: "Purchase Invoices",
+              label: i18n.t("landing.features.groups.inventory.items.invoices"),
               icon: ReceiptText,
               end: false,
             },
             {
               id: "procurement-create-purchase-invoice",
               to: `${adminBase}/procurement/purchase-invoices/new`,
-              label: "Create Purchase Invoice",
+              label: i18n.t("inventory_manager.low_stock.create_purchase_invoice"),
               icon: FilePlus2,
             },
             {
               id: "procurement-suppliers",
               to: `${adminBase}/procurement/suppliers`,
-              label: "Suppliers",
+              label: i18n.t("landing.features.groups.inventory.items.suppliers"),
               icon: Users,
               end: false,
             },
             {
               id: "procurement-supplier-payments",
               to: `${adminBase}/procurement/supplier-payments`,
-              label: "Supplier Payments",
+              label: i18n.t("legacy.supplier_payments_6ef8f5d6"),
               icon: HandCoins,
             },
             {
               id: "procurement-payables",
               to: `${adminBase}/procurement/payables`,
-              label: "Outstanding Payables",
+              label: i18n.t("legacy.outstanding_payables_f6045147"),
               icon: CreditCard,
             },
           ],
@@ -206,14 +207,14 @@ export function getAdminNavigationGroups(t, role) {
         {
           id: "audit-logs",
           to: `${adminBase}/audit-logs`,
-          label: "Audit Logs",
+          label: i18n.t("legacy.audit_logs_344c7ffc"),
           icon: ShieldCheck,
         },
       ],
     },
     {
       id: "hr",
-      label: "HR",
+      label: i18n.t("legacy.hr_f187928f"),
       icon: Users,
       children: [
         {
@@ -236,13 +237,13 @@ export function getAdminNavigationGroups(t, role) {
         },
         {
           id: "payroll",
-          label: "Payroll",
+          label: i18n.t("landing.features.groups.staff.items.payroll"),
           icon: Wallet,
           children: [
             {
               id: "payroll-dashboard",
               to: `${adminBase}/payroll`,
-              label: "Dashboard",
+              label: i18n.t("nav.dashboard"),
               icon: LayoutDashboard,
               end: true,
               matches: [`${adminBase}/payroll/employees`],
@@ -250,26 +251,26 @@ export function getAdminNavigationGroups(t, role) {
             {
               id: "payroll-run",
               to: `${adminBase}/payroll/run`,
-              label: "Payroll Wizard",
+              label: i18n.t("legacy.payroll_wizard_107ea6bd"),
               icon: FilePlus2,
             },
             {
               id: "payroll-records",
               to: `${adminBase}/payroll/records`,
-              label: "Payroll Records",
+              label: i18n.t("legacy.payroll_records_ebec138d"),
               icon: ReceiptText,
               end: false,
             },
             {
               id: "payroll-advances",
               to: `${adminBase}/payroll/advances`,
-              label: "Salary Advances",
+              label: i18n.t("legacy.salary_advances_e8cda02b"),
               icon: HandCoins,
             },
             {
               id: "payroll-payments",
               to: `${adminBase}/payroll/payments`,
-              label: "Payroll Payments",
+              label: i18n.t("legacy.payroll_payments_bc2648b7"),
               icon: CreditCard,
             },
           ],
@@ -278,59 +279,59 @@ export function getAdminNavigationGroups(t, role) {
     },
     {
       id: "contractors",
-      label: "Contractors",
+      label: i18n.t("landing.features.groups.finance.items.contractors"),
       icon: HardHat,
       children: [
         {
           id: "contractors-dashboard",
           to: `${adminBase}/contractors`,
-          label: "Dashboard",
+          label: i18n.t("nav.dashboard"),
           icon: LayoutDashboard,
           end: true,
         },
         {
           id: "contractors-list",
           to: `${adminBase}/contractors/contractors`,
-          label: "Contractors",
+          label: i18n.t("landing.features.groups.finance.items.contractors"),
           icon: HardHat,
           end: false,
         },
         {
           id: "contractors-contracts",
           to: `${adminBase}/contractors/contracts`,
-          label: "Service Contracts",
+          label: i18n.t("legacy.service_contracts_d376d778"),
           icon: ClipboardList,
         },
         {
           id: "contractors-invoices",
           to: `${adminBase}/contractors/invoices`,
-          label: "Service Invoices",
+          label: i18n.t("legacy.service_invoices_7d0409f3"),
           icon: ReceiptText,
           end: false,
         },
         {
           id: "contractors-create-invoice",
           to: `${adminBase}/contractors/invoices/new`,
-          label: "Create Invoice",
+          label: i18n.t("legacy.create_invoice_32815b0b"),
           icon: FilePlus2,
         },
         {
           id: "contractors-payments",
           to: `${adminBase}/contractors/payments`,
-          label: "Payments",
+          label: i18n.t("landing.marketplace.owner.items.payments"),
           icon: HandCoins,
         },
         {
           id: "contractors-payables",
           to: `${adminBase}/contractors/payables`,
-          label: "Payables",
+          label: i18n.t("legacy.payables_a4fb9796"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "finance",
-      label: "Finance",
+      label: i18n.t("landing.features.groups.finance.title"),
       icon: Wallet,
       children: [
         {
@@ -350,13 +351,13 @@ export function getAdminNavigationGroups(t, role) {
     },
     {
       id: "administration",
-      label: "Administration",
+      label: i18n.t("settings_center.header.eyebrow"),
       icon: Settings,
       children: [
         {
           id: "branches",
           to: `${adminBase}/branches`,
-          label: "Branches",
+          label: i18n.t("landing.marketplace.owner.items.branches"),
           icon: Building2,
           adminOnly: true,
         },

@@ -2,9 +2,11 @@
 import { useEffect, useState } from "react";
 import { X, PlusCircle, Save } from "lucide-react";
 import instance from "../../../api/axiosInstance"; // adjust path if needed
-import AddNewItemModal from "../../waiter/AddNewItemModal"; // reuse the same one (takes orderId)
+import AddNewItemModal from "../../waiter/AddNewItemModal";
+import { useTranslation as useAutoTranslation } from "react-i18next"; // reuse the same one (takes orderId)
 
 export default function OrderEditModal({ order, onClose }) {
+                 const { t: autoT } = useAutoTranslation();
   const [items, setItems] = useState([]);
   const [deletedItems, setDeletedItems] = useState([]);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
@@ -81,7 +83,7 @@ export default function OrderEditModal({ order, onClose }) {
         {/* Header */}
         <div className="flex justify-between items-center border-b px-5 py-3 sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold">
-            Order #{order.order_number} —{" "}
+            {autoT("table.order_number")}{order.order_number} —{" "}
             <span className="capitalize text-blue-600">{orderType}</span>
           </h2>
           <button
@@ -96,7 +98,7 @@ export default function OrderEditModal({ order, onClose }) {
           {/* Customer Info */}
           <div className="border-b pb-3">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              👤 {order.name || order.customer || "Customer"}
+              👤 {order.name || order.customer || autoT("table.customer")}
             </h2>
             {order.phone && (
               <p className="text-gray-600 text-sm">📞 {order.phone}</p>
@@ -105,9 +107,9 @@ export default function OrderEditModal({ order, onClose }) {
               <p className="text-gray-600 text-sm">📍 {order.address}</p>
             )}
             <p className="mt-2 text-gray-700 font-medium">
-              💰 Total:{" "}
+              {autoT("legacy.total_2e388225")}{" "}
               <span className="text-green-600">
-                {order.total ?? order.remaining_total} AFN
+                {order.total ?? order.remaining_total} {autoT("labels.afn")}
               </span>
             </p>
           </div>
@@ -118,7 +120,7 @@ export default function OrderEditModal({ order, onClose }) {
               onClick={() => setIsEditing(true)}
               className="w-full bg-yellow-500 text-white px-3 py-2 rounded-lg hover:bg-yellow-600 transition"
             >
-              Edit Order
+              {autoT("legacy.edit_order_13fcf49e")}
             </button>
           )}
 
@@ -154,7 +156,7 @@ export default function OrderEditModal({ order, onClose }) {
 
                       {item.is_new && (
                         <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          New • {item.added_by_name}
+                          {autoT("legacy.new_49c3862e")} {item.added_by_name}
                         </span>
                       )}
                     </div>
@@ -215,12 +217,12 @@ export default function OrderEditModal({ order, onClose }) {
                   onClick={saveChanges}
                   className="w-full mt-3 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
                 >
-                  <Save size={16} /> Save Changes
+                  <Save size={16} /> {autoT("save_changes")}
                 </button>
               )}
             </ul>
           ) : (
-            <p className="text-gray-500 italic">No items in this order.</p>
+            <p className="text-gray-500 italic">{autoT("legacy.no_items_in_this_order_aa75c40e")}</p>
           )}
 
           {/* Bottom Actions */}
@@ -229,7 +231,7 @@ export default function OrderEditModal({ order, onClose }) {
               onClick={() => setAddNewItemDisplay(true)}
               className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
             >
-              <PlusCircle size={16} /> Add Item
+              <PlusCircle size={16} /> {autoT("add_item")}
             </button>
           </div>
         </div>

@@ -540,21 +540,6 @@ export default function PublicPlatterDetails() {
                   </div>
                 ))}
               </div>
-
-              {/* Individual cost note */}
-              {platter.total_cost && (
-                <div className="mt-5 text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--theme-secondary)]/5 bg-[var(--theme-text-primary)]/40">
-                    <span className="text-[10px] sm:text-xs text-gray-500 tracking-wide">
-                      {t("labels.individual_cost")}:
-                    </span>
-                    <span className="text-[10px] sm:text-xs text-[var(--theme-secondary)]/60 font-light">
-                      {t("labels.afn")}{" "}
-                      {parseFloat(platter.total_cost).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

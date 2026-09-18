@@ -1,6 +1,8 @@
 import { Clock, User, Phone, MapPin, Bell } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function CompactOrderCard({ order, isSelected, onClick }) {
+                 const { t: autoT } = useAutoTranslation();
   const statusColors = {
     pending: "bg-yellow-100 text-yellow-800",
     in_progress: "bg-blue-100 text-blue-800",
@@ -60,7 +62,7 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
       />
       <div className="col-span-2 text-gray-700 truncate">
         <div className="flex items-center gap-1">
-          <span>order #{order.order_number}</span>
+          <span>{autoT("legacy.order_7e7d5202")}{order.order_number}</span>
         </div>
       </div>
 
@@ -88,7 +90,7 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
         {hasNewItems && (
           <span className="flex items-center gap-1 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-semibold shadow-sm animate-pulse">
             <Bell size={12} />
-            {newItems.length} New Item{newItems.length > 1 ? "s" : ""}
+            {newItems.length} {autoT("legacy.new_item_78b81962")}{newItems.length > 1 ? "s" : ""}
           </span>
         )}
 
@@ -100,7 +102,7 @@ export default function CompactOrderCard({ order, isSelected, onClick }) {
 
         {pendingCount > 0 && (
           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-            {pendingCount} pending
+            {pendingCount} {autoT("orders.status.pending")}
           </span>
         )}
       </div>

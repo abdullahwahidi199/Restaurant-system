@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import { X, Trash2 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import { AuthContext } from "../../../api/authforRBC";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
+                 const { t: autoT } = useAutoTranslation();
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
 
@@ -93,7 +95,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
           <X />
         </button>
 
-        <h2 className="text-xl font-bold mb-4 text-center">Update Table</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">{autoT("legacy.update_table_1ae264ac")}</h2>
 
         {/* FORM */}
         <form onSubmit={handleUpdate} className="space-y-3">
@@ -102,7 +104,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Table Name (e.g. VIP_1)"
+            placeholder={autoT("legacy.table_name_e_g_vip_1_bef5e363")}
             className="w-full p-2 border rounded"
             required
           />
@@ -112,7 +114,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
             type="number"
             value={capacity}
             onChange={(e) => setCapacity(e.target.value)}
-            placeholder="Capacity"
+            placeholder={autoT("capacity")}
             className="w-full p-2 border rounded"
             required
           />
@@ -122,7 +124,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
             type="number"
             value={pricePerHour}
             onChange={(e) => setPricePerHour(e.target.value)}
-            placeholder="Price per hour"
+            placeholder={autoT("legacy.price_per_hour_54ae2508")}
             className="w-full p-2 border rounded"
             required
           />
@@ -134,7 +136,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
               checked={allowFreeReservation}
               onChange={(e) => setAllowFreeReservation(e.target.checked)}
             />
-            Allow Free Reservation
+            {autoT("legacy.allow_free_reservation_72b747e1")}
           </label>
 
           {/* Note */}
@@ -142,7 +144,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Note"
+            placeholder={autoT("modal.note")}
             className="w-full p-2 border rounded"
           />
 
@@ -160,7 +162,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
               onClick={handleDelete}
               className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
             >
-              <Trash2 size={16} /> Delete
+              <Trash2 size={16} /> {autoT("staff.table.delete")}
             </button>
 
             <button
@@ -168,7 +170,7 @@ export default function TableUpdateDeleteModal({ table, onClose, onUpdated }) {
               disabled={loading}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
             >
-              {loading ? "Updating..." : "Update"}
+              {loading ? autoT("updating") : autoT("inventory_manager.common.update")}
             </button>
           </div>
         </form>

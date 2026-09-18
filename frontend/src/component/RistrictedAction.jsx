@@ -1,8 +1,10 @@
 // RestrictedToast.js
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function RestrictedToast({ actionType, duration = 3000, onClose }) {
+                 const { t: autoT } = useAutoTranslation();
   const [show, setShow] = useState(true);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function RestrictedToast({ actionType, duration = 3000, onClose }
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
             </svg>
             <p className="text-sm md:text-base font-medium">
-              {!actionType? "This action":"Action"} <span className="font-semibold">{actionType}</span> is restricted in demo mode.
+              {!actionType? autoT("legacy.this_action_4287d24f"):autoT("inventory_manager.common.action")} <span className="font-semibold">{actionType}</span> {autoT("legacy.is_restricted_in_demo_mode_e069e5ec")}
             </p>
           </div>
         </motion.div>

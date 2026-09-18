@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function SubscriptionModal({
   isOpen,
@@ -6,6 +7,7 @@ export default function SubscriptionModal({
   onSave,
   restaurant,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [formData, setFormData] = useState({
     starts_at: "",
     expires_at: "",
@@ -54,13 +56,13 @@ export default function SubscriptionModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold mb-2">Manage Subscription</h2>
-        <p className="text-sm text-gray-500 mb-4">For: {restaurant.name}</p>
+        <h2 className="text-xl font-semibold mb-2">{autoT("legacy.manage_subscription_04293a07")}</h2>
+        <p className="text-sm text-gray-500 mb-4">{autoT("legacy.for_076c385d")} {restaurant.name}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Start Date
+              {autoT("inventory_manager.reports.start_date")}
             </label>
             <input
               type="date"
@@ -74,7 +76,7 @@ export default function SubscriptionModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Expiry Date
+              {autoT("legacy.expiry_date_8d007050")}
             </label>
             <input
               type="date"
@@ -87,7 +89,7 @@ export default function SubscriptionModal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Maximum Branches
+              {autoT("legacy.maximum_branches_cb7ce6a9")}
             </label>
             <input
               type="number"
@@ -108,7 +110,7 @@ export default function SubscriptionModal({
               className="h-4 w-4 text-blue-600 border-gray-300 rounded"
             />
             <label className="ml-2 block text-sm text-gray-900">
-              Subscription Active
+              {autoT("legacy.subscription_active_0b73a381")}
             </label>
           </div>
 
@@ -118,13 +120,13 @@ export default function SubscriptionModal({
               onClick={onClose}
               className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
             >
-              Cancel
+              {autoT("staff.cancel")}
             </button>
             <button
               type="submit"
               className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
             >
-              {existingSubId ? "Update" : "Create"}
+              {existingSubId ? autoT("inventory_manager.common.update") : autoT("inventory_manager.common.create")}
             </button>
           </div>
         </form>

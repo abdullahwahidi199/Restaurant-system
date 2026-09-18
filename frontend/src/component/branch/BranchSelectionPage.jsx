@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Building2, Check } from "lucide-react";
 import { AuthContext } from "../../api/authforRBC";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const routeByRole = {
   SuperAdmin: "/super-admin",
@@ -16,6 +17,7 @@ const routeByRole = {
 };
 
 export default function BranchSelectionPage() {
+                 const { t: autoT } = useAutoTranslation();
   const {
     auth,
     branches,
@@ -71,9 +73,9 @@ export default function BranchSelectionPage() {
           <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-red-500">
             <Building2 size={24} />
           </div>
-          <h1 className="text-3xl font-bold">Select branch</h1>
+          <h1 className="text-3xl font-bold">{autoT("legacy.select_branch_fcf716ea")}</h1>
           <p className="mt-2 text-gray-300">
-            Choose where you want to work for this session.
+            {autoT("legacy.choose_where_you_want_to_work_for_this_session_c19b960d")}
           </p>
         </div>
 
@@ -109,7 +111,7 @@ export default function BranchSelectionPage() {
           onClick={handleContinue}
           className="mt-8 rounded-lg bg-red-500 px-5 py-3 font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-700"
         >
-          {loading ? "Switching..." : "Continue"}
+          {loading ? autoT("legacy.switching_8c8980ce") : autoT("legacy.continue_2e026239")}
         </button>
       </div>
     </div>

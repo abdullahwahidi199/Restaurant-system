@@ -251,7 +251,7 @@ function Navbar({
           mobileOpen ? "admin-sidebar-backdrop-open" : ""
         }`}
         onClick={onCloseMobile}
-        aria-label="Close navigation"
+        aria-label={t("inventory_manager.a11y.close_navigation")}
       />
 
       <aside
@@ -259,7 +259,7 @@ function Navbar({
         className={`admin-sidebar ${
           expanded ? "admin-sidebar-expanded" : "admin-sidebar-collapsed"
         } ${mobileOpen ? "admin-sidebar-mobile-open" : ""}`}
-        aria-label="Primary navigation"
+        aria-label={t("landing.marketplace.nav.primary")}
       >
         <div className="admin-sidebar-brand">
           <div className="admin-brand-content">
@@ -270,7 +270,7 @@ function Navbar({
             />
             {expanded && (
               <div className="admin-brand-copy">
-                <span className="admin-brand-title">Pakhlai RMS</span>
+                <span className="admin-brand-title">{t("login.brand")}</span>
                 <span className="admin-brand-subtitle">{restaurantName}</span>
               </div>
             )}
@@ -280,7 +280,7 @@ function Navbar({
             type="button"
             className="admin-sidebar-collapse"
             onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("inventory_manager.a11y.expand_sidebar") : t("inventory_manager.a11y.collapse_sidebar")}
           >
             {collapsed ? (
               <PanelLeftOpen className="h-4 w-4" />
@@ -293,7 +293,7 @@ function Navbar({
             type="button"
             className="admin-sidebar-mobile-close"
             onClick={onCloseMobile}
-            aria-label="Close sidebar"
+            aria-label={t("inventory_manager.a11y.close_sidebar")}
           >
             <X className="h-4 w-4" />
           </button>

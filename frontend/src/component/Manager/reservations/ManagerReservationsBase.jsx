@@ -3,6 +3,7 @@ import instance from "../../../api/axiosInstance";
 import ManagerReservationsTable from "./ManagerReservationsTable";
 import AddReservation from "../../Cashier/components/AddReservation";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -16,6 +17,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function ManagerReservationBase() {
+                 const { t: autoT } = useAutoTranslation();
   const [reservations, setReservations] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -71,12 +73,12 @@ export default function ManagerReservationBase() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Reservations</h2>
+        <h2 className="text-2xl font-bold text-gray-800">{autoT("landing.features.groups.operations.items.reservations")}</h2>
         <button
           onClick={() => setIsAddModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md"
         >
-          <span className="text-xl">+</span> Add Reservation
+          <span className="text-xl">+</span> {autoT("legacy.add_reservation_4ba52ffb")}
         </button>
       </div>
       <div className="mb-4 grid gap-3 rounded-lg border border-gray-200 bg-white p-4 md:grid-cols-5">
@@ -84,7 +86,7 @@ export default function ManagerReservationBase() {
           type="search"
           value={filters.search}
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="Search name, phone, table..."
+          placeholder={autoT("legacy.search_name_phone_table_7703d5f9")}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm md:col-span-2"
         />
         <select
@@ -92,12 +94,12 @@ export default function ManagerReservationBase() {
           onChange={(event) => updateFilter("status", event.target.value)}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm"
         >
-          <option value="">All status</option>
-          <option value="reserved">Reserved</option>
-          <option value="arrived">Arrived</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="no_show">No Show</option>
+          <option value="">{autoT("legacy.all_status_543fccc9")}</option>
+          <option value="reserved">{autoT("legacy.reserved_67a6ff10")}</option>
+          <option value="arrived">{autoT("legacy.arrived_a22d66c8")}</option>
+          <option value="completed">{autoT("stats.completed")}</option>
+          <option value="cancelled">{autoT("status.cancelled")}</option>
+          <option value="no_show">{autoT("legacy.no_show_7ed172ed")}</option>
         </select>
         <input
           type="date"
@@ -117,7 +119,7 @@ export default function ManagerReservationBase() {
             onClick={resetFilters}
             className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
-            Reset
+            {autoT("inventory_manager.common.reset")}
           </button>
         </div>
       </div>

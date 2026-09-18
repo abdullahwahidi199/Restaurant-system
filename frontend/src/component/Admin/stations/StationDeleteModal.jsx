@@ -41,10 +41,10 @@ export default function StationDeleteModal({
             </div>
             <div>
               <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
-                Delete Kitchen Station
+                {t("legacy.delete_kitchen_station_84224032")}
               </h3>
               <p className="text-xs text-[var(--theme-text-muted)]">
-                Confirmation Required
+                {t("legacy.confirmation_required_416b7875")}
               </p>
             </div>
           </div>
@@ -64,7 +64,7 @@ export default function StationDeleteModal({
 
         <div className="space-y-3 text-sm text-[var(--theme-text-secondary)]">
           <p>
-            Are you sure you want to delete the station{" "}
+            {t("legacy.are_you_sure_you_want_to_delete_the_station_12153580")}{" "}
             <strong className="text-[var(--theme-text-primary)]">
               "{station.name}"
             </strong>
@@ -72,11 +72,10 @@ export default function StationDeleteModal({
           </p>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
-            <p className="font-bold">⚠️ Automatic Routing Fallback:</p>
+            <p className="font-bold">{t("legacy.automatic_routing_fallback_b90ae113")}</p>
             <p>
-              Any menu items or platters assigned to this station will
-              automatically be reassigned to the default{" "}
-              <strong>Main Kitchen</strong> station so orders are not lost.
+              {t("legacy.any_menu_items_or_platters_assigned_to_this_station_wi_5bd9db39")}{" "}
+              <strong>{t("landing.showcase.kitchen.items.mainKitchen")}</strong> {t("legacy.station_so_orders_are_not_lost_e59824e4")}
             </p>
           </div>
         </div>
@@ -87,7 +86,7 @@ export default function StationDeleteModal({
             onClick={closeModal}
             className="px-4 py-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:bg-[var(--theme-hover)] text-[var(--theme-text-primary)] font-medium text-sm transition"
           >
-            Cancel
+            {t("staff.cancel")}
           </button>
           <button
             type="button"
@@ -96,7 +95,7 @@ export default function StationDeleteModal({
             className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
-            {loading ? "Deleting..." : "Delete Station"}
+            {loading ? t("legacy.deleting_e16cac65") : t("legacy.delete_station_a59e5f4f")}
           </button>
         </div>
       </div>

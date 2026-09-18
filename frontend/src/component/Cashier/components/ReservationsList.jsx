@@ -7,6 +7,7 @@ import ReservationCancellationToast from "./ReservationCancellationToast";
 import { AuthContext } from "../../../api/authforRBC";
 import ReservationPrintModal from "./ReservationPrintModal";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -20,6 +21,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function ReservationsList() {
+                 const { t: autoT } = useAutoTranslation();
   const [reservations, setReservations] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -58,7 +60,7 @@ export default function ReservationsList() {
         previous: payload.previous,
       });
     } catch (err) {
-      toast.error("Failed to fetch reservations");
+      toast.error(autoT("legacy.failed_to_fetch_reservations_2f0766cc"));
     }
   };
 
@@ -79,20 +81,20 @@ export default function ReservationsList() {
   const markArrived = async (id) => {
     try {
       await instance.post(`/orders/cashier/reservations/${id}/arrive/`);
-      toast.success("Marked as arrived");
+      toast.success(autoT("legacy.marked_as_arrived_0a8ba09e"));
       fetchReservations(page);
     } catch (err) {
-      toast.error("Failed to update reservation status");
+      toast.error(autoT("legacy.failed_to_update_reservation_status_ea97683a"));
     }
   };
 
   const markCancel = async (id) => {
     try {
       await instance.patch(`/orders/cancel-reservation/${id}/`);
-      toast.success("Reservation cancelled");
+      toast.success(autoT("legacy.reservation_cancelled_01ebfe58"));
       fetchReservations(page);
     } catch (err) {
-      toast.error("Failed to cancel reservation");
+      toast.error(autoT("legacy.failed_to_cancel_reservation_95ed558b"));
     }
   };
 
@@ -119,30 +121,30 @@ export default function ReservationsList() {
     if (status === "arrived")
       return (
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          Arrived
+          {autoT("legacy.arrived_a22d66c8")}
         </span>
       );
     if (status === "cancelled")
       return (
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-          Cancelled
+          {autoT("status.cancelled")}
         </span>
       );
     if (status === "no_show")
       return (
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          No Show
+          {autoT("legacy.no_show_7ed172ed")}
         </span>
       );
     if (isOverdue)
       return (
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 animate-pulse">
-          Overdue
+          {autoT("legacy.overdue_07217c77")}
         </span>
       );
     return (
       <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-        Reserved
+        {autoT("legacy.reserved_67a6ff10")}
       </span>
     );
   };
@@ -151,12 +153,12 @@ export default function ReservationsList() {
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Reservations</h2>
+        <h2 className="text-2xl font-bold text-gray-800">{autoT("landing.features.groups.operations.items.reservations")}</h2>
         <button
           onClick={() => setIsAddModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md"
         >
-          <span className="text-xl">+</span> Add Reservation
+          <span className="text-xl">+</span> {autoT("legacy.add_reservation_4ba52ffb")}
         </button>
       </div>
 
@@ -165,7 +167,7 @@ export default function ReservationsList() {
           type="search"
           value={filters.search}
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="Search name, phone, table..."
+          placeholder={autoT("legacy.search_name_phone_table_7703d5f9")}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm md:col-span-2"
         />
         <select
@@ -173,9 +175,9 @@ export default function ReservationsList() {
           onChange={(event) => updateFilter("status", event.target.value)}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm"
         >
-          <option value="">Active status</option>
-          <option value="reserved">Reserved</option>
-          <option value="arrived">Arrived</option>
+          <option value="">{autoT("legacy.active_status_bde34d02")}</option>
+          <option value="reserved">{autoT("legacy.reserved_67a6ff10")}</option>
+          <option value="arrived">{autoT("legacy.arrived_a22d66c8")}</option>
         </select>
         <input
           type="date"
@@ -195,7 +197,7 @@ export default function ReservationsList() {
             onClick={resetFilters}
             className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
-            Reset
+            {autoT("inventory_manager.common.reset")}
           </button>
         </div>
       </div>
@@ -204,7 +206,7 @@ export default function ReservationsList() {
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         {reservations.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
-            No reservations found. Click "Add Reservation" to create one.
+            {autoT("legacy.no_reservations_found_click_add_reservation_to_create__0fcfbe25")}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -212,22 +214,22 @@ export default function ReservationsList() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
+                    {autoT("table.customer")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Table
+                    {autoT("legacy.table_0424f6e7")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Time
+                    {autoT("legacy.time_6c82e6dd")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Guests
+                    {autoT("legacy.guests_3c23a670")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    {autoT("table.status")}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {autoT("table.actions")}
                   </th>
                 </tr>
               </thead>
@@ -268,26 +270,26 @@ export default function ReservationsList() {
                               onClick={() => markArrived(r.id)}
                               className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
                             >
-                              Arrived
+                              {autoT("legacy.arrived_a22d66c8")}
                             </button>
 
                             <button
                               onClick={() => setReservationToCancel(r)}
                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-xs transition-colors"
-                              title="Cancel reservation"
+                              title={autoT("legacy.cancel_reservation_bb3c1d62")}
                             >
-                              Cancel
+                              {autoT("staff.cancel")}
                             </button>
                           </div>
                         )}
                         {r.status === "arrived" && (
                           <span className="text-gray-500 text-xs">
-                            Completed
+                            {autoT("stats.completed")}
                           </span>
                         )}
                         {r.status === "no_show" && (
                           <span className="text-red-600 font-medium text-xs">
-                            No Show
+                            {autoT("legacy.no_show_7ed172ed")}
                           </span>
                         )}
                         <button
@@ -304,19 +306,19 @@ export default function ReservationsList() {
           : "bg-blue-50 text-blue-600 hover:bg-blue-100"
       }`}
                         >
-                          ✏️ Edit
+                          {autoT("legacy.edit_46d11d96")}
                         </button>
 
                         {r.status === "cancelled" && (
                           <span className="text-gray-500 text-xs">
-                            Cancelled
+                            {autoT("status.cancelled")}
                           </span>
                         )}
                         <button
                           onClick={() => setPrintReservation(r)}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs"
                         >
-                          🖨 Print
+                          {autoT("legacy.print_d21878f0")}
                         </button>
                       </td>
                     </tr>

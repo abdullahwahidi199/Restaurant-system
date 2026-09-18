@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import useCategoryItems from "../../Admin/MenuManagement/useCategoryItems";
 // import CategoryDeleteModal from "./CategoryDeleteModal";
 import KitcheManagerMenuList from "./MenuList";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 // import useCategoryItems from "./useCategoryItems";
 // import CategoryDeleteModal from "./CategoryDeleteModal";
 // import MenuList from "./MenuList";
@@ -12,6 +13,7 @@ export default function ManagerCategoriesList({
   categories,
   onCategoryDelete,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
 
@@ -76,7 +78,7 @@ export default function ManagerCategoriesList({
         </div>
       ) : isError ? (
         <div className="text-center text-red-500 py-10">
-          Failed to load category items.
+          {autoT("failed_load_items")}
         </div>
       ) : selectedCategoryId ? (
         <div>
@@ -97,7 +99,7 @@ export default function ManagerCategoriesList({
         </div>
       ) : (
         <div className="text-gray-400 text-center py-10">
-          Select a category to view its items.
+          {autoT("select_category")}
         </div>
       )}
     </div>

@@ -7,6 +7,7 @@ import TableActionModal from "./TableActionModal";
 import OrderCancellationToast from "../OrderCancellationToast";
 
 import instance from "../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 // Color palettes — multiple shades per status for visual variety
 const PALETTES = {
@@ -54,6 +55,7 @@ const pickPalette = (status, tableId) => {
 const hasReservationOverride = (status) => status === "reserved";
 
 export default function TablesDisplayModal({ tables, refetchTables }) {
+                 const { t: autoT } = useAutoTranslation();
   const [filter, setFilter] = useState("all");
   const [selectedTable, setSelectedTable] = useState(null);
   const [showCancelToast, setShowCancelToast] = useState(false);
@@ -182,7 +184,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
   return (
     <div className="p-6">
       <div className="flex flex-wrap justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Waiter Dashboard</h1>
+        <h1 className="text-2xl font-semibold">{autoT("legacy.waiter_dashboard_1ca0cba4")}</h1>
         <div className="flex flex-wrap gap-2">
           {["all", "available", "occupied", "reserved", "unavailable"].map(
             (s) => (
@@ -211,16 +213,16 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
       </div>
 
       <div className="mb-4 text-gray-700 font-medium flex flex-wrap gap-4">
-        <span>🟢 {availableCount} Available</span>
-        <span>🟠 {occupiedCount} Occupied</span>
-        <span>🟣 {reservedCount} Reserved</span>
-        <span>⚫ {unavailableCount} Unavailable</span>
+        <span>🟢 {availableCount} {autoT("available")}</span>
+        <span>🟠 {occupiedCount} {autoT("legacy.occupied_30c51a99")}</span>
+        <span>🟣 {reservedCount} {autoT("legacy.reserved_67a6ff10")}</span>
+        <span>⚫ {unavailableCount} {autoT("menu.unavailable")}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {sortedTables.length === 0 ? (
           <p className="text-gray-500 col-span-full text-center py-8">
-            No tables found.
+            {autoT("legacy.no_tables_found_5d9c4b8e")}
           </p>
         ) : (
           sortedTables.map((table) => {
@@ -239,7 +241,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                   <div className="flex items-center gap-2 min-w-0">
                     {getStatusIcon(table.status, hasReservation, table.id)}
                     <h2 className="text-lg font-bold truncate">
-                      Table {table.name}
+                      {autoT("legacy.table_0424f6e7")} {table.name}
                     </h2>
                   </div>
 
@@ -257,23 +259,23 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                           : "bg-gray-400 cursor-not-allowed"
                       }`}
                     >
-                      Cancel
+                      {autoT("staff.cancel")}
                     </button>
                   )}
                 </div>
 
                 <p className="text-sm text-gray-700">
-                  Capacity: {table.capacity}
+                  {autoT("legacy.capacity_218347e0")} {table.capacity}
                 </p>
                 <p className="text-sm capitalize text-gray-800">
-                  Status: {hasReservation ? "Reserved" : table.status}
+                  {autoT("legacy.status_11dc9e19")} {hasReservation ? autoT("legacy.reserved_67a6ff10") : table.status}
                 </p>
 
                 {["pending", "in_progress", "ready"].includes(
                   order?.status,
                 ) && (
                   <p className="text-sm capitalize text-gray-800">
-                    Kitchen: {order.status}
+                    {autoT("legacy.kitchen_e03f03a7")} {order.status}
                   </p>
                 )}
                 {order?.created_at && (
@@ -283,7 +285,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                 )}
                 {table.note && (
                   <p className="text-xs text-gray-600 italic mt-1">
-                    Note: {table.note}
+                    {autoT("legacy.note_83423c19")} {table.note}
                   </p>
                 )}
 
@@ -291,7 +293,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                 {table.current_reservation && (
                   <div className="mt-3 p-2 bg-white/60 rounded-lg border border-purple-200">
                     <p className="text-xs font-semibold text-purple-800 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Current Reservation
+                      <Calendar className="w-3 h-3" /> {autoT("legacy.current_reservation_2dce6841")}
                     </p>
                     <p className="text-xs text-purple-700 mt-0.5">
                       👤 {table.current_reservation.customer_name}
@@ -306,7 +308,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
                 {table.upcoming_reservation && (
                   <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs font-semibold text-blue-800 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Next Reservation
+                      <Calendar className="w-3 h-3" /> {autoT("legacy.next_reservation_9d9fd4b7")}
                     </p>
                     <p className="text-xs text-blue-700 mt-0.5">
                       👤 {table.upcoming_reservation.customer_name}

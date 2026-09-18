@@ -126,7 +126,7 @@ export default function KitchenManagerItemDetails() {
   //   };
 
   if (!item) {
-    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+    return <p className="text-center mt-10 text-gray-500">{t("dashboard.loading")}</p>;
   }
 
   return (
@@ -142,7 +142,7 @@ export default function KitchenManagerItemDetails() {
               size={18}
               className="text-gray-600 group-hover:-translate-x-1 transition-transform duration-200"
             />
-            <span className="text-sm font-medium text-gray-700">Back</span>
+            <span className="text-sm font-medium text-gray-700">{t("legacy.back_b52b36b7")}</span>
           </button>
           {/* <h2 className="text-xl font-semibold">{t("edit_menu_item")}</h2>
          <button
@@ -165,7 +165,7 @@ export default function KitchenManagerItemDetails() {
           {preview && (
             <img
               src={preview}
-              alt="preview"
+              alt={t("legacy.preview_1aa787fe")}
               className="w-36 h-36 object-cover rounded border mb-2"
             />
           )}
@@ -179,7 +179,7 @@ export default function KitchenManagerItemDetails() {
             value={item.name}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
-            placeholder="Name"
+            placeholder={t("attendance.table.name")}
           />
 
           <textarea
@@ -220,7 +220,7 @@ export default function KitchenManagerItemDetails() {
           </label>
 
           <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Recipe Ingredients</h3>
+            <h3 className="font-medium mb-3">{t("legacy.recipe_ingredients_f5b23534")}</h3>
 
             {ingredients.map((ing, index) => (
               <div
@@ -259,7 +259,7 @@ export default function KitchenManagerItemDetails() {
                       )
                     }
                     className="w-28 border rounded px-2 py-1"
-                    placeholder="Qty"
+                    placeholder={t("inventory_manager.common.qty")}
                   />
 
                   {/* <button
@@ -273,7 +273,7 @@ export default function KitchenManagerItemDetails() {
 
                 <div className="text-sm text-gray-600 pl-1">
                   <p>
-                    Cost contribution:{" "}
+                    {t("legacy.cost_contribution_c445e906")}{" "}
                     <span className="font-medium text-black">
                       {ing.ingredient_cost ?? 0}
                     </span>

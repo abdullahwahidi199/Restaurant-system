@@ -4,6 +4,7 @@ import {
   createPurchaseInvoice,
   createSupplier,
   createSupplierPayment,
+  deleteSupplier,
   deletePurchaseInvoiceAttachment,
   getProcurementIngredients,
   getPurchaseInvoice,
@@ -25,6 +26,7 @@ import {
 } from "../constants";
 import { conversionFactor, getProcurementStats } from "../utils/calculations";
 import { listFrom, todayISO } from "../../shared/erp/formatters";
+import i18n from "../../../i18n";
 
 export default function useProcurementWorkspace({
   initialView = "dashboard",
@@ -45,6 +47,7 @@ export default function useProcurementWorkspace({
   const [paymentSearch, setPaymentSearch] = useState("");
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [supplierForm, setSupplierForm] = useState(blankSupplier);
+  const [editingSupplier, setEditingSupplier] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedSupplierLedger, setSelectedSupplierLedger] = useState(null);
   const [paymentDialog, setPaymentDialog] = useState(null);
@@ -249,16 +252,16 @@ export default function useProcurementWorkspace({
         };
       });
       if (lines.some((line) => !line.ingredient || line.quantity <= 0)) {
-        setError("Add at least one valid ingredient line.");
+        setError(i18n.t("legacy.add_at_least_one_valid_ingredient_line_15f02e8a"));
         return;
       }
       const amountPaid = Number(invoiceForm.amount_paid || 0);
       if (!Number.isFinite(amountPaid)) {
-        setError("Enter a valid initial payment amount.");
+        setError(i18n.t("legacy.enter_a_valid_initial_payment_amount_d18fc2d6"));
         return;
       }
       if (amountPaid > invoiceTotal) {
-        setError("Initial payment cannot be more than the invoice total.");
+        setError(i18n.t("legacy.initial_payment_cannot_be_more_than_the_invoice_total_be24b9ed"));
         return;
       }
       await createPurchaseInvoice({
@@ -283,19 +286,64 @@ export default function useProcurementWorkspace({
     }
   };
 
+  const startAddSupplier = () => {
+    setEditingSupplier(null);
+    setSupplierForm(blankSupplier);
+    setShowSupplierDialog(true);
+  };
+
+  const startEditSupplier = (supplier) => {
+    setEditingSupplier(supplier);
+    setSupplierForm({
+      name: supplier.name || "",
+      contact_person: supplier.contact_person || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+      address: supplier.address || "",
+      notes: supplier.notes || "",
+      is_active: Boolean(supplier.is_active),
+    });
+    setShowSupplierDialog(true);
+  };
+
   const submitSupplier = async (event) => {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      await createSupplier(supplierForm);
+      if (editingSupplier) {
+        await updateSupplier(editingSupplier.id, supplierForm);
+      } else {
+        await createSupplier(supplierForm);
+      }
       setSupplierForm(blankSupplier);
+      setEditingSupplier(null);
       setShowSupplierDialog(false);
       const res = await getSuppliers();
       setSuppliers(listFrom(res.data));
-      setNotice("Supplier saved.");
+      setNotice(editingSupplier ? "Supplier updated." : "Supplier created.");
     } catch (err) {
       handleApiError(err, "Failed to save supplier.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeSupplier = async (supplier) => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await deleteSupplier(supplier.id);
+      const supplierRes = await getSuppliers();
+      setSuppliers(listFrom(supplierRes.data));
+      await Promise.all([loadInvoices(), loadPayments()]);
+      if (selectedSupplierLedger?.supplier?.id === supplier.id) {
+        setSelectedSupplierLedger(null);
+      }
+      setNotice("Supplier deleted.");
+    } catch (err) {
+      handleApiError(err, "Failed to delete supplier.");
     } finally {
       setSaving(false);
     }
@@ -466,6 +514,7 @@ export default function useProcurementWorkspace({
     setShowSupplierDialog,
     supplierForm,
     setSupplierForm,
+    editingSupplier,
     selectedInvoice,
     setSelectedInvoice,
     selectedSupplierLedger,
@@ -493,6 +542,9 @@ export default function useProcurementWorkspace({
     removeLine,
     submitInvoice,
     submitSupplier,
+    startAddSupplier,
+    startEditSupplier,
+    removeSupplier,
     toggleSupplier,
     openInvoice,
     approveDraft,

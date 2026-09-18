@@ -1,7 +1,9 @@
 import React from "react";
 import { Maximize2, X } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function AttachmentPreviewModal({ preview, onClose }) {
+                 const { t: autoT } = useAutoTranslation();
   const { attachment, url } = preview;
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-slate-950/95">
@@ -9,7 +11,7 @@ export default function AttachmentPreviewModal({ preview, onClose }) {
         <div className="min-w-0">
           <p className="truncate font-semibold">{attachment.original_filename}</p>
           <p className="text-xs text-white/60">
-            Uploaded by {attachment.uploaded_by_name || "System"}
+            {autoT("legacy.uploaded_by_4fdc58b2")} {attachment.uploaded_by_name || autoT("inventory_manager.common.system")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -20,7 +22,7 @@ export default function AttachmentPreviewModal({ preview, onClose }) {
             className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm transition hover:bg-white/10"
           >
             <Maximize2 className="h-4 w-4" />
-            Open
+            {autoT("landing.marketplace.card.open")}
           </a>
           <button
             type="button"

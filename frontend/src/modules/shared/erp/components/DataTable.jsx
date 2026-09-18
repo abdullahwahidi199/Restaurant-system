@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Download } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, Download } from "lucide-react";
 import EmptyState from "./EmptyState";
+import TablePagination from "./TablePagination";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const actionKeys = new Set(["action", "actions"]);
 
@@ -23,6 +25,7 @@ export default function DataTable({
   exportFilename = "erp-export.csv",
   showExport = true,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [sort, setSort] = useState({ key: "", direction: "asc" });
   const [page, setPage] = useState(1);
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -49,8 +52,6 @@ export default function DataTable({
   }, [columns, rows, sort]);
 
   const visibleRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
-  const start = rows.length ? (page - 1) * pageSize + 1 : 0;
-  const end = Math.min(page * pageSize, rows.length);
   const dataColumns = columns.filter((column) => !actionKeys.has(column.key));
   const actionColumns = columns.filter((column) => actionKeys.has(column.key));
 
@@ -84,18 +85,18 @@ export default function DataTable({
 
   return (
     <div className="theme-table overflow-hidden">
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-3 theme-surface">
+      <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2 theme-surface">
         <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
-          {rows.length.toLocaleString()} records
+          {rows.length.toLocaleString()} {autoT("legacy.records_86761b63")}
         </p>
         {showExport && rows.length > 0 && (
           <button
             type="button"
             onClick={exportCsv}
-            className="theme-btn theme-btn-outline px-3 py-2 text-xs"
+            className="theme-btn theme-btn-outline h-8 px-3 text-xs"
           >
             <Download className="h-3.5 w-3.5" />
-            Export
+            {autoT("legacy.export_f3e4fadb")}
           </button>
         )}
       </div>
@@ -104,15 +105,15 @@ export default function DataTable({
           visibleRows.map((row, index) => (
             <article
               key={row[rowKey] ?? index}
-              className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-sm"
+              className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-sm"
             >
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {dataColumns.map((column, columnIndex) => (
                   <div
                     key={column.key}
                     className={
                       columnIndex === 0
-                        ? "border-b border-[var(--theme-border)] pb-3"
+                        ? "border-b border-[var(--theme-border)] pb-2.5"
                         : "flex items-start justify-between gap-3"
                     }
                   >
@@ -128,8 +129,8 @@ export default function DataTable({
                     <div
                       className={
                         columnIndex === 0
-                          ? "text-base font-bold theme-text-primary"
-                          : "min-w-0 text-right text-sm font-medium theme-text-secondary"
+                          ? "text-sm font-bold theme-text-primary"
+                          : "min-w-0 text-right text-xs font-medium theme-text-secondary"
                       }
                     >
                       {column.render ? column.render(row, index) : row[column.key]}
@@ -139,7 +140,7 @@ export default function DataTable({
               </div>
 
               {actionColumns.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
                   {actionColumns.map((column) => (
                     <div key={column.key}>
                       {column.render ? column.render(row, index) : row[column.key]}
@@ -155,8 +156,8 @@ export default function DataTable({
               empty
             ) : (
               <EmptyState
-                title={empty || "No records found"}
-                description="Adjust filters or create a new record to see it here."
+                title={empty || autoT("legacy.no_records_found_96f4f9b2")}
+                description={autoT("legacy.adjust_filters_or_create_a_new_record_to_see_it_here_b57f25fa")}
               />
             )}
           </div>
@@ -164,18 +165,30 @@ export default function DataTable({
       </div>
 
       <div className="hidden max-h-[68vh] overflow-auto md:block">
-        <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="sticky top-0 z-10 text-xs font-bold uppercase tracking-wide backdrop-blur">
+        <table className="w-full min-w-[760px] text-left text-[13px]">
+          <thead className="sticky top-0 z-10 text-[11px] font-semibold uppercase tracking-wide backdrop-blur">
             <tr>
-              {columns.map((column) => (
-                <th key={column.key} className={column.headerClassName || "px-4 py-3"}>
+              {columns.map((column) => {
+                const rightAligned = actionKeys.has(column.key) || column.className?.includes("text-right");
+                return (
+                <th
+                  key={column.key}
+                  className={column.headerClassName || `px-4 py-2.5 ${rightAligned ? "text-right" : ""}`}
+                  aria-sort={
+                    sort.key === column.key
+                      ? sort.direction === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                >
                   {column.sortable === false || actionKeys.has(column.key) ? (
                     column.header
                   ) : (
                     <button
                       type="button"
                       onClick={() => toggleSort(column)}
-                      className="inline-flex items-center gap-1.5 transition hover:text-[var(--theme-primary)]"
+                      className={`inline-flex items-center gap-1.5 transition hover:text-[var(--theme-primary)] ${rightAligned ? "ml-auto" : ""}`}
                     >
                       {column.header}
                       {sort.key === column.key ? (
@@ -188,7 +201,8 @@ export default function DataTable({
                     </button>
                   )}
                 </th>
-              ))}
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--theme-border)]">
@@ -199,7 +213,7 @@ export default function DataTable({
                   className="transition"
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className={column.className || "px-4 py-4 align-middle theme-text-secondary"}>
+                    <td key={column.key} className={column.className || "px-4 py-2.5 align-middle theme-text-secondary"}>
                       {column.render ? column.render(row, index) : row[column.key]}
                     </td>
                   ))}
@@ -207,13 +221,13 @@ export default function DataTable({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8">
+                <td colSpan={columns.length} className="px-4 py-5">
                   {React.isValidElement(empty) ? (
                     empty
                   ) : (
                     <EmptyState
-                      title={empty || "No records found"}
-                      description="Adjust filters or create a new record to see it here."
+                      title={empty || autoT("legacy.no_records_found_96f4f9b2")}
+                      description={autoT("legacy.adjust_filters_or_create_a_new_record_to_see_it_here_b57f25fa")}
                     />
                   )}
                 </td>
@@ -222,34 +236,13 @@ export default function DataTable({
           </tbody>
         </table>
       </div>
-      {rows.length > pageSize && (
-        <div className="flex flex-col gap-3 border-t px-4 py-3 text-sm theme-text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            Showing {start}-{end} of {rows.length}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="theme-btn theme-btn-outline h-9 w-9 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-xs font-semibold uppercase tracking-wide">
-              Page {page} of {pageCount}
-            </span>
-            <button
-              type="button"
-              disabled={page === pageCount}
-              onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-              className="theme-btn theme-btn-outline h-9 w-9 disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        page={page}
+        totalItems={rows.length}
+        pageSize={pageSize}
+        totalPages={pageCount}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

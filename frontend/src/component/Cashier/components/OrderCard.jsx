@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import DiscountRequestModal from "./DiscountRequestModal";
 import OrderEditModal from "./OrderEditModal";
 import OrderCancellationToast from "../../OrderCancellationToast";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const OrderCard = ({
   order = {},
@@ -12,6 +13,7 @@ const OrderCard = ({
   onAssignDelivery,
   onMarkCompleted,
 }) => {
+                    const { t: autoT } = useAutoTranslation();
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   // console.log(order);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -80,11 +82,14 @@ const OrderCard = ({
 
   const handleMarkDelivered = async () => {
     try {
-      await instance.patch(`/orders/orders/${order.id}/update_status/`, {
-        status: "delivered",
-      });
+      const response = await instance.patch(
+        `/orders/orders/${order.id}/update_status/`,
+        {
+          status: "delivered",
+        },
+      );
 
-      onMarkCompleted(order.id);
+      onMarkCompleted(response.data);
     } catch (error) {
       console.error(error);
     }
@@ -105,13 +110,13 @@ const OrderCard = ({
           status: "served",
         });
 
-        toast.success("Order marked as served");
+        toast.success(autoT("legacy.order_marked_as_served_3beeb984"));
 
         // Then print
         onPrintBill && onPrintBill(order);
       } catch (error) {
         console.error(error);
-        toast.error("Failed to mark order as served");
+        toast.error(autoT("legacy.failed_to_mark_order_as_served_e87fbf52"));
       }
 
       return;
@@ -122,35 +127,38 @@ const OrderCard = ({
 
   const handleMarkPaid = async (order) => {
     try {
-      await instance.patch(`/orders/orders/${order.id}/update_status/`, {
-        status: "completed",
-      });
+      const response = await instance.patch(
+        `/orders/orders/${order.id}/update_status/`,
+        {
+          status: "completed",
+        },
+      );
 
-      onMarkCompleted(order.id);
+      onMarkCompleted(response.data);
 
-      toast.success("Payment completed");
+      toast.success(autoT("legacy.payment_completed_456b71b4"));
     } catch (error) {
       console.error(error);
 
-      toast.error("Failed to mark paid");
+      toast.error(autoT("legacy.failed_to_mark_paid_fc464c28"));
     }
   };
 
   const cancelOrder = async () => {
     if (order.status !== "pending") {
-      toast.error("Only pending orders can be cancelled");
+      toast.error(autoT("legacy.only_pending_orders_can_be_cancelled_15257a77"));
       return;
     }
 
     try {
       await instance.patch(`/orders/${order.id}/cancel/`);
 
-      toast.success("Order cancelled successfully");
+      toast.success(autoT("legacy.order_cancelled_successfully_646b7eb7"));
 
       setShowCancelConfirm(false);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to cancel order");
+      toast.error(autoT("legacy.failed_to_cancel_order_5cc659d5"));
     }
   };
 
@@ -160,7 +168,7 @@ const OrderCard = ({
         =
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-semibold text-lg">
-            Order #{order.order_number || "—"}
+            {autoT("table.order_number")}{order.order_number || "—"}
           </h3>
 
           <span
@@ -173,36 +181,36 @@ const OrderCard = ({
         </div>
         {/* Info */}
         <p className="text-sm text-gray-600 mb-1">
-          <strong>Type:</strong>{" "}
+          <strong>{autoT("legacy.type_ee3fb11d")}</strong>{" "}
           {order.order_type_display ||
             (order.order_type && order.order_type.replace(/_/g, " ")) ||
             "—"}
         </p>
         {order.table && (
           <p className="text-lg text-gray-600 mb-1">
-            <strong>Table:</strong> {order.tableName}
+            <strong>{autoT("legacy.table_692eeda0")}</strong> {order.tableName}
           </p>
         )}
         <p className="text-sm text-gray-600 mb-1">
-          <strong>Customer:</strong> {order.name || order.customer || "—"}
+          <strong>{autoT("legacy.customer_5e0d7363")}</strong> {order.name || order.customer || "—"}
         </p>
         <p className="text-sm text-gray-600 mb-1">
-          <strong>Created by:</strong> {order.created_by_name}
+          <strong>{autoT("legacy.created_by_99d17454")}</strong> {order.created_by_name}
         </p>
         {order.delivery_boy && (
           <p className="text-sm text-gray-600 mb-1">
-            <strong>Delivery Person:</strong> {order.delivery_boy_details.name}
+            <strong>{autoT("legacy.delivery_person_cbbce489")}</strong> {order.delivery_boy_details.name}
           </p>
         )}
         {Number(order.discount_percent) > 0 && (
           <div className="mt-2 inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
-            {order.discount_percent}% Discount Applied
+            {order.discount_percent}{autoT("legacy.discount_applied_9a15d802")}
           </div>
         )}
         <div className="flex flex-col mt-3 gap-2">
           <div>
             <p className="font-semibold text-gray-800 text-lg">
-              Total: {formattedTotal} AFN
+              {autoT("legacy.total_d8e7170f")} {formattedTotal} {autoT("labels.afn")}
             </p>
           </div>
 
@@ -213,14 +221,14 @@ const OrderCard = ({
               onClick={() => onViewDetails && onViewDetails(order)}
               className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
             >
-              View
+              {autoT("inventory_manager.common.view")}
             </button>
             {canEditOrder() && order.status !== "completed" && (
               <button
                 onClick={() => setShowEditModal(true)}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
               >
-                Edit
+                {autoT("staff.table.edit")}
               </button>
             )}
             {order.status !== "in_progress" && order.status !== "pending" && (
@@ -228,7 +236,7 @@ const OrderCard = ({
                 onClick={() => handlePrint(order)}
                 className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
               >
-                Print
+                {autoT("legacy.print_5b221e9c")}
               </button>
             )}
 
@@ -242,21 +250,21 @@ const OrderCard = ({
                       onClick={() => setShowDiscountModal(true)}
                       className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
                     >
-                      Discount
+                      {autoT("menu_item_sales.discount")}
                     </button>
                   )}
 
                   {/* Pending */}
                   {latestDiscountRequest?.status === "pending" && (
                     <div className="bg-yellow-100 text-yellow-700 text-sm px-3 py-1 rounded-lg font-medium">
-                      Discount Request Pending
+                      {autoT("legacy.discount_request_pending_61339f2e")}
                     </div>
                   )}
 
                   {/* Approved */}
                   {latestDiscountRequest?.status === "approved" && (
                     <div className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-lg font-medium">
-                      Discount Approved
+                      {autoT("legacy.discount_approved_2a79dd32")}
                     </div>
                   )}
 
@@ -264,14 +272,14 @@ const OrderCard = ({
                   {latestDiscountRequest?.status === "rejected" && (
                     <div className="flex items-center gap-2">
                       <div className="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-lg font-medium">
-                        Discount Rejected
+                        {autoT("legacy.discount_rejected_f3816d6b")}
                       </div>
 
                       <button
                         onClick={() => setShowDiscountModal(true)}
                         className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
                       >
-                        Request Again
+                        {autoT("legacy.request_again_5a9e942e")}
                       </button>
                     </div>
                   )}
@@ -282,7 +290,7 @@ const OrderCard = ({
                 onClick={() => setShowCancelConfirm(true)}
                 className="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-lg transition-all"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
             )}
 
@@ -300,7 +308,7 @@ const OrderCard = ({
                       : "bg-gray-300 cursor-not-allowed"
                   }`}
                 >
-                  Mark Paid
+                  {autoT("legacy.mark_paid_522bb480")}
                 </button>
               )}
 
@@ -320,7 +328,7 @@ const OrderCard = ({
           : "bg-purple-500 hover:bg-purple-600"
       }`}
                 >
-                  {order.delivery_boy ? "Reassign" : "Assign"}
+                  {order.delivery_boy ? autoT("legacy.reassign_55843fb0") : autoT("legacy.assign_24449284")}
                 </button>
               )}
 
@@ -337,7 +345,7 @@ const OrderCard = ({
                       : "bg-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  Confirm Cash
+                  {autoT("legacy.confirm_cash_1b9603c3")}
                 </button>
               )}
           </div>
@@ -350,7 +358,7 @@ const OrderCard = ({
           order={order}
           onClose={() => setShowDiscountModal(false)}
           onSuccess={() => {
-            toast.success("Discount request submitted successfully");
+            toast.success(autoT("legacy.discount_request_submitted_successfully_a68638a2"));
 
             setShowDiscountModal(false);
 

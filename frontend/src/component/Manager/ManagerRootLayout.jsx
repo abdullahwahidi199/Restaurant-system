@@ -8,7 +8,7 @@ import BranchSwitcher from "../branch/BranchSwitcher";
 
 export default function ManagerRootLayout() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const [discountAlert, setDiscountAlert] = useState(null);
   const navigate = useNavigate();
 
@@ -31,7 +31,7 @@ export default function ManagerRootLayout() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-gray-50"
+      className="rms-standalone-workspace flex h-screen overflow-hidden theme-app-shell"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {discountAlert && (
@@ -46,21 +46,21 @@ export default function ManagerRootLayout() {
       w-72
     "
         >
-          <div className="font-bold text-lg">🔔 New Discount Request</div>
+          <div className="font-bold text-lg">{t("legacy.new_discount_request_cfe57c13")}</div>
 
           <div className="text-sm mt-1">
-            Order #{discountAlert.order_number}
+            {t("table.order_number")}{discountAlert.order_number}
           </div>
 
           <div className="text-xs mt-2 opacity-90">
-            Click to review pending requests
+            {t("legacy.click_to_review_pending_requests_9503e7a8")}
           </div>
         </div>
       )}
       <ManagerNavbar />
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">
+      <main className="operational-main flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+        <div className="mx-auto max-w-[92rem]">
           <div className="mb-4 flex justify-end">
             <BranchSwitcher />
           </div>

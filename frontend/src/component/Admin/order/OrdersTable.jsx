@@ -1,14 +1,8 @@
 import { Eye, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import StatusBadge from "../../../modules/shared/erp/components/StatusBadge";
 export default function OrdersTable({ orders, onView, onCancel, role }) {
   const { t } = useTranslation();
-  const statusColors = {
-    pending: "bg-yellow-100 text-yellow-700",
-    in_progress: "bg-blue-100 text-blue-700",
-    ready: "bg-indigo-100 text-indigo-700",
-    completed: "bg-green-100 text-green-700",
-    cancelled: "bg-red-100 text-red-700",
-  };
 
   const canCancelOrder = (order, role) => {
     if (!order) return false;
@@ -33,8 +27,8 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
   };
 
   return (
-    <div className="mt-4 overflow-x-auto bg-white rounded-xl shadow">
-      <table className="w-full rtl:text-right ltr:text-left">
+    <div className="theme-table mt-4 overflow-x-auto">
+      <table className="w-full min-w-[760px] rtl:text-right ltr:text-left">
         <thead className="bg-gray-100 text-gray-700">
           <tr>
             <th>{t("table.order_number")}</th>
@@ -42,8 +36,8 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
             <th>{t("table.total")}</th>
             <th>{t("table.table")}</th>
             <th>{t("table.status")}</th>
-            <th>Created by</th>
-            <th>Recieved by</th>
+            <th>{t("legacy.created_by_5d73cc30")}</th>
+            <th>{t("legacy.recieved_by_da0fed0b")}</th>
 
             <th>{t("table.date")}</th>
             <th className="text-center">{t("table.actions")}</th>
@@ -55,20 +49,16 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
             <tr key={order.id} className="border-b hover:bg-gray-50">
               <td className="p-3">{order.order_number}</td>
               <td className="p-3">{order.name}</td>
-              <td className="p-3">{order.total} AFN</td>
+              <td className="p-3">{order.total} {t("labels.afn")}</td>
               <td className="p-3">{getOrderTableLabel(order)}</td>
               <td className="p-3">
-                <span
-                  className={`px-2 py-1 rounded-full text-sm font-medium ${statusColors[order.status]}`}
-                >
-                  {order.status_display}
-                </span>
+                <StatusBadge status={order.status} label={order.status_display} />
               </td>
               <td className="p-3">{order.created_by_name}</td>
               {order.received_by_name ? (
                 <td>{order.received_by_name}</td>
               ) : (
-                <td>Not paid yet</td>
+                <td>{t("legacy.not_paid_yet_413df8dd")}</td>
               )}
               <td className="p-3">
                 {new Date(order.created_at).toLocaleDateString()}
@@ -77,23 +67,24 @@ export default function OrdersTable({ orders, onView, onCancel, role }) {
                 <div className="flex justify-center gap-2 rtl:flex-row-reverse">
                   <button
                     onClick={() => onView(order)}
-                    className="bg-blue-100 p-2 rounded hover:bg-blue-200"
-                    aria-label="View order"
+                    className="theme-btn theme-btn-outline theme-btn-icon text-[var(--theme-info)]"
+                    aria-label={t("legacy.view_order_0df27975")}
                   >
                     <Eye size={16} />
                   </button>
                   {canCancelOrder(order, role) ? (
                     <button
                       onClick={() => onCancel(order)}
-                      className="bg-red-100 p-2 rounded hover:bg-red-200"
+                      className="theme-btn theme-btn-icon bg-[var(--theme-danger-soft)] text-[var(--theme-danger)] hover:bg-[var(--theme-danger)] hover:text-[var(--theme-text-inverse)]"
+                      aria-label={t("orders.labels.cancel_order")}
                     >
                       <XCircle size={16} />
                     </button>
                   ) : (
                     <button
                       disabled
-                      className="bg-gray-100 p-2 rounded opacity-40 cursor-not-allowed"
-                      title="Cannot cancel this order"
+                      className="theme-btn theme-btn-icon theme-muted cursor-not-allowed opacity-40"
+                      title={t("legacy.cannot_cancel_this_order_26731abf")}
                     >
                       <XCircle size={16} />
                     </button>

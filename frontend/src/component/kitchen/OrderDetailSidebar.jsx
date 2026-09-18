@@ -13,6 +13,7 @@ import instance from "../../api/axiosInstance";
 import OrderItem from "./OrderItem";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
 import { getOrderStatusErrorMessage } from "./orderStatusError";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function OrderDetailSidebar({
   order,
@@ -21,6 +22,7 @@ export default function OrderDetailSidebar({
   onOrderUpdated,
   readOnly = false,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [printMode, setPrintMode] = useState("new"); // "new" or "all"
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
@@ -147,7 +149,7 @@ export default function OrderDetailSidebar({
         <button
           onClick={onClose}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label="Close order details"
+          aria-label={autoT("legacy.close_order_details_43432bf9")}
         >
           <X size={20} />
         </button>
@@ -182,7 +184,7 @@ export default function OrderDetailSidebar({
             </div>
           )}
           <div className="bg-gray-50 rounded-lg ">
-            <p>created by: {order.created_by_name}</p>
+            <p>{autoT("legacy.created_by_ec0f6579")} {order.created_by_name}</p>
           </div>
         </div>
 
@@ -190,7 +192,7 @@ export default function OrderDetailSidebar({
         {order.note && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-xs font-semibold text-yellow-800 mb-1">
-              📝 Notes:
+              {autoT("legacy.notes_31ae506e")}
             </p>
             <p className="text-sm text-gray-700 whitespace-pre-line">
               {order.note}
@@ -201,7 +203,7 @@ export default function OrderDetailSidebar({
         {/* Order Items */}
         <div>
           <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-            <Receipt size={16} /> Order Items
+            <Receipt size={16} /> {autoT("legacy.order_items_6cb42337")}
           </h4>
           <div className="space-y-2">
             {order.items.map((item) => (
@@ -213,9 +215,9 @@ export default function OrderDetailSidebar({
         {/* Total */}
         <div className="border-t border-gray-200 pt-3">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-gray-800">Total:</span>
+            <span className="font-semibold text-gray-800">{autoT("legacy.total_d8e7170f")}</span>
             <span className="text-xl font-bold text-gray-900">
-              {order.total} AFN
+              {order.total} {autoT("labels.afn")}
             </span>
           </div>
         </div>
@@ -241,7 +243,7 @@ export default function OrderDetailSidebar({
               onClick={() => updateOrderStatus("in_progress")}
               className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
-              <Clock size={16} /> Start Preparing
+              <Clock size={16} /> {autoT("legacy.start_preparing_b18be6d5")}
             </button>
           )}
 
@@ -251,15 +253,15 @@ export default function OrderDetailSidebar({
               onChange={(e) => setPrintMode(e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm"
             >
-              {!readOnly && <option value="new">Unprinted Items</option>}
-              <option value="all">Reprint Full Order</option>
+              {!readOnly && <option value="new">{autoT("legacy.unprinted_items_b89d0277")}</option>}
+              <option value="all">{autoT("legacy.reprint_full_order_15703afc")}</option>
             </select>
 
             <button
               onClick={() => setShowPrint(true)}
               className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
             >
-              Print Bill
+              {autoT("legacy.print_bill_30706866")}
             </button>
           </div>
 
@@ -271,7 +273,7 @@ export default function OrderDetailSidebar({
               }}
               className="w-full flex items-center justify-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
             >
-              <CheckCircle size={16} /> Mark as Ready
+              <CheckCircle size={16} /> {autoT("legacy.mark_as_ready_21098bbc")}
             </button>
           )}
         </div>

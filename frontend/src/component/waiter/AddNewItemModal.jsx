@@ -19,6 +19,7 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "../Admin/MenuManagement/menuOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function AddItemToOrderModal({
   orderId,
@@ -26,6 +27,7 @@ export default function AddItemToOrderModal({
   refetchTables,
   onItemAdded,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [menuData, setMenuData] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [showSummary, setShowSummary] = useState(false);
@@ -69,7 +71,7 @@ export default function AddItemToOrderModal({
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load menu");
+      toast.error(autoT("legacy.failed_to_load_menu_ce2894b4"));
     } finally {
       setLoading(false);
     }
@@ -199,7 +201,7 @@ export default function AddItemToOrderModal({
 
   const handleAddItems = async () => {
     if (selectedItems.length === 0) {
-      toast.error("Please select at least one item");
+      toast.error(autoT("legacy.please_select_at_least_one_item_cc00fadd"));
       return;
     }
     setSubmitting(true);
@@ -215,13 +217,13 @@ export default function AddItemToOrderModal({
 
     try {
       await instance.patch(`/orders/orders/${orderId}/add-items/`, payload);
-      toast.success("Items added successfully!");
+      toast.success(autoT("legacy.items_added_successfully_7ec4a60a"));
       await refetchTables?.();
       await onItemAdded?.();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add items");
+      toast.error(autoT("legacy.failed_to_add_items_173773ab"));
     } finally {
       setSubmitting(false);
     }
@@ -251,13 +253,13 @@ export default function AddItemToOrderModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                Add Items to Order
+                {autoT("legacy.add_items_to_order_d84c37ef")}
                 <span className="ml-2 text-sm font-medium text-gray-400">
                   #{orderId}
                 </span>
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Browse the menu and tap to add
+                {autoT("legacy.browse_the_menu_and_tap_to_add_83b7e2e1")}
               </p>
             </div>
           </div>
@@ -271,7 +273,7 @@ export default function AddItemToOrderModal({
                   ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
                   : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
               }`}
-              title={showSummary ? "Hide order summary" : "Show order summary"}
+              title={showSummary ? autoT("legacy.hide_order_summary_216f89e5") : autoT("legacy.show_order_summary_c4a6844f")}
             >
               {showSummary ? (
                 <PanelRightClose size={18} />
@@ -279,7 +281,7 @@ export default function AddItemToOrderModal({
                 <PanelRightOpen size={18} />
               )}
               <span className="text-sm font-medium hidden sm:inline">
-                {showSummary ? "Hide Cart" : "Show Cart"}
+                {showSummary ? autoT("legacy.hide_cart_95e00ace") : autoT("legacy.show_cart_4448a2e9")}
               </span>
               {totalItems > 0 && (
                 <span className="ml-1 min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-600 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
@@ -304,7 +306,7 @@ export default function AddItemToOrderModal({
           <aside className="w-52 flex-shrink-0 border-r border-gray-100 bg-gray-50/50 flex flex-col">
             <div className="px-4 py-3 border-b border-gray-100">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Categories
+                {autoT("legacy.categories_6ccb6007")}
               </h3>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -359,7 +361,7 @@ export default function AddItemToOrderModal({
                 />
                 <input
                   type="text"
-                  placeholder="Search menu items..."
+                  placeholder={autoT("search_menu_items")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/80 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition placeholder:text-gray-400"
@@ -379,7 +381,7 @@ export default function AddItemToOrderModal({
                 <span className="w-1 h-4 rounded-full bg-emerald-500" />
                 {activeCategory}
                 <span className="text-xs font-normal text-gray-400">
-                  {filteredItems.length} item
+                  {filteredItems.length} {autoT("labels.item")}
                   {filteredItems.length !== 1 && "s"}
                 </span>
               </h3>
@@ -393,7 +395,7 @@ export default function AddItemToOrderModal({
                     className="animate-spin text-emerald-500"
                     size={32}
                   />
-                  <p className="text-sm text-gray-400">Loading menu...</p>
+                  <p className="text-sm text-gray-400">{autoT("menu.loading")}</p>
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -403,7 +405,7 @@ export default function AddItemToOrderModal({
                   <p className="text-sm text-gray-400">
                     {searchQuery
                       ? `No items found for "${searchQuery}"`
-                      : "No items in this category"}
+                      : autoT("legacy.no_items_in_this_category_54d4a340")}
                   </p>
                 </div>
               ) : (
@@ -445,12 +447,12 @@ export default function AddItemToOrderModal({
                             </h4>
                             {item.item_type === "platter" && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
-                                Platter
+                                {autoT("labels.platter")}
                               </span>
                             )}
                             {!item.final_availability && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-medium">
-                                Unavailable
+                                {autoT("menu.unavailable")}
                               </span>
                             )}
                           </div>
@@ -464,7 +466,7 @@ export default function AddItemToOrderModal({
                         {/* Price */}
                         <div className="text-right flex-shrink-0 w-24">
                           <span className="text-sm font-bold text-emerald-600">
-                            Afs {parseFloat(item.price).toLocaleString()}
+                            {autoT("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()}
                           </span>
                         </div>
 
@@ -501,7 +503,7 @@ export default function AddItemToOrderModal({
                               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <Plus size={14} />
-                              Add
+                              {autoT("add")}
                             </button>
                           )}
                         </div>
@@ -519,18 +521,18 @@ export default function AddItemToOrderModal({
               <div className="px-5 py-4 border-b border-gray-100 bg-white">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
-                    Order Summary
+                    {autoT("legacy.order_summary_c7df8a99")}
                   </h3>
                   <div className="flex items-center gap-2">
                     {totalItems > 0 && (
                       <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                        {totalItems} item{totalItems !== 1 && "s"}
+                        {totalItems} {autoT("labels.item")}{totalItems !== 1 && "s"}
                       </span>
                     )}
                     <button
                       onClick={() => setShowSummary(false)}
                       className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                      title="Hide cart"
+                      title={autoT("legacy.hide_cart_42a4dfc7")}
                     >
                       <X size={14} className="text-gray-500" />
                     </button>
@@ -546,10 +548,10 @@ export default function AddItemToOrderModal({
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-400">
-                        No items selected
+                        {autoT("legacy.no_items_selected_7c727287")}
                       </p>
                       <p className="text-xs text-gray-300 mt-1">
-                        Tap items from the menu to add
+                        {autoT("legacy.tap_items_from_the_menu_to_add_3a49f282")}
                       </p>
                     </div>
                   </div>
@@ -586,12 +588,12 @@ export default function AddItemToOrderModal({
                           {item.menu_item.name}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          Afs{" "}
+                          {autoT("legacy.afs_2050680c")}{" "}
                           {parseFloat(item.menu_item.price).toLocaleString()}{" "}
-                          each
+                          {autoT("legacy.each_b32f279e")}
                         </p>
                         <textarea
-                          placeholder="Item note..."
+                          placeholder={autoT("legacy.item_note_75dbac71")}
                           value={item.note || ""}
                           onChange={(e) =>
                             handleItemNoteChange(
@@ -648,9 +650,9 @@ export default function AddItemToOrderModal({
               {selectedItems.length > 0 && (
                 <div className="border-t border-gray-100 bg-white px-5 py-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Subtotal</span>
+                    <span className="text-sm text-gray-500">{autoT("legacy.subtotal_97f7359e")}</span>
                     <span className="text-lg font-bold text-gray-900">
-                      Afs {totalAmount.toLocaleString()}
+                      {autoT("legacy.afs_2050680c")} {totalAmount.toLocaleString()}
                     </span>
                   </div>
                   <button
@@ -661,12 +663,12 @@ export default function AddItemToOrderModal({
                     {submitting ? (
                       <>
                         <Loader2 className="animate-spin" size={16} />
-                        Adding...
+                        {autoT("adding")}
                       </>
                     ) : (
                       <>
                         <Check size={16} strokeWidth={3} />
-                        Add {totalItems} Item{totalItems !== 1 && "s"} — Afs{" "}
+                        {autoT("add")} {totalItems} {autoT("legacy.item_ecdda59a")}{totalItems !== 1 && "s"} {autoT("legacy.afs_7e6dc0b4")}{" "}
                         {totalAmount.toLocaleString()}
                       </>
                     )}
@@ -685,10 +687,10 @@ export default function AddItemToOrderModal({
           >
             <ShoppingBag size={18} />
             <span className="text-sm font-semibold">
-              {totalItems} item{totalItems !== 1 && "s"}
+              {totalItems} {autoT("labels.item")}{totalItems !== 1 && "s"}
             </span>
             <span className="text-sm font-bold border-l border-white/30 pl-2 ml-1">
-              Afs {totalAmount.toLocaleString()}
+              {autoT("legacy.afs_2050680c")} {totalAmount.toLocaleString()}
             </span>
           </button>
         )}

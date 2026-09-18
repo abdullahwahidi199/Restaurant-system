@@ -33,7 +33,7 @@ export default function ManagerNavbar() {
     },
     {
       to: "/manager/reservations",
-      label: "Reservations",
+      label: t("landing.features.groups.operations.items.reservations"),
       icon: <Users size={18} />,
     },
     {
@@ -48,56 +48,58 @@ export default function ManagerNavbar() {
     },
     {
       to: "/manager/discount-requests",
-      label: "Discount requests",
+      label: t("legacy.discount_requests_ff7e6c6c"),
       icon: <Clock size={18} />,
     },
   ];
   return (
     <nav
       dir={isRTL ? "rtl" : "ltr"}
-      className={`bg-gray-200 shadow-lg border border-t-0 border-r-gray-500 fixed md:static z-50 transition-all duration-300 ${
-        isOpen ? "w-64" : "w-16"
-      } h-screen flex flex-col`}
+      className={`fixed z-50 flex h-screen flex-col border-e border-[var(--theme-sidebar-border)] bg-[var(--theme-sidebar-bg)] shadow-sm transition-all duration-200 md:static ${
+        isOpen ? "w-[17rem]" : "w-[4.5rem]"
+      }`}
     >
-      <div className="flex items-center justify-between bg-white px-4 py-4 border-b border-gray-500 flex-shrink-0">
+      <div className={`flex min-h-[68px] flex-shrink-0 items-center border-b border-[var(--theme-sidebar-border)] px-3 ${isOpen ? "justify-between" : "justify-center"}`}>
         <h1
-          className={`text-2xl font-bold text-gray-800 transition-all duration-300 ${!isOpen && "opacity-0 hidden"}`}
+          className={`truncate text-base font-bold theme-text-primary transition-all duration-200 ${!isOpen && "hidden"}`}
         >
           {/* {t("nav.admin")} */}
-          Manager
+          {t("staff.roles.manager")}
         </h1>
         <button
-          className="text-gray-700 cursor-pointer hover:text-gray-900 transition"
+          type="button"
+          className="theme-btn theme-btn-ghost theme-btn-icon cursor-pointer"
           onClick={toggleMenu}
+          aria-label={isOpen ? t("inventory_manager.a11y.collapse_sidebar") : t("inventory_manager.a11y.expand_sidebar")}
+          aria-expanded={isOpen}
         >
-          {isOpen ? <X size={24} /> : <MenuIcon size={24} />}
+          {isOpen ? <X size={18} /> : <MenuIcon size={18} />}
         </button>
       </div>
 
-      {isOpen && (
-        <div className="flex-1 overflow-y-auto">
-          <ul className="py-4 space-y-2 md:space-y-1">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
+          <ul className="space-y-1">
             {navItems.map(({ to, label, icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}
                   end
+                  title={isOpen ? undefined : label}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-5 py-2.5 rounded-lg transition-all ${
+                    `flex min-h-10 items-center rounded-lg text-sm transition-colors ${isOpen ? "gap-3 px-3" : "justify-center px-2"} ${
                       isActive
-                        ? "bg-gray-200 text-gray-900 font-semibold"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-[var(--theme-sidebar-active-bg)] font-semibold text-[var(--theme-sidebar-active-text)] ring-1 ring-inset ring-[var(--theme-primary)]/15"
+                        : "font-medium text-[var(--theme-sidebar-text)] hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text-primary)]"
                     }`
                   }
                 >
                   {icon}
-                  <span>{label}</span>
+                  {isOpen && <span className="truncate">{label}</span>}
                 </NavLink>
               </li>
             ))}
           </ul>
         </div>
-      )}
     </nav>
   );
 }

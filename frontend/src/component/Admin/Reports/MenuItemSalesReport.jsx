@@ -6,8 +6,6 @@ import {
   ArrowUpDown,
   BarChart3,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Filter,
   PackageOpen,
@@ -24,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import TablePagination from "../../../modules/shared/erp/components/TablePagination";
 import toast from "react-hot-toast";
 import {
   Bar,
@@ -1065,38 +1064,16 @@ export default function MenuItemSalesReport({ startDate, endDate, generationKey 
                 </tbody>
               </table>
             </div>
-            {pagination.total_pages > 1 && (
-              <div className="flex flex-col gap-3 border-t border-[var(--theme-border)] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span className="theme-text-muted">
-                  {t("menu_item_sales.page_of", {
-                    defaultValue: "Page {{page}} of {{total}} ({{count}} items)",
-                    page: pagination.page,
-                    total: pagination.total_pages,
-                    count: pagination.count,
-                  })}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={!pagination.has_previous || loading}
-                    onClick={() => setPage((value) => Math.max(1, value - 1))}
-                    className="theme-btn theme-btn-outline px-3 py-1.5 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
-                    {t("menu_item_sales.previous", { defaultValue: "Previous" })}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!pagination.has_next || loading}
-                    onClick={() => setPage((value) => Math.min(pagination.total_pages, value + 1))}
-                    className="theme-btn theme-btn-outline px-3 py-1.5 disabled:opacity-50"
-                  >
-                    {t("menu_item_sales.next", { defaultValue: "Next" })}
-                    <ChevronRight className="h-4 w-4 rtl:rotate-180" />
-                  </button>
-                </div>
-              </div>
-            )}
+            <TablePagination
+              page={pagination.page}
+              totalItems={pagination.count}
+              pageSize={PAGE_SIZE}
+              totalPages={pagination.total_pages}
+              hasPrevious={pagination.has_previous}
+              hasNext={pagination.has_next}
+              onPageChange={setPage}
+              loading={loading}
+            />
           </section>
 
           <section className="theme-table overflow-hidden">

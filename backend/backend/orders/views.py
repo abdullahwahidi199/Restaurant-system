@@ -1,4 +1,5 @@
 import re
+import uuid
 from urllib import request
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
@@ -100,6 +101,28 @@ def finalized_order_response(order):
     )
 
 
+def save_order_change(order, request, source, *, update_fields=None):
+    """Save an order mutation without allowing unrelated stale columns through."""
+    order._change_source = source
+    order._change_actor_id = getattr(getattr(request, "user", None), "pk", None)
+    request_id = getattr(request, "_order_change_request_id", None)
+    if not request_id:
+        supplied_request_id = request.headers.get("X-Request-ID", "")
+        request_id = re.sub(
+            r"[^A-Za-z0-9_.:-]",
+            "_",
+            supplied_request_id,
+        )[:128] or uuid.uuid4().hex
+        request._order_change_request_id = request_id
+    order._change_request_id = request_id
+
+    if update_fields is None:
+        return order.save()
+
+    fields = list(dict.fromkeys([*update_fields, "updated_at"]))
+    return order.save(update_fields=fields)
+
+
 def order_status_conflict_response(exc):
     """Return a kitchen-friendly message while retaining the original detail."""
     detail = str(exc).strip()
@@ -174,6 +197,26 @@ def get_staff_assigned_stations(user):
             return None
         return stations
     return None
+
+
+def kitchen_station_item_filter(assigned_stations):
+    """Items owned by the selected stations, including Main Kitchen fallback.
+
+    Menu entries without a station are legacy/invalid data that the order
+    serializers present as the restaurant's default station.  Include those
+    rows only for a user assigned to a default station, so they are not lost
+    from Main Kitchen and do not leak onto specialist station screens.
+    """
+    station_filter = (
+        Q(menu_item__station__in=assigned_stations)
+        | Q(platter__station__in=assigned_stations)
+    )
+    if assigned_stations.filter(is_default=True).exists():
+        station_filter |= (
+            Q(menu_item__isnull=False, menu_item__station__isnull=True)
+            | Q(platter__isnull=False, platter__station__isnull=True)
+        )
+    return station_filter
 
 def branch_scoped(request, queryset, branch_field="branch", *, allow_all=False):
     return filter_queryset_for_request(
@@ -323,15 +366,18 @@ def discount_card_actions(request, pk):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsCashier])
+@transaction.atomic
 def apply_discount_card(request, pk):
     order = get_object_or_404(
-        branch_scoped(request, Order.objects.filter(id=pk))
+        branch_scoped(request, Order.objects.select_for_update().filter(id=pk))
     )
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
 
     card_number = request.data.get("card_number")
     customer_phone = request.data.get("customer_phone")
 
-    card = DiscountCard.objects.filter(
+    card = DiscountCard.objects.select_for_update().filter(
         card_number=card_number,
         restaurant=order.restaurant,
         branch=order.branch,
@@ -385,7 +431,12 @@ def apply_discount_card(request, pk):
         )
     order.discount_percent = card.discount_percentage
     order.discount_card = card
-    order.save()
+    save_order_change(
+        order,
+        request,
+        "apply_discount_card",
+        update_fields=["discount_percent", "discount_card"],
+    )
 
     card.used_count += 1
     card.save(update_fields=["used_count"])
@@ -530,6 +581,7 @@ def order_list_create(request):
     IsRestaurantActive,
     IsManager | IsWaiter | IsRestaurantAdmin
 ])
+@transaction.atomic
 def change_order_table(request, pk):
 
     restaurant = get_restaurant_from_user(request)
@@ -537,7 +589,10 @@ def change_order_table(request, pk):
     try:
         order = branch_scoped(
             request,
-            Order.objects.select_related("table").filter(pk=pk, restaurant=restaurant),
+            Order.objects.select_for_update().filter(
+                pk=pk,
+                restaurant=restaurant,
+            ),
         ).get()
     except Order.DoesNotExist:
         return Response(
@@ -551,7 +606,7 @@ def change_order_table(request, pk):
             status=400
         )
 
-    if order.status in ["completed", "cancelled"]:
+    if order.status in FINALIZED_ORDER_STATUSES:
         return Response(
             {"error": "Cannot change table for this order"},
             status=400
@@ -566,14 +621,27 @@ def change_order_table(request, pk):
         )
 
     try:
-        new_table = branch_scoped(
+        new_table_id = int(new_table_id)
+    except (TypeError, ValueError):
+        return Response({"error": "Invalid table"}, status=400)
+
+    # Lock both table rows in stable order after locking the order. This keeps
+    # simultaneous table moves from racing their occupied/available updates.
+    table_ids = {new_table_id}
+    if order.table_id:
+        table_ids.add(order.table_id)
+    locked_tables = {
+        table.pk: table
+        for table in branch_scoped(
             request,
-            Table.objects.filter(
-            id=new_table_id,
-            restaurant=restaurant
+            Table.objects.select_for_update().filter(
+                id__in=table_ids,
+                restaurant=restaurant,
             ),
-        ).get()
-    except Table.DoesNotExist:
+        ).order_by("pk")
+    }
+    new_table = locked_tables.get(new_table_id)
+    if not new_table:
         return Response(
             {"error": "Table not found"},
             status=404
@@ -603,11 +671,16 @@ def change_order_table(request, pk):
             status=400
         )
 
-    old_table = order.table
+    old_table = locked_tables.get(order.table_id)
 
     # assign new table
     order.table = new_table
-    order.save()
+    save_order_change(
+        order,
+        request,
+        "change_order_table",
+        update_fields=["table"],
+    )
 
     # free old table
     if old_table:
@@ -624,10 +697,6 @@ def change_order_table(request, pk):
         if not has_active_orders:
             old_table.status = "available"
             old_table.save(update_fields=["status"])
-
-    # occupy new table
-    new_table.status = "occupied"
-    new_table.save(update_fields=["status"])
 
     serializer = OrderSerializer(order)
 
@@ -912,10 +981,7 @@ def kitchen_orders(request):
     assigned_stations = get_staff_assigned_stations(request.user)
     item_filter = Q(status__in=ACTIVE_STATUSES)
     if assigned_stations is not None:
-        station_filter = (
-            Q(menu_item__station__in=assigned_stations) |
-            Q(platter__station__in=assigned_stations)
-        )
+        station_filter = kitchen_station_item_filter(assigned_stations)
         item_filter = item_filter & station_filter
 
     active_items = OrderItem.objects.filter(
@@ -925,8 +991,7 @@ def kitchen_orders(request):
     items_queryset = OrderItem.objects.all()
     if assigned_stations is not None:
         items_queryset = items_queryset.filter(
-            Q(menu_item__station__in=assigned_stations) |
-            Q(platter__station__in=assigned_stations)
+            kitchen_station_item_filter(assigned_stations)
         )
 
     orders = (
@@ -983,18 +1048,15 @@ def ready_kitchen_orders(request):
     items_queryset = OrderItem.objects.all()
     if assigned_stations is not None:
         items_queryset = items_queryset.filter(
-            Q(menu_item__station__in=assigned_stations) |
-            Q(platter__station__in=assigned_stations)
+            kitchen_station_item_filter(assigned_stations)
         )
 
     orders_query = Order.objects.filter(restaurant=restaurant)
     if assigned_stations is not None:
         station_items = OrderItem.objects.filter(
-            order=OuterRef("pk"),
-            menu_item__station__in=assigned_stations
-        ) | OrderItem.objects.filter(
-            order=OuterRef("pk"),
-            platter__station__in=assigned_stations
+            order=OuterRef("pk")
+        ).filter(
+            kitchen_station_item_filter(assigned_stations)
         )
         orders_query = orders_query.annotate(has_station_items=Exists(station_items)).filter(has_station_items=True)
 
@@ -1047,12 +1109,21 @@ def mark_items_printed_to_kitchen(request, order_id):
         is_printed_to_kitchen=True
     )
 
+    if updated_count:
+        save_order_change(
+            order,
+            request,
+            "mark_items_printed_to_kitchen",
+            update_fields=[],
+        )
+
     return Response({
         "printed_items": updated_count
     })
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated, IsSameRestaurant,IsRestaurantActive,IsManager| IsWaiter|IsCashier  | IsRestaurantAdmin])
+@transaction.atomic
 def cancel_order(request, pk):
     restaurant = get_restaurant_from_user(request)
     
@@ -1060,14 +1131,16 @@ def cancel_order(request, pk):
         # Ensure order belongs to user's restaurant
         order = branch_scoped(
             request,
-            Order.objects.select_related("table").filter(pk=pk, restaurant=restaurant),
+            Order.objects.select_for_update().filter(
+                pk=pk,
+                restaurant=restaurant,
+            ),
         ).get()
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
     
-    blocked_statuses = ["completed", "cancelled"]
-    if order.status in blocked_statuses:
-        return Response({"error": f"Order already {order.status}"}, status=status.HTTP_400_BAD_REQUEST)
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
 
     # ... (Your existing permission logic for roles remains the same) ...
     role = None
@@ -1095,24 +1168,37 @@ def cancel_order(request, pk):
          pass
 
     order.status = "cancelled"
-    order.save()
+    save_order_change(
+        order,
+        request,
+        "cancel_order",
+        update_fields=["status"],
+    )
 
     return Response({"message": "Order cancelled", "order_id": order.id}, status=status.HTTP_200_OK)
 
 @api_view(['PATCH'])
 @permission_classes([AllowAny])
+@transaction.atomic
 def cancel_online_order(request, pk, slug=None, restaurant_slug=None, branch_slug=None):
     restaurant, branch = get_public_order_context(restaurant_slug or slug, branch_slug)
     
     try:
-        order = Order.objects.get(pk=pk, restaurant=restaurant, branch=branch)
+        order = Order.objects.select_for_update().get(
+            pk=pk,
+            restaurant=restaurant,
+            branch=branch,
+        )
     except Order.DoesNotExist:
         return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 
     if order.order_type != "delivery":
         return Response({'error': 'Only delivery orders can be cancelled online'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if order.status in ["in_progress","out_for_delivery","completed", "cancelled"]:
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
+
+    if order.status in ["in_progress", "out_for_delivery"]:
         return Response({'error': f'Order already {order.status}'}, status=status.HTTP_400_BAD_REQUEST)
 
     now = timezone.now()
@@ -1121,7 +1207,12 @@ def cancel_online_order(request, pk, slug=None, restaurant_slug=None, branch_slu
         return Response({'error': 'Cancellation window has expired'}, status=status.HTTP_403_FORBIDDEN)
 
     order.status = "cancelled"
-    order.save()
+    save_order_change(
+        order,
+        request,
+        "cancel_online_order",
+        update_fields=["status"],
+    )
 
     return Response({'message': 'Order cancelled successfully'}, status=status.HTTP_200_OK)
 
@@ -1146,8 +1237,12 @@ def update_order_status(request, pk):
     if new_status not in validated_statuses:
         return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if order.status in FINALIZED_ORDER_STATUSES and new_status != order.status:
-        return finalized_order_response(order)
+    if order.status in FINALIZED_ORDER_STATUSES:
+        if new_status != order.status:
+            return finalized_order_response(order)
+        # Retries of a successful payment/finalization must not rewrite the
+        # original receiver or paid timestamp.
+        return Response(OrderSerializer(order).data, status=status.HTTP_200_OK)
 
     # 1️⃣ Get logged-in user's assigned stations (if they are a Kitchen Manager)
     assigned_stations = get_staff_assigned_stations(request.user)
@@ -1156,8 +1251,7 @@ def update_order_status(request, pk):
     target_items = order.items.exclude(status="cancelled")
     if assigned_stations is not None:
         target_items = target_items.filter(
-            Q(menu_item__station__in=assigned_stations) |
-            Q(platter__station__in=assigned_stations)
+            kitchen_station_item_filter(assigned_stations)
         )
 
     # 3️⃣ If "in_progress" (Start button clicked):
@@ -1213,7 +1307,7 @@ def update_order_status(request, pk):
             reservation.save(update_fields=["status"])
 
     try:
-        order.save()
+        save_order_change(order, request, "update_order_status")
     except ValueError as exc:
         # Order.save() also performs inventory and assignment checks. Keep the
         # entire status/item update atomic and return an actionable client error
@@ -1248,7 +1342,7 @@ def add_items_to_order(request, pk):
     try:
         order = branch_scoped(
             request,
-            Order.objects.select_for_update().select_related("restaurant").filter(
+            Order.objects.select_for_update().filter(
                 pk=pk,
                 restaurant=restaurant,
             ),
@@ -1360,6 +1454,15 @@ def add_items_to_order(request, pk):
         
         # ✅ Batch recalculation (once for all affected menu items)
         recalc_batch_menu_availability(ingredient_ids)
+
+        # The serialized order changed even though no Order column besides its
+        # snapshot clock did. This also emits the existing full-order event.
+        save_order_change(
+            order,
+            request,
+            "add_items_to_order",
+            update_fields=[],
+        )
         
         def _broadcast():
             # Send individual item broadcasts
@@ -1369,7 +1472,7 @@ def add_items_to_order(request, pk):
             # One table update for all items
             broadcast_table_items_update(order)
 
-        transaction.on_commit(_broadcast)
+        transaction.on_commit(_broadcast, robust=True)
 
         # Prepare response
         for order_item in created_items:
@@ -1394,26 +1497,27 @@ def add_items_to_order(request, pk):
 def update_order_item_status(request, pk):
 
     restaurant = get_restaurant_from_user(request)
-
-    try:
-        item = OrderItem.objects.select_related(
-            "order"
-        ).select_for_update(
-        ).get(
-            pk=pk,
-            order__restaurant=restaurant,
-            order__branch=get_active_branch(request),
-        )
-
-    except OrderItem.DoesNotExist:
+    item_ref = OrderItem.objects.filter(
+        pk=pk,
+        order__restaurant=restaurant,
+        order__branch=get_active_branch(request),
+    ).values("order_id").first()
+    if not item_ref:
         return Response(
             {"error": "Item not found"},
             status=status.HTTP_404_NOT_FOUND
         )
 
-    order = Order.objects.select_for_update().get(pk=item.order_id)
+    # Every workflow locks Order first so payment and kitchen requests cannot
+    # deadlock or calculate status from different snapshots.
+    order = Order.objects.select_for_update().get(pk=item_ref["order_id"])
     if order.status in FINALIZED_ORDER_STATUSES:
         return finalized_order_response(order)
+
+    try:
+        item = OrderItem.objects.select_for_update().get(pk=pk, order=order)
+    except OrderItem.DoesNotExist:
+        return Response({"error": "Item not found"}, status=404)
 
     new_status = request.data.get("status")
 
@@ -1473,7 +1577,12 @@ def update_order_item_status(request, pk):
         order.status = "pending"
 
     try:
-        order.save(update_fields=["status"])
+        save_order_change(
+            order,
+            request,
+            "update_order_item_status",
+            update_fields=["status", "preparation_start", "preparation_end"],
+        )
     except ValueError as exc:
         # Starting one item can move the entire order to in_progress, which is
         # also when inventory is deducted. Roll back both status changes when
@@ -1629,13 +1738,14 @@ class TableRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated, IsCashier, IsRestaurantActive])
+@transaction.atomic
 def assign_delivery(request, pk):
     restaurant = get_restaurant_from_user(request)
 
     try:
         order = branch_scoped(
             request,
-            Order.objects.filter(pk=pk, restaurant=restaurant),
+            Order.objects.select_for_update().filter(pk=pk, restaurant=restaurant),
         ).get()
     except Order.DoesNotExist:
         return Response(
@@ -1643,8 +1753,8 @@ def assign_delivery(request, pk):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    # Prevent changing after delivered/cancelled
-    if order.status in ["delivered", "cancelled"]:
+    # Delivery assignment is not allowed to mutate a paid/finalized order.
+    if order.status in FINALIZED_ORDER_STATUSES:
         return Response(
             {"error": f"Cannot assign delivery for {order.status} orders"},
             status=status.HTTP_400_BAD_REQUEST
@@ -1686,12 +1796,14 @@ def assign_delivery(request, pk):
     
     if order.status == "ready":
         order.status = "out_for_delivery"
-    order.save(
+    save_order_change(
+        order,
+        request,
+        "assign_delivery",
         update_fields=[
             "delivery_boy",
             "status",
-            "updated_at"
-        ]
+        ],
     )
 
     serializer = OrderSerializer(order)
@@ -1745,7 +1857,12 @@ def handle_order_bill_print(request, pk):
 
     # mark as printed
     order.is_printed = True
-    order.save(update_fields=["is_printed"])
+    save_order_change(
+        order,
+        request,
+        "handle_order_bill_print",
+        update_fields=["is_printed"],
+    )
     
 
     return Response({
@@ -1926,29 +2043,47 @@ def bulk_update_order_items(request, pk):
 
     if not remaining:
         order.status = "ready"
-        order.save(update_fields=["status"])
+        save_order_change(
+            order,
+            request,
+            "bulk_update_order_items",
+            update_fields=["status", "preparation_end"],
+        )
+    else:
+        save_order_change(
+            order,
+            request,
+            "bulk_update_order_items",
+            update_fields=[],
+        )
 
     return Response({"message": "Items updated"})
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def cancel_order_item(request, pk):
 
     restaurant = get_restaurant_from_user(request)
 
-    try:
-        item = OrderItem.objects.select_related(
-            "order"
-        ).get(
-            pk=pk,
-            order__restaurant=restaurant,
-            order__branch=get_active_branch(request),
-        )
-
-    except OrderItem.DoesNotExist:
+    item_ref = OrderItem.objects.filter(
+        pk=pk,
+        order__restaurant=restaurant,
+        order__branch=get_active_branch(request),
+    ).values("order_id").first()
+    if not item_ref:
         return Response(
             {"error": "Item not found"},
             status=404
         )
+
+    order = Order.objects.select_for_update().get(pk=item_ref["order_id"])
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
+
+    try:
+        item = OrderItem.objects.select_for_update().get(pk=pk, order=order)
+    except OrderItem.DoesNotExist:
+        return Response({"error": "Item not found"}, status=404)
 
     # only pending items cancellable
     if item.status != "pending":
@@ -1965,6 +2100,13 @@ def cancel_order_item(request, pk):
     item.cancelled_at = timezone.now()
 
     item.save(update_fields=["status","cancelled_by","cancelled_at"])
+
+    save_order_change(
+        order,
+        request,
+        "cancel_order_item",
+        update_fields=[],
+    )
 
     return Response({
         "message": "Item cancelled successfully"
@@ -2026,10 +2168,16 @@ def all_discount_requests(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsCashier])
+@transaction.atomic
 def request_discount(request, order_id):
     order = get_object_or_404(
-        branch_scoped(request, Order.objects.filter(id=order_id))
+        branch_scoped(
+            request,
+            Order.objects.select_for_update().filter(id=order_id),
+        )
     )
+    if order.status in FINALIZED_ORDER_STATUSES:
+        return finalized_order_response(order)
     percent = Decimal(request.data.get("discount_percent", 0))
     reason = request.data.get("reason", "")
 
@@ -2047,15 +2195,36 @@ def request_discount(request, order_id):
         discount_percent=percent,
         reason=reason
     )
+    save_order_change(
+        order,
+        request,
+        "request_discount",
+        update_fields=[],
+    )
     return Response({"message": "Discount request submitted", "id": discount.id})
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def approve_discount_or_reject(request, pk):
-    discount = get_object_or_404(
-        DiscountRequest,
+    branch = get_active_branch(request)
+    discount_ref = get_object_or_404(
+        DiscountRequest.objects.values("order_id"),
         id=pk,
-        order__branch=get_active_branch(request),
+        order__branch=branch,
+    )
+
+    # Lock in the same Order -> dependent-object order used by payment, item,
+    # and table mutations. This makes the terminal-state check authoritative.
+    order = get_object_or_404(
+        Order.objects.select_for_update(),
+        id=discount_ref["order_id"],
+        branch=branch,
+    )
+    discount = get_object_or_404(
+        DiscountRequest.objects.select_for_update(),
+        id=pk,
+        order=order,
     )
 
     staff = request.user.staff_profile
@@ -2085,24 +2254,51 @@ def approve_discount_or_reject(request, pk):
         )
 
     action = request.data.get("action")  # approve / reject
+    target_status = {
+        "approve": "approved",
+        "reject": "rejected",
+    }.get(action)
+
+    if not target_status:
+        return Response({"error": "Invalid action"}, status=400)
+
+    if discount.status != "pending":
+        if target_status == discount.status:
+            return Response({"message": f"Already {discount.status}"})
+        return Response(
+            {"error": f"Discount request already {discount.status}"},
+            status=status.HTTP_409_CONFLICT,
+        )
 
     if action == "reject":
         discount.status = "rejected"
         discount.approved_by = staff
         discount.approved_at = timezone.now()
-        discount.save()
+        discount.save(update_fields=["status", "approved_by", "approved_at"])
+        save_order_change(
+            order,
+            request,
+            "reject_discount",
+            update_fields=[],
+        )
         return Response({"message": "Rejected"})
 
     if action == "approve":
+        if order.status in FINALIZED_ORDER_STATUSES:
+            return finalized_order_response(order)
+
         discount.status = "approved"
         discount.approved_by = staff
         discount.approved_at = timezone.now()
-        discount.save()
+        discount.save(update_fields=["status", "approved_by", "approved_at"])
 
-        
-        order = discount.order
         order.discount_percent = discount.discount_percent
-        order.save()
+        save_order_change(
+            order,
+            request,
+            "approve_discount",
+            update_fields=["discount_percent"],
+        )
 
         return Response({"message": "Approved and applied"})
 

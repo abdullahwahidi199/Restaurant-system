@@ -30,7 +30,7 @@ export default function TableAddModal({ onTableAdded, onClose }) {
       return;
     }
     if (!tableName) {
-      setError("Table must have name!");
+      setError(t("legacy.table_must_have_name_d1926dc1"));
     }
     setLoading(true);
 
@@ -49,7 +49,7 @@ export default function TableAddModal({ onTableAdded, onClose }) {
   };
 
   if (loading)
-    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+    return <p className="text-center mt-10 text-gray-500">{t("dashboard.loading")}</p>;
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <motion.div
@@ -76,7 +76,7 @@ export default function TableAddModal({ onTableAdded, onClose }) {
             onChange={(e) => setTableName(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             required
-            placeholder="name"
+            placeholder={t("legacy.name_6ae99955")}
           />
 
           <input
@@ -93,7 +93,7 @@ export default function TableAddModal({ onTableAdded, onClose }) {
             onChange={(e) => setPricePerHour(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             required
-            placeholder="Price per hour(Reservations)"
+            placeholder={t("legacy.price_per_hour_reservations_5e07b004")}
           />
 
           <input
@@ -110,7 +110,7 @@ export default function TableAddModal({ onTableAdded, onClose }) {
               checked={allowFreeReservation}
               onChange={(e) => setAllowFreeReservation(e.target.checked)}
             />
-            Allow free reservation
+            {t("legacy.allow_free_reservation_af739aa7")}
           </label>
 
           <button

@@ -31,87 +31,89 @@ import {
   downloadFile,
   getMediaUrl,
 } from "../../../api/publicOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 const MIGRATION_CARDS = [
   {
     type: "ingredients",
-    title: "Migrate Ingredients",
+    title: i18n.t("legacy.migrate_ingredients_c6ee1894"),
     description:
-      "Copy ingredient master data, units, costs, thresholds, and status. Stock starts at zero.",
+      i18n.t("legacy.copy_ingredient_master_data_units_costs_thresholds_and_bb9575e5"),
     icon: Database,
   },
   {
     type: "categories",
-    title: "Migrate Menu Categories",
+    title: i18n.t("legacy.migrate_menu_categories_7728d507"),
     description:
-      "Copy category names, localized names, rank, descriptions, and images.",
+      i18n.t("legacy.copy_category_names_localized_names_rank_descriptions__553a0c91"),
     icon: ClipboardList,
   },
   {
     type: "menu_items",
-    title: "Migrate Menu Items",
+    title: i18n.t("legacy.migrate_menu_items_447e30c8"),
     description:
-      "Copy items, pricing, availability, images, categories, and recipes.",
+      i18n.t("legacy.copy_items_pricing_availability_images_categories_and__222f3e67"),
     icon: Utensils,
   },
   {
     type: "platters",
-    title: "Migrate Platters",
-    description: "Copy platters and included menu items with quantities.",
+    title: i18n.t("legacy.migrate_platters_0daabbd6"),
+    description: i18n.t("legacy.copy_platters_and_included_menu_items_with_quantities_0a961b33"),
     icon: PackageOpen,
   },
   {
     type: "modifiers",
-    title: "Migrate Modifiers",
+    title: i18n.t("legacy.migrate_modifiers_1706531a"),
     description:
-      "Reserved for modifier data when a modifier model is configured.",
+      i18n.t("legacy.reserved_for_modifier_data_when_a_modifier_model_is_co_ed35fd2f"),
     icon: Layers3,
   },
   {
     type: "everything",
-    title: "Migrate Everything",
+    title: i18n.t("legacy.migrate_everything_7ca2c2d5"),
     description:
-      "Copy configuration and menu structure only. Inventory stock and purchase history are excluded.",
+      i18n.t("legacy.copy_configuration_and_menu_structure_only_inventory_s_b01da48c"),
     icon: RefreshCw,
   },
 ];
 
 const MIGRATION_FLOW_ITEMS = [
   {
-    label: "Units",
+    label: i18n.t("legacy.units_12748281"),
     includedIn: ["ingredients", "menu_items", "platters", "everything"],
   },
   {
-    label: "Ingredient Categories",
+    label: i18n.t("legacy.ingredient_categories_9d38d0b6"),
     includedIn: ["ingredients", "menu_items", "platters", "everything"],
   },
   {
-    label: "Ingredients",
+    label: i18n.t("menuDetails.ingredients"),
     includedIn: ["ingredients", "menu_items", "platters", "everything"],
   },
   {
-    label: "Menu Categories",
+    label: i18n.t("legacy.menu_categories_02170c05"),
     includedIn: ["categories", "menu_items", "platters", "everything"],
   },
   {
-    label: "Menu Items",
+    label: i18n.t("dashboard.stats.menu_items"),
     includedIn: ["menu_items", "platters", "everything"],
   },
   {
-    label: "Recipes",
+    label: i18n.t("landing.features.groups.inventory.items.recipes"),
     includedIn: ["menu_items", "platters", "everything"],
   },
   {
-    label: "Platters",
+    label: i18n.t("legacy.platters_84cf7710"),
     includedIn: ["platters", "everything"],
   },
   {
-    label: "Modifiers",
+    label: i18n.t("legacy.modifiers_3a7ea294"),
     includedIn: ["modifiers", "everything"],
   },
-  { label: "Inventory Stock", excluded: true },
-  { label: "Purchase History", excluded: true },
-  { label: "Stock Transactions", excluded: true },
+  { label: i18n.t("legacy.inventory_stock_f3173c2c"), excluded: true },
+  { label: i18n.t("inventory_manager.ingredients.purchase_history"), excluded: true },
+  { label: i18n.t("legacy.stock_transactions_727fd4dd"), excluded: true },
 ];
 
 const createEmptyForm = () => ({
@@ -126,6 +128,7 @@ const createEmptyForm = () => ({
 });
 
 export default function BranchManagement() {
+                 const { t: autoT } = useAutoTranslation();
   const { activeBranch, refreshBranchContext } = useContext(AuthContext);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -377,7 +380,7 @@ export default function BranchManagement() {
     try {
       await copyText(branch.public_url);
     } catch (err) {
-      setError("Could not copy branch link.");
+      setError(autoT("legacy.could_not_copy_branch_link_74215fcf"));
     }
   };
 
@@ -387,7 +390,7 @@ export default function BranchManagement() {
     try {
       await downloadFile(qrUrl, `${branch.slug || branch.code}_menu_qr.png`);
     } catch (err) {
-      setError("Could not download branch QR code.");
+      setError(autoT("legacy.could_not_download_branch_qr_code_999b03d1"));
     }
   };
 
@@ -440,14 +443,13 @@ export default function BranchManagement() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Branch management
+            {autoT("legacy.branch_management_1ad452aa")}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {branchLimit.branches_used} / {branchLimit.max_branches} branches
-            used
+            {branchLimit.branches_used} / {branchLimit.max_branches} {autoT("legacy.branches_used_7c543427")}
             {branchLimit.branches_remaining > 0
               ? ` (${branchLimit.branches_remaining} remaining)`
-              : " (limit reached)"}
+              : autoT("legacy.limit_reached_57bf09cc")}
           </p>
         </div>
         <button
@@ -457,7 +459,7 @@ export default function BranchManagement() {
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
           <Plus size={18} />
-          Add branch
+          {autoT("legacy.add_branch_e25a5e29")}
         </button>
       </div>
 
@@ -471,19 +473,19 @@ export default function BranchManagement() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-gray-100 text-xs uppercase text-gray-600">
             <tr>
-              <th className="px-5 py-3">Branch</th>
-              <th className="px-5 py-3">Contact</th>
-              <th className="px-5 py-3">Public Menu</th>
-              <th className="px-5 py-3">Staff</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3 text-right">Actions</th>
+              <th className="px-5 py-3">{autoT("settings_center.nav.branch")}</th>
+              <th className="px-5 py-3">{autoT("landing.marketplace.footer.links.contact")}</th>
+              <th className="px-5 py-3">{autoT("legacy.public_menu_b836be90")}</th>
+              <th className="px-5 py-3">{autoT("nav.staff")}</th>
+              <th className="px-5 py-3">{autoT("table.status")}</th>
+              <th className="px-5 py-3 text-right">{autoT("table.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
                 <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
-                  Loading branches...
+                  {autoT("legacy.loading_branches_70656484")}
                 </td>
               </tr>
             ) : branches.length ? (
@@ -502,7 +504,7 @@ export default function BranchManagement() {
                           <span>{branch.code}</span>
                           {branch.is_main_branch && (
                             <span className="rounded bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
-                              Main
+                              {autoT("legacy.main_62bce942")}
                             </span>
                           )}
                         </div>
@@ -510,9 +512,9 @@ export default function BranchManagement() {
                     </div>
                   </td>
                   <td className="px-5 py-4 text-gray-600">
-                    <div>{branch.phone || "No phone"}</div>
+                    <div>{branch.phone || autoT("legacy.no_phone_4808dd2c")}</div>
                     <div className="text-xs text-gray-500">
-                      {branch.email || branch.address || "No contact details"}
+                      {branch.email || branch.address || autoT("legacy.no_contact_details_7fe1dbc4")}
                     </div>
                   </td>
                   <td className="min-w-[340px] px-5 py-4">
@@ -530,7 +532,7 @@ export default function BranchManagement() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-xs font-medium text-gray-900">
-                          {branch.public_url || "No public URL yet"}
+                          {branch.public_url || autoT("legacy.no_public_url_yet_bc808152")}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           <button
@@ -538,10 +540,10 @@ export default function BranchManagement() {
                             onClick={() => copyBranchLink(branch)}
                             disabled={!branch.public_url}
                             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Copy link"
+                            title={autoT("legacy.copy_link_2f84eea5")}
                           >
                             <Copy size={13} />
-                            Copy
+                            {autoT("legacy.copy_af74f7c5")}
                           </button>
                           <a
                             href={branch.public_url || "#"}
@@ -552,27 +554,27 @@ export default function BranchManagement() {
                                 ? "pointer-events-none opacity-40"
                                 : ""
                             }`}
-                            title="Open menu"
+                            title={autoT("landing.marketplace.nav.openMenu")}
                           >
                             <ExternalLink size={13} />
-                            Open
+                            {autoT("landing.marketplace.card.open")}
                           </a>
                           <button
                             type="button"
                             onClick={() => downloadBranchQr(branch)}
                             disabled={!branch.qr_code}
                             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Download QR"
+                            title={autoT("settings_center.actions.download_qr")}
                           >
                             <Download size={13} />
-                            QR
+                            {autoT("legacy.qr_45e7a1c3")}
                           </button>
                           <button
                             type="button"
                             onClick={() => regenerateBranchQr(branch)}
                             disabled={regeneratingBranchId === branch.id}
                             className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            title="Regenerate QR"
+                            title={autoT("legacy.regenerate_qr_83560ea5")}
                           >
                             <RefreshCw
                               size={13}
@@ -582,7 +584,7 @@ export default function BranchManagement() {
                                   : ""
                               }
                             />
-                            Regenerate
+                            {autoT("legacy.regenerate_b04c991e")}
                           </button>
                         </div>
                       </div>
@@ -599,7 +601,7 @@ export default function BranchManagement() {
                           : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {branch.is_active ? "Active" : "Inactive"}
+                      {branch.is_active ? autoT("staff.status.active") : autoT("staff.status.inactive")}
                     </span>
                   </td>
                   <td className="px-5 py-4">
@@ -608,7 +610,7 @@ export default function BranchManagement() {
                         type="button"
                         onClick={() => openEdit(branch)}
                         className="rounded-lg border border-gray-200 p-2 text-gray-600 transition hover:bg-gray-100"
-                        title="Edit branch"
+                        title={autoT("legacy.edit_branch_e2d4790d")}
                       >
                         <Pencil size={16} />
                       </button>
@@ -617,7 +619,7 @@ export default function BranchManagement() {
                         onClick={() => toggleActive(branch)}
                         disabled={branch.is_main_branch}
                         className="rounded-lg border border-gray-200 p-2 text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-                        title={branch.is_active ? "Deactivate" : "Activate"}
+                        title={branch.is_active ? autoT("legacy.deactivate_d65ded94") : autoT("legacy.activate_92ef0832")}
                       >
                         <Power size={16} />
                       </button>
@@ -626,7 +628,7 @@ export default function BranchManagement() {
                         onClick={() => setBranchPendingDelete(branch)}
                         disabled={!branch.can_delete}
                         className="rounded-lg border border-red-100 p-2 text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        title="Delete branch"
+                        title={autoT("legacy.delete_branch_5478e60c")}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -637,7 +639,7 @@ export default function BranchManagement() {
             ) : (
               <tr>
                 <td className="px-5 py-8 text-center text-gray-500" colSpan={6}>
-                  No branches found.
+                  {autoT("settings_center.public_links.no_branches")}
                 </td>
               </tr>
             )}
@@ -648,15 +650,14 @@ export default function BranchManagement() {
       <section className="space-y-5 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Data Migration</h2>
+            <h2 className="text-xl font-bold text-gray-900">{autoT("legacy.data_migration_83aff790")}</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Copy data one time from another branch into the currently selected
-              branch. No records stay linked after migration.
+              {autoT("legacy.copy_data_one_time_from_another_branch_into_the_curren_55937b9e")}
             </p>
           </div>
           <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
             <label className="grid gap-1 text-sm font-medium text-gray-700">
-              Source Branch
+              {autoT("legacy.source_branch_2bbe206f")}
               <select
                 value={migrationSourceId}
                 onChange={(event) => setMigrationSourceId(event.target.value)}
@@ -669,15 +670,15 @@ export default function BranchManagement() {
                     </option>
                   ))
                 ) : (
-                  <option value="">No source branch</option>
+                  <option value="">{autoT("legacy.no_source_branch_400f44fe")}</option>
                 )}
               </select>
             </label>
             <ArrowRight className="hidden text-gray-400 sm:block" size={20} />
             <label className="grid gap-1 text-sm font-medium text-gray-700">
-              Destination
+              {autoT("legacy.destination_d4271349")}
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-900">
-                {activeBranch?.name || "No active branch"}
+                {activeBranch?.name || autoT("legacy.no_active_branch_a086c127")}
               </div>
             </label>
           </div>
@@ -691,9 +692,9 @@ export default function BranchManagement() {
 
         {migrationResult && (
           <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-            Migration completed successfully. Imported{" "}
-            {migrationResult.imported_count}, skipped{" "}
-            {migrationResult.skipped_count}, failed{" "}
+            {autoT("legacy.migration_completed_successfully_imported_a5503c04")}{" "}
+            {migrationResult.imported_count}{autoT("legacy.skipped_6b98496c")}{" "}
+            {migrationResult.skipped_count}{autoT("legacy.failed_fac9f871")}{" "}
             {migrationResult.failed_count}.
           </div>
         )}
@@ -723,7 +724,7 @@ export default function BranchManagement() {
                 }
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-500"
               >
-                {migratingType === type ? "Migrating..." : "Migrate"}
+                {migratingType === type ? autoT("legacy.migrating_9722b42d") : autoT("legacy.migrate_929ecd9d")}
               </button>
             </div>
           ))}
@@ -733,12 +734,12 @@ export default function BranchManagement() {
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-100 text-xs uppercase text-gray-600">
               <tr>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Source</th>
-                <th className="px-4 py-3">Destination</th>
-                <th className="px-4 py-3">Imported</th>
-                <th className="px-4 py-3">Skipped</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{autoT("inventory_manager.common.type")}</th>
+                <th className="px-4 py-3">{autoT("legacy.source_6da13add")}</th>
+                <th className="px-4 py-3">{autoT("legacy.destination_d4271349")}</th>
+                <th className="px-4 py-3">{autoT("legacy.imported_434eb26f")}</th>
+                <th className="px-4 py-3">{autoT("legacy.skipped_5a000ad7")}</th>
+                <th className="px-4 py-3">{autoT("table.status")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -773,7 +774,7 @@ export default function BranchManagement() {
                     className="px-4 py-6 text-center text-gray-500"
                     colSpan={6}
                   >
-                    No migrations yet.
+                    {autoT("legacy.no_migrations_yet_1602193b")}
                   </td>
                 </tr>
               )}
@@ -787,13 +788,13 @@ export default function BranchManagement() {
           <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">
-                {editingBranch ? "Edit branch" : "Add branch"}
+                {editingBranch ? autoT("legacy.edit_branch_e2d4790d") : autoT("legacy.add_branch_e25a5e29")}
               </h2>
               <button
                 type="button"
                 onClick={closeForm}
                 className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-                title="Close"
+                title={autoT("menuDetails.close")}
               >
                 <X size={18} />
               </button>
@@ -802,7 +803,7 @@ export default function BranchManagement() {
             <form onSubmit={handleSubmit} className="grid gap-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Name
+                  {autoT("attendance.table.name")}
                   <input
                     name="name"
                     value={formData.name}
@@ -812,7 +813,7 @@ export default function BranchManagement() {
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Code
+                  {autoT("legacy.code_adac6937")}
                   <input
                     name="code"
                     value={formData.code}
@@ -824,7 +825,7 @@ export default function BranchManagement() {
               </div>
 
               <label className="grid gap-2 text-sm font-medium text-gray-700">
-                Address
+                {autoT("modal.address")}
                 <textarea
                   name="address"
                   value={formData.address}
@@ -836,7 +837,7 @@ export default function BranchManagement() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Phone
+                  {autoT("modal.phone")}
                   <input
                     name="phone"
                     value={formData.phone}
@@ -845,7 +846,7 @@ export default function BranchManagement() {
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Email
+                  {autoT("staff.table.email")}
                   <input
                     name="email"
                     type="email"
@@ -858,7 +859,7 @@ export default function BranchManagement() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Latitude
+                  {autoT("settings_center.fields.latitude")}
                   <input
                     name="latitude"
                     type="number"
@@ -870,7 +871,7 @@ export default function BranchManagement() {
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-medium text-gray-700">
-                  Longitude
+                  {autoT("settings_center.fields.longitude")}
                   <input
                     name="longitude"
                     type="number"
@@ -892,7 +893,7 @@ export default function BranchManagement() {
                     onChange={handleChange}
                     className="h-4 w-4"
                   />
-                  Active branch
+                  {autoT("legacy.active_branch_5a2ad822")}
                 </label>
               )}
 
@@ -902,7 +903,7 @@ export default function BranchManagement() {
                   onClick={closeForm}
                   className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {autoT("staff.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -910,7 +911,7 @@ export default function BranchManagement() {
                   className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-500"
                 >
                   <Save size={16} />
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? autoT("saving") : autoT("legacy.save_efc007a3")}
                 </button>
               </div>
             </form>
@@ -920,13 +921,13 @@ export default function BranchManagement() {
 
       <ConfirmationDialog
         open={Boolean(pendingMigrationType)}
-        title="Confirm Data Migration"
+        title={autoT("legacy.confirm_data_migration_474093cd")}
         description={`You are about to copy menu-related data from ${
           selectedSourceBranch?.name || "the source branch"
         } into ${activeBranch?.name || "the destination branch"}.`}
         warning="Inventory is intentionally excluded from migration because each branch maintains its own physical stock. You must add the opening inventory separately after the migration is complete."
-        confirmLabel="Start Migration"
-        loadingLabel="Migrating..."
+        confirmLabel={autoT("legacy.start_migration_8bb13c34")}
+        loadingLabel={autoT("legacy.migrating_9722b42d")}
         confirmIcon={UploadCloud}
         loading={Boolean(migratingType)}
         onCancel={closeMigrationConfirmation}
@@ -934,7 +935,7 @@ export default function BranchManagement() {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            This is a one-time copy operation.
+            {autoT("legacy.this_is_a_one_time_copy_operation_e5b5bd81")}
           </p>
           {migrationError && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -945,30 +946,30 @@ export default function BranchManagement() {
             <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
               <div>
                 <div className="text-xs font-semibold uppercase text-gray-500">
-                  Source Branch
+                  {autoT("legacy.source_branch_2bbe206f")}
                 </div>
                 <div className="mt-1 font-semibold text-gray-950">
-                  {selectedSourceBranch?.name || "Source Branch"}
+                  {selectedSourceBranch?.name || autoT("legacy.source_branch_2bbe206f")}
                 </div>
               </div>
               <ArrowRight className="hidden text-gray-400 sm:block" size={18} />
               <ArrowDown className="text-gray-400 sm:hidden" size={18} />
               <div>
                 <div className="text-xs font-semibold uppercase text-gray-500">
-                  Destination Branch
+                  {autoT("legacy.destination_branch_2377b64a")}
                 </div>
                 <div className="mt-1 font-semibold text-gray-950">
-                  {activeBranch?.name || "Destination Branch"}
+                  {activeBranch?.name || autoT("legacy.destination_branch_2377b64a")}
                 </div>
               </div>
             </div>
 
             <div className="mt-4 border-t border-gray-200 pt-4">
               <div className="text-xs font-semibold uppercase text-gray-500">
-                Migration Type
+                {autoT("legacy.migration_type_e35d8abb")}
               </div>
               <div className="mt-2 font-semibold text-gray-950">
-                {pendingMigrationCard?.title || "Data Migration"}
+                {pendingMigrationCard?.title || autoT("legacy.data_migration_83aff790")}
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {pendingMigrationItems.map((item) => (
@@ -997,17 +998,17 @@ export default function BranchManagement() {
 
           <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
             <div className="mb-2 font-semibold text-gray-900">
-              After migration:
+              {autoT("legacy.after_migration_91b834db")}
             </div>
             <ul className="grid gap-2">
-              <li>Existing data will not be deleted.</li>
-              <li>Duplicate records will be skipped.</li>
-              <li>Both branches will remain completely independent.</li>
-              <li>Future changes in one branch will not affect the other.</li>
+              <li>{autoT("legacy.existing_data_will_not_be_deleted_1bb8f2b5")}</li>
+              <li>{autoT("legacy.duplicate_records_will_be_skipped_2bea31d5")}</li>
+              <li>{autoT("legacy.both_branches_will_remain_completely_independent_8c8fbb8d")}</li>
+              <li>{autoT("legacy.future_changes_in_one_branch_will_not_affect_the_other_38e0c8c8")}</li>
               <li>
-                Inventory quantities and stock records will NOT be migrated.
+                {autoT("legacy.inventory_quantities_and_stock_records_will_not_be_mig_98c76ee9")}
               </li>
-              <li>This action cannot be automatically undone.</li>
+              <li>{autoT("legacy.this_action_cannot_be_automatically_undone_9c0102fa")}</li>
             </ul>
           </div>
         </div>
@@ -1015,11 +1016,11 @@ export default function BranchManagement() {
 
       <ConfirmationDialog
         open={Boolean(branchPendingDelete)}
-        title="Delete Branch"
+        title={autoT("legacy.delete_branch_d6726bb9")}
         description={`Delete ${branchPendingDelete?.name || "this branch"}?`}
         warning="Deleting a branch cannot be automatically undone."
-        confirmLabel="Delete Branch"
-        loadingLabel="Deleting..."
+        confirmLabel={autoT("legacy.delete_branch_d6726bb9")}
+        loadingLabel={autoT("legacy.deleting_e16cac65")}
         confirmIcon={Trash2}
         loading={Boolean(deletingBranchId)}
         onCancel={closeDeleteConfirmation}
@@ -1027,7 +1028,7 @@ export default function BranchManagement() {
         sizeClassName="max-w-md"
       >
         <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-800">
-          Existing records that depend on this branch may prevent deletion.
+          {autoT("legacy.existing_records_that_depend_on_this_branch_may_preven_eea00ee4")}
         </div>
       </ConfirmationDialog>
     </div>

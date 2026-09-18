@@ -8,9 +8,10 @@ import {
 } from "../../data/landing/marketplaceData";
 import { useCustomerSession } from "../../api/customerSession";
 import CustomerAccountMenu from "../Customer/CustomerAccountMenu";
+import i18n from "../../i18n";
 
 const languages = [
-  { code: "en", label: "EN" },
+  { code: "en", label: i18n.t("legacy.en_734a78cd") },
   { code: "fa", label: "دری" },
   { code: "ps", label: "پښتو" },
 ];

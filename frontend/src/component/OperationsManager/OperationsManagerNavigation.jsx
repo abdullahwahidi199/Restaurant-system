@@ -23,6 +23,7 @@ import {
   BarChart3,
   Layers3,
 } from "lucide-react";
+import i18n from "../../i18n";
 
 // Base route matches React Router: "/operations-manager"
 const operationsManagerBase = "/operations-manager";
@@ -31,7 +32,7 @@ export function getOperationsManagerNavigationGroups(t, role) {
   const tree = [
     {
       id: "operations",
-      label: "Operations",
+      label: i18n.t("legacy.operations_a1fdaa6b"),
       icon: LayoutDashboard,
       children: [
         {
@@ -73,7 +74,7 @@ export function getOperationsManagerNavigationGroups(t, role) {
     },
     {
       id: "menu",
-      label: "Menu",
+      label: i18n.t("nav.menu"),
       icon: UtensilsCrossed,
       children: [
         {
@@ -88,7 +89,7 @@ export function getOperationsManagerNavigationGroups(t, role) {
     },
     {
       id: "expenses",
-      label: "Expenses",
+      label: i18n.t("nav.expenses"),
       icon: Wallet,
       children: [
         {
@@ -110,59 +111,59 @@ export function getOperationsManagerNavigationGroups(t, role) {
     },
     {
       id: "procurement",
-      label: "Procurement",
+      label: i18n.t("landing.features.groups.inventory.items.procurement"),
       icon: ShoppingCart,
       children: [
         {
           id: "procurement-dashboard",
           to: `${operationsManagerBase}/procurement`,
-          label: "Dashboard",
+          label: i18n.t("nav.dashboard"),
           icon: LayoutDashboard,
           end: true,
         },
         {
           id: "procurement-purchase-invoices",
           to: `${operationsManagerBase}/procurement/purchase-invoices`,
-          label: "Purchase Invoices",
+          label: i18n.t("landing.features.groups.inventory.items.invoices"),
           icon: ReceiptText,
           end: false,
         },
         {
           id: "procurement-create-purchase-invoice",
           to: `${operationsManagerBase}/procurement/purchase-invoices/new`,
-          label: "Create Purchase Invoice",
+          label: i18n.t("inventory_manager.low_stock.create_purchase_invoice"),
           icon: FilePlus2,
         },
         {
           id: "procurement-suppliers",
           to: `${operationsManagerBase}/procurement/suppliers`,
-          label: "Suppliers",
+          label: i18n.t("landing.features.groups.inventory.items.suppliers"),
           icon: Users,
           end: false,
         },
         {
           id: "procurement-supplier-payments",
           to: `${operationsManagerBase}/procurement/supplier-payments`,
-          label: "Supplier Payments",
+          label: i18n.t("legacy.supplier_payments_6ef8f5d6"),
           icon: HandCoins,
         },
         {
           id: "procurement-payables",
           to: `${operationsManagerBase}/procurement/payables`,
-          label: "Outstanding Payables",
+          label: i18n.t("legacy.outstanding_payables_f6045147"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "audit",
-      label: "Audit",
+      label: i18n.t("legacy.audit_fa1703dd"),
       icon: ShieldCheck,
       children: [
         {
           id: "audit-logs",
           to: `${operationsManagerBase}/audit-logs`,
-          label: "Audit Logs",
+          label: i18n.t("legacy.audit_logs_344c7ffc"),
           icon: ShieldCheck,
           end: true,
         },
@@ -170,50 +171,50 @@ export function getOperationsManagerNavigationGroups(t, role) {
     },
     {
       id: "inventory",
-      label: "Inventory",
+      label: i18n.t("nav.inventory"),
       icon: Warehouse,
       children: [
         {
           id: "inventory-overview",
           to: `${operationsManagerBase}/inventory`,
-          label: "Overview",
+          label: i18n.t("legacy.overview_0efc2e6b"),
           icon: LayoutDashboard,
           end: true,
         },
         {
           id: "inventory-ingredients",
           to: `${operationsManagerBase}/inventory/ingredients`,
-          label: "Ingredients",
+          label: i18n.t("menuDetails.ingredients"),
           icon: Boxes,
         },
         {
           id: "inventory-stock-levels",
           to: `${operationsManagerBase}/inventory/stock-levels`,
-          label: "Stock Levels",
+          label: i18n.t("inventory_manager.nav.stock_levels"),
           icon: PackageSearch,
         },
         {
           id: "inventory-stock-movements",
           to: `${operationsManagerBase}/inventory/stock-movements`,
-          label: "Stock Movements",
+          label: i18n.t("inventory_manager.nav.stock_movements"),
           icon: TrendingUp,
         },
         {
           id: "inventory-stock-adjustments",
           to: `${operationsManagerBase}/inventory/stock-adjustments`,
-          label: "Stock Adjustments",
+          label: i18n.t("inventory_manager.nav.stock_adjustments"),
           icon: ClipboardList,
         },
         {
           id: "inventory-low-stock",
           to: `${operationsManagerBase}/inventory/low-stock`,
-          label: "Low Stock Alerts",
+          label: i18n.t("inventory_manager.nav.low_stock_alerts"),
           icon: AlertTriangle,
         },
         {
           id: "inventory-reports",
           to: `${operationsManagerBase}/inventory/reports`,
-          label: "Inventory Reports",
+          label: i18n.t("inventory_manager.nav.inventory_reports"),
           icon: BarChart3,
         },
       ],

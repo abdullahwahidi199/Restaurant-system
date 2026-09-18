@@ -52,10 +52,10 @@ export default function Header({
           )}
           <span className="min-w-0">
             <span className="block text-[0.62rem] font-black uppercase text-orange-700">
-              Pakhlai
+              {t("landing.marketplace.brand.name")}
             </span>
             <span className="block max-w-28 truncate text-sm font-black text-stone-950 transition-colors group-hover:text-orange-700 sm:max-w-52 sm:text-base">
-              {restaurantInfo?.name || t("restaurant", "Restaurant")}
+              {restaurantInfo?.name || t("legacy.restaurant_3585d755")}
             </span>
             {branchInfo?.name ? (
               <span className="hidden max-w-52 truncate text-xs font-semibold text-stone-500 sm:block">

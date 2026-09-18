@@ -12,6 +12,7 @@ import instance from "../../../api/axiosInstance";
 import DiscountRequestCard from "../../Manager/DiscountRequest/DiscountRequestCard";
 import useDiscountSocket from "../../../hooks/useDiscoutSocket";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -25,6 +26,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function AdminDiscountsMain() {
+                 const { t: autoT } = useAutoTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -153,25 +155,25 @@ export default function AdminDiscountsMain() {
 
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Discount Requests
+              {autoT("legacy.discount_requests_c1f68f1c")}
             </h1>
 
             <p className="mt-1 text-sm text-gray-500">
-              Review and manage pending discount approvals
+              {autoT("legacy.review_and_manage_pending_discount_approvals_b5997c7b")}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="rounded-2xl bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 border border-orange-100">
-            {pendingCount} Pending
+            {pendingCount} {autoT("stats.pending")}
           </div>
 
           <NavLink
             to="/admin/dashboard/all-discount-requests"
             className="rounded-2xl bg-orange-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
           >
-            View All Requests
+            {autoT("legacy.view_all_requests_c1ab1b65")}
           </NavLink>
         </div>
       </div>
@@ -181,7 +183,7 @@ export default function AdminDiscountsMain() {
           <AlertTriangle size={20} className="mt-0.5" />
 
           <div>
-            <p className="font-semibold">Something went wrong</p>
+            <p className="font-semibold">{autoT("legacy.something_went_wrong_8d886c0b")}</p>
             <p className="text-sm">{error}</p>
           </div>
         </div>
@@ -195,7 +197,7 @@ export default function AdminDiscountsMain() {
             setPage(1);
             setSearch(event.target.value);
           }}
-          placeholder="Search order, table, customer, reason..."
+          placeholder={autoT("legacy.search_order_table_customer_reason_d05d8939")}
           className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm"
         />
         <button
@@ -206,7 +208,7 @@ export default function AdminDiscountsMain() {
           }}
           className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
         >
-          Reset
+          {autoT("inventory_manager.common.reset")}
         </button>
       </div>
 
@@ -216,7 +218,7 @@ export default function AdminDiscountsMain() {
             <Loader2 size={40} className="animate-spin text-orange-500" />
 
             <p className="text-sm text-gray-500">
-              Loading discount requests...
+              {autoT("legacy.loading_discount_requests_4b58612f")}
             </p>
           </div>
         </div>
@@ -227,11 +229,11 @@ export default function AdminDiscountsMain() {
           </div>
 
           <h2 className="mt-5 text-xl font-semibold text-gray-800">
-            No Pending Requests
+            {autoT("legacy.no_pending_requests_064c1a53")}
           </h2>
 
           <p className="mt-2 max-w-md text-sm text-gray-500">
-            There are currently no discount requests waiting for approval.
+            {autoT("legacy.there_are_currently_no_discount_requests_waiting_for_a_bb163af9")}
           </p>
         </div>
       ) : (

@@ -78,7 +78,7 @@ export default function OrderCheckoutForm({ onSubmit, onClose }) {
           <input
             type="text"
             name="phone"
-            placeholder={`${t("checkout.phone")} (${t("optional") || "Optional"})`}
+            placeholder={`${t("checkout.phone")} (${t("customerAuth.shared.optional")})`}
             value={formData.phone}
             onChange={handleChange}
             className="theme-input w-full p-2"
@@ -86,7 +86,7 @@ export default function OrderCheckoutForm({ onSubmit, onClose }) {
           <textarea
             name="note"
             rows="3"
-            placeholder="Enter your suggesstion here..."
+            placeholder={t("legacy.enter_your_suggesstion_here_33944da1")}
             value={formData.note}
             onChange={handleChange}
             className="theme-textarea w-full resize-none p-3"

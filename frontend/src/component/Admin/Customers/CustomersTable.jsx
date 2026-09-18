@@ -40,22 +40,22 @@ export default function CustomersTable({ customers }) {
               {c.address ? (
                 <td className="px-4 py-2 border-b">{c.address}</td>
               ) : (
-                <tr>N/A</tr>
+                <tr>{t("no_data")}</tr>
               )}
               {c.email ? (
                 <td className="px-4 py-2 border-b">{c.email}</td>
               ) : (
-                <tr>N/A</tr>
+                <tr>{t("no_data")}</tr>
               )}
               {c.orders_count ? (
                 <td className="px-4 py-2 border-b">{c.orders_count}</td>
               ) : (
-                <tr>N/A</tr>
+                <tr>{t("no_data")}</tr>
               )}
               {c.date_of_birth ? (
                 <td className="px-4 py-2 border-b">{c.date_of_birth}</td>
               ) : (
-                <tr>N/A</tr>
+                <tr>{t("no_data")}</tr>
               )}
               <td className="px-4 py-2 border-b">
                 {new Date(c.joined_at).toLocaleString("en-us", {

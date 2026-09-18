@@ -17,6 +17,7 @@ import AuditTimeline from "../../audit/components/AuditTimeline";
 import PurchaseAttachmentList from "./PurchaseAttachmentList";
 import PurchaseInvoiceLinesTable from "./PurchaseInvoiceLinesTable";
 import PurchasePaymentHistory from "./PurchasePaymentHistory";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function PurchaseInvoiceDetailModal({
   basePath = "/admin/dashboard",
@@ -32,6 +33,7 @@ export default function PurchaseInvoiceDetailModal({
   onPrintVoucher,
   onDownloadVoucher,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [activeTab, setActiveTab] = useState("details");
   const tabs = [
     ["details", "Details", FileText],
@@ -61,19 +63,19 @@ export default function PurchaseInvoiceDetailModal({
         {activeTab === "details" && (
           <div className="space-y-5">
             <div className="grid gap-3 md:grid-cols-4">
-              <Panel title="Supplier"><p className="text-sm font-semibold text-slate-950">{invoice.supplier_name || "Cash / No Supplier"}</p></Panel>
-              <Panel title="Purchase Date"><p className="text-sm font-semibold text-slate-950">{compactDate(invoice.purchase_date)}</p></Panel>
-              <Panel title="Due Date"><p className="text-sm font-semibold text-slate-950">{compactDate(invoice.due_date)}</p></Panel>
-              <Panel title="Status"><StatusBadge status={invoice.status} /></Panel>
+              <Panel title={autoT("inventory_manager.common.supplier")}><p className="text-sm font-semibold text-slate-950">{invoice.supplier_name || autoT("legacy.cash_no_supplier_1aacbab6")}</p></Panel>
+              <Panel title={autoT("inventory_manager.common.purchase_date")}><p className="text-sm font-semibold text-slate-950">{compactDate(invoice.purchase_date)}</p></Panel>
+              <Panel title={autoT("legacy.due_date_a1b308ec")}><p className="text-sm font-semibold text-slate-950">{compactDate(invoice.due_date)}</p></Panel>
+              <Panel title={autoT("table.status")}><StatusBadge status={invoice.status} /></Panel>
             </div>
             <PurchaseInvoiceLinesTable
               basePath={basePath}
               lines={invoice.lines || []}
             />
             <div className="grid gap-3 md:grid-cols-3">
-              <Panel title="Invoice Total"><p className="text-lg font-semibold text-slate-950">{money(invoice.total_amount)}</p></Panel>
-              <Panel title="Paid"><p className="text-lg font-semibold text-emerald-700">{money(invoice.amount_paid)}</p></Panel>
-              <Panel title="Remaining"><p className="text-lg font-semibold text-rose-700">{money(invoice.remaining_balance)}</p></Panel>
+              <Panel title={autoT("legacy.invoice_total_76dac385")}><p className="text-lg font-semibold text-slate-950">{money(invoice.total_amount)}</p></Panel>
+              <Panel title={autoT("legacy.paid_dc9d4584")}><p className="text-lg font-semibold text-emerald-700">{money(invoice.amount_paid)}</p></Panel>
+              <Panel title={autoT("legacy.remaining_cc632b5e")}><p className="text-lg font-semibold text-rose-700">{money(invoice.remaining_balance)}</p></Panel>
             </div>
             {invoice.notes && <div className="rounded-lg border border-slate-200 p-3 text-sm text-slate-600">{invoice.notes}</div>}
           </div>
@@ -98,13 +100,13 @@ export default function PurchaseInvoiceDetailModal({
           {invoice.status === "draft" && (
             <button type="button" disabled={saving} onClick={() => onApprove(invoice)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
               <Check className="h-4 w-4" />
-              Approve
+              {autoT("inventory_manager.common.approve")}
             </button>
           )}
           {invoice.supplier && Number(invoice.remaining_balance) > 0 && invoice.status !== "draft" && (
             <button type="button" onClick={() => onPayment(invoice)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               <CreditCard className="h-4 w-4" />
-              Record Payment
+              {autoT("legacy.record_payment_6577ced3")}
             </button>
           )}
         </div>

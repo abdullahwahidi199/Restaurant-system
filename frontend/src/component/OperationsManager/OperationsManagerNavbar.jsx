@@ -262,7 +262,7 @@ function OperationsManagerNavbar({
           mobileOpen ? "admin-sidebar-backdrop-open" : ""
         }`}
         onClick={onCloseMobile}
-        aria-label="Close navigation"
+        aria-label={t("inventory_manager.a11y.close_navigation")}
       />
 
       <aside
@@ -270,7 +270,7 @@ function OperationsManagerNavbar({
         className={`admin-sidebar ${
           expanded ? "admin-sidebar-expanded" : "admin-sidebar-collapsed"
         } ${mobileOpen ? "admin-sidebar-mobile-open" : ""}`}
-        aria-label="Finance navigation"
+        aria-label={t("legacy.finance_navigation_51baecff")}
       >
         <div className="admin-sidebar-brand">
           <div className="admin-brand-content">
@@ -281,7 +281,7 @@ function OperationsManagerNavbar({
             />
             {expanded && (
               <div className="admin-brand-copy">
-                <span className="admin-brand-title">Pakhlai Finance</span>
+                <span className="admin-brand-title">{t("legacy.pakhlai_finance_8971592c")}</span>
                 <span className="admin-brand-subtitle">{restaurantName}</span>
               </div>
             )}
@@ -291,7 +291,7 @@ function OperationsManagerNavbar({
             type="button"
             className="admin-sidebar-collapse"
             onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("inventory_manager.a11y.expand_sidebar") : t("inventory_manager.a11y.collapse_sidebar")}
           >
             {collapsed ? (
               <PanelLeftOpen className="h-4 w-4" />
@@ -304,7 +304,7 @@ function OperationsManagerNavbar({
             type="button"
             className="admin-sidebar-mobile-close"
             onClick={onCloseMobile}
-            aria-label="Close sidebar"
+            aria-label={t("inventory_manager.a11y.close_sidebar")}
           >
             <X className="h-4 w-4" />
           </button>

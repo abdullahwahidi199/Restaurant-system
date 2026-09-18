@@ -6,8 +6,10 @@ import ManagerAddItem from "./MangerAddNewItem";
 import instance from "../../../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import ChangeTableModal from "../../waiter/ChangeTableModal";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function TableActionModal({ table, onClose, refetchTables }) {
+                 const { t: autoT } = useAutoTranslation();
   const [newOrderModal, setNewOrderModal] = useState(false);
   const [addNewItemDisplay, setAddNewItemDisplay] = useState(false);
   const [deletedItems, setDeletedItems] = useState([]);
@@ -141,7 +143,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-lg relative animate-in fade-in-50 slide-in-from-bottom-10">
         <div className="flex justify-between items-center border-b px-5 py-3">
           <h2 className="text-lg font-semibold">
-            Table {name} —{" "}
+            {autoT("legacy.table_0424f6e7")} {name} —{" "}
             <span
               className={`capitalize ${
                 status === "available"
@@ -163,13 +165,13 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
         </div>
 
         <div className="p-5 space-y-4">
-          <p className="text-gray-700 text-sm">Capacity: {capacity}</p>
-          {note && <p className="text-gray-600 italic text-sm">Note: {note}</p>}
+          <p className="text-gray-700 text-sm">{autoT("legacy.capacity_218347e0")} {capacity}</p>
+          {note && <p className="text-gray-600 italic text-sm">{autoT("legacy.note_83423c19")} {note}</p>}
 
           {status === "available" && (
             <div className="space-y-3">
               <p className="text-gray-700">
-                This table is currently available. You can start a new order.
+                {autoT("legacy.this_table_is_currently_available_you_can_start_a_new__2966a7f6")}
               </p>
               <div className="flex justify-between items-center">
                 <button
@@ -181,7 +183,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                   }}
                   className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
                 >
-                  <PlusCircle size={18} /> Start New Order
+                  <PlusCircle size={18} /> {autoT("legacy.start_new_order_262cef55")}
                 </button>
               </div>
             </div>
@@ -189,13 +191,13 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
           {status === "unavailable" && (
             <div>
-              <p>This table is currently unavailable</p>
+              <p>{autoT("legacy.this_table_is_currently_unavailable_80196632")}</p>
             </div>
           )}
 
           {status === "occupied" && (
             <div className="space-y-3">
-              <p className="text-gray-700 font-medium">Current Order:</p>
+              <p className="text-gray-700 font-medium">{autoT("legacy.current_order_5bfab9b0")}</p>
               {current_order ? (
                 <div>
                   <div className="mb-4 border-b pb-3">
@@ -208,9 +210,9 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       </p>
                     )}
                     <p className="mt-2 text-gray-700 font-medium">
-                      💰 Total:{" "}
+                      {autoT("legacy.total_2e388225")}{" "}
                       <span className="text-green-600">
-                        {current_order.total} AFN
+                        {current_order.total} {autoT("labels.afn")}
                       </span>
                     </p>
                   </div>
@@ -219,7 +221,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                       onClick={() => setIsEditing(true)}
                       className="bg-yellow-500 text-white px-3 py-2 rounded"
                     >
-                      Edit Order
+                      {autoT("legacy.edit_order_13fcf49e")}
                     </button>
                   )}
                   {current_order.items.length > 0 ? (
@@ -254,7 +256,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
 
                                 {item.is_new && (
                                   <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                    New • {item.added_by_name}
+                                    {autoT("legacy.new_49c3862e")} {item.added_by_name}
                                   </span>
                                 )}
                               </div>
@@ -319,16 +321,16 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                           onClick={saveChanges}
                           className="w-full mt-3 bg-green-600 text-white px-3 py-2 rounded"
                         >
-                          Save Changes
+                          {autoT("save_changes")}
                         </button>
                       )}
                     </ul>
                   ) : (
-                    <p>No active orders</p>
+                    <p>{autoT("legacy.no_active_orders_03574d96")}</p>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-500 italic">No current order data.</p>
+                <p className="text-gray-500 italic">{autoT("legacy.no_current_order_data_7841c0b1")}</p>
               )}
               <div className="flex gap-2">
                 {!table.current_reservation && (
@@ -336,14 +338,14 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                     onClick={() => setShowChangeTableModal(true)}
                     className="flex-1 bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 transition"
                   >
-                    Change Table
+                    {autoT("legacy.change_table_bb49e68f")}
                   </button>
                 )}
                 <button
                   onClick={() => setAddNewItemDisplay(true)}
                   className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
                 >
-                  Add Item
+                  {autoT("add_item")}
                 </button>
                 {addNewItemDisplay && (
                   <ManagerAddItem
@@ -362,7 +364,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
                     }}
                     className="flex-1 flex items-center justify-center gap-1 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition"
                   >
-                    <CheckCircle size={16} /> Mark Served
+                    <CheckCircle size={16} /> {autoT("legacy.mark_served_69286fd9")}
                   </button>
                 )}
               </div>

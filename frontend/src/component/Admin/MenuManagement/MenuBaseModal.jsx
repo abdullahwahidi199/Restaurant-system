@@ -5,11 +5,12 @@ import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 import MenuWorkspace from "./MenuWorkspace";
 import { sortMenuCategories } from "./menuOrdering";
+import i18n from "../../../i18n";
 
 export default function Menu({
   canManage,
-  title = "Menu Management",
-  description = "Manage your restaurant menu, pricing, visibility and availability.",
+  title = i18n.t("menu_management"),
+  description = i18n.t("legacy.manage_your_restaurant_menu_pricing_visibility_and_ava_8d0f2eb3"),
 }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);

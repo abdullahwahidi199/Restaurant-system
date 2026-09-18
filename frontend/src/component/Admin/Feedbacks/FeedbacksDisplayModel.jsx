@@ -25,17 +25,17 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
   console.log(now)
 
   const handleRespond = async (reviewId) => {
-    if (!responseText.trim()) return toast.error("Response cannot be empty!");
+    if (!responseText.trim()) return toast.error(t("legacy.response_cannot_be_empty_b88ff7da"));
     setLoading(true);
     try {
       await instance.patch(`/menu/reviews/${reviewId}/`, { response: responseText,responded_at: now});
-      toast.success("Response submitted!");
+      toast.success(t("legacy.response_submitted_ad9ffdb2"));
       setResponseText("");
       setActiveReviewId(null);
       refresh();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to submit response");
+      toast.error(t("legacy.failed_to_submit_response_4dff1927"));
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
     <div>
       <Toaster position="top-center" />
       {reviews.length === 0 ? (
-        <p className="text-gray-500 text-center mt-10">No reviews found.</p>
+        <p className="text-gray-500 text-center mt-10">{t("legacy.no_reviews_found_88d1fed0")}</p>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {reviews.map((review) => {
@@ -142,7 +142,7 @@ export default function FeedBacksDisplay({ reviews, refresh }) {
                       value={responseText}
                       onChange={(e) => setResponseText(e.target.value)}
                       className="border border-gray-300 rounded-lg p-2 text-gray-700 focus:ring-2 focus:ring-blue-400 outline-none"
-                      placeholder="Write your response..."
+                      placeholder={t("write_response")}
                     />
                     <div className="flex gap-2">
                       <button

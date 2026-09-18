@@ -3,6 +3,7 @@ import instance from "../../../api/axiosInstance";
 import DiscountRequestCard from "./DiscountRequestCard";
 import useDiscountSocket from "../../../hooks/useDiscoutSocket";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -16,6 +17,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function DiscountRequestMain() {
+                 const { t: autoT } = useAutoTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -120,7 +122,7 @@ export default function DiscountRequestMain() {
     }
   });
   if (loading) {
-    <div>Loading...</div>;
+    <div>{autoT("dashboard.loading")}</div>;
   }
   return (
     <div className="space-y-4">
@@ -132,7 +134,7 @@ export default function DiscountRequestMain() {
             setPage(1);
             setSearch(event.target.value);
           }}
-          placeholder="Search order, table, customer, reason..."
+          placeholder={autoT("legacy.search_order_table_customer_reason_d05d8939")}
           className="min-w-0 flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
         />
         <button
@@ -143,7 +145,7 @@ export default function DiscountRequestMain() {
           }}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
         >
-          Reset
+          {autoT("inventory_manager.common.reset")}
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -157,7 +159,7 @@ export default function DiscountRequestMain() {
             />
           ))
         ) : (
-          <div>No requests yet!</div>
+          <div>{autoT("legacy.no_requests_yet_f5c431d3")}</div>
         )}
       </div>
       <PaginationControls

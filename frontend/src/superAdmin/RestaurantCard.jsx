@@ -1,5 +1,6 @@
 import React from "react";
 import instance from "../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function RestaurantCard({
   restaurant,
@@ -9,6 +10,7 @@ export default function RestaurantCard({
   onLandingVisibilityChange,
   landingVisibilityStatus,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   // Destructure subscription if it exists
   const { subscription } = restaurant;
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
@@ -33,12 +35,12 @@ export default function RestaurantCard({
             {restaurant.logo ? (
               <img
                 src={`${BASE_URL}${restaurant.logo}`}
-                alt="logo"
+                alt={autoT("legacy.logo_5807dd60")}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                No Logo
+                {autoT("legacy.no_logo_6fc0b633")}
               </div>
             )}
           </div>
@@ -61,7 +63,7 @@ export default function RestaurantCard({
                 : "bg-red-100 text-red-800"
             }`}
           >
-            {restaurant.is_active ? "Active" : "Inactive"}
+            {restaurant.is_active ? autoT("staff.status.active") : autoT("staff.status.inactive")}
           </span>
 
           {subscription ? (
@@ -72,21 +74,20 @@ export default function RestaurantCard({
                   : "bg-yellow-100 text-yellow-800"
               }`}
             >
-              {subscription.is_valid ? "Subscribed" : "Expired"}
+              {subscription.is_valid ? autoT("legacy.subscribed_dd1242a8") : autoT("legacy.expired_a689a999")}
               <button onClick={() => endSubscription(restaurant.id)}>
-                End
+                {autoT("legacy.end_a2bb9d34")}
               </button>
             </span>
           ) : (
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-              No Subscription
+              {autoT("legacy.no_subscription_a78e39c3")}
             </span>
           )}
 
           {subscription && (
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-              {subscription.branches_used}/{subscription.max_branches} Branches
-              Used
+              {subscription.branches_used}/{subscription.max_branches} {autoT("legacy.branches_used_13864ccb")}
             </span>
           )}
         </div>
@@ -95,14 +96,13 @@ export default function RestaurantCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900">
-                Show on landing
+                {autoT("legacy.show_on_landing_6835375e")}
               </p>
               <p
                 id={visibilityDescriptionId}
                 className="mt-0.5 text-xs leading-5 text-gray-600"
               >
-                Controls curated landing-page lists only. Search, direct links,
-                menus, and ordering stay active.
+                {autoT("legacy.controls_curated_landing_page_lists_only_search_direct_3ef372a0")}
               </p>
             </div>
             <button
@@ -145,8 +145,8 @@ export default function RestaurantCard({
           >
             {landingVisibilityStatus?.message ||
               (isShownOnLanding
-                ? "Included in landing-page collections."
-                : "Not included in landing-page collections.")}
+                ? autoT("legacy.included_in_landing_page_collections_37053657")
+                : autoT("legacy.not_included_in_landing_page_collections_2d97eba7"))}
           </p>
         </div>
 
@@ -156,19 +156,19 @@ export default function RestaurantCard({
             onClick={() => onManageSub(restaurant)}
             className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded hover:bg-purple-100 text-sm font-medium"
           >
-            Subscription
+            {autoT("legacy.subscription_8fde48f3")}
           </button>
           <button
             onClick={() => onEdit(restaurant)}
             className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 text-sm font-medium"
           >
-            Edit
+            {autoT("staff.table.edit")}
           </button>
           <button
             onClick={() => onDelete(restaurant.id)}
             className="px-3 py-1.5 bg-red-50 text-red-700 rounded hover:bg-red-100 text-sm font-medium"
           >
-            Delete
+            {autoT("staff.table.delete")}
           </button>
         </div>
       </div>

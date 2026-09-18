@@ -16,8 +16,10 @@ import LowStockItems from "../../Admin/Inventory/LowStockItems";
 // import CreateIngredientModal from "./CreateIngredient";
 
 import { getInventorySummary } from "../../../api/inventoryApi";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function KitchenManagerStockDashboard() {
+                 const { t: autoT } = useAutoTranslation();
   const [showCreate, setShowCreate] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function KitchenManagerStockDashboard() {
   };
 
   if (loading) {
-    return <p className="text-gray-500">Loading inventory dashboard…</p>;
+    return <p className="text-gray-500">{autoT("legacy.loading_inventory_dashboard_ee354ffa")}</p>;
   }
 
   return (
@@ -48,8 +50,8 @@ export default function KitchenManagerStockDashboard() {
       {/* PAGE HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-sm text-gray-500">Stock overview and management</p>
+          <h1 className="text-3xl font-bold text-gray-900">{autoT("nav.inventory")}</h1>
+          <p className="text-sm text-gray-500">{autoT("inventory_manager.dashboard.subtitle")}</p>
         </div>
 
         {/* <button
@@ -64,18 +66,18 @@ export default function KitchenManagerStockDashboard() {
       {/* STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatCard
-          title="Total Ingredients"
+          title={autoT("inventory_manager.dashboard.total_ingredients")}
           value={stats.total_ingredients}
           icon={<Boxes />}
         />
         <StatCard
-          title="Low Stock"
+          title={autoT("inventory_manager.common.low_stock")}
           value={stats.low_stock}
           icon={<AlertTriangle />}
           danger
         />
         <StatCard
-          title="Out of Stock"
+          title={autoT("inventory_manager.common.out_of_stock")}
           value={stats.out_of_stock}
           icon={<Trash2 />}
           danger
@@ -92,7 +94,7 @@ export default function KitchenManagerStockDashboard() {
         <TopConsumedChart items={stats.top_consumed_ingredients} />
 
         <SummaryList
-          title="High Waste Ingredients (30 days)"
+          title={autoT("inventory_manager.dashboard.high_waste")}
           items={stats.high_waste_ingredients}
           valueKey="wasted"
           danger
@@ -154,6 +156,7 @@ function StatCard({ title, value, icon, danger }) {
 }
 
 function SummaryList({ title, items, valueKey, danger, icon }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <div className="bg-white border rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
@@ -168,7 +171,7 @@ function SummaryList({ title, items, valueKey, danger, icon }) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-gray-500">No data available</p>
+        <p className="text-sm text-gray-500">{autoT("inventory_manager.common.no_data_available")}</p>
       ) : (
         <ul className="space-y-3">
           {items.map((item, idx) => (

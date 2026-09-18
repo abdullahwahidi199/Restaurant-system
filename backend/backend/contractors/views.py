@@ -215,7 +215,7 @@ class ContractorListCreateView(generics.ListCreateAPIView):
         )
 
 
-class ContractorRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+class ContractorRetrieveUpdateView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ContractorSerializer
     permission_classes = CONTRACTOR_PERMISSIONS
 
@@ -249,6 +249,22 @@ class ContractorRetrieveUpdateView(generics.RetrieveUpdateAPIView):
             new_values=changed_new_values(changes),
             metadata={"changes": changes},
         )
+
+    def perform_destroy(self, instance):
+        old_values = _contractor_audit_values(instance)
+        create_audit_log(
+            request=self.request,
+            restaurant=instance.restaurant,
+            branch=instance.branch,
+            action=AuditAction.DELETE,
+            module=AuditModule.CONTRACTORS,
+            object_type="Contractor",
+            object_id=instance.id,
+            object_repr=instance.name,
+            description=f"{_actor_name(self.request)} deleted contractor {instance.name}.",
+            old_values=old_values,
+        )
+        instance.delete()
 
 
 class ServiceContractListCreateView(generics.ListCreateAPIView):

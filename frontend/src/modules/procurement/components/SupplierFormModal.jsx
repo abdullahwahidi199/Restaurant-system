@@ -2,19 +2,27 @@ import React from "react";
 import Field from "../../shared/erp/components/Field";
 import Modal from "../../shared/erp/components/Modal";
 import { inputClass } from "../../shared/erp/constants";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function SupplierFormModal({
   form,
+  editing,
   saving,
   onChange,
   onClose,
   onSubmit,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   return (
-    <Modal title="New Supplier" onClose={onClose}>
+    <Modal
+      title={editing
+        ? `${autoT("staff.table.edit")} ${autoT("inventory_manager.common.supplier")}`
+        : autoT("legacy.new_supplier_4e3feaa6")}
+      onClose={onClose}
+    >
       <form onSubmit={onSubmit} className="space-y-4 p-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Name" required>
+          <Field label={autoT("attendance.table.name")} required>
             <input
               required
               value={form.name}
@@ -22,21 +30,21 @@ export default function SupplierFormModal({
               className={inputClass}
             />
           </Field>
-          <Field label="Contact Person">
+          <Field label={autoT("legacy.contact_person_649a4633")}>
             <input
               value={form.contact_person}
               onChange={(event) => onChange({ ...form, contact_person: event.target.value })}
               className={inputClass}
             />
           </Field>
-          <Field label="Phone">
+          <Field label={autoT("modal.phone")}>
             <input
               value={form.phone}
               onChange={(event) => onChange({ ...form, phone: event.target.value })}
               className={inputClass}
             />
           </Field>
-          <Field label="Email">
+          <Field label={autoT("staff.table.email")}>
             <input
               type="email"
               value={form.email}
@@ -45,7 +53,7 @@ export default function SupplierFormModal({
             />
           </Field>
         </div>
-        <Field label="Address">
+        <Field label={autoT("modal.address")}>
           <textarea
             rows={2}
             value={form.address}
@@ -53,7 +61,7 @@ export default function SupplierFormModal({
             className={inputClass}
           />
         </Field>
-        <Field label="Notes">
+        <Field label={autoT("inventory_manager.common.notes")}>
           <textarea
             rows={2}
             value={form.notes}
@@ -67,14 +75,14 @@ export default function SupplierFormModal({
             checked={form.is_active}
             onChange={(event) => onChange({ ...form, is_active: event.target.checked })}
           />
-          Active supplier
+          {autoT("legacy.active_supplier_483c207b")}
         </label>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            Cancel
+            {autoT("staff.cancel")}
           </button>
           <button disabled={saving} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60">
-            Save Supplier
+            {autoT("legacy.save_supplier_a7c3e3ac")}
           </button>
         </div>
       </form>

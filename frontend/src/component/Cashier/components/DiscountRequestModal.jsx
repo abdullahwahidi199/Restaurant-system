@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { X, Percent, FileText, Send } from "lucide-react";
 import instance from "../../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function DiscountRequestModal({ order, onClose, onSuccess }) {
+                 const { t: autoT } = useAutoTranslation();
   const [discountPercent, setDiscountPercent] = useState("");
   const [activeTab, setActiveTab] = useState("card");
   const [cardNumber, setCardNumber] = useState("");
@@ -21,11 +23,11 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
   const handleSubmit = async () => {
     if (activeTab === "card") {
       if (!cardNumber.trim()) {
-        setError("Card number is required");
+        setError(autoT("legacy.card_number_is_required_0487f323"));
         return;
       }
       if (!customerPhone.trim()) {
-        setError("Customer phone number is required");
+        setError(autoT("legacy.customer_phone_number_is_required_7e93d152"));
         return;
       }
       try {
@@ -52,12 +54,12 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
         setError("");
 
         if (!discountPercent || Number(discountPercent) <= 0) {
-          setError("Please enter a valid discount percentage");
+          setError(autoT("legacy.please_enter_a_valid_discount_percentage_8176d715"));
           return;
         }
 
         if (!reason.trim()) {
-          setError("Reason is required");
+          setError(autoT("legacy.reason_is_required_d691fce5"));
           return;
         }
 
@@ -95,11 +97,11 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div>
             <h2 className="text-xl font-bold text-gray-800">
-              Discount Request
+              {autoT("legacy.discount_request_aec874ea")}
             </h2>
 
             <p className="text-sm text-gray-500 mt-1">
-              Order #{order.order_number}
+              {autoT("table.order_number")}{order.order_number}
             </p>
           </div>
 
@@ -114,12 +116,12 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
         <div className="p-6 space-y-5">
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Customer</span>
+              <span className="text-gray-500">{autoT("table.customer")}</span>
               <span className="font-medium">{order.name}</span>
             </div>
 
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Current Total</span>
+              <span className="text-gray-500">{autoT("legacy.current_total_0db16a8c")}</span>
               <span className="font-semibold text-lg">{total.toFixed(2)}</span>
             </div>
           </div>
@@ -138,7 +140,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
                   : "text-gray-600"
               }`}
             >
-              Discount Card
+              {autoT("legacy.discount_card_21f25b27")}
             </button>
             <button
               onClick={() => setActiveTab("request")}
@@ -148,7 +150,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
                   : "text-gray-600"
               }`}
             >
-              Request Discount
+              {autoT("legacy.request_discount_ed453809")}
             </button>
           </div>
 
@@ -156,7 +158,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Discount Percentage
+                  {autoT("legacy.discount_percentage_449188f4")}
                 </label>
 
                 <div className="relative">
@@ -169,20 +171,20 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
                     type="number"
                     value={discountPercent}
                     onChange={(e) => setDiscountPercent(e.target.value)}
-                    placeholder="Enter discount %"
+                    placeholder={autoT("legacy.enter_discount_538f54ad")}
                     className="w-full border rounded-lg pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
 
                 {Number(discountPercent) > managerLimit && (
                   <p className="text-xs text-red-500 mt-1">
-                    Discounts above {managerLimit}% require Admin approval.
+                    {autoT("legacy.discounts_above_95fa2340")} {managerLimit}{autoT("legacy.require_admin_approval_aba72fa6")}
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Reason</label>
+                <label className="block text-sm font-medium mb-1">{autoT("legacy.reason_f219cc06")}</label>
 
                 <div className="relative">
                   <FileText
@@ -194,7 +196,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
                     rows={3}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Explain why this discount is needed..."
+                    placeholder={autoT("legacy.explain_why_this_discount_is_needed_c9b75537")}
                     className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                   />
                 </div>
@@ -203,7 +205,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
               {discountPercent && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                   <div className="flex justify-between text-sm">
-                    <span>Discount Amount</span>
+                    <span>{autoT("legacy.discount_amount_7c937455")}</span>
 
                     <span className="text-red-500 font-medium">
                       -{previewDiscount.toFixed(2)}
@@ -211,7 +213,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
                   </div>
 
                   <div className="flex justify-between font-semibold mt-1">
-                    <span>Final Total</span>
+                    <span>{autoT("legacy.final_total_865bf183")}</span>
 
                     <span className="text-green-600">
                       {finalTotal.toFixed(2)}
@@ -226,28 +228,28 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Card Number
+                  {autoT("legacy.card_number_b5e9a5e8")}
                 </label>
 
                 <input
                   type="text"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="Enter card number"
+                  placeholder={autoT("legacy.enter_card_number_7b6a18c5")}
                   className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Customer Phone
+                  {autoT("legacy.customer_phone_268cb765")}
                 </label>
 
                 <input
                   type="text"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="Enter phone number"
+                  placeholder={autoT("legacy.enter_phone_number_a2260785")}
                   className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
@@ -260,7 +262,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
             onClick={onClose}
             className="px-5 py-2.5 rounded-xl border hover:bg-gray-50 transition"
           >
-            Cancel
+            {autoT("staff.cancel")}
           </button>
 
           <button
@@ -270,7 +272,7 @@ export default function DiscountRequestModal({ order, onClose, onSuccess }) {
           >
             <Send size={16} />
 
-            {loading ? "Submitting..." : "Submit Request"}
+            {loading ? autoT("submitting") : autoT("legacy.submit_request_d0015743")}
           </button>
         </div>
       </div>

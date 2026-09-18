@@ -23,7 +23,7 @@ export default function TablesDisplay({ tables, onUpdate }) {
         >
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-xl font-semibold text-gray-800">
-              Table({table.name})
+              {t("legacy.table_c3a2f1e1")}{table.name})
             </h3>
             <span
               className={`px-2 py-1 text-sm rounded-full font-medium ${
@@ -71,7 +71,7 @@ export default function TablesDisplay({ tables, onUpdate }) {
                       {table.current_order.item_count ??
                         table.current_order.items.length}{" "}
                       |{" "}
-                      {t("total")}: Afs{table.current_order.total}
+                      {t("total")}{t("legacy.afs_9eff30c8")}{table.current_order.total}
                     </span>
                   </div>
                 </div>

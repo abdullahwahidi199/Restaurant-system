@@ -108,7 +108,7 @@ export default function StaffLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const isRTL = i18n.dir ? i18n.dir() === "rtl" : i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
 
   const nav = useNavigate();
 

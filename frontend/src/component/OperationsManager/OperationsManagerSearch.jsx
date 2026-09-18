@@ -18,6 +18,7 @@ import {
   findActiveOperationsManagerNavigationItem,
   getOperationsManagerSearchableNavigationItems,
 } from "./OperationsManagerNavigation";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const RECENT_STORAGE_KEY = "pakhlai-operations-search-recent";
 const FREQUENCY_STORAGE_KEY = "pakhlai-operations-search-frequency";
@@ -145,6 +146,7 @@ function ResultGroup({ label, icon: Icon, children }) {
 }
 
 export default function OperationsGlobalSearch({ navigationGroups }) {
+                 const { t: autoT } = useAutoTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const wrapperRef = useRef(null);
@@ -264,7 +266,7 @@ export default function OperationsGlobalSearch({ navigationGroups }) {
     if (debouncedQuery.trim()) {
       return [
         {
-          label: "Results",
+          label: autoT("legacy.results_612e12d2"),
           icon: Search,
           items: filteredResults,
         },
@@ -272,9 +274,9 @@ export default function OperationsGlobalSearch({ navigationGroups }) {
     }
 
     return [
-      { label: "Recent", icon: Clock3, items: recentItems },
-      { label: "Frequently Used", icon: Zap, items: frequentItems },
-      { label: "Favorites", icon: Star, items: favoriteItems },
+      { label: autoT("legacy.recent_76eec760"), icon: Clock3, items: recentItems },
+      { label: autoT("legacy.frequently_used_37d705a1"), icon: Zap, items: frequentItems },
+      { label: autoT("legacy.favorites_07b3e447"), icon: Star, items: favoriteItems },
     ].filter((group) => group.items.length > 0);
   }, [
     debouncedQuery,
@@ -374,8 +376,8 @@ export default function OperationsGlobalSearch({ navigationGroups }) {
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search operations pages..."
-          aria-label="Search operations pages"
+          placeholder={autoT("legacy.search_operations_pages_c0ef8206")}
+          aria-label={autoT("legacy.search_operations_pages_3179ae3c")}
           aria-expanded={open}
           aria-controls="admin-global-search-results"
           aria-activedescendant={
@@ -386,7 +388,7 @@ export default function OperationsGlobalSearch({ navigationGroups }) {
           role="combobox"
           autoComplete="off"
         />
-        <kbd>Ctrl K</kbd>
+        <kbd>{autoT("legacy.ctrl_k_a784e36d")}</kbd>
       </div>
 
       {open && (
@@ -421,20 +423,20 @@ export default function OperationsGlobalSearch({ navigationGroups }) {
           ) : (
             <div className="admin-search-empty">
               <Search className="h-5 w-5" />
-              <span>No operations pages found</span>
+              <span>{autoT("legacy.no_operations_pages_found_58d131fa")}</span>
             </div>
           )}
 
           <div className="admin-search-footer">
             <span>
               <ArrowUpDown className="h-3.5 w-3.5" />
-              Navigate
+              {autoT("legacy.navigate_1eee3afe")}
             </span>
             <span>
               <CornerDownLeft className="h-3.5 w-3.5" />
-              Open
+              {autoT("landing.marketplace.card.open")}
             </span>
-            <span>Esc Close</span>
+            <span>{autoT("legacy.esc_close_bab1272d")}</span>
           </div>
         </div>
       )}

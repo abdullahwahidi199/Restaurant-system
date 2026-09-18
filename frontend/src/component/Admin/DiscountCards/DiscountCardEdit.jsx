@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const initialFormState = {
   card_name: "",
@@ -30,6 +31,7 @@ const initialFormState = {
 };
 
 export default function EditDiscountCard() {
+                 const { t: autoT } = useAutoTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -266,11 +268,10 @@ export default function EditDiscountCard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <CreditCard className="w-8 h-8 text-blue-600" />
-            Edit Discount Card
+            {autoT("legacy.edit_discount_card_cf16f8c8")}
           </h1>
           <p className="mt-2 text-gray-600">
-            Update the discount card details. All fields marked with * are
-            required.
+            {autoT("legacy.update_the_discount_card_details_all_fields_marked_wit_ac7b0400")}
           </p>
         </div>
 
@@ -279,9 +280,9 @@ export default function EditDiscountCard() {
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 animate-fade-in">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-green-900">Success!</h3>
+              <h3 className="font-semibold text-green-900">{autoT("legacy.success_7ce01f63")}</h3>
               <p className="text-green-800 mt-1">
-                Discount card has been updated successfully.
+                {autoT("legacy.discount_card_has_been_updated_successfully_a7eee675")}
               </p>
             </div>
           </div>
@@ -301,7 +302,7 @@ export default function EditDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Hash className="w-5 h-5 text-gray-500" />
-                Card Information
+                {autoT("legacy.card_information_8b192f70")}
               </h2>
             </div>
 
@@ -311,7 +312,7 @@ export default function EditDiscountCard() {
                   htmlFor="card_name"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Card Name *
+                  {autoT("legacy.card_name_e4b9210a")}
                 </label>
                 <input
                   id="card_name"
@@ -320,7 +321,7 @@ export default function EditDiscountCard() {
                   value={formData.card_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="e.g., Gold Member Discount"
+                  placeholder={autoT("legacy.e_g_gold_member_discount_a6591849")}
                   className={inputClass("card_name")}
                 />
                 {errors.card_name && touched.card_name && (
@@ -335,7 +336,7 @@ export default function EditDiscountCard() {
                   htmlFor="card_number"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Card Number *
+                  {autoT("legacy.card_number_b9cbfa8b")}
                 </label>
                 <div className="relative">
                   <input
@@ -345,14 +346,14 @@ export default function EditDiscountCard() {
                     value={formData.card_number}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="DC-XXXXXXXX"
+                    placeholder={autoT("legacy.dc_xxxxxxxx_b5671b86")}
                     className={`${inputClass("card_number")} pr-10`}
                   />
                   <button
                     type="button"
                     onClick={generateCardNumber}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="Generate random card number"
+                    title={autoT("legacy.generate_random_card_number_4fc48226")}
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -363,7 +364,7 @@ export default function EditDiscountCard() {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  Must be unique across all cards
+                  {autoT("legacy.must_be_unique_across_all_cards_899607c7")}
                 </p>
               </div>
 
@@ -372,7 +373,7 @@ export default function EditDiscountCard() {
                   htmlFor="status"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Status
+                  {autoT("table.status")}
                 </label>
                 <select
                   id="status"
@@ -381,9 +382,9 @@ export default function EditDiscountCard() {
                   onChange={handleChange}
                   className={inputClass("status")}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="expired">Expired</option>
+                  <option value="active">{autoT("staff.status.active")}</option>
+                  <option value="inactive">{autoT("staff.status.inactive")}</option>
+                  <option value="expired">{autoT("legacy.expired_a689a999")}</option>
                 </select>
               </div>
             </div>
@@ -394,7 +395,7 @@ export default function EditDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <User className="w-5 h-5 text-gray-500" />
-                Customer Information
+                {autoT("legacy.customer_information_c996cd10")}
               </h2>
             </div>
 
@@ -404,7 +405,7 @@ export default function EditDiscountCard() {
                   htmlFor="customer_name"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Customer Name *
+                  {autoT("legacy.customer_name_e25608b4")}
                 </label>
                 <input
                   id="customer_name"
@@ -413,7 +414,7 @@ export default function EditDiscountCard() {
                   value={formData.customer_name}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="John Doe"
+                  placeholder={autoT("legacy.john_doe_ae6e4d12")}
                   className={inputClass("customer_name")}
                 />
                 {errors.customer_name && touched.customer_name && (
@@ -428,7 +429,7 @@ export default function EditDiscountCard() {
                   htmlFor="customer_phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Phone Number
+                  {autoT("staff.form.phone")}
                 </label>
                 <input
                   id="customer_phone"
@@ -454,7 +455,7 @@ export default function EditDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Percent className="w-5 h-5 text-gray-500" />
-                Discount Details
+                {autoT("legacy.discount_details_405a24bb")}
               </h2>
             </div>
 
@@ -464,7 +465,7 @@ export default function EditDiscountCard() {
                   htmlFor="discount_percentage"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Discount Percentage *
+                  {autoT("legacy.discount_percentage_1c08dcd9")}
                 </label>
                 <div className="relative">
                   <input
@@ -494,7 +495,7 @@ export default function EditDiscountCard() {
                   htmlFor="minimum_order_amount"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Minimum Order Amount
+                  {autoT("settings_center.fields.minimum_order")}
                 </label>
                 <div className="relative">
                   <input
@@ -512,7 +513,7 @@ export default function EditDiscountCard() {
                   <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Leave empty or 0 for no minimum
+                  {autoT("legacy.leave_empty_or_0_for_no_minimum_e64299aa")}
                 </p>
               </div>
             </div>
@@ -523,7 +524,7 @@ export default function EditDiscountCard() {
             <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-gray-500" />
-                Validity & Usage Limits
+                {autoT("legacy.validity_usage_limits_02b327c9")}
               </h2>
             </div>
 
@@ -533,7 +534,7 @@ export default function EditDiscountCard() {
                   htmlFor="valid_from"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Valid From *
+                  {autoT("legacy.valid_from_47ef36b5")}
                 </label>
                 <input
                   id="valid_from"
@@ -556,7 +557,7 @@ export default function EditDiscountCard() {
                   htmlFor="valid_until"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Valid Until *
+                  {autoT("legacy.valid_until_bb0d233e")}
                 </label>
                 <input
                   id="valid_until"
@@ -579,7 +580,7 @@ export default function EditDiscountCard() {
                   htmlFor="usage_limit"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Usage Limit
+                  {autoT("legacy.usage_limit_b456dc42")}
                 </label>
                 <input
                   id="usage_limit"
@@ -589,12 +590,11 @@ export default function EditDiscountCard() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   min="1"
-                  placeholder="Unlimited"
+                  placeholder={autoT("legacy.unlimited_b8bef37b")}
                   className={inputClass("usage_limit")}
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Maximum number of times this card can be used. Leave empty for
-                  unlimited usage.
+                  {autoT("legacy.maximum_number_of_times_this_card_can_be_used_leave_em_6e671dfc")}
                 </p>
                 {errors.usage_limit && touched.usage_limit && (
                   <p className="mt-1 text-sm text-red-600">
@@ -608,7 +608,7 @@ export default function EditDiscountCard() {
                   htmlFor="notes"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Notes
+                  {autoT("inventory_manager.common.notes")}
                 </label>
                 <div className="relative">
                   <textarea
@@ -617,7 +617,7 @@ export default function EditDiscountCard() {
                     value={formData.notes}
                     onChange={handleChange}
                     rows={3}
-                    placeholder="Additional notes about this discount card..."
+                    placeholder={autoT("legacy.additional_notes_about_this_discount_card_1de88868")}
                     className={`${inputClass("notes")} resize-none`}
                   />
                   <FileText className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
@@ -639,7 +639,7 @@ export default function EditDiscountCard() {
               className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               disabled={loading}
             >
-              Reset Form
+              {autoT("legacy.reset_form_6c3b2103")}
             </button>
 
             <button
@@ -650,12 +650,12 @@ export default function EditDiscountCard() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Updating...
+                  {autoT("updating")}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-5 h-5" />
-                  Update Discount Card
+                  {autoT("legacy.update_discount_card_da5ce490")}
                 </>
               )}
             </button>

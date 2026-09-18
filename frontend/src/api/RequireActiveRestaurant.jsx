@@ -2,8 +2,10 @@ import React, { useEffect, useState, useContext } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import instance from "./axiosInstance";
 import { AuthContext } from "./authforRBC";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function RequireActiveRestaurant({ children }) {
+                 const { t: autoT } = useAutoTranslation();
   const [loading, setLoading] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const location = useLocation();
@@ -28,7 +30,7 @@ export default function RequireActiveRestaurant({ children }) {
     checkRestaurant();
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p>{autoT("dashboard.loading")}</p>;
 
   if (!isActive) {
     return (

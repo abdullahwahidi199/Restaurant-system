@@ -1,6 +1,8 @@
 import React from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function SubscriptionInactive() {
+                 const { t: autoT } = useAutoTranslation();
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -25,11 +27,10 @@ export default function SubscriptionInactive() {
         </div>
 
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-          Subscription Expired
+          {autoT("legacy.subscription_expired_94131088")}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Your access has expired. Upgrade your plan to continue enjoying full
-          features.
+          {autoT("legacy.your_access_has_expired_upgrade_your_plan_to_continue__dcb8ff44")}
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const OrderDetailsModal = ({
   order,
@@ -7,6 +8,7 @@ const OrderDetailsModal = ({
   onAssignDelivery,
   onMarkCompleted,
 }) => {
+                            const { t: autoT } = useAutoTranslation();
   if (!order) return null;
 
   const items = order.items || [];
@@ -46,59 +48,59 @@ const OrderDetailsModal = ({
       <div className="bg-white w-11/12 md:w-2/3 lg:w-1/2 rounded-2xl shadow-lg p-6 relative">
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={autoT("menuDetails.close")}
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
         >
           ✕
         </button>
 
         <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">
-          order #{order.order_number}
+          {autoT("legacy.order_7e7d5202")}{order.order_number}
         </h2>
 
         <div className="mb-4">
           <p className="text-gray-600 mb-1">
-            <strong>Customer:</strong> {order.name || order.customer}
+            <strong>{autoT("legacy.customer_5e0d7363")}</strong> {order.name || order.customer}
           </p>
           <p className="text-gray-600 mb-1">
-            <strong>Type:</strong>{" "}
+            <strong>{autoT("legacy.type_ee3fb11d")}</strong>{" "}
             {order.order_type_display || order.order_type}
           </p>
           {order.table && (
             <p className="text-gray-600 mb-1">
-              <strong>Table:</strong> {order.tableName}
+              <strong>{autoT("legacy.table_692eeda0")}</strong> {order.tableName}
             </p>
           )}
           <p className="text-gray-600 mb-1">
-            <strong>Phone:</strong> {order.phone || "—"}
+            <strong>{autoT("legacy.phone_daeea4d0")}</strong> {order.phone || "—"}
           </p>
           <p className="text-gray-600 mb-1">
-            <strong>Status:</strong> {statusLabel}
+            <strong>{autoT("legacy.status_11dc9e19")}</strong> {statusLabel}
           </p>
           <p className="text-gray-600 mb-1">
-            <strong>Created by:</strong> {order.created_by_name}
+            <strong>{autoT("legacy.created_by_99d17454")}</strong> {order.created_by_name}
           </p>
           {order.status === "out_for_delivery" && (
             <p className="text-gray-600 mb-1">
-              <strong>Delivered By: </strong> {order.delivery_boy_details.name}
+              <strong>{autoT("legacy.delivered_by_087880ce")} </strong> {order.delivery_boy_details.name}
             </p>
           )}
           {order.status === "out_for_delivery" && (
             <p className="text-gray-600 mb-1">
-              <strong>Vehicle number: </strong>{" "}
+              <strong>{autoT("legacy.vehicle_number_5c76b92c")} </strong>{" "}
               {order.delivery_boy_details.vehicle_number}
             </p>
           )}
         </div>
 
         <div className="border-t pt-3 mb-3">
-          <h3 className="font-semibold text-lg mb-2">Items</h3>
+          <h3 className="font-semibold text-lg mb-2">{autoT("modal.items")}</h3>
           <table className="w-full text-sm text-gray-600">
             <thead>
               <tr className="text-left border-b">
-                <th className="py-1">Item</th>
-                <th className="py-1 text-center">Qty</th>
-                <th className="py-1 text-right">Price</th>
+                <th className="py-1">{autoT("legacy.item_ecdda59a")}</th>
+                <th className="py-1 text-center">{autoT("inventory_manager.common.qty")}</th>
+                <th className="py-1 text-right">{autoT("menuDetails.price")}</th>
               </tr>
             </thead>
             <tbody>
@@ -128,7 +130,7 @@ const OrderDetailsModal = ({
                       {name}
                       {isCancelled && (
                         <span className="ml-1 text-[10px] text-red-500">
-                          (Cancelled)
+                          {autoT("legacy.cancelled_948c9daf")}
                         </span>
                       )}
                     </td>
@@ -137,7 +139,7 @@ const OrderDetailsModal = ({
 
                     <td className="py-1 text-right">
                       {isCancelled
-                        ? "AFN 0.00"
+                        ? autoT("legacy.afn_0_00_bf1a9b95")
                         : `AFN ${(qty * price).toFixed(2)}`}
                     </td>
                   </tr>
@@ -148,17 +150,17 @@ const OrderDetailsModal = ({
         </div>
 
         <div className="mt-3 text-right text-gray-800 space-y-1">
-          <p>Food Subtotal: AFN{subtotal.toFixed(2)}</p>
+          <p>{autoT("legacy.food_subtotal_afn_51340b9c")}{subtotal.toFixed(2)}</p>
 
           {order.reservation_payment && (
             <>
               <p>
-                Reservation Total: AFN
+                {autoT("legacy.reservation_total_afn_140cea0f")}
                 {Number(order.reservation_payment.total).toFixed(2)}
               </p>
 
               <p className="text-green-600">
-                Reservation Paid: AFN
+                {autoT("legacy.reservation_paid_afn_a2c97586")}
                 {reservationPaid.toFixed(2)}
               </p>
             </>
@@ -166,22 +168,22 @@ const OrderDetailsModal = ({
 
           {Number(order.delivery_fee) > 0 && (
             <p>
-              Delivery Fee: AFN
+              {autoT("legacy.delivery_fee_afn_c6e8adff")}
               {Number(order.delivery_fee).toFixed(2)}
             </p>
           )}
 
           {Number(order.discount_percent) > 0 && (
-            <p className="text-red-600">Discount: {order.discount_percent}%</p>
+            <p className="text-red-600">{autoT("legacy.discount_811474dc")} {order.discount_percent}%</p>
           )}
 
           <h3 className="text-xl font-bold mt-2">
-            Total: AFN{finalTotal.toFixed(2)}
+            {autoT("legacy.total_afn_2633598b")}{finalTotal.toFixed(2)}
           </h3>
 
           {reservationPaid > 0 && (
             <p className="text-blue-600 font-semibold">
-              Remaining: AFN{remainingTotal.toFixed(2)}
+              {autoT("legacy.remaining_afn_7b89e368")}{remainingTotal.toFixed(2)}
             </p>
           )}
         </div>
@@ -191,7 +193,7 @@ const OrderDetailsModal = ({
             onClick={onClose}
             className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition-all"
           >
-            Close
+            {autoT("menuDetails.close")}
           </button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { getMediaUrl } from "../../api/publicOrdering";
 import Header from "./Header";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 function ImageMark({ src, name, className = "" }) {
   const imageUrl = getMediaUrl(src);
@@ -62,20 +63,21 @@ export function BranchSelectionSkeleton() {
 }
 
 export function BranchSelectionError({ onRetry }) {
+         const { t: autoT } = useAutoTranslation();
   return (
     <div className="customer-ordering-page flex min-h-screen items-center justify-center bg-[#fbfaf7] px-4">
       <div className="w-full max-w-md rounded-lg border border-red-100 bg-white p-6 text-center shadow-sm">
         <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
-        <h1 className="text-xl font-bold text-gray-950">Unable to load branches</h1>
+        <h1 className="text-xl font-bold text-gray-950">{autoT("legacy.unable_to_load_branches_ed97a783")}</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Please refresh and try again.
+          {autoT("legacy.please_refresh_and_try_again_9c86662b")}
         </p>
         <button
           type="button"
           onClick={onRetry}
           className="mt-5 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-700"
         >
-          Try Again
+          {autoT("labels.try_again")}
         </button>
       </div>
     </div>
@@ -83,6 +85,7 @@ export function BranchSelectionError({ onRetry }) {
 }
 
 export function BranchUnavailable({ restaurant }) {
+         const { t: autoT } = useAutoTranslation();
   return (
     <main className="customer-ordering-page min-h-screen bg-[#fbfaf7]">
       <Header restaurantInfo={restaurant} restaurantSlug={restaurant?.slug} />
@@ -94,11 +97,10 @@ export function BranchUnavailable({ restaurant }) {
             className="mx-auto mb-5 h-20 w-20 rounded-lg border border-orange-100"
           />
           <h1 className="text-2xl font-bold text-gray-950">
-            {restaurant?.name || "This restaurant"} is unavailable
+            {restaurant?.name || autoT("legacy.this_restaurant_6e1909e0")} {autoT("legacy.is_unavailable_b2a9e0c5")}
           </h1>
           <p className="mt-3 text-sm leading-6 text-gray-600">
-            Online menu access is not available for any branch right now.
-            Please check back later.
+            {autoT("legacy.online_menu_access_is_not_available_for_any_branch_rig_b37418dd")}
           </p>
         </div>
       </div>
@@ -107,6 +109,7 @@ export function BranchUnavailable({ restaurant }) {
 }
 
 export default function BranchSelectionPage({ restaurant, branches = [] }) {
+                 const { t: autoT } = useAutoTranslation();
   const navigate = useNavigate();
   const coverUrl = getMediaUrl(restaurant?.cover_image || restaurant?.logo);
 
@@ -131,7 +134,7 @@ export default function BranchSelectionPage({ restaurant, branches = [] }) {
             className="mb-5 h-20 w-20 rounded-lg border border-white/20 bg-white/10 shadow-xl"
           />
           <p className="mb-2 text-xs font-black uppercase text-orange-200">
-            Choose a Branch
+            {autoT("legacy.choose_a_branch_0d780f5e")}
           </p>
           <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-5xl">
             {restaurant?.name}
@@ -152,13 +155,13 @@ export default function BranchSelectionPage({ restaurant, branches = [] }) {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black text-stone-950">Branches</h2>
+            <h2 className="text-2xl font-black text-stone-950">{autoT("landing.marketplace.owner.items.branches")}</h2>
             <p className="mt-1 text-sm text-stone-600">
-              Select the branch you want to order from.
+              {autoT("legacy.select_the_branch_you_want_to_order_from_89ddc518")}
             </p>
           </div>
           <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-bold text-stone-600 shadow-sm">
-            {branches.length} active
+            {branches.length} {autoT("legacy.active_2bb6b986")}
           </span>
         </div>
 
@@ -181,7 +184,7 @@ export default function BranchSelectionPage({ restaurant, branches = [] }) {
                       : "bg-stone-100 text-stone-600"
                   }`}
                 >
-                  {branch.is_open ? "Open" : "Closed"}
+                  {branch.is_open ? autoT("landing.marketplace.card.open") : autoT("landing.marketplace.card.closed")}
                 </span>
               </div>
 
@@ -214,7 +217,7 @@ export default function BranchSelectionPage({ restaurant, branches = [] }) {
                 className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
               >
                 <Store className="h-4 w-4" />
-                View Menu
+                {autoT("legacy.view_menu_67be26fb")}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </article>

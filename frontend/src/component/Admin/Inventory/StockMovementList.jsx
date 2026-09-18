@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getStockMovements } from "../../../api/inventoryApi";
 import EditStockMovement from "./EditStockModal";
+import TablePagination from "../../../modules/shared/erp/components/TablePagination";
 
 export default function StockMovementList() {
   const { t } = useTranslation();
@@ -20,7 +21,6 @@ export default function StockMovementList() {
   const pageSize = 15;
 
   /* FILTERS */
-  const [ingredient, setIngredient] = useState("");
   const [type, setType] = useState(typeParam);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -168,7 +168,6 @@ export default function StockMovementList() {
         <button
           onClick={() => {
             setSearch("");
-            setIngredient("");
             setType("");
             setFromDate("");
             setToDate("");
@@ -223,10 +222,10 @@ export default function StockMovementList() {
                       <span>
                         {t("inventory_manager.common.qty", { defaultValue: "Qty" })}: {formatQuantity(m.change_quantity, m.ingredient_unit)}
                         <span className="mt-1 block text-green-700">
-                          {t("inventory_manager.common.total", { defaultValue: "Total" })}: AFN {calculateTotalPrice(m.change_quantity, m.unit_cost)}
+                          {t("inventory_manager.common.total", { defaultValue: "Total" })}{t("legacy.afn_fbd07c7e")} {calculateTotalPrice(m.change_quantity, m.unit_cost)}
                         </span>
                         <span className="mt-1 block text-xs text-gray-500">
-                          {t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" })}({m.ingredient_unit}): AFN {m.unit_cost}
+                          {t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" })}({m.ingredient_unit}{t("legacy.afn_a1ffcca8")} {m.unit_cost}
                         </span>
                       </span>
                     ) : (
@@ -302,12 +301,12 @@ export default function StockMovementList() {
                         </div>
 
                         <div className="text-sm text-green-700 font-medium">
-                          {t("inventory_manager.common.total", { defaultValue: "Total" })}: AFN{" "}
+                          {t("inventory_manager.common.total", { defaultValue: "Total" })}{t("legacy.afn_fbd07c7e")}{" "}
                           {calculateTotalPrice(m.change_quantity, m.unit_cost)}
                         </div>
 
                         <div className="text-xs text-gray-500">
-                          {t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" })}({m.ingredient_unit}): AFN {m.unit_cost}
+                          {t("inventory_manager.common.unit_cost", { defaultValue: "Unit Cost" })}({m.ingredient_unit}{t("legacy.afn_a1ffcca8")} {m.unit_cost}
                         </div>
                       </div>
                     ) : (
@@ -348,34 +347,15 @@ export default function StockMovementList() {
         </>
       )}
 
-      {/* PAGINATION */}
-      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-gray-500">
-          {t("inventory_manager.common.page_of", {
-            defaultValue: "Page {{page}} of {{totalPages}}",
-            page,
-            totalPages,
-          })}
-        </span>
-
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            {t("inventory_manager.common.prev", { defaultValue: "Prev" })}
-          </button>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            {t("inventory_manager.common.next", { defaultValue: "Next" })}
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        page={page}
+        totalItems={count}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        loading={loading}
+        className="mt-4"
+      />
 
       {selectedMovement && (
         <EditStockMovement

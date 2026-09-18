@@ -55,7 +55,7 @@ export default function Info() {
   }, [slug]);
 
   if (loading) {
-    return <div className="p-10 text-center">Loading...</div>;
+    return <div className="p-10 text-center">{t("dashboard.loading")}</div>;
   }
 
   if (notFound) {
@@ -72,7 +72,7 @@ export default function Info() {
           {restaurantInfo?.logo && (
             <img
               src={getMediaUrl(restaurantInfo.logo)}
-              alt="Logo"
+              alt={t("logo")}
               className="h-18 w-auto object-contain mb-3"
             />
           )}

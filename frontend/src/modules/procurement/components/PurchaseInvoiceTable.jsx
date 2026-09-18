@@ -4,8 +4,10 @@ import DataTable from "../../shared/erp/components/DataTable";
 import StatusBadge from "../../shared/erp/components/StatusBadge";
 import { money } from "../../shared/erp/formatters";
 import { getInvoiceNumber } from "../utils/calculations";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, compact = false }) {
+                 const { t: autoT } = useAutoTranslation();
   const columns = [
     {
       key: "invoice",
@@ -34,32 +36,33 @@ export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, comp
     {
       key: "total",
       header: "Total",
-      className: "px-4 py-3 text-right font-semibold text-slate-950",
+      className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary",
       render: (invoice) => money(invoice.total_amount),
     },
     !compact && {
       key: "paid",
       header: "Paid",
-      className: "px-4 py-3 text-right",
+      className: "px-4 py-2.5 text-right tabular-nums",
       render: (invoice) => money(invoice.amount_paid),
     },
     {
       key: "balance",
       header: "Balance",
-      className: "px-4 py-3 text-right font-semibold text-rose-700",
+      className: "px-4 py-2.5 text-right font-semibold tabular-nums text-[var(--theme-danger)]",
       render: (invoice) => money(invoice.remaining_balance),
     },
     {
       key: "actions",
       header: "Actions",
-      className: "px-4 py-3",
+      className: "px-4 py-2.5",
       render: (invoice) => (
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={() => onOpen(invoice)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
-            title="Open invoice"
+            className="theme-btn theme-btn-outline theme-btn-icon theme-text-muted"
+            title={autoT("legacy.open_invoice_587e51ea")}
+            aria-label={autoT("legacy.open_invoice_587e51ea")}
           >
             <Eye className="h-4 w-4" />
           </button>
@@ -67,8 +70,9 @@ export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, comp
             <button
               type="button"
               onClick={() => onPayment(invoice)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
-              title="Record payment"
+              className="theme-btn theme-btn-outline theme-btn-icon theme-text-muted"
+              title={autoT("legacy.record_payment_86e56322")}
+              aria-label={autoT("legacy.record_payment_86e56322")}
             >
               <CreditCard className="h-4 w-4" />
             </button>
@@ -82,7 +86,7 @@ export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, comp
     <DataTable
       columns={columns}
       rows={invoices}
-      empty="No purchase invoices found."
+      empty={autoT("legacy.no_purchase_invoices_found_4d09b23c")}
     />
   );
 }

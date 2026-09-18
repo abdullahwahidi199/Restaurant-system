@@ -12,7 +12,7 @@ import FinanceNavbar from "./FinanceManagerNavbar";
 
 export default function FinanceManagerLayout() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +106,7 @@ export default function FinanceManagerLayout() {
             <div>
               <p className="font-semibold theme-text-primary">{alert.text}</p>
               <p className="text-xs theme-text-muted">
-                {subscription.days_left} days remaining
+                {subscription.days_left} {t("legacy.days_remaining_9182f5ff")}
               </p>
             </div>
 

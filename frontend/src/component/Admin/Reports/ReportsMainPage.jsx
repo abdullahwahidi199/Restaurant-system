@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BarChart3, CalendarDays, Play } from "lucide-react";
+import { BarChart3, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import OrdersReport from "./OrdersReport";
 import FinanceReport from "./FinanceReport";
@@ -15,7 +15,10 @@ export default function ReportsMainPage() {
   const [reportType, setReportType] = useState("orders");
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
-  const [appliedRange, setAppliedRange] = useState({ start: today, end: today });
+  const [appliedRange, setAppliedRange] = useState({
+    start: today,
+    end: today,
+  });
   const [generationKey, setGenerationKey] = useState(0);
   const [dateError, setDateError] = useState("");
 
@@ -34,33 +37,41 @@ export default function ReportsMainPage() {
   };
 
   return (
-    <div className="space-y-6 p-3 sm:p-6">
-      <div className="theme-card overflow-hidden">
-        <div className="flex flex-col gap-5 p-4 sm:p-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="rounded-xl bg-[var(--theme-primary-soft)] p-2.5 text-[var(--theme-primary)]">
-              <BarChart3 className="h-6 w-6" />
+    <div className="min-w-0 space-y-4">
+      <header className="theme-card min-w-0 p-4">
+        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3 xl:pb-1">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)]"
+              aria-hidden="true"
+            >
+              <BarChart3 className="h-5 w-5" />
             </span>
-            <div>
-              <h1 className="text-2xl font-bold theme-text-primary">
+            <div className="min-w-0">
+              <h1 className="text-[1.5rem] font-bold leading-tight theme-text-primary">
                 {t("menu_item_sales.reports", { defaultValue: "Reports" })}
               </h1>
-              <p className="mt-1 text-sm theme-text-muted">
+              <p className="mt-0.5 text-xs leading-snug theme-text-secondary">
                 {t("menu_item_sales.reports_subtitle", {
-                  defaultValue: "Generate branch-aware operational and financial reports.",
+                  defaultValue:
+                    "Generate branch-aware operational and financial reports.",
                 })}
               </p>
             </div>
           </div>
 
-          <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(210px,1fr)_160px_160px_auto]">
-            <label className="space-y-1 text-sm font-semibold theme-text-secondary">
-              <span>{t("menu_item_sales.report_type", { defaultValue: "Report Type" })}</span>
+          <div className="grid min-w-0 grid-cols-2 gap-2.5 lg:grid-cols-[minmax(180px,1.3fr)_minmax(130px,1fr)_minmax(130px,1fr)_auto] xl:flex-1 xl:ps-6">
+            <label className="col-span-2 min-w-0 space-y-1 text-xs font-semibold theme-text-secondary lg:col-span-1">
+              <span className="block">
+                {t("menu_item_sales.report_type", {
+                  defaultValue: "Report Type",
+                })}
+              </span>
               <select
                 id="report-type"
                 value={reportType}
                 onChange={(event) => setReportType(event.target.value)}
-                className="theme-select h-10 w-full px-3"
+                className="theme-select h-9 w-full px-2.5"
               >
                 {REPORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -72,68 +83,93 @@ export default function ReportsMainPage() {
               </select>
             </label>
 
-            <label className="space-y-1 text-sm font-semibold theme-text-secondary">
-              <span>{t("menu_item_sales.from", { defaultValue: "From" })}</span>
-              <span className="relative block">
-                <CalendarDays className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 theme-text-muted" />
-                <input
-                  id="start"
-                  type="date"
-                  value={startDate}
-                  max={endDate || undefined}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  className="theme-input h-10 w-full ps-9 pe-2"
-                />
+            <label className="min-w-0 space-y-1 text-xs font-semibold theme-text-secondary">
+              <span className="block">
+                {t("menu_item_sales.from", { defaultValue: "From" })}
               </span>
+              <input
+                id="start"
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
+                aria-invalid={Boolean(dateError)}
+                aria-describedby={dateError ? "report-date-error" : undefined}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  setDateError("");
+                }}
+                className="theme-input h-9 w-full min-w-0 px-2.5"
+              />
             </label>
 
-            <label className="space-y-1 text-sm font-semibold theme-text-secondary">
-              <span>{t("menu_item_sales.to", { defaultValue: "To" })}</span>
-              <span className="relative block">
-                <CalendarDays className="pointer-events-none absolute start-3 top-2.5 h-4 w-4 theme-text-muted" />
-                <input
-                  id="end"
-                  type="date"
-                  value={endDate}
-                  min={startDate || undefined}
-                  onChange={(event) => setEndDate(event.target.value)}
-                  className="theme-input h-10 w-full ps-9 pe-2"
-                />
+            <label className="min-w-0 space-y-1 text-xs font-semibold theme-text-secondary">
+              <span className="block">
+                {t("menu_item_sales.to", { defaultValue: "To" })}
               </span>
+              <input
+                id="end"
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                aria-invalid={Boolean(dateError)}
+                aria-describedby={dateError ? "report-date-error" : undefined}
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  setDateError("");
+                }}
+                className="theme-input h-9 w-full min-w-0 px-2.5"
+              />
             </label>
 
             <button
               type="button"
-              className="theme-btn theme-btn-primary h-10 self-end px-5"
+              className="theme-btn theme-btn-primary col-span-2 h-9 gap-2 px-4 lg:col-span-1"
               onClick={generateReport}
             >
-              <Play className="h-4 w-4" />
+              <Play className="h-4 w-4" aria-hidden="true" />
               {t("menu_item_sales.generate", { defaultValue: "Generate" })}
             </button>
           </div>
         </div>
+
         {dateError && (
-          <p className="border-t border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] px-6 py-2 text-sm text-[var(--theme-danger)]">
+          <p
+            id="report-date-error"
+            role="alert"
+            className="mt-3 rounded-md bg-[var(--theme-danger-soft)] px-3 py-2 text-xs text-[var(--theme-danger-hover)]"
+          >
             {dateError}
           </p>
         )}
-      </div>
+      </header>
 
-      <div className="theme-card p-3 sm:p-5">
+      <div className="min-w-0">
         {reportType === "orders" && (
-          <OrdersReport startDate={appliedRange.start} endDate={appliedRange.end} />
+          <OrdersReport
+            startDate={appliedRange.start}
+            endDate={appliedRange.end}
+          />
         )}
 
         {reportType === "finance" && (
-          <FinanceReport startDate={appliedRange.start} endDate={appliedRange.end} />
+          <FinanceReport
+            startDate={appliedRange.start}
+            endDate={appliedRange.end}
+          />
         )}
 
         {reportType === "inventory" && (
-          <InventoryReport startDate={appliedRange.start} endDate={appliedRange.end} />
+          <InventoryReport
+            startDate={appliedRange.start}
+            endDate={appliedRange.end}
+          />
         )}
 
         {reportType === "staff_performance" && (
-          <StaffReport startDate={appliedRange.start} endDate={appliedRange.end} />
+          <StaffReport
+            startDate={appliedRange.start}
+            endDate={appliedRange.end}
+          />
         )}
 
         {reportType === "menu_items" && (

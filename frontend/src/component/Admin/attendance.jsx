@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 
 export default function Attendance() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const { auth } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
   const today = new Date().toISOString().slice(0, 10);

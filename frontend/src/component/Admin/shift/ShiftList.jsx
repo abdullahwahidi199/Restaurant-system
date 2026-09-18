@@ -72,7 +72,7 @@ export default function ShiftList({ shifts, onShiftDelete }) {
             ) : (
               <p className="text-sm text-gray-500">{t("no_staff")}</p>
             )}
-            <button onClick={() => handleShiftDelete(shift.id)}>Delete</button>
+            <button onClick={() => handleShiftDelete(shift.id)}>{t("staff.table.delete")}</button>
           </div>
         </div>
       ))}

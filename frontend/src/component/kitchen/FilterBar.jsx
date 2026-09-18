@@ -1,11 +1,13 @@
 import { Search } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function FilterBar({ filter, setFilter, search, setSearch }) {
+                 const { t: autoT } = useAutoTranslation();
   const filters = [
-    { key: "all", label: "All" },
-    { key: "pending", label: "Pending" },
-    { key: "in_progress", label: "In Progress" },
-    { key: "ready", label: "Ready" },
+    { key: "all", label: autoT("all") },
+    { key: "pending", label: autoT("stats.pending") },
+    { key: "in_progress", label: autoT("status.in_progress") },
+    { key: "ready", label: autoT("status.ready") },
   ];
 
   return (
@@ -36,7 +38,7 @@ export default function FilterBar({ filter, setFilter, search, setSearch }) {
         />
         <input
           type="text"
-          placeholder="Search by name..."
+          placeholder={autoT("inventory_manager.ingredients.search_placeholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 pr-3 py-2 w-full rounded-full border border-gray-200 dark:border-gray-700 

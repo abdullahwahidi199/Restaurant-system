@@ -12,7 +12,7 @@ import { getAdminNavigationGroups } from "./adminNavigation";
 
 export default function AdminDashboard() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const [discountAlert, setDiscountAlert] = useState(null);
   const navigate = useNavigate();
   const [restaurant, setRestaurant] = useState(null);
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
             <div>
               <p className="font-semibold theme-text-primary">{alert.text}</p>
               <p className="text-xs theme-text-muted">
-                {subscription.days_left} days remaining
+                {subscription.days_left} {t("legacy.days_remaining_9182f5ff")}
               </p>
             </div>
 
@@ -149,14 +149,14 @@ export default function AdminDashboard() {
       w-72
     "
         >
-          <div className="font-bold text-lg">🔔 New Discount Request</div>
+          <div className="font-bold text-lg">{t("legacy.new_discount_request_cfe57c13")}</div>
 
           <div className="text-sm mt-1">
-            Order #{discountAlert.order_number}
+            {t("table.order_number")}{discountAlert.order_number}
           </div>
 
           <div className="text-xs mt-2 opacity-90">
-            Click to review pending requests
+            {t("legacy.click_to_review_pending_requests_9503e7a8")}
           </div>
         </div>
       )}

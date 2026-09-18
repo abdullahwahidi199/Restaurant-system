@@ -1,10 +1,11 @@
-export default function SingleItem({ item, error }) {
+import { useTranslation as useAutoTranslation } from "react-i18next";export default function SingleItem({ item, error }) {
+                                                                                      const { t: autoT } = useAutoTranslation();
   if (error) {
     return <p className="text-red-500 text-center text-lg">{error}</p>;
   }
 
   if (!item) {
-    return <p className="text-gray-500 text-center text-lg">Loading item...</p>;
+    return <p className="text-gray-500 text-center text-lg">{autoT("loading_item")}</p>;
   }
 
   return (
@@ -28,14 +29,14 @@ export default function SingleItem({ item, error }) {
               item.final_availability ? "text-green-600" : "text-red-500"
             }`}
           >
-            {item.final_availability ? "Available" : "Out of stock"}
+            {item.final_availability ? autoT("available") : autoT("legacy.out_of_stock_8b78c7ae")}
           </p>
         </div>
 
         {item.reviews && item.reviews.length > 0 ? (
           <div className="mt-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-3">
-              Customer Reviews
+              {autoT("labels.customer_reviews")}
             </h3>
             <div className="space-y-3">
               {item.reviews.map((review) => (
@@ -55,7 +56,7 @@ export default function SingleItem({ item, error }) {
             </div>
           </div>
         ) : (
-          <p className="text-gray-400 mt-4 italic">No reviews yet.</p>
+          <p className="text-gray-400 mt-4 italic">{autoT("no_reviews")}</p>
         )}
       </div>
     </div>

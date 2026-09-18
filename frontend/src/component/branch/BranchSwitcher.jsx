@@ -1,8 +1,10 @@
 import React, { useContext, useState } from "react";
 import { Building2 } from "lucide-react";
 import { AuthContext } from "../../api/authforRBC";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function BranchSwitcher({ compact = false }) {
+                 const { t: autoT } = useAutoTranslation();
   const { auth, branches, activeBranch, switchActiveBranch } =
     useContext(AuthContext);
   const [switching, setSwitching] = useState(false);
@@ -35,7 +37,7 @@ export default function BranchSwitcher({ compact = false }) {
       />
       {!compact && (
         <span className="branch-switcher-label font-medium text-[var(--theme-text-muted)]">
-          Branch
+          {autoT("settings_center.nav.branch")}
         </span>
       )}
       {branches.length === 1 ? (
@@ -48,7 +50,7 @@ export default function BranchSwitcher({ compact = false }) {
           onChange={handleChange}
           disabled={switching}
           className="branch-switcher-select min-w-36 bg-transparent font-semibold text-[var(--theme-text-primary)] outline-none disabled:opacity-60"
-          aria-label="Active branch"
+          aria-label={autoT("legacy.active_branch_5a2ad822")}
         >
           {branches.map((branch) => (
             <option key={branch.id} value={branch.id}>

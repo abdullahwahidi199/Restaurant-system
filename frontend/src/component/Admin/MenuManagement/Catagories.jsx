@@ -5,12 +5,14 @@ import CategoryDeleteModal from "./CategoryDeleteModal";
 import EditCategoryModal from "./EditCategoryModal"; // Import new modal
 import MenuList from "./MenuList";
 import { Pencil } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function CategoriesList({
   categories,
   setCategories,
   onCategoryDelete,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
 
@@ -71,7 +73,7 @@ export default function CategoriesList({
                     ? "bg-red-600 text-white shadow-md"
                     : "bg-gray-200 text-gray-800 hover:bg-gray-300"
                 }`}
-                title="Double click to edit"
+                title={autoT("legacy.double_click_to_edit_015d3e19")}
               >
                 {c.name}
               </button>
@@ -97,7 +99,7 @@ export default function CategoriesList({
         </div>
       ) : isError ? (
         <div className="text-center text-red-500 py-10">
-          Failed to load category items.
+          {autoT("failed_load_items")}
         </div>
       ) : selectedCategoryId ? (
         <div>
@@ -118,7 +120,7 @@ export default function CategoriesList({
         </div>
       ) : (
         <div className="text-gray-400 text-center py-10">
-          Select a category to view its items.
+          {autoT("select_category")}
         </div>
       )}
 

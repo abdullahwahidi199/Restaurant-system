@@ -13,8 +13,10 @@ import instance from "../../../api/axiosInstance";
 import Pagination from "./Pagination";
 import { useDebounce, useLatestRequest } from "./hooks";
 import { formatCurrency, formatDateTime, getActionColor } from "./helpers";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 function ExpenseHistory() {
+  const { t: autoT } = useAutoTranslation();
   const location = useLocation();
   const dashboardBase = location.pathname.startsWith("/operations-manager")
     ? "/operations-manager"
@@ -72,7 +74,7 @@ function ExpenseHistory() {
       }));
     } catch (err) {
       if (!isLatest(reqId)) return;
-      setError("Failed to load history");
+      setError(autoT("legacy.failed_to_load_history_47b41322"));
       console.error(err);
     } finally {
       if (isLatest(reqId)) setLoading(false);
@@ -115,17 +117,17 @@ function ExpenseHistory() {
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 mb-4 transition"
         >
           <ArrowLeft size={16} />
-          Back to Expenses
+          {autoT("legacy.back_to_expenses_732b199b")}
         </Link>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <HistoryIcon className="text-indigo-600" size={28} />
-              Expense Audit History
+              {autoT("legacy.expense_audit_history_0c1f0328")}
             </h1>
             <p className="text-gray-500 mt-1">
-              Complete immutable audit trail of all expense changes
+              {autoT("legacy.complete_immutable_audit_trail_of_all_expense_changes_2d9d6fd1")}
             </p>
           </div>
         </div>
@@ -140,7 +142,7 @@ function ExpenseHistory() {
               />
               <input
                 type="text"
-                placeholder="Search expense name..."
+                placeholder={autoT("legacy.search_expense_name_685bcc99")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -160,10 +162,10 @@ function ExpenseHistory() {
               onChange={(e) => setActionFilter(e.target.value)}
               className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
             >
-              <option value="all">All Actions</option>
-              <option value="created">Created</option>
-              <option value="updated">Updated</option>
-              <option value="deleted">Deleted</option>
+              <option value="all">{autoT("legacy.all_actions_902f1999")}</option>
+              <option value="created">{autoT("legacy.created_accf40c8")}</option>
+              <option value="updated">{autoT("legacy.updated_f2f8570d")}</option>
+              <option value="deleted">{autoT("legacy.deleted_441bda6c")}</option>
             </select>
 
             <input
@@ -171,7 +173,7 @@ function ExpenseHistory() {
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              title="From date"
+              title={autoT("legacy.from_date_3b5d11ae")}
             />
 
             <input
@@ -179,16 +181,16 @@ function ExpenseHistory() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              title="To date"
+              title={autoT("legacy.to_date_af244da3")}
             />
 
             {hasActiveFilters && (
               <button
                 onClick={resetFilters}
                 className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-                title="Reset all filters"
+                title={autoT("legacy.reset_all_filters_2cef9452")}
               >
-                <RotateCcw size={16} /> Reset
+                <RotateCcw size={16} /> {autoT("inventory_manager.common.reset")}
               </button>
             )}
           </div>
@@ -199,7 +201,7 @@ function ExpenseHistory() {
           {loading && history.length === 0 ? (
             <div className="p-16 text-center">
               <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-              <p className="mt-3 text-gray-500">Loading history...</p>
+              <p className="mt-3 text-gray-500">{autoT("legacy.loading_history_59c39817")}</p>
             </div>
           ) : error ? (
             <div className="p-12 text-center">
@@ -212,7 +214,7 @@ function ExpenseHistory() {
                 onClick={() => fetchHistory(1)}
                 className="mt-3 text-sm text-indigo-600 hover:underline"
               >
-                Try again
+                {autoT("landing.marketplace.discovery.retry")}
               </button>
             </div>
           ) : history.length === 0 ? (
@@ -221,19 +223,19 @@ function ExpenseHistory() {
                 <FileText size={32} className="text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                No history entries found
+                {autoT("legacy.no_history_entries_found_2f5be2cb")}
               </h3>
               <p className="text-gray-500 mb-4">
                 {hasActiveFilters
-                  ? "Try adjusting your filters"
-                  : "No expense changes have been recorded yet"}
+                  ? autoT("legacy.try_adjusting_your_filters_11962c19")
+                  : autoT("legacy.no_expense_changes_have_been_recorded_yet_76192842")}
               </p>
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
-                  <RotateCcw size={16} /> Reset Filters
+                  <RotateCcw size={16} /> {autoT("legacy.reset_filters_5be69856")}
                 </button>
               )}
             </div>
@@ -244,19 +246,19 @@ function ExpenseHistory() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Expense
+                        {autoT("legacy.expense_a0db8e68")}
                       </th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Amount
+                        {autoT("legacy.amount_43dc8532")}
                       </th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Action
+                        {autoT("inventory_manager.common.action")}
                       </th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Date & Time
+                        {autoT("legacy.date_time_63ae7caf")}
                       </th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                        Changes
+                        {autoT("legacy.changes_8aa57de6")}
                       </th>
                     </tr>
                   </thead>

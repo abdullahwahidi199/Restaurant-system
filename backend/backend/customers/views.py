@@ -93,6 +93,8 @@ class CustomerOrdersView(APIView):
                 "status": order.status,
                 "total": order.get_total(),
                 "created_at": order.created_at,
+                "updated_at": order.updated_at,
+                "paid_at": order.paid_at,
                 "items": [
                     {
                         "menu_item": (

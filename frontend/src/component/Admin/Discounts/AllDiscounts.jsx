@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import PaginationControls from "../../ui/PaginationControls";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const PAGE_SIZE = 20;
 const normalizePaginatedResponse = (data) =>
@@ -14,6 +15,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function AllDiscounts() {
+                 const { t: autoT } = useAutoTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,7 +55,7 @@ export default function AllDiscounts() {
       });
     } catch (error) {
       console.error(error);
-      setError("Failed to fetch discount requests. Please try again.");
+      setError(autoT("legacy.failed_to_fetch_discount_requests_please_try_again_d2a7c666"));
     } finally {
       setLoading(false);
     }
@@ -97,7 +99,7 @@ export default function AllDiscounts() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-gray-500 text-lg font-medium animate-pulse">
-          Loading discount requests...
+          {autoT("legacy.loading_discount_requests_4b58612f")}
         </div>
       </div>
     );
@@ -115,9 +117,9 @@ export default function AllDiscounts() {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Discount Requests</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{autoT("legacy.discount_requests_c1f68f1c")}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Manage and review all customer discount requests.
+          {autoT("legacy.manage_and_review_all_customer_discount_requests_f16dff9c")}
         </p>
       </div>
 
@@ -126,7 +128,7 @@ export default function AllDiscounts() {
           type="search"
           value={filters.search}
           onChange={(event) => updateFilter("search", event.target.value)}
-          placeholder="Search order, table, customer, reason..."
+          placeholder={autoT("legacy.search_order_table_customer_reason_d05d8939")}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm md:col-span-2"
         />
         <select
@@ -134,10 +136,10 @@ export default function AllDiscounts() {
           onChange={(event) => updateFilter("status", event.target.value)}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm"
         >
-          <option value="">All status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
+          <option value="">{autoT("legacy.all_status_543fccc9")}</option>
+          <option value="pending">{autoT("stats.pending")}</option>
+          <option value="approved">{autoT("inventory_manager.statuses.approved")}</option>
+          <option value="rejected">{autoT("inventory_manager.statuses.rejected")}</option>
         </select>
         <input
           type="date"
@@ -157,7 +159,7 @@ export default function AllDiscounts() {
             onClick={resetFilters}
             className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
-            Reset
+            {autoT("inventory_manager.common.reset")}
           </button>
         </div>
       </div>
@@ -171,67 +173,67 @@ export default function AllDiscounts() {
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Order
+                {autoT("inventory_manager.types.order")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Table
+                {autoT("legacy.table_0424f6e7")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Customer
+                {autoT("table.customer")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Discount
+                {autoT("menu_item_sales.discount")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Original
+                {autoT("legacy.original_c0a8060f")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Final
+                {autoT("legacy.final_672b22cc")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Reason
+                {autoT("legacy.reason_f219cc06")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Status
+                {autoT("table.status")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Requested By
+                {autoT("legacy.requested_by_343959a4")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Approved By
+                {autoT("legacy.approved_by_2b62a43b")}
               </th>
               <th
                 scope="col"
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Created At
+                {autoT("legacy.created_at_5db1542e")}
               </th>
             </tr>
           </thead>
@@ -278,7 +280,7 @@ export default function AllDiscounts() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                     {req.approved_by_name || (
-                      <span className="text-gray-400 italic">N/A</span>
+                      <span className="text-gray-400 italic">{autoT("no_data")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
@@ -292,7 +294,7 @@ export default function AllDiscounts() {
                   colSpan="11"
                   className="px-4 py-12 text-center text-sm text-gray-500 italic"
                 >
-                  No discount requests found.
+                  {autoT("legacy.no_discount_requests_found_64c851d8")}
                 </td>
               </tr>
             )}

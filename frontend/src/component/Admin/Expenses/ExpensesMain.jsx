@@ -29,17 +29,20 @@ import {
   getCurrencyBadge,
   emptyExpenseForm,
 } from "./helpers";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
 const SORT_OPTIONS = [
-  { value: "-date", label: "Newest First" },
-  { value: "date", label: "Oldest First" },
-  { value: "name", label: "Name A–Z" },
-  { value: "-name", label: "Name Z–A" },
-  { value: "-amount_afn", label: "Amount (High → Low)" },
-  { value: "amount_afn", label: "Amount (Low → High)" },
+  { value: "-date", label: i18n.t("legacy.newest_first_a40bb555") },
+  { value: "date", label: i18n.t("legacy.oldest_first_06dc8190") },
+  { value: "name", label: i18n.t("legacy.name_a_z_5d3eb278") },
+  { value: "-name", label: i18n.t("legacy.name_z_a_080ec6fc") },
+  { value: "-amount_afn", label: i18n.t("legacy.amount_high_low_75d5809e") },
+  { value: "amount_afn", label: i18n.t("legacy.amount_low_high_3d4fbe41") },
 ];
 
 function ExpensesMain() {
+  const { t: autoT } = useAutoTranslation();
   // Data
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +119,7 @@ function ExpensesMain() {
       if (response.data.stats) setStats(response.data.stats);
     } catch (err) {
       if (!isLatest(reqId)) return;
-      setError("Failed to load expenses");
+      setError(autoT("legacy.failed_to_load_expenses_1758fee1"));
       console.error(err);
     } finally {
       if (isLatest(reqId)) setLoading(false);
@@ -191,9 +194,9 @@ function ExpensesMain() {
       {/* Header */}
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Expenses</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{autoT("nav.expenses")}</h1>
           <p className="text-gray-500 mt-1">
-            Manage and track all your business expenses
+            {autoT("legacy.manage_and_track_all_your_business_expenses_3c30f633")}
           </p>
         </div>
         <div className="flex gap-3">
@@ -201,13 +204,13 @@ function ExpensesMain() {
             onClick={() => navigate("history/")}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
           >
-            <HistoryIcon size={18} /> History
+            <HistoryIcon size={18} /> {autoT("legacy.history_90ccd649")}
           </button>
           <button
             onClick={() => setAddModalOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition shadow-sm"
           >
-            <Plus size={18} /> New Expense
+            <Plus size={18} /> {autoT("legacy.new_expense_7c3ae05c")}
           </button>
         </div>
       </div>
@@ -216,25 +219,25 @@ function ExpensesMain() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           icon={<FileText className="text-indigo-600" size={22} />}
-          label="Total Expenses"
+          label={autoT("legacy.total_expenses_750134b6")}
           value={stats.total_count}
           bg="bg-indigo-50"
         />
         <StatCard
           icon={<TrendingDown className="text-red-600" size={22} />}
-          label="Total (AFN)"
+          label={autoT("legacy.total_afn_622d18e0")}
           value={formatCurrency(stats.total_afn, "AFN")}
           bg="bg-red-50"
         />
         <StatCard
           icon={<DollarSign className="text-emerald-600" size={22} />}
-          label="Total (USD)"
+          label={autoT("legacy.total_usd_34e65e0b")}
           value={formatCurrency(stats.total_usd, "USD")}
           bg="bg-emerald-50"
         />
         <StatCard
           icon={<Calendar className="text-amber-600" size={22} />}
-          label="This Month (AFN)"
+          label={autoT("legacy.this_month_afn_5b038dab")}
           value={formatCurrency(stats.this_month_afn, "AFN")}
           bg="bg-amber-50"
         />
@@ -250,7 +253,7 @@ function ExpensesMain() {
             />
             <input
               type="text"
-              placeholder="Search by name or description..."
+              placeholder={autoT("legacy.search_by_name_or_description_5b22616a")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -270,9 +273,9 @@ function ExpensesMain() {
             onChange={(e) => setCurrencyFilter(e.target.value)}
             className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
           >
-            <option value="all">All Currencies</option>
-            <option value="AFN">AFN</option>
-            <option value="USD">USD</option>
+            <option value="all">{autoT("legacy.all_currencies_f41665a4")}</option>
+            <option value="AFN">{autoT("labels.afn")}</option>
+            <option value="USD">{autoT("legacy.usd_57814cfb")}</option>
           </select>
 
           <input
@@ -280,7 +283,7 @@ function ExpensesMain() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            title="From date"
+            title={autoT("legacy.from_date_3b5d11ae")}
           />
 
           <input
@@ -288,7 +291,7 @@ function ExpensesMain() {
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            title="To date"
+            title={autoT("legacy.to_date_af244da3")}
           />
 
           <div className="relative">
@@ -313,9 +316,9 @@ function ExpensesMain() {
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-              title="Reset filters"
+              title={autoT("legacy.reset_filters_56553100")}
             >
-              <RotateCcw size={16} /> Reset
+              <RotateCcw size={16} /> {autoT("inventory_manager.common.reset")}
             </button>
           )}
         </div>
@@ -326,7 +329,7 @@ function ExpensesMain() {
         {loading && expenses.length === 0 ? (
           <div className="p-16 text-center">
             <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="mt-3 text-gray-500">Loading expenses...</p>
+            <p className="mt-3 text-gray-500">{autoT("legacy.loading_expenses_fd739bdc")}</p>
           </div>
         ) : error ? (
           <div className="p-12 text-center">
@@ -336,7 +339,7 @@ function ExpensesMain() {
               onClick={() => fetchExpenses(1)}
               className="mt-3 text-sm text-indigo-600 hover:underline"
             >
-              Try again
+              {autoT("landing.marketplace.discovery.retry")}
             </button>
           </div>
         ) : expenses.length === 0 ? (
@@ -345,26 +348,26 @@ function ExpensesMain() {
               <FileText size={32} className="text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              No expenses found
+              {autoT("legacy.no_expenses_found_15f51995")}
             </h3>
             <p className="text-gray-500 mb-4">
               {stats.total_count > 0
-                ? "Try adjusting your filters"
-                : "Get started by creating your first expense"}
+                ? autoT("legacy.try_adjusting_your_filters_11962c19")
+                : autoT("legacy.get_started_by_creating_your_first_expense_3f57ced2")}
             </p>
             {stats.total_count > 0 ? (
               <button
                 onClick={resetFilters}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
-                <RotateCcw size={16} /> Reset Filters
+                <RotateCcw size={16} /> {autoT("legacy.reset_filters_5be69856")}
               </button>
             ) : (
               <button
                 onClick={() => setAddModalOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
               >
-                <Plus size={18} /> New Expense
+                <Plus size={18} /> {autoT("legacy.new_expense_7c3ae05c")}
               </button>
             )}
           </div>
@@ -375,19 +378,19 @@ function ExpensesMain() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Name
+                      {autoT("attendance.table.name")}
                     </th>
                     <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Date
+                      {autoT("table.date")}
                     </th>
                     <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Amount
+                      {autoT("legacy.amount_43dc8532")}
                     </th>
                     <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      AFN Equivalent
+                      {autoT("legacy.afn_equivalent_8efe5e23")}
                     </th>
                     <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
+                      {autoT("table.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -418,7 +421,7 @@ function ExpensesMain() {
                         </span>
                         {expense.currency === "USD" && (
                           <div className="text-xs text-gray-500 mt-1">
-                            Rate: 1$ = {expense.exchange_rate} AFN
+                            {autoT("legacy.rate_1_257b02a9")} {expense.exchange_rate} {autoT("labels.afn")}
                           </div>
                         )}
                       </td>
@@ -431,7 +434,7 @@ function ExpensesMain() {
                             onClick={() => navigate(`${expense.id}/`)}
                             icon={<Eye size={16} />}
                             color="indigo"
-                            title="View Details"
+                            title={autoT("legacy.view_details_907b3bee")}
                           />
                           <ActionButton
                             onClick={() =>
@@ -443,13 +446,13 @@ function ExpensesMain() {
                             }
                             icon={<Printer size={16} />}
                             color="emerald"
-                            title="Print Voucher"
+                            title={autoT("legacy.print_voucher_e313002f")}
                           />
                           <ActionButton
                             onClick={() => setDeleteId(expense.id)}
                             icon={<Trash2 size={16} />}
                             color="red"
-                            title="Delete"
+                            title={autoT("staff.table.delete")}
                           />
                         </div>
                       </td>
@@ -475,22 +478,22 @@ function ExpensesMain() {
       {addModalOpen && (
         <ModalShell
           onClose={() => setAddModalOpen(false)}
-          title="Add New Expense"
+          title={autoT("legacy.add_new_expense_0721cfa5")}
         >
           <form onSubmit={addNewExpense} className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Expense Name" required>
+              <Field label={autoT("legacy.expense_name_866f5080")} required>
                 <input
                   type="text"
                   name="name"
                   value={newExpense.name}
                   onChange={handleChange}
                   required
-                  placeholder="e.g., Office Supplies"
+                  placeholder={autoT("legacy.e_g_office_supplies_3a60cc40")}
                   className="input"
                 />
               </Field>
-              <Field label="Date" required>
+              <Field label={autoT("table.date")} required>
                 <input
                   type="date"
                   name="date"
@@ -500,7 +503,7 @@ function ExpensesMain() {
                   className="input"
                 />
               </Field>
-              <Field label="Amount" required>
+              <Field label={autoT("legacy.amount_43dc8532")} required>
                 <input
                   type="number"
                   step="0.01"
@@ -512,52 +515,52 @@ function ExpensesMain() {
                   className="input"
                 />
               </Field>
-              <Field label="Currency">
+              <Field label={autoT("legacy.currency_e070de22")}>
                 <select
                   name="currency"
                   value={newExpense.currency}
                   onChange={handleChange}
                   className="input bg-white"
                 >
-                  <option value="AFN">AFN - Afghani</option>
-                  <option value="USD">USD - US Dollar</option>
+                  <option value="AFN">{autoT("legacy.afn_afghani_96edf857")}</option>
+                  <option value="USD">{autoT("legacy.usd_us_dollar_2d6f254e")}</option>
                 </select>
               </Field>
               {newExpense.currency === "USD" && (
                 <div className="md:col-span-2">
-                  <Field label="Exchange Rate (1 USD = ? AFN)">
+                  <Field label={autoT("legacy.exchange_rate_1_usd_afn_64ac5dcc")}>
                     <input
                       type="number"
                       step="0.01"
                       name="exchange_rate"
                       value={newExpense.exchange_rate}
                       onChange={handleChange}
-                      placeholder="e.g., 70.50"
+                      placeholder={autoT("legacy.e_g_70_50_7ce1e013")}
                       className="input"
                     />
                   </Field>
                   {newExpense.amount && newExpense.exchange_rate && (
                     <div className="mt-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm">
-                      <span className="text-gray-600">AFN Equivalent: </span>
+                      <span className="text-gray-600">{autoT("legacy.afn_equivalent_6a6056ff")} </span>
                       <span className="font-semibold text-indigo-700">
                         {(
                           parseFloat(newExpense.amount) *
                           parseFloat(newExpense.exchange_rate)
                         ).toFixed(2)}{" "}
-                        AFN
+                        {autoT("labels.afn")}
                       </span>
                     </div>
                   )}
                 </div>
               )}
               <div className="md:col-span-2">
-                <Field label="Description">
+                <Field label={autoT("description")}>
                   <textarea
                     name="description"
                     value={newExpense.description}
                     onChange={handleChange}
                     rows={3}
-                    placeholder="Additional details..."
+                    placeholder={autoT("legacy.additional_details_04831c63")}
                     className="input resize-none"
                   />
                 </Field>
@@ -569,7 +572,7 @@ function ExpensesMain() {
                 onClick={() => setAddModalOpen(false)}
                 className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 type="submit"
@@ -577,7 +580,7 @@ function ExpensesMain() {
                 className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition inline-flex items-center gap-2 disabled:opacity-60"
               >
                 <Save size={16} />
-                {submitting ? "Saving..." : "Save Expense"}
+                {submitting ? autoT("saving") : autoT("legacy.save_expense_b89a5c08")}
               </button>
             </div>
           </form>
@@ -586,8 +589,8 @@ function ExpensesMain() {
 
       {deleteId !== null && (
         <ConfirmDialog
-          title="Delete Expense"
-          message="Are you sure you want to delete this expense? This action cannot be undone."
+          title={autoT("legacy.delete_expense_1816483d")}
+          message={autoT("legacy.are_you_sure_you_want_to_delete_this_expense_this_acti_b54a7692")}
           onCancel={() => setDeleteId(null)}
           onConfirm={confirmDelete}
         />
@@ -656,6 +659,7 @@ function Field({ label, required, children }) {
   );
 }
 function ConfirmDialog({ title, message, onCancel, onConfirm }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -673,13 +677,13 @@ function ConfirmDialog({ title, message, onCancel, onConfirm }) {
             onClick={onCancel}
             className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
           >
-            Cancel
+            {autoT("staff.cancel")}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
           >
-            Delete
+            {autoT("staff.table.delete")}
           </button>
         </div>
       </div>

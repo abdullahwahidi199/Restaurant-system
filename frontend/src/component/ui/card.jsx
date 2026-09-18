@@ -1,6 +1,6 @@
-    export function Card({ children, className = "" }) {
+export function Card({ children, className = "" }) {
   return (
-    <div className={`bg-white rounded-2xl border border-gray-200 ${className}`}>
+    <div className={`theme-card ${className}`}>
       {children}
     </div>
   );

@@ -3,7 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import instance from "../../../api/axiosInstance";
 
 import { ArrowLeft } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 export default function DiscountCardDetails() {
+                 const { t: autoT } = useAutoTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -80,12 +82,12 @@ export default function DiscountCardDetails() {
   if (!cardDetails?.card) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-gray-500">
-        <p className="text-xl mb-4">Card not found.</p>
+        <p className="text-xl mb-4">{autoT("legacy.card_not_found_ede12967")}</p>
         <button
           onClick={() => navigate(-1)}
           className="text-blue-600 hover:underline"
         >
-          Go Back
+          {autoT("labels.go_back")}
         </button>
       </div>
     );
@@ -108,13 +110,13 @@ export default function DiscountCardDetails() {
                 size={18}
                 className="text-gray-600 group-hover:-translate-x-1 transition-transform duration-200"
               />
-              <span className="text-sm font-medium text-gray-700">Back</span>
+              <span className="text-sm font-medium text-gray-700">{autoT("legacy.back_b52b36b7")}</span>
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 {card.card_name}
               </h1>
-              <p className="text-sm text-gray-500">Card #{card.card_number}</p>
+              <p className="text-sm text-gray-500">{autoT("legacy.card_56834f0e")}{card.card_number}</p>
             </div>
           </div>
 
@@ -125,14 +127,14 @@ export default function DiscountCardDetails() {
               }
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm"
             >
-              Edit
+              {autoT("staff.table.edit")}
             </button>
 
             <button
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium shadow-sm"
             >
-              Delete
+              {autoT("staff.table.delete")}
             </button>
           </div>
         </div>
@@ -142,34 +144,34 @@ export default function DiscountCardDetails() {
             {/* Card Info */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Card Information
+                {autoT("legacy.card_information_8b192f70")}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InfoBlock label="Customer Name" value={card.customer_name} />
-                <InfoBlock label="Phone Number" value={card.customer_phone} />
+                <InfoBlock label={autoT("legacy.customer_name_75636316")} value={card.customer_name} />
+                <InfoBlock label={autoT("staff.form.phone")} value={card.customer_phone} />
                 <InfoBlock
-                  label="Discount Percentage"
+                  label={autoT("legacy.discount_percentage_449188f4")}
                   value={`${card.discount_percentage}%`}
                   highlight="text-green-600"
                 />
                 <InfoBlock
-                  label="Minimum Order Amount"
+                  label={autoT("settings_center.fields.minimum_order")}
                   value={`AFN${parseFloat(card.minimum_order_amount).toFixed(2)}`}
                 />
                 <InfoBlock
-                  label="Valid From"
+                  label={autoT("legacy.valid_from_5366942a")}
                   value={formatDate(card.valid_from)}
                 />
                 <InfoBlock
-                  label="Valid Until"
+                  label={autoT("legacy.valid_until_a144230d")}
                   value={formatDate(card.valid_until)}
                 />
                 <InfoBlock
-                  label="Usage Limit"
+                  label={autoT("legacy.usage_limit_b456dc42")}
                   value={card.usage_limit ? card.usage_limit : "Unlimited"}
                 />
                 <InfoBlock
-                  label="Status"
+                  label={autoT("table.status")}
                   value={
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold uppercase ${getStatusClasses(card.status)}`}
@@ -180,7 +182,7 @@ export default function DiscountCardDetails() {
                 />
                 {card.notes && (
                   <div className="md:col-span-2">
-                    <InfoBlock label="Notes" value={card.notes} />
+                    <InfoBlock label={autoT("inventory_manager.common.notes")} value={card.notes} />
                   </div>
                 )}
               </div>
@@ -189,11 +191,11 @@ export default function DiscountCardDetails() {
             {/* Orders Table */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">
-                Orders Used
+                {autoT("legacy.orders_used_a40b2eb7")}
               </h2>
               {orders_used.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
-                  <p className="text-lg">No orders have used this card yet.</p>
+                  <p className="text-lg">{autoT("legacy.no_orders_have_used_this_card_yet_123221d0")}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -201,16 +203,16 @@ export default function DiscountCardDetails() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order #
+                          {autoT("table.order_number")}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
+                          {autoT("table.total")}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Discount
+                          {autoT("menu_item_sales.discount")}
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
+                          {autoT("table.date")}
                         </th>
                       </tr>
                     </thead>
@@ -224,7 +226,7 @@ export default function DiscountCardDetails() {
                             #{order.order_number}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            AFN{parseFloat(order.total).toFixed(2)}
+                            {autoT("labels.afn")}{parseFloat(order.total).toFixed(2)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
@@ -246,25 +248,25 @@ export default function DiscountCardDetails() {
           {/* Right Column: Summary Sidebar */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-              <p className="text-sm text-gray-500 mb-2">Total Discount</p>
+              <p className="text-sm text-gray-500 mb-2">{autoT("legacy.total_discount_63987053")}</p>
               <p className="text-4xl font-bold text-green-600">
                 {card.discount_percentage}%
               </p>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-              <p className="text-sm text-gray-500 mb-2">Usage Stats</p>
+              <p className="text-sm text-gray-500 mb-2">{autoT("legacy.usage_stats_7c1f6d27")}</p>
               <p className="text-4xl font-bold text-gray-900">
                 {card.used_count}
               </p>
               <p className="text-sm text-gray-400 mt-1">
-                out of {card.usage_limit ? card.usage_limit : "∞"} uses
+                {autoT("legacy.out_of_5ee0bb55")} {card.usage_limit ? card.usage_limit : "∞"} {autoT("legacy.uses_a7e2c648")}
               </p>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <p className="text-sm text-gray-500 mb-4 text-center">
-                Validity Period
+                {autoT("legacy.validity_period_922f7723")}
               </p>
               <div className="flex items-center justify-between text-sm font-medium text-gray-700">
                 <span>{formatDate(card.valid_from)}</span>
@@ -313,16 +315,15 @@ export default function DiscountCardDetails() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Delete Card
+                {autoT("legacy.delete_card_ce3dcb91")}
               </h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete{" "}
+              {autoT("legacy.are_you_sure_you_want_to_delete_6c257b92")}{" "}
               <span className="font-semibold text-gray-900">
                 {card.card_name}
               </span>
-              ? This action cannot be undone and will remove all associated
-              history.
+              {autoT("legacy.this_action_cannot_be_undone_and_will_remove_all_assoc_169f3a46")}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -330,7 +331,7 @@ export default function DiscountCardDetails() {
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
                 disabled={deleting}
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 onClick={handleDelete}
@@ -340,10 +341,10 @@ export default function DiscountCardDetails() {
                 {deleting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Deleting...
+                    {autoT("legacy.deleting_e16cac65")}
                   </>
                 ) : (
-                  "Delete Card"
+                  autoT("legacy.delete_card_ce3dcb91")
                 )}
               </button>
             </div>
@@ -356,13 +357,14 @@ export default function DiscountCardDetails() {
 
 // ── Reusable Info Block Component ─────────────────────
 function InfoBlock({ label, value, highlight }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <div>
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
         {label}
       </p>
       <div className={`text-sm font-semibold text-gray-900 ${highlight || ""}`}>
-        {value || <span className="text-gray-400 font-normal italic">N/A</span>}
+        {value || <span className="text-gray-400 font-normal italic">{autoT("no_data")}</span>}
       </div>
     </div>
   );

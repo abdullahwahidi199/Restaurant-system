@@ -4,8 +4,10 @@ import { X } from "lucide-react";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
 import RestrictedToast from "../../RistrictedAction";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function AddShiftModal({ onClose, onShiftAdded }) {
+                 const { t: autoT } = useAutoTranslation();
   const [shiftType, setShiftType] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -63,7 +65,7 @@ export default function AddShiftModal({ onClose, onShiftAdded }) {
         </button>
 
         <h2 className="text-2xl font-semibold mb-6 text-center text-gray-800">
-          Add New Shift
+          {autoT("add_new_shift")}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -74,7 +76,7 @@ export default function AddShiftModal({ onClose, onShiftAdded }) {
             onChange={(e) => setShiftType(e.target.value)}
             className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
             required
-            placeholder="Shift name"
+            placeholder={autoT("shift_name")}
           />
             
 
@@ -99,7 +101,7 @@ export default function AddShiftModal({ onClose, onShiftAdded }) {
             disabled={loading}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium transition disabled:opacity-50"
           >
-            {loading ? "Adding..." : "Add Shift"}
+            {loading ? autoT("adding") : autoT("add_shift")}
           </button>
         </form>
       </motion.div>

@@ -3,6 +3,7 @@ import Select from "react-select";
 import Field from "../../shared/erp/components/Field";
 import Modal from "../../shared/erp/components/Modal";
 import { inputClass, paymentMethods, selectTheme } from "../../shared/erp/constants";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function SupplierPaymentModal({
   invoice,
@@ -14,12 +15,13 @@ export default function SupplierPaymentModal({
   onClose,
   onSubmit,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const filteredInvoiceOptions = invoiceOptions.filter(
     (option) => !form.supplier || String(option.supplier) === String(form.supplier),
   );
 
   return (
-    <Modal title="Record Supplier Payment" onClose={onClose}>
+    <Modal title={autoT("legacy.record_supplier_payment_66838471")} onClose={onClose}>
       <form onSubmit={onSubmit} className="space-y-4 p-5">
         {invoice?.id && (
           <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
@@ -27,22 +29,22 @@ export default function SupplierPaymentModal({
               {invoice.invoice_number || `PINV-${invoice.id}`}
             </p>
             <p className="mt-1 text-slate-500">
-              {invoice.supplier_name} - balance {invoice.remaining_balance}
+              {invoice.supplier_name} {autoT("legacy.balance_590559c3")} {invoice.remaining_balance}
             </p>
           </div>
         )}
-        <Field label="Supplier" required>
+        <Field label={autoT("inventory_manager.common.supplier")} required>
           <Select
             options={supplierOptions}
             styles={selectTheme}
             value={supplierOptions.find((option) => String(option.value) === String(form.supplier)) || null}
             onChange={(option) => onChange({ ...form, supplier: option?.value || "", purchase_invoice: "" })}
-            placeholder="Select supplier"
+            placeholder={autoT("legacy.select_supplier_cfce5268")}
             isDisabled={Boolean(invoice?.id)}
             isClearable
           />
         </Field>
-        <Field label="Purchase Invoice" required>
+        <Field label={autoT("legacy.purchase_invoice_6cc4cd0f")} required>
           <Select
             options={filteredInvoiceOptions}
             styles={selectTheme}
@@ -55,13 +57,13 @@ export default function SupplierPaymentModal({
                 amount: option?.remaining || form.amount,
               })
             }
-            placeholder="Select unpaid invoice"
+            placeholder={autoT("legacy.select_unpaid_invoice_070a3e32")}
             isDisabled={Boolean(invoice?.id)}
             isClearable
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Payment Date" required>
+          <Field label={autoT("legacy.payment_date_4b0bd4b9")} required>
             <input
               required
               type="date"
@@ -70,7 +72,7 @@ export default function SupplierPaymentModal({
               className={inputClass}
             />
           </Field>
-          <Field label="Amount" required>
+          <Field label={autoT("legacy.amount_43dc8532")} required>
             <input
               required
               type="number"
@@ -80,7 +82,7 @@ export default function SupplierPaymentModal({
               className={inputClass}
             />
           </Field>
-          <Field label="Payment Method">
+          <Field label={autoT("legacy.payment_method_f383f6a2")}>
             <select
               value={form.payment_method}
               onChange={(event) => onChange({ ...form, payment_method: event.target.value })}
@@ -91,7 +93,7 @@ export default function SupplierPaymentModal({
               ))}
             </select>
           </Field>
-          <Field label="Reference Number">
+          <Field label={autoT("legacy.reference_number_74195db5")}>
             <input
               value={form.reference_number}
               onChange={(event) => onChange({ ...form, reference_number: event.target.value })}
@@ -99,7 +101,7 @@ export default function SupplierPaymentModal({
             />
           </Field>
         </div>
-        <Field label="Notes">
+        <Field label={autoT("inventory_manager.common.notes")}>
           <textarea
             rows={2}
             value={form.notes}
@@ -109,10 +111,10 @@ export default function SupplierPaymentModal({
         </Field>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            Cancel
+            {autoT("staff.cancel")}
           </button>
           <button disabled={saving} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60">
-            Record Payment
+            {autoT("legacy.record_payment_6577ced3")}
           </button>
         </div>
       </form>

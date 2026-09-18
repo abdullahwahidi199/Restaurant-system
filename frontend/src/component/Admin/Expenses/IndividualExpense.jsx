@@ -19,8 +19,10 @@ import {
   emptyExpenseForm,
 } from "./helpers";
 import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function IndividualExpense() {
+                 const { t: autoT } = useAutoTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +62,7 @@ export default function IndividualExpense() {
       setExpense(response.data);
       setError(null);
     } catch (err) {
-      setError("Failed to load expense");
+      setError(autoT("legacy.failed_to_load_expense_61fb98de"));
       console.error(err);
     } finally {
       setLoading(false);
@@ -132,12 +134,12 @@ export default function IndividualExpense() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
         <FileText className="text-gray-400 mb-3" size={48} />
-        <p className="text-gray-600 mb-4">{error || "Expense not found"}</p>
+        <p className="text-gray-600 mb-4">{error || autoT("legacy.expense_not_found_af72eeb1")}</p>
         <Link
           to={expensesPath}
           className="text-indigo-600 hover:underline"
         >
-          Back to expenses
+          {autoT("legacy.back_to_expenses_6ab10edd")}
         </Link>
       </div>
     );
@@ -152,7 +154,7 @@ export default function IndividualExpense() {
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600 mb-4 transition"
         >
           <ArrowLeft size={16} />
-          Back to Expenses
+          {autoT("legacy.back_to_expenses_732b199b")}
         </Link>
 
         {/* Detail Card */}
@@ -164,7 +166,7 @@ export default function IndividualExpense() {
                 {expense.name}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Expense #{expense.id} • {formatDate(expense.date)}
+                {autoT("legacy.expense_b7d0855c")}{expense.id} • {formatDate(expense.date)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -175,21 +177,21 @@ export default function IndividualExpense() {
                 className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition shadow-sm"
               >
                 <Printer size={16} />
-                Print Voucher
+                {autoT("legacy.print_voucher_e313002f")}
               </button>
               <button
                 onClick={openEdit}
                 className="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition shadow-sm"
               >
                 <Pencil size={16} />
-                Edit
+                {autoT("staff.table.edit")}
               </button>
               <button
                 onClick={() => setConfirmDelete(true)}
                 className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm"
               >
                 <Trash2 size={16} />
-                Delete
+                {autoT("staff.table.delete")}
               </button>
             </div>
           </div>
@@ -197,14 +199,14 @@ export default function IndividualExpense() {
           {/* Amount Hero */}
           <div className="px-6 py-8 bg-gradient-to-br from-indigo-50 to-white border-b border-gray-200">
             <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">
-              Total Amount
+              {autoT("legacy.total_amount_490aaabf")}
             </p>
             <p className="text-4xl font-bold text-gray-900">
               {formatCurrency(expense.amount, expense.currency)}
             </p>
             {expense.currency === "USD" && (
               <p className="mt-2 text-sm text-gray-600">
-                1 USD = {expense.exchange_rate} AFN •{" "}
+                {autoT("legacy.1_usd_d55768e2")} {expense.exchange_rate} {autoT("legacy.afn_9ae1ef71")}{" "}
                 <span className="font-semibold text-indigo-700">
                   {formatCurrency(expense.amount_afn, "AFN")}
                 </span>
@@ -214,9 +216,9 @@ export default function IndividualExpense() {
 
           {/* Details Grid */}
           <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-            <DetailRow label="Date" value={formatDate(expense.date)} />
+            <DetailRow label={autoT("table.date")} value={formatDate(expense.date)} />
             <DetailRow
-              label="Currency"
+              label={autoT("legacy.currency_e070de22")}
               value={
                 <span
                   className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${getCurrencyBadge(
@@ -230,11 +232,11 @@ export default function IndividualExpense() {
             {expense.currency === "USD" && (
               <>
                 <DetailRow
-                  label="Exchange Rate"
+                  label={autoT("legacy.exchange_rate_6363ae59")}
                   value={`1 USD = ${expense.exchange_rate} AFN`}
                 />
                 <DetailRow
-                  label="AFN Equivalent"
+                  label={autoT("legacy.afn_equivalent_8efe5e23")}
                   value={
                     <span className="font-semibold text-indigo-700">
                       {formatCurrency(expense.amount_afn, "AFN")}
@@ -246,7 +248,7 @@ export default function IndividualExpense() {
             {expense.description && (
               <div className="sm:col-span-2 pt-2">
                 <p className="text-xs uppercase tracking-widest text-gray-500 mb-1.5">
-                  Description
+                  {autoT("description")}
                 </p>
                 <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {expense.description}
@@ -257,9 +259,9 @@ export default function IndividualExpense() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900">Audit History</h2>
+          <h2 className="text-lg font-bold text-gray-900">{autoT("inventory_manager.ingredients.audit_history")}</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Review who changed this expense and what changed.
+            {autoT("legacy.review_who_changed_this_expense_and_what_changed_080c544b")}
           </p>
           <div className="mt-4">
             <AuditTimeline
@@ -279,7 +281,7 @@ export default function IndividualExpense() {
             className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           >
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-xl font-bold text-gray-900">Edit Expense</h2>
+              <h2 className="text-xl font-bold text-gray-900">{autoT("legacy.edit_expense_2e469802")}</h2>
               <button
                 type="button"
                 onClick={() => setEditFormDisplay(false)}
@@ -291,7 +293,7 @@ export default function IndividualExpense() {
 
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <EditField label="Name" required>
+                <EditField label={autoT("attendance.table.name")} required>
                   <input
                     type="text"
                     name="name"
@@ -301,7 +303,7 @@ export default function IndividualExpense() {
                     className="input"
                   />
                 </EditField>
-                <EditField label="Date" required>
+                <EditField label={autoT("table.date")} required>
                   <input
                     type="date"
                     name="date"
@@ -311,7 +313,7 @@ export default function IndividualExpense() {
                     className="input"
                   />
                 </EditField>
-                <EditField label="Amount" required>
+                <EditField label={autoT("legacy.amount_43dc8532")} required>
                   <input
                     type="number"
                     step="0.01"
@@ -322,20 +324,20 @@ export default function IndividualExpense() {
                     className="input"
                   />
                 </EditField>
-                <EditField label="Currency">
+                <EditField label={autoT("legacy.currency_e070de22")}>
                   <select
                     name="currency"
                     value={editForm.currency}
                     onChange={handleEditChange}
                     className="input bg-white"
                   >
-                    <option value="AFN">AFN - Afghani</option>
-                    <option value="USD">USD - US Dollar</option>
+                    <option value="AFN">{autoT("legacy.afn_afghani_96edf857")}</option>
+                    <option value="USD">{autoT("legacy.usd_us_dollar_2d6f254e")}</option>
                   </select>
                 </EditField>
                 {editForm.currency === "USD" && (
                   <div className="md:col-span-2">
-                    <EditField label="Exchange Rate (1 USD = ? AFN)">
+                    <EditField label={autoT("legacy.exchange_rate_1_usd_afn_64ac5dcc")}>
                       <input
                         type="number"
                         step="0.01"
@@ -348,7 +350,7 @@ export default function IndividualExpense() {
                   </div>
                 )}
                 <div className="md:col-span-2">
-                  <EditField label="Description">
+                  <EditField label={autoT("description")}>
                     <textarea
                       name="description"
                       value={editForm.description}
@@ -367,7 +369,7 @@ export default function IndividualExpense() {
                 onClick={() => setEditFormDisplay(false)}
                 className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 type="submit"
@@ -375,7 +377,7 @@ export default function IndividualExpense() {
                 className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition inline-flex items-center gap-2 disabled:opacity-60"
               >
                 <Save size={16} />
-                {submitting ? "Saving..." : "Save Changes"}
+                {submitting ? autoT("saving") : autoT("save_changes")}
               </button>
             </div>
           </form>
@@ -392,11 +394,10 @@ export default function IndividualExpense() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  Delete Expense
+                  {autoT("legacy.delete_expense_1816483d")}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  Are you sure you want to delete "{expense.name}"? This action
-                  cannot be undone.
+                  {autoT("legacy.are_you_sure_you_want_to_delete_de36321b")}{expense.name}{autoT("legacy.this_action_cannot_be_undone_66ac3236")}
                 </p>
               </div>
             </div>
@@ -405,13 +406,13 @@ export default function IndividualExpense() {
                 onClick={() => setConfirmDelete(false)}
                 className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
               >
-                Delete
+                {autoT("staff.table.delete")}
               </button>
             </div>
           </div>

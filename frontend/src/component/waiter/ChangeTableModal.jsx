@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import instance from "../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ChangeTableModal({
   currentTable,
@@ -8,6 +9,7 @@ export default function ChangeTableModal({
   onClose,
   refetchTables,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,7 +62,7 @@ export default function ChangeTableModal({
     <div className="fixed inset-0 bg-black/50 z-[60] flex justify-center items-center">
       <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl">
         <div className="flex justify-between items-center border-b px-5 py-4">
-          <h2 className="text-lg font-semibold">Change Table</h2>
+          <h2 className="text-lg font-semibold">{autoT("legacy.change_table_bb49e68f")}</h2>
 
           <button onClick={onClose}>
             <X size={20} />
@@ -69,9 +71,9 @@ export default function ChangeTableModal({
 
         <div className="p-5 space-y-4">
           <div>
-            <p className="text-sm text-gray-500">Current Table</p>
+            <p className="text-sm text-gray-500">{autoT("legacy.current_table_9d59ab6e")}</p>
 
-            <p className="font-semibold">Table {currentTable.name}</p>
+            <p className="font-semibold">{autoT("legacy.table_0424f6e7")} {currentTable.name}</p>
           </div>
 
           <select
@@ -79,11 +81,11 @@ export default function ChangeTableModal({
             onChange={(e) => setSelectedTable(e.target.value)}
             className="w-full border rounded-xl px-3 py-3"
           >
-            <option value="">Select New Table</option>
+            <option value="">{autoT("legacy.select_new_table_82a7413c")}</option>
 
             {tables.map((table) => (
               <option key={table.id} value={table.id}>
-                Table {table.name}
+                {autoT("legacy.table_0424f6e7")} {table.name}
               </option>
             ))}
           </select>
@@ -93,7 +95,7 @@ export default function ChangeTableModal({
             disabled={!selectedTable || loading}
             className="w-full bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700 disabled:opacity-50"
           >
-            {loading ? "Changing..." : "Confirm Change"}
+            {loading ? autoT("legacy.changing_99922775") : autoT("legacy.confirm_change_ad676c64")}
           </button>
         </div>
       </div>

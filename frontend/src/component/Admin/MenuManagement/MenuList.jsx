@@ -114,7 +114,7 @@ export default function MenuList({
             onClick={() => setPlatterAddModal(true)}
             className="flex items-center gap-2 cursor-pointer bg-lime-500 hover:bg-lime-600 text-white px-4 py-2 rounded-lg shadow-sm transition"
           >
-            <Plus className="w-4 h-4" /> Add Platter
+            <Plus className="w-4 h-4" /> {t("legacy.add_platter_058c3dc3")}
           </button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export default function MenuList({
                   <p
                     className={`${item.final_availability === true ? "text-lime-600" : "text-gray-400"} font-semibold mt-1`}
                   >
-                    Afs{item.price ? item.price : "N/A"}
+                    {t("legacy.afs_2050680c")}{item.price ? item.price : t("no_data")}
                   </p>
                 </div>
               </div>

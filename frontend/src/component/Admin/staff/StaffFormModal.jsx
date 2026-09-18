@@ -13,7 +13,7 @@ export default function StaffFormModal({
 }) {
   const { t, i18n } = useTranslation();
   const { auth, activeBranch } = useContext(AuthContext);
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const canManageAdminRoles = auth?.user?.role === "Admin";
   const [showPassword, setShowPassword] = useState(false);
 
@@ -139,7 +139,7 @@ export default function StaffFormModal({
       !formData.email ||
       !formData.phone
     ) {
-      setError(t("staff.errors.required"));
+      setError(t("staff.form.required_error"));
       return;
     }
 
@@ -254,7 +254,7 @@ export default function StaffFormModal({
             type="button"
             onClick={closeModal}
             className="rounded-lg p-2 text-[0px] text-gray-500 transition hover:bg-white hover:text-gray-900"
-            aria-label={t("common.close", "Close")}
+            aria-label={t("inventory_manager.common.close")}
           >
             <X size={22} />✕
           </button>
@@ -264,7 +264,7 @@ export default function StaffFormModal({
           {/* Personal Information Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {t("staff.form.personal_info") || "Personal Information"}
+              {t("staff.form.personal_info") || t("staff.form.personal_info")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
@@ -319,7 +319,7 @@ export default function StaffFormModal({
               {/* Hire Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("staff.form.hire_date") || "Hire Date"}
+                  {t("staff.form.hire_date") || t("staff.form.hire_date")}
                 </label>
                 <input
                   name="hire_date"
@@ -333,7 +333,7 @@ export default function StaffFormModal({
               {/* Profile Image */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("staff.form.profile_image") || "Profile Image"}
+                  {t("staff.form.profile_image") || t("staff.form.profile_image")}
                 </label>
                 <input
                   name="image"
@@ -349,13 +349,13 @@ export default function StaffFormModal({
           {/* Job Details Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {t("staff.form.job_details") || "Job Details"}
+              {t("staff.form.job_details") || t("staff.form.job_details")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Role */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("staff.form.role") || "Role"}{" "}
+                  {t("staff.form.role") || t("attendance.table.role")}{" "}
                   <span className="text-red-400">*</span>
                 </label>
                 <select
@@ -369,18 +369,18 @@ export default function StaffFormModal({
                   {canManageAdminRoles && (
                     <>
                       <option value="Admin">{t("staff.roles.admin")}</option>
-                      <option value="BranchAdmin">Branch Admin</option>
+                      <option value="BranchAdmin">{t("legacy.branch_admin_f4fa2fb1")}</option>
                     </>
                   )}
                   <option value="Manager">
-                    {t("staff.roles.manager") || "Manager"}
+                    {t("staff.roles.manager") || t("staff.roles.manager")}
                   </option>
-                  <option value="Kitchen_manager">Kitchen Manager</option>
-                  <option value="InventoryManager">Inventory Manager</option>
-                  <option value="FinanceManager">Finance Manager</option>
-                  <option value="OperationsManager">Operations Manager</option>
+                  <option value="Kitchen_manager">{t("legacy.kitchen_manager_f750ba36")}</option>
+                  <option value="InventoryManager">{t("inventory_manager.topbar.title")}</option>
+                  <option value="FinanceManager">{t("legacy.finance_manager_dff996c0")}</option>
+                  <option value="OperationsManager">{t("legacy.operations_manager_72cfe578")}</option>
                   <option value="Cashier">{t("staff.roles.cashier")}</option>
-                  <option value="Call_operator">Call Operator</option>
+                  <option value="Call_operator">{t("legacy.call_operator_6845a9a1")}</option>
                   <option value="Waiter">{t("staff.roles.waiter")}</option>
                   <option value="DeliveryBoy">
                     {t("staff.roles.delivery")}
@@ -395,13 +395,12 @@ export default function StaffFormModal({
                     <span className="text-red-500">*</span>
                   </label>
                   <p className="text-xs text-indigo-700 mb-3">
-                    Select which stations this Kitchen Manager will see and
-                    manage orders for:
+                    {t("legacy.select_which_stations_this_kitchen_manager_will_see_an_4a193fab")}
                   </p>
 
                   {availableStations.length === 0 ? (
                     <p className="text-sm text-gray-500 italic">
-                      No stations found. Default Main Kitchen will be assigned.
+                      {t("legacy.no_stations_found_default_main_kitchen_will_be_assigne_eff1ed21")}
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -429,7 +428,7 @@ export default function StaffFormModal({
                               </span>
                               {st.is_default && (
                                 <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] uppercase font-extrabold tracking-wider bg-emerald-200/80 text-emerald-900">
-                                  Default
+                                  {t("menu.sort.default")}
                                 </span>
                               )}
                             </div>
@@ -444,7 +443,7 @@ export default function StaffFormModal({
               {/* Shift */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("staff.form.shift") || "Shift"}
+                  {t("staff.form.shift") || t("staff.form.shift")}
                 </label>
                 <select
                   name="shift"
@@ -466,7 +465,7 @@ export default function StaffFormModal({
               {/* Status */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("staff.form.status") || "Status"}
+                  {t("staff.form.status") || t("table.status")}
                 </label>
                 <select
                   name="status"
@@ -500,7 +499,7 @@ export default function StaffFormModal({
               {formData.role === "DeliveryBoy" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t("staff.vehicle") || "Vehicle Number"}
+                    {t("staff.vehicle") || t("staff.vehicle")}
                   </label>
                   <input
                     type="text"
@@ -518,12 +517,12 @@ export default function StaffFormModal({
           {/* Salary Profile Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Salary Profile
+              {t("legacy.salary_profile_9a478a14")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Salary Type
+                  {t("legacy.salary_type_2addb1fc")}
                 </label>
                 <select
                   name="salary_type"
@@ -531,16 +530,16 @@ export default function StaffFormModal({
                   onChange={handleChange}
                   className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="monthly">Monthly</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="daily">Daily</option>
-                  <option value="hourly">Hourly</option>
+                  <option value="monthly">{t("legacy.monthly_d31edb7b")}</option>
+                  <option value="weekly">{t("legacy.weekly_158f3da5")}</option>
+                  <option value="daily">{t("legacy.daily_728298d3")}</option>
+                  <option value="hourly">{t("legacy.hourly_d9362548")}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Base Salary
+                  {t("legacy.base_salary_c4cbb902")}
                 </label>
                 <input
                   name="payroll_base_salary"
@@ -555,7 +554,7 @@ export default function StaffFormModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Day
+                  {t("legacy.payment_day_e79a79cd")}
                 </label>
                 <input
                   name="payment_day"
@@ -570,7 +569,7 @@ export default function StaffFormModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Allowances
+                  {t("legacy.allowances_60a83b2a")}
                 </label>
                 <input
                   name="payroll_allowances"
@@ -585,7 +584,7 @@ export default function StaffFormModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Deductions
+                  {t("legacy.deductions_757bbae2")}
                 </label>
                 <input
                   name="payroll_deductions"
@@ -600,7 +599,7 @@ export default function StaffFormModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Overtime Rate
+                  {t("legacy.overtime_rate_67dc2221")}
                 </label>
                 <input
                   name="overtime_rate"
@@ -615,7 +614,7 @@ export default function StaffFormModal({
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payroll Notes
+                  {t("legacy.payroll_notes_cd961ece")}
                 </label>
                 <textarea
                   name="payroll_notes"
@@ -633,7 +632,7 @@ export default function StaffFormModal({
                   onChange={handleChange}
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                Active Payroll Status
+                {t("legacy.active_payroll_status_c1c3ff4a")}
               </label>
             </div>
           </div>
@@ -641,7 +640,7 @@ export default function StaffFormModal({
           {/* Account Credentials Section */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {t("staff.form.account_credentials") || "Account Credentials"}
+              {t("staff.form.account_credentials") || t("staff.form.account_credentials")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Username */}
@@ -674,7 +673,7 @@ export default function StaffFormModal({
                     placeholder={
                       editingStaff
                         ? t("staff.form.password_optional") ||
-                          "Leave blank to keep current"
+                          t("staff.form.password_optional")
                         : t("staff.form.password")
                     }
                     onChange={handleChange}

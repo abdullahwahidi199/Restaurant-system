@@ -15,6 +15,7 @@ import {
 import Select from "react-select";
 
 import instance from "../../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const inputClass = "theme-input h-11 w-full px-3 text-sm";
 const textAreaClass = "theme-textarea min-h-24 w-full px-3 py-2.5 text-sm";
@@ -80,6 +81,7 @@ export default function PlatterAddModal({
   onItemAdded,
   selectedcategoryid,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
@@ -229,21 +231,20 @@ export default function PlatterAddModal({
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase text-gray-500">
-              Platter
+              {autoT("labels.platter")}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-gray-950">
-              Add New Platter
+              {autoT("legacy.add_new_platter_4b6ca553")}
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              Bundle multiple menu items with a single price and availability
-              state.
+              {autoT("legacy.bundle_multiple_menu_items_with_a_single_price_and_ava_3d8e3267")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
-            aria-label="Close platter modal"
+            aria-label={autoT("legacy.close_platter_modal_8d99df3a")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -254,24 +255,24 @@ export default function PlatterAddModal({
             <div className="space-y-4">
               <Section
                 icon={Layers3}
-                title="General"
-                description="Name and describe the platter for staff and customer-facing screens."
+                title={autoT("settings_center.nav.general")}
+                description={autoT("legacy.name_and_describe_the_platter_for_staff_and_customer_f_a85ea7ce")}
               >
                 <div className="space-y-4">
-                  <Field label="Platter name">
+                  <Field label={autoT("legacy.platter_name_1619bed9")}>
                     <input
                       name="name"
-                      placeholder="e.g. Family Feast"
+                      placeholder={autoT("legacy.e_g_family_feast_3178f4cc")}
                       className={inputClass}
                       value={formData.name}
                       onChange={handleChange}
                       required
                     />
                   </Field>
-                  <Field label="Description">
+                  <Field label={autoT("description")}>
                     <textarea
                       name="description"
-                      placeholder="Short description of the platter..."
+                      placeholder={autoT("legacy.short_description_of_the_platter_0b31a02c")}
                       rows={3}
                       className={textAreaClass}
                       value={formData.description}
@@ -283,34 +284,34 @@ export default function PlatterAddModal({
 
               <Section
                 icon={Languages}
-                title="Translations"
-                description="Optional localized names and descriptions for multilingual menus."
+                title={autoT("legacy.translations_8ad8302d")}
+                description={autoT("legacy.optional_localized_names_and_descriptions_for_multilin_dbedfa9e")}
               >
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Dari name">
+                  <Field label={autoT("legacy.dari_name_39072a2e")}>
                     <input
                       name="name_dari"
-                      placeholder="Platter name in Dari"
+                      placeholder={autoT("legacy.platter_name_in_dari_f84868f5")}
                       dir="rtl"
                       className={inputClass}
                       value={formData.name_dari}
                       onChange={handleChange}
                     />
                   </Field>
-                  <Field label="Pashto name">
+                  <Field label={autoT("legacy.pashto_name_fcbb52c5")}>
                     <input
                       name="name_pashto"
-                      placeholder="Platter name in Pashto"
+                      placeholder={autoT("legacy.platter_name_in_pashto_339d4f09")}
                       dir="rtl"
                       className={inputClass}
                       value={formData.name_pashto}
                       onChange={handleChange}
                     />
                   </Field>
-                  <Field label="Dari description">
+                  <Field label={autoT("legacy.dari_description_f2d9dcc8")}>
                     <textarea
                       name="description_dari"
-                      placeholder="Description in Dari"
+                      placeholder={autoT("legacy.description_in_dari_ee53e8af")}
                       dir="rtl"
                       rows={3}
                       className={textAreaClass}
@@ -318,10 +319,10 @@ export default function PlatterAddModal({
                       onChange={handleChange}
                     />
                   </Field>
-                  <Field label="Pashto description">
+                  <Field label={autoT("legacy.pashto_description_4c13a593")}>
                     <textarea
                       name="description_pashto"
-                      placeholder="Description in Pashto"
+                      placeholder={autoT("legacy.description_in_pashto_e7e4e941")}
                       dir="rtl"
                       rows={3}
                       className={textAreaClass}
@@ -334,8 +335,8 @@ export default function PlatterAddModal({
 
               <Section
                 icon={Utensils}
-                title="Platter items"
-                description="Choose the menu items included in this platter and their quantities (supports float amounts like 0.2 or 0.5)."
+                title={autoT("legacy.platter_items_c8f004b0")}
+                description={autoT("legacy.choose_the_menu_items_included_in_this_platter_and_the_6e7ed465")}
               >
                 <div className="space-y-3">
                   {formData.items.map((item, index) => (
@@ -345,7 +346,7 @@ export default function PlatterAddModal({
                     >
                       <div>
                         <span className="mb-2 block text-xs font-medium text-gray-500">
-                          Menu item
+                          {autoT("legacy.menu_item_f23d4cbe")}
                         </span>
                         <Select
                           options={menuOptions}
@@ -359,7 +360,7 @@ export default function PlatterAddModal({
                               selected?.value || "",
                             )
                           }
-                          placeholder="Select an item"
+                          placeholder={autoT("legacy.select_an_item_10dbf591")}
                           styles={selectStyles}
                           menuPortalTarget={document.body}
                           menuPosition="fixed"
@@ -368,7 +369,7 @@ export default function PlatterAddModal({
 
                       <label>
                         <span className="mb-2 block text-xs font-medium text-gray-500">
-                          Quantity
+                          {autoT("inventory_manager.common.quantity")}
                         </span>
                         <input
                           type="number"
@@ -390,7 +391,7 @@ export default function PlatterAddModal({
                         type="button"
                         onClick={() => removePlatterItem(index)}
                         className="mt-6 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                        aria-label="Remove platter item"
+                        aria-label={autoT("legacy.remove_platter_item_d3e135f7")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -403,7 +404,7 @@ export default function PlatterAddModal({
                     className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950"
                   >
                     <Plus className="h-4 w-4" />
-                    Add menu item
+                    {autoT("legacy.add_menu_item_2ca3f4f4")}
                   </button>
                 </div>
               </Section>
@@ -412,22 +413,22 @@ export default function PlatterAddModal({
             <div className="space-y-4">
               <Section
                 icon={ImagePlus}
-                title="Image"
-                description="Use a clear image that represents the complete platter."
+                title={autoT("legacy.image_50e19fda")}
+                description={autoT("legacy.use_a_clear_image_that_represents_the_complete_platter_2bcd1225")}
               >
                 <div className="overflow-hidden rounded-lg border border-dashed border-gray-300 bg-gray-50">
                   {imagePreview ? (
                     <div className="relative">
                       <img
                         src={imagePreview}
-                        alt="Platter preview"
+                        alt={autoT("legacy.platter_preview_00d824c5")}
                         className="aspect-[4/3] w-full object-cover"
                       />
                       <button
                         type="button"
                         onClick={removeImage}
                         className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-gray-700 shadow-sm transition hover:bg-white hover:text-rose-600"
-                        aria-label="Remove selected image"
+                        aria-label={autoT("legacy.remove_selected_image_5e01adf1")}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -436,10 +437,10 @@ export default function PlatterAddModal({
                     <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center px-6 text-center transition hover:bg-white">
                       <Upload className="h-8 w-8 text-gray-400" />
                       <span className="mt-3 text-sm font-semibold text-gray-700">
-                        Upload platter image
+                        {autoT("legacy.upload_platter_image_8c725e67")}
                       </span>
                       <span className="mt-1 text-xs text-gray-500">
-                        PNG or JPG, ideally 4:3
+                        {autoT("legacy.png_or_jpg_ideally_4_3_8c286aad")}
                       </span>
                       <input
                         type="file"
@@ -453,7 +454,7 @@ export default function PlatterAddModal({
                 {imagePreview && (
                   <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
                     <Upload className="h-4 w-4" />
-                    Replace image
+                    {autoT("legacy.replace_image_bc0a102a")}
                     <input
                       type="file"
                       accept="image/*"
@@ -466,13 +467,13 @@ export default function PlatterAddModal({
 
               <Section
                 icon={DollarSign}
-                title="Pricing"
-                description="Set the selling price customers and staff will see."
+                title={autoT("landing.marketplace.footer.links.pricing")}
+                description={autoT("legacy.set_the_selling_price_customers_and_staff_will_see_502ba60b")}
               >
-                <Field label="Price">
+                <Field label={autoT("menuDetails.price")}>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
-                      AFN
+                      {autoT("labels.afn")}
                     </span>
                     <input
                       name="price"
@@ -497,7 +498,7 @@ export default function PlatterAddModal({
               onClick={onClose}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950"
             >
-              Cancel
+              {autoT("staff.cancel")}
             </button>
             <button
               type="submit"
@@ -511,7 +512,7 @@ export default function PlatterAddModal({
               ) : (
                 <Layers3 className="h-4 w-4" />
               )}
-              {loading ? "Creating..." : "Create platter"}
+              {loading ? autoT("legacy.creating_28ea7667") : autoT("legacy.create_platter_e49fc647")}
             </button>
           </div>
         </form>

@@ -5,22 +5,44 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import i18n from "../i18n";
 
 export const THEMES = [
   {
     id: "modern",
     name: "Modern Premium",
-    description: "Clean operational UI with emerald accents.",
+    description: i18n.t(
+      "legacy.clean_operational_ui_with_emerald_accents_ffe28ba0",
+    ),
   },
   {
     id: "restaurant",
     name: "Elegant Restaurant",
-    description: "Warm dining-inspired palette with gold highlights.",
+    description: i18n.t(
+      "legacy.warm_dining_inspired_palette_with_gold_highlights_dcab5d56",
+    ),
   },
   {
     id: "dark",
     name: "Dark Enterprise",
-    description: "Low-light operations theme with crisp contrast.",
+    description: i18n.t(
+      "legacy.low_light_operations_theme_with_crisp_contrast_dda94b52",
+    ),
+  },
+  {
+    id: "neumorphism",
+    name: "Soft Neumorphism",
+    description: i18n.t("theme.softNeumorphismDescription", {
+      defaultValue:
+        "Soft tactile surfaces with a clean light Pakhlai interface.",
+    }),
+  },
+  {
+    id: "glass",
+    name: "Glassmorphism",
+    description: i18n.t("theme.glassmorphismDescription", {
+      defaultValue: "Layered translucent surfaces with a dark Pakhlai glow.",
+    }),
   },
 ];
 

@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from menu.models import MenuItem,Platter
 from users.models import Staff
 from django.utils import timezone
@@ -9,6 +9,14 @@ import math
 from django.db.models import Max
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+FINALIZED_ORDER_STATUSES = frozenset({"completed", "delivered", "cancelled"})
+
+
 class Table(models.Model):
     STATUS_CHOICES = [
         ('available', 'Available'),
@@ -396,11 +404,35 @@ class Order(models.Model):
             return round (diff.total_seconds()/60)
         return None
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
-        if self.branch_id and self.table_id and self.table.branch_id != self.branch_id:
+        update_fields = kwargs.get("update_fields")
+        saved_fields = None if update_fields is None else set(update_fields)
+        status_will_be_saved = saved_fields is None or "status" in saved_fields
+        table_will_be_saved = saved_fields is None or bool(
+            {"table", "table_id"} & saved_fields
+        )
+        reservation_will_be_saved = saved_fields is None or bool(
+            {"reservation", "reservation_id"} & saved_fields
+        )
+        discount_card_will_be_saved = saved_fields is None or bool(
+            {"discount_card", "discount_card_id"} & saved_fields
+        )
+        delivery_boy_will_be_saved = saved_fields is None or bool(
+            {"delivery_boy", "delivery_boy_id"} & saved_fields
+        )
+
+        if (
+            table_will_be_saved
+            and self.branch_id
+            and self.table_id
+            and self.table.branch_id != self.branch_id
+        ):
             raise ValueError("Order table belongs to another branch.")
 
         if (
+            reservation_will_be_saved
+            and
             self.branch_id
             and self.reservation_id
             and self.reservation.branch_id != self.branch_id
@@ -408,6 +440,8 @@ class Order(models.Model):
             raise ValueError("Order reservation belongs to another branch.")
 
         if (
+            discount_card_will_be_saved
+            and
             self.branch_id
             and self.discount_card_id
             and self.discount_card.branch_id != self.branch_id
@@ -415,6 +449,8 @@ class Order(models.Model):
             raise ValueError("Order discount card belongs to another branch.")
 
         if (
+            delivery_boy_will_be_saved
+            and
             self.branch_id
             and self.delivery_boy_id
             and not self.delivery_boy.can_access_branch(self.branch)
@@ -422,15 +458,73 @@ class Order(models.Model):
             raise ValueError("Delivery staff cannot access this branch.")
         
 
+        old_state = None
         old_status = None
         old_table_id = None
         if self.pk:
-            old_state = Order.objects.filter(
+            old_state = Order.objects.select_for_update().filter(
                 pk=self.pk
-            ).values('status', 'table_id').first()
+            ).values(
+                'status',
+                'table_id',
+                'paid_at',
+                'received_by_id',
+            ).first()
             if old_state:
                 old_status = old_state['status']
                 old_table_id = old_state['table_id']
+
+        if (
+            status_will_be_saved
+            and old_status in FINALIZED_ORDER_STATUSES
+            and self.status != old_status
+        ):
+            logger.warning(
+                "blocked_order_status_regression order_id=%s previous_status=%s "
+                "attempted_status=%s previous_paid_at_set=%s "
+                "previous_received_by_id=%s attempted_paid_at_set=%s "
+                "attempted_received_by_id=%s branch_id=%s source=%s actor_id=%s "
+                "request_id=%s",
+                self.pk,
+                old_status,
+                self.status,
+                bool(old_state['paid_at']),
+                old_state['received_by_id'],
+                bool(self.paid_at),
+                self.received_by_id,
+                self.branch_id,
+                getattr(self, "_change_source", "model_save"),
+                getattr(self, "_change_actor_id", None),
+                getattr(self, "_change_request_id", None),
+            )
+            raise ValueError(
+                f"Finalized order {self.pk} cannot change from "
+                f"{old_status} to {self.status}."
+            )
+
+        paid_at_will_be_saved = saved_fields is None or "paid_at" in saved_fields
+        received_by_will_be_saved = saved_fields is None or bool(
+            {"received_by", "received_by_id"} & saved_fields
+        )
+        if old_status in FINALIZED_ORDER_STATUSES and (
+            (paid_at_will_be_saved and self.paid_at != old_state["paid_at"])
+            or (
+                received_by_will_be_saved
+                and self.received_by_id != old_state["received_by_id"]
+            )
+        ):
+            logger.warning(
+                "blocked_finalized_payment_metadata_change order_id=%s "
+                "status=%s source=%s actor_id=%s request_id=%s",
+                self.pk,
+                old_status,
+                getattr(self, "_change_source", "model_save"),
+                getattr(self, "_change_actor_id", None),
+                getattr(self, "_change_request_id", None),
+            )
+            raise ValueError(
+                f"Payment metadata for finalized order {self.pk} is immutable."
+            )
 
         if not self.order_number and self.restaurant:
             last_order = Order.objects.filter(
@@ -440,14 +534,21 @@ class Order(models.Model):
             )['order_number__max']
 
             self.order_number = (last_order or 0) + 1
-        if old_status != self.status:
+
+        status_changed = status_will_be_saved and old_status != self.status
+        if status_changed:
             if self.status == 'in_progress' and not self.preparation_start:
                 self.preparation_start = timezone.now()
             elif self.status == 'ready' and not self.preparation_end:
                 self.preparation_end = timezone.now()
 
-      
-        if self.table and self.status not in ['completed', 'cancelled']:
+        table_changed = table_will_be_saved and old_table_id != self.table_id
+        table_needs_sync = bool(self.table_id) and (
+            self.pk is None or status_changed or table_changed
+        )
+        effective_status = self.status if status_will_be_saved else old_status
+
+        if table_needs_sync and effective_status not in FINALIZED_ORDER_STATUSES:
             # Validate occupancy when assigning a table, not on every status-only
             # save. Historical duplicate assignments must not prevent the kitchen
             # from progressing an already accepted order.
@@ -466,22 +567,42 @@ class Order(models.Model):
 
             self.table.status = 'occupied'
 
-        
-        elif self.table and self.status in ['completed', 'cancelled']:
+        elif table_needs_sync and effective_status in FINALIZED_ORDER_STATUSES:
             self.table.status = 'available'
 
         
         super().save(*args, **kwargs)
 
-        
-        if self.table:
+        if status_changed and old_status is not None:
+            log_values = (
+                self.pk,
+                old_status,
+                self.status,
+                bool(self.paid_at),
+                self.received_by_id,
+                getattr(self, "_change_source", "model_save"),
+                getattr(self, "_change_actor_id", None),
+                getattr(self, "_change_request_id", None),
+            )
+
+            def _log_committed_status_transition():
+                logger.info(
+                    "order_status_transition order_id=%s previous_status=%s "
+                    "new_status=%s paid_at_set=%s received_by_id=%s source=%s "
+                    "actor_id=%s request_id=%s",
+                    *log_values,
+                )
+
+            transaction.on_commit(_log_committed_status_transition, robust=True)
+
+        if table_needs_sync:
             self.table.save(update_fields=['status'])
         
         if (
-        old_status != self.status
-        and self.status == 'in_progress'
-        and not self.stock_deducted
-    ):
+            status_changed
+            and self.status == 'in_progress'
+            and not self.stock_deducted
+        ):
             deduct_stock_for_order(self)
             self.stock_deducted = True
             super().save(update_fields=['stock_deducted'])

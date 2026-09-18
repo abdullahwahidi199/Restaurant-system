@@ -40,7 +40,7 @@ export default function DeliveryPerformance({ data }) {
                     <span>
                       {boy.total_revenue
                         ? ` ${boy.total_revenue.toLocaleString()} AFN`
-                        : "AFN 0"}
+                        : t("legacy.afn_0_5388e71e")}
                     </span>
                   </div>
 

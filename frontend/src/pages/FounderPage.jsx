@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Code2, Database, Server, Workflow } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const technologies = [
   "React",
@@ -12,6 +13,7 @@ const technologies = [
 ];
 
 export default function FounderPage() {
+                 const { t: autoT } = useAutoTranslation();
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <header className="border-b border-gray-200 bg-white">
@@ -19,14 +21,14 @@ export default function FounderPage() {
           <Link to="/" className="flex items-center gap-3">
             <img
               src="/rmsFavicon.png"
-              alt="Pakhlai restaurant management system icon"
+              alt={autoT("legacy.pakhlai_restaurant_management_system_icon_7b4721a2")}
               className="h-10 w-10 object-contain"
               width="40"
               height="40"
             />
             <img
               src="/rmsLogo.png"
-              alt="Pakhlai restaurant management system logo"
+              alt={autoT("legacy.pakhlai_restaurant_management_system_logo_8b15816a")}
               className="h-8 w-auto object-contain"
               width="130"
               height="32"
@@ -36,7 +38,7 @@ export default function FounderPage() {
             to="/about"
             className="rounded-lg border border-orange-200 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-50"
           >
-            About
+            {autoT("nav.about")}
           </Link>
         </div>
       </header>
@@ -46,61 +48,51 @@ export default function FounderPage() {
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
             <aside className="rounded-lg border border-gray-200 bg-gray-50 p-6">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-700">
-                AW
+                {autoT("legacy.aw_073d8783")}
               </div>
               <h1 className="mt-6 text-3xl font-bold text-gray-950">
-                Abdullah Wahidi
+                {autoT("legacy.abdullah_wahidi_7db3a50d")}
               </h1>
               <p className="mt-2 text-lg font-semibold text-orange-700">
-                Founder of Pakhlai
+                {autoT("legacy.founder_of_pakhlai_861b73af")}
               </p>
-              <p className="mt-1 text-gray-600">Software Engineer</p>
+              <p className="mt-1 text-gray-600">{autoT("legacy.software_engineer_84f982e5")}</p>
               <p className="mt-4 text-sm leading-6 text-gray-600">
-                Developer of Pakhlai Restaurant Management System, a
-                cloud-based RMS for restaurant menus, orders, tables, billing,
-                kitchen workflow, and daily operations.
+                {autoT("legacy.developer_of_pakhlai_restaurant_management_system_a_cl_7c2458d0")}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <a
                   href="mailto:contact@pakhlai.com"
                   className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-700"
                 >
-                  contact@pakhlai.com
+                  {autoT("legacy.contact_pakhlai_com_18a17676")}
                 </a>
                 <Link
                   to="/about"
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
                 >
-                  Company Story
+                  {autoT("legacy.company_story_9fa26d25")}
                 </Link>
               </div>
             </aside>
 
             <article>
               <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                Founder Profile
+                {autoT("legacy.founder_profile_fb734839")}
               </p>
               <h2 className="mt-3 text-4xl font-bold leading-tight text-gray-950 sm:text-5xl">
-                Building practical software for restaurant teams
+                {autoT("legacy.building_practical_software_for_restaurant_teams_6183487e")}
               </h2>
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                Abdullah Wahidi is the founder and creator of Pakhlai, a
-                cloud-based restaurant management system designed to support
-                real restaurant workflows. As a software engineer, Abdullah
-                developed Pakhlai to bring menu management, order handling,
-                table service, billing, kitchen coordination, reporting, and
-                staff operations into one connected platform.
+                {autoT("legacy.abdullah_wahidi_is_the_founder_and_creator_of_pakhlai__ad9df0d1")}
               </p>
               <p className="mt-4 text-base leading-7 text-gray-600">
-                Pakhlai reflects a product-focused engineering approach:
-                organize the busy parts of restaurant service, make daily tasks
-                easier to track, and give teams a reliable system that can grow
-                with their operations.
+                {autoT("legacy.pakhlai_reflects_a_product_focused_engineering_approac_ca1b44e3")}
               </p>
 
               <section className="mt-10">
                 <h3 className="text-2xl font-semibold text-gray-950">
-                  Technologies Used to Build Pakhlai
+                  {autoT("legacy.technologies_used_to_build_pakhlai_07e521fb")}
                 </h3>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {technologies.map((technology, index) => {
@@ -125,9 +117,9 @@ export default function FounderPage() {
       </main>
 
       <footer className="border-t border-gray-200 px-6 py-6 text-center text-sm text-gray-600">
-        © 2026 Pakhlai.{" "}
+        {autoT("legacy.2026_pakhlai_2984a54c")}{" "}
         <Link to="/founder" className="font-semibold text-orange-700">
-          Founded and Developed by Abdullah Wahidi
+          {autoT("legacy.founded_and_developed_by_abdullah_wahidi_a1ec64fe")}
         </Link>
         .
       </footer>

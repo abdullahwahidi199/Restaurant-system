@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   X,
   Plus,
@@ -14,7 +14,7 @@ import {
   ArrowLeft,
   FileText,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import instance from "../../api/axiosInstance";
@@ -47,7 +47,7 @@ export default function TakeAwayOrderForm() {
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;
   const navigate = useNavigate();
 
-  const fetchMenuData = async () => {
+  const fetchMenuData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await instance.get("/menu/categories/");
@@ -86,11 +86,11 @@ export default function TakeAwayOrderForm() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [BASE_URL, t]);
 
   useEffect(() => {
     fetchMenuData();
-  }, []);
+  }, [fetchMenuData]);
 
   useEffect(() => {
     if (table?.current_reservation) {
@@ -194,7 +194,7 @@ export default function TakeAwayOrderForm() {
       return;
     }
     if (!formData.name.trim()) {
-      toast.error("Please fill in customer name ");
+      toast.error(t("legacy.please_fill_in_customer_name_2738e6dd"));
       return;
     }
 
@@ -242,7 +242,10 @@ export default function TakeAwayOrderForm() {
   };
 
   return (
-    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-gray-50">
+    <div
+      dir={isRTL ? "rtl" : "ltr"}
+      className="rms-standalone-workspace min-h-screen bg-[var(--theme-background)]"
+    >
       <Toaster position="bottom-center" />
 
       {/* Header */}
@@ -257,7 +260,7 @@ export default function TakeAwayOrderForm() {
                 size={18}
                 className="text-gray-600 group-hover:-translate-x-1 transition-transform duration-200"
               />
-              <span className="text-sm font-medium text-gray-700">Back</span>
+              <span className="text-sm font-medium text-gray-700">{t("legacy.back_b52b36b7")}</span>
             </button>
 
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
@@ -266,12 +269,12 @@ export default function TakeAwayOrderForm() {
 
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                Dine-in Order
+                {t("legacy.dine_in_order_adbdb8d1")}
               </h1>
               <p className="text-xs text-gray-500">
                 {table?.name
                   ? `Table: ${table.name}`
-                  : "Create a new dine-in order"}
+                  : t("legacy.create_a_new_dine_in_order_16d1d11b")}
               </p>
             </div>
           </div>
@@ -297,7 +300,7 @@ export default function TakeAwayOrderForm() {
             <div className="sticky top-24 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Categories
+                  {t("legacy.categories_6ccb6007")}
                 </h3>
               </div>
               <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -375,7 +378,7 @@ export default function TakeAwayOrderForm() {
                 <span className="w-1 h-5 rounded-full bg-emerald-500" />
                 {activeCategory}
                 <span className="text-xs font-normal text-gray-400">
-                  {filteredItems.length} item
+                  {filteredItems.length} {t("labels.item")}
                   {filteredItems.length !== 1 && "s"}
                 </span>
               </h2>
@@ -395,7 +398,7 @@ export default function TakeAwayOrderForm() {
                 <p className="text-sm text-gray-400">
                   {searchQuery
                     ? `No items found for "${searchQuery}"`
-                    : "No items in this category"}
+                    : t("legacy.no_items_in_this_category_54d4a340")}
                 </p>
               </div>
             ) : (
@@ -437,7 +440,7 @@ export default function TakeAwayOrderForm() {
                           </h3>
                           {item.type === "platter" && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
-                              Platter
+                              {t("labels.platter")}
                             </span>
                           )}
                           {!item.final_availability && (
@@ -456,7 +459,7 @@ export default function TakeAwayOrderForm() {
                       {/* Price */}
                       <div className="text-right flex-shrink-0 w-24">
                         <span className="text-sm font-bold text-emerald-600">
-                          Afs {parseFloat(item.price).toLocaleString()}
+                          {t("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()}
                         </span>
                       </div>
 
@@ -487,7 +490,7 @@ export default function TakeAwayOrderForm() {
                             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Plus size={14} />
-                            Add
+                            {t("add")}
                           </button>
                         )}
                       </div>
@@ -503,7 +506,7 @@ export default function TakeAwayOrderForm() {
       {/* Cart Drawer */}
       <AnimatePresence>
         {showCart && (
-          <motion.div
+          <Motion.div
             initial={{ x: isRTL ? "-100%" : "100%" }}
             animate={{ x: 0 }}
             exit={{ x: isRTL ? "-100%" : "100%" }}
@@ -519,7 +522,7 @@ export default function TakeAwayOrderForm() {
                 </h2>
                 {totalItems > 0 && (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {totalItems} item{totalItems !== 1 && "s"}
+                    {totalItems} {t("labels.item")}{totalItems !== 1 && "s"}
                   </p>
                 )}
               </div>
@@ -542,7 +545,7 @@ export default function TakeAwayOrderForm() {
                       {t("menu.cart.empty")}
                     </p>
                     <p className="text-xs text-gray-300 mt-1">
-                      Tap items from the menu to add
+                      {t("legacy.tap_items_from_the_menu_to_add_3a49f282")}
                     </p>
                   </div>
                 </div>
@@ -575,10 +578,10 @@ export default function TakeAwayOrderForm() {
                         {item.name}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Afs {parseFloat(item.price).toLocaleString()} each
+                        {t("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()} {t("legacy.each_b32f279e")}
                       </p>
                       <textarea
-                        placeholder="Item note..."
+                        placeholder={t("legacy.item_note_75dbac71")}
                         value={item.note || ""}
                         onChange={(e) =>
                           handleItemNoteChange(item.id, e.target.value)
@@ -635,7 +638,7 @@ export default function TakeAwayOrderForm() {
                     />
                     <input
                       type="text"
-                      placeholder="Customer Name *"
+                      placeholder={t("legacy.customer_name_e25608b4")}
                       value={formData.name}
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
@@ -651,7 +654,7 @@ export default function TakeAwayOrderForm() {
                     />
                     <input
                       type="tel"
-                      placeholder="Phone Number (optional)"
+                      placeholder={t("legacy.phone_number_optional_b2c87126")}
                       value={formData.phone}
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
@@ -665,7 +668,7 @@ export default function TakeAwayOrderForm() {
                       className="absolute left-3.5 top-4 text-gray-400"
                     />
                     <textarea
-                      placeholder="Note (optional)"
+                      placeholder={t("legacy.note_optional_4e395670")}
                       value={formData.note}
                       onChange={(e) =>
                         setFormData({ ...formData, note: e.target.value })
@@ -678,10 +681,10 @@ export default function TakeAwayOrderForm() {
 
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-medium text-gray-600">
-                    Total
+                    {t("table.total")}
                   </span>
                   <span className="text-xl font-bold text-gray-900">
-                    Afs {totalAmount.toLocaleString()}
+                    {t("legacy.afs_2050680c")} {totalAmount.toLocaleString()}
                   </span>
                 </div>
 
@@ -693,18 +696,18 @@ export default function TakeAwayOrderForm() {
                   {submitting ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      Creating Order...
+                      {t("legacy.creating_order_7fe1d7f0")}
                     </>
                   ) : (
                     <>
                       <Check size={16} strokeWidth={3} />
-                      Create Order • Afs {totalAmount.toLocaleString()}
+                      {t("legacy.create_order_afs_3f443c63")} {totalAmount.toLocaleString()}
                     </>
                   )}
                 </button>
               </div>
             )}
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -8,12 +8,14 @@ import StatusBadge from "../../shared/erp/components/StatusBadge";
 import { formatMethod, money } from "../../shared/erp/formatters";
 import AuditTimeline from "../../audit/components/AuditTimeline";
 import { formatFileSize, getContractorInvoiceNumber } from "../utils/calculations";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 function Lines({ lines = [] }) {
+  const { t: autoT } = useAutoTranslation();
   return (
     <DataTable
       rows={lines}
-      empty="No service lines found."
+      empty={autoT("legacy.no_service_lines_found_33c33928")}
       columns={[
         { key: "service_type", header: "Service" },
         { key: "description", header: "Description", render: (line) => line.description || "-" },
@@ -26,9 +28,10 @@ function Lines({ lines = [] }) {
 }
 
 function Attachments({ invoice, onPreview, onDownload, onRemove }) {
+  const { t: autoT } = useAutoTranslation();
   const attachments = invoice.attachments || [];
   if (!attachments.length) {
-    return <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">No supporting documents uploaded yet.</p>;
+    return <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">{autoT("legacy.no_supporting_documents_uploaded_yet_dd07bc77")}</p>;
   }
 
   return (
@@ -39,16 +42,16 @@ function Attachments({ invoice, onPreview, onDownload, onRemove }) {
             {attachment.file_type === "pdf" ? <FileText className="h-9 w-9 text-rose-500" /> : <File className="h-9 w-9" />}
           </div>
           <p className="mt-3 truncate text-sm font-semibold text-slate-950">{attachment.original_filename}</p>
-          <p className="text-xs text-slate-500">{formatFileSize(attachment.file_size)} - {attachment.uploaded_by_name || "System"}</p>
+          <p className="text-xs text-slate-500">{formatFileSize(attachment.file_size)} - {attachment.uploaded_by_name || autoT("inventory_manager.common.system")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => onPreview(invoice, attachment)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50">Preview</button>
+            <button type="button" onClick={() => onPreview(invoice, attachment)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50">{autoT("legacy.preview_f1fbb2b4")}</button>
             <button type="button" onClick={() => onDownload(invoice, attachment)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50">
               <Download className="h-3.5 w-3.5" />
-              Download
+              {autoT("legacy.download_a479c9c3")}
             </button>
             <button type="button" onClick={() => onRemove(invoice, attachment)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50">
               <Trash2 className="h-3.5 w-3.5" />
-              Remove
+              {autoT("legacy.remove_e963907d")}
             </button>
           </div>
         </div>
@@ -58,15 +61,16 @@ function Attachments({ invoice, onPreview, onDownload, onRemove }) {
 }
 
 function Payments({ invoice, onPayment }) {
+  const { t: autoT } = useAutoTranslation();
   const payments = invoice.payments || [];
   if (!payments.length) {
     return (
       <div className="space-y-4">
-        <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">No contractor payments recorded for this invoice.</p>
+        <p className="rounded-lg border border-dashed border-slate-200 p-5 text-center text-sm text-slate-500">{autoT("legacy.no_contractor_payments_recorded_for_this_invoice_27017ee8")}</p>
         {Number(invoice.remaining_balance || 0) > 0 && (
           <button type="button" onClick={() => onPayment(invoice)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
             <CreditCard className="h-4 w-4" />
-            Record Payment
+            {autoT("legacy.record_payment_6577ced3")}
           </button>
         )}
       </div>
@@ -108,6 +112,7 @@ export default function ContractorInvoiceDetailModal({
   onDownload,
   onRemove,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [activeTab, setActiveTab] = useState("details");
   const tabs = [
     ["details", "Details", FileText],
@@ -130,16 +135,16 @@ export default function ContractorInvoiceDetailModal({
         {activeTab === "details" && (
           <div className="space-y-5">
             <div className="grid gap-3 md:grid-cols-4">
-              <Panel title="Contractor"><p className="text-sm font-semibold text-slate-950">{invoice.contractor_name}</p></Panel>
-              <Panel title="Contract"><p className="text-sm font-semibold text-slate-950">{invoice.contract_title || "-"}</p></Panel>
-              <Panel title="Invoice Date"><p className="text-sm font-semibold text-slate-950">{invoice.invoice_date || "-"}</p></Panel>
-              <Panel title="Status"><StatusBadge status={invoice.status} /></Panel>
+              <Panel title={autoT("legacy.contractor_76bb2328")}><p className="text-sm font-semibold text-slate-950">{invoice.contractor_name}</p></Panel>
+              <Panel title={autoT("legacy.contract_5a0ba3bb")}><p className="text-sm font-semibold text-slate-950">{invoice.contract_title || "-"}</p></Panel>
+              <Panel title={autoT("legacy.invoice_date_844828da")}><p className="text-sm font-semibold text-slate-950">{invoice.invoice_date || "-"}</p></Panel>
+              <Panel title={autoT("table.status")}><StatusBadge status={invoice.status} /></Panel>
             </div>
             <Lines lines={invoice.lines || []} />
             <div className="grid gap-3 md:grid-cols-3">
-              <Panel title="Invoice Total"><p className="text-lg font-semibold text-slate-950">{money(invoice.total_amount)}</p></Panel>
-              <Panel title="Paid"><p className="text-lg font-semibold text-emerald-700">{money(invoice.amount_paid)}</p></Panel>
-              <Panel title="Remaining"><p className="text-lg font-semibold text-rose-700">{money(invoice.remaining_balance)}</p></Panel>
+              <Panel title={autoT("legacy.invoice_total_76dac385")}><p className="text-lg font-semibold text-slate-950">{money(invoice.total_amount)}</p></Panel>
+              <Panel title={autoT("legacy.paid_dc9d4584")}><p className="text-lg font-semibold text-emerald-700">{money(invoice.amount_paid)}</p></Panel>
+              <Panel title={autoT("legacy.remaining_cc632b5e")}><p className="text-lg font-semibold text-rose-700">{money(invoice.remaining_balance)}</p></Panel>
             </div>
             {invoice.description && <div className="rounded-lg border border-slate-200 p-3 text-sm text-slate-600">{invoice.description}</div>}
           </div>
@@ -162,13 +167,13 @@ export default function ContractorInvoiceDetailModal({
           {invoice.status === "draft" && (
             <button type="button" disabled={saving} onClick={() => onApprove(invoice)} className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
               <Check className="h-4 w-4" />
-              Approve
+              {autoT("inventory_manager.common.approve")}
             </button>
           )}
           {Number(invoice.remaining_balance || 0) > 0 && invoice.status !== "draft" && (
             <button type="button" onClick={() => onPayment(invoice)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               <CreditCard className="h-4 w-4" />
-              Record Payment
+              {autoT("legacy.record_payment_6577ced3")}
             </button>
           )}
         </div>

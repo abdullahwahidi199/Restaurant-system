@@ -1,10 +1,11 @@
 import { Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const LANGUAGES = [
-  { code: "ps", label: "Pashto" },
-  { code: "fa", label: "Dari" },
-  { code: "en", label: "English" },
+  { code: "ps", label: i18n.t("inventory_manager.languages.pashto") },
+  { code: "fa", label: i18n.t("inventory_manager.languages.dari") },
+  { code: "en", label: i18n.t("inventory_manager.languages.english") },
 ];
 
 export default function LanguageSwitcher() {

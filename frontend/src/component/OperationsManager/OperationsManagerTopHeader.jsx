@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell,
   Check,
   ChevronDown,
   Globe2,
@@ -15,11 +14,13 @@ import { AuthContext } from "../../api/authforRBC";
 import { useTheme } from "../../theme/ThemeContext";
 import { findActiveOperationsManagerNavigationItem } from "./OperationsManagerNavigation";
 import OperationsGlobalSearch from "./OperationsManagerSearch";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 const languageOptions = [
-  { code: "en", label: "EN", name: "English" },
-  { code: "fa", label: "FA", name: "Dari" },
-  { code: "ps", label: "PS", name: "Pashto" },
+  { code: "en", label: i18n.t("legacy.en_734a78cd"), name: "English" },
+  { code: "fa", label: i18n.t("legacy.fa_c919853c"), name: "Dari" },
+  { code: "ps", label: i18n.t("legacy.ps_02543e7a"), name: "Pashto" },
 ];
 
 const getInitials = (value) => {
@@ -34,6 +35,7 @@ const getInitials = (value) => {
 };
 
 function ThemeControl({ open, onToggle, onClose }) {
+  const { t: autoT } = useAutoTranslation();
   const { theme, setTheme, themes } = useTheme();
   const currentTheme = themes.find((item) => item.id === theme) || themes[0];
 
@@ -53,7 +55,7 @@ function ThemeControl({ open, onToggle, onClose }) {
 
       {open && (
         <div className="admin-header-menu-panel" role="menu">
-          <div className="admin-menu-caption">Theme</div>
+          <div className="admin-menu-caption">{autoT("legacy.theme_a797e309")}</div>
           {themes.map((item) => {
             const selected = item.id === theme;
             return (
@@ -86,6 +88,7 @@ function ThemeControl({ open, onToggle, onClose }) {
 }
 
 function LanguageControl({ i18n }) {
+  const { t: autoT } = useAutoTranslation();
   const handleChange = (event) => {
     const nextLanguage = event.target.value;
     i18n.changeLanguage(nextLanguage).then(() => {
@@ -99,7 +102,7 @@ function LanguageControl({ i18n }) {
       <select
         value={i18n.language}
         onChange={handleChange}
-        aria-label="Language"
+        aria-label={autoT("inventory_manager.languages.language")}
       >
         {languageOptions.map((language) => (
           <option key={language.code} value={language.code}>
@@ -112,6 +115,7 @@ function LanguageControl({ i18n }) {
 }
 
 function ProfileMenu({ open, onToggle, onClose }) {
+  const { t: autoT } = useAutoTranslation();
   const { auth, logout, activeBranch } = useContext(AuthContext);
   const navigate = useNavigate();
   const user = auth?.user || {};
@@ -163,7 +167,7 @@ function ProfileMenu({ open, onToggle, onClose }) {
             role="menuitem"
           >
             <LogOut className="h-4 w-4" />
-            <span>Sign out</span>
+            <span>{autoT("legacy.sign_out_dc1649a1")}</span>
           </button>
         </div>
       )}
@@ -175,6 +179,7 @@ export default function OperationsManagerTopHeader({
   navigationGroups,
   onOpenSidebar,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const { i18n } = useTranslation();
   const location = useLocation();
   const [openPanel, setOpenPanel] = useState(null);
@@ -218,16 +223,16 @@ export default function OperationsManagerTopHeader({
           type="button"
           className="admin-mobile-menu-button"
           onClick={onOpenSidebar}
-          aria-label="Open navigation"
+          aria-label={autoT("inventory_manager.a11y.open_navigation")}
         >
           <Menu className="h-5 w-5" />
         </button>
 
         <div className="admin-page-heading">
           <div className="admin-breadcrumb">
-            <span>{activeItem?.groupLabel || "Finance"}</span>
+            <span>{activeItem?.groupLabel || autoT("landing.features.groups.finance.title")}</span>
             <span aria-hidden="true">/</span>
-            <span>{activeItem?.label || "Expenses"}</span>
+            <span>{activeItem?.label || autoT("nav.expenses")}</span>
           </div>
         </div>
       </div>
@@ -244,16 +249,6 @@ export default function OperationsManagerTopHeader({
         />
 
         <LanguageControl i18n={i18n} />
-
-        <button
-          type="button"
-          className="admin-header-icon-button admin-notification-button"
-          aria-label="Notifications"
-          title="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          <span aria-hidden="true" />
-        </button>
 
         <ProfileMenu
           open={openPanel === "profile"}

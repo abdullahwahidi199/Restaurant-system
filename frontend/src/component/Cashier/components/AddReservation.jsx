@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import instance from "../../../api/axiosInstance";
 import toast from "react-hot-toast";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 // ─── STATUS BADGE ─────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -21,6 +22,7 @@ const StatusBadge = ({ status }) => {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────
 export default function AddReservation({ onClose, onReservationSaved }) {
+                 const { t: autoT } = useAutoTranslation();
   const [tables, setTables] = useState([]);
   const [existingReservations, setExistingReservations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
       const res = await instance.get("orders/tables/");
       setTables(sortTables(res.data));
     } catch {
-      toast.error("Failed to load tables");
+      toast.error(autoT("legacy.failed_to_load_tables_19fe4c0c"));
     }
   };
 
@@ -261,7 +263,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
         },
       });
 
-      toast.success("Reservation created successfully!");
+      toast.success(autoT("legacy.reservation_created_successfully_f8bc8ae0"));
 
       setForm({
         table: "",
@@ -301,10 +303,10 @@ export default function AddReservation({ onClose, onReservationSaved }) {
       <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl relative overflow-hidden">
         {/* ── Header ── */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">✦ New Reservation</h2>
+          <h2 className="text-xl font-bold text-white">{autoT("legacy.new_reservation_21fc3a90")}</h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={autoT("menuDetails.close")}
             className="text-white/80 hover:text-white transition"
           >
             <svg
@@ -329,7 +331,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             {/* ═══════ TABLE SELECTION ═══════ */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Table <span className="text-red-500">*</span>
+                {autoT("legacy.table_0424f6e7")} <span className="text-red-500">*</span>
               </label>
               <select
                 name="table"
@@ -340,13 +342,13 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                 }`}
                 required
               >
-                <option value="">— Select a table —</option>
+                <option value="">{autoT("legacy.select_a_table_94a81f25")}</option>
                 {tables.map((t) => (
                   <option key={t.id} value={t.id}>
-                    Table {t.name} — {t.capacity} seats
+                    {autoT("legacy.table_0424f6e7")} {t.name} — {t.capacity} {autoT("legacy.seats_05d560fe")}
                     {parseFloat(t.price_per_hour) > 0
                       ? ` — AFN${t.price_per_hour}/hr`
-                      : " — Free"}{" "}
+                      : autoT("legacy.free_aaf7e02c")}{" "}
                     ({t.status})
                   </option>
                 ))}
@@ -359,28 +361,28 @@ export default function AddReservation({ onClose, onReservationSaved }) {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-800">
-                    Table {selectedTable.name}
+                    {autoT("legacy.table_0424f6e7")} {selectedTable.name}
                   </span>
                   <StatusBadge status={selectedTable.status} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-sm text-gray-600">
                   <div>
-                    <span className="text-gray-400">Capacity:</span>{" "}
+                    <span className="text-gray-400">{autoT("legacy.capacity_218347e0")}</span>{" "}
                     <strong>{selectedTable.capacity}</strong>
                   </div>
                   <div>
-                    <span className="text-gray-400">Rate:</span>{" "}
+                    <span className="text-gray-400">{autoT("legacy.rate_cf6b5fa8")}</span>{" "}
                     <strong>
                       {parseFloat(selectedTable.price_per_hour) > 0
                         ? `AFN${selectedTable.price_per_hour}/hr`
-                        : "Free"}
+                        : autoT("legacy.free_75f52718")}
                     </strong>
                   </div>
                   <div>
-                    <span className="text-gray-400">Free allowed:</span>{" "}
+                    <span className="text-gray-400">{autoT("legacy.free_allowed_c5b8e4de")}</span>{" "}
                     <strong>
-                      {selectedTable.allow_free_reservation ? "Yes" : "No"}
+                      {selectedTable.allow_free_reservation ? autoT("info.yes") : autoT("info.no")}
                     </strong>
                   </div>
                 </div>
@@ -400,15 +402,14 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                       />
                     </svg>
                     <span>
-                      This table is currently occupied. You can still book a
-                      future slot.
+                      {autoT("legacy.this_table_is_currently_occupied_you_can_still_book_a__98ed1760")}
                     </span>
                   </div>
                 )}
 
                 {selectedTable.current_reservation && (
                   <div className="text-sm bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg">
-                    <strong>Current reservation:</strong>{" "}
+                    <strong>{autoT("legacy.current_reservation_c261d3be")}</strong>{" "}
                     {selectedTable.current_reservation.customer_name} —{" "}
                     {new Date(
                       selectedTable.current_reservation.time,
@@ -418,7 +419,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
 
                 {selectedTable.upcoming_reservation && (
                   <div className="text-sm bg-purple-50 border border-purple-200 text-purple-700 px-3 py-2 rounded-lg">
-                    <strong>Upcoming:</strong>{" "}
+                    <strong>{autoT("legacy.upcoming_13d1b787")}</strong>{" "}
                     {selectedTable.upcoming_reservation.customer_name} —{" "}
                     {new Date(
                       selectedTable.upcoming_reservation.time,
@@ -426,7 +427,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                     {selectedTable.upcoming_reservation.duration && (
                       <span>
                         {" "}
-                        ({selectedTable.upcoming_reservation.duration} min)
+                        ({selectedTable.upcoming_reservation.duration} {autoT("legacy.min_c5cceefd")}
                       </span>
                     )}
                   </div>
@@ -438,14 +439,14 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Customer Name <span className="text-red-500">*</span>
+                  {autoT("legacy.customer_name_75636316")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="customer_name"
                   value={form.customer_name}
                   onChange={handleChange}
-                  placeholder="Enter name"
+                  placeholder={autoT("legacy.enter_name_5df85959")}
                   className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 transition ${
                     fieldErrors.customer_name
                       ? "border-red-400"
@@ -458,14 +459,14 @@ export default function AddReservation({ onClose, onReservationSaved }) {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Phone Number
+                  {autoT("staff.form.phone")}
                 </label>
                 <input
                   type="tel"
                   name="phone"
                   value={form.phone}
                   onChange={handleChange}
-                  placeholder="Enter phone"
+                  placeholder={autoT("legacy.enter_phone_afe4ff5a")}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
                 />
                 <FieldError name="phone" />
@@ -475,7 +476,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             {/* ═══════ GUESTS ═══════ */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Guests
+                {autoT("legacy.number_of_guests_1acae9a2")}
               </label>
               <input
                 type="number"
@@ -516,7 +517,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Start Time <span className="text-red-500">*</span>
+                  {autoT("legacy.start_time_41c1074d")} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="datetime-local"
@@ -536,7 +537,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Duration (min)
+                  {autoT("legacy.duration_min_b9d7d9c7")}
                 </label>
                 <select
                   name="duration_minutes"
@@ -548,22 +549,22 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                       : "border-gray-300"
                   }`}
                 >
-                  <option value={30}>30 min</option>
-                  <option value={60}>1 hour</option>
-                  <option value={90}>1.5 hours</option>
-                  <option value={120}>2 hours</option>
-                  <option value={180}>3 hours</option>
-                  <option value={240}>4 hours</option>
-                  <option value={300}>5 hours</option>
-                  <option value={360}>6 hours</option>
-                  <option value={480}>8 hours</option>
+                  <option value={30}>{autoT("legacy.30_min_d3ddf7a3")}</option>
+                  <option value={60}>{autoT("legacy.1_hour_f030c3d6")}</option>
+                  <option value={90}>{autoT("legacy.1_5_hours_6bc4eb60")}</option>
+                  <option value={120}>{autoT("legacy.2_hours_2046e49e")}</option>
+                  <option value={180}>{autoT("legacy.3_hours_63d26e82")}</option>
+                  <option value={240}>{autoT("legacy.4_hours_7b47150d")}</option>
+                  <option value={300}>{autoT("legacy.5_hours_1fe288aa")}</option>
+                  <option value={360}>{autoT("legacy.6_hours_1e35c222")}</option>
+                  <option value={480}>{autoT("legacy.8_hours_191800b7")}</option>
                 </select>
                 <FieldError name="duration_minutes" />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  End Time
+                  {autoT("legacy.end_time_4c640e92")}
                 </label>
                 <div className="px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-700 font-medium">
                   {endTimePreview || "—"}
@@ -591,7 +592,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Existing Bookings on {form.reservation_date}
+                  {autoT("legacy.existing_bookings_on_1ec7a7d9")} {form.reservation_date}
                 </h4>
                 <div className="space-y-1">
                   {existingReservations.map((r) => (
@@ -600,7 +601,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                       className="flex items-center justify-between bg-white px-3 py-2 rounded border border-orange-100 text-sm"
                     >
                       <span className="font-medium text-gray-800">
-                        {r.customer_name || "Guest"}
+                        {r.customer_name || autoT("legacy.guest_face83ee")}
                       </span>
                       <span className="text-gray-500">
                         {r.start_time
@@ -636,7 +637,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Reservation Type
+                  {autoT("legacy.reservation_type_006ac5e0")}
                 </label>
                 <select
                   name="reservation_type"
@@ -649,10 +650,10 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                   }`}
                 >
                   {selectedTable?.allow_free_reservation && (
-                    <option value="free">🆓 Free</option>
+                    <option value="free">{autoT("legacy.free_3e80dce3")}</option>
                   )}
-                  <option value="fee">💲 Fee-Based (pay on arrival)</option>
-                  <option value="prepaid">💳 Prepaid</option>
+                  <option value="fee">{autoT("legacy.fee_based_pay_on_arrival_afed3d87")}</option>
+                  <option value="prepaid">{autoT("legacy.prepaid_73b7e76f")}</option>
                 </select>
                 <FieldError name="reservation_type" />
               </div>
@@ -660,7 +661,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
               {form.reservation_type === "prepaid" && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Prepaid Amount
+                    {autoT("legacy.prepaid_amount_a26e0152")}
                   </label>
                   <input
                     type="number"
@@ -669,7 +670,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                     max={estimatedPrice || undefined}
                     value={form.paid_amount}
                     onChange={handleChange}
-                    placeholder="Enter amount"
+                    placeholder={autoT("legacy.enter_amount_01f20462")}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
                   />
                   <FieldError name="paid_amount" />
@@ -683,16 +684,16 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-blue-600 font-medium">
-                      Estimated Total
+                      {autoT("legacy.estimated_total_1636f5a9")}
                     </p>
                     <p className="text-xs text-blue-400">
-                      {Math.ceil(form.duration_minutes / 60)} hr(s) × AFN
+                      {Math.ceil(form.duration_minutes / 60)} {autoT("legacy.hr_s_afn_77661bac")}
                       {selectedTable.price_per_hour}/hr
                     </p>
                   </div>
                   <p className="text-2xl font-bold text-blue-700">
                     {form.reservation_type === "free" ? (
-                      <span className="text-green-600">FREE</span>
+                      <span className="text-green-600">{autoT("legacy.free_4a9768fa")}</span>
                     ) : (
                       `AFN${estimatedPrice.toFixed(2)}`
                     )}
@@ -703,10 +704,10 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                   Number(form.paid_amount) > 0 && (
                     <div className="mt-2 pt-2 border-t border-blue-200 flex justify-between text-sm">
                       <span className="text-blue-600">
-                        Remaining on arrival:
+                        {autoT("legacy.remaining_on_arrival_510cac9e")}
                       </span>
                       <span className="font-semibold text-blue-800">
-                        AFN
+                        {autoT("labels.afn")}
                         {Math.max(
                           estimatedPrice - Number(form.paid_amount),
                           0,
@@ -720,14 +721,14 @@ export default function AddReservation({ onClose, onReservationSaved }) {
             {/* ═══════ NOTES ═══════ */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Special Notes
+                {autoT("legacy.special_notes_e47e02c8")}
               </label>
               <textarea
                 rows="2"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
-                placeholder="Any special requests…"
+                placeholder={autoT("legacy.any_special_requests_74eb7ed0")}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition resize-none"
               />
             </div>
@@ -739,7 +740,7 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                 onClick={onClose}
                 className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
               >
-                Cancel
+                {autoT("staff.cancel")}
               </button>
               <button
                 type="submit"
@@ -768,10 +769,10 @@ export default function AddReservation({ onClose, onReservationSaved }) {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Creating…
+                    {autoT("legacy.creating_94d7d8ee")}
                   </>
                 ) : (
-                  "Create Reservation"
+                  autoT("legacy.create_reservation_30303fe6")
                 )}
               </button>
             </div>

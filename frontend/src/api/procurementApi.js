@@ -12,6 +12,9 @@ export const createSupplier = (data) =>
 export const updateSupplier = (id, data) =>
   instance.patch(`/procurement/suppliers/${id}/`, data);
 
+export const deleteSupplier = (id) =>
+  instance.delete(`/procurement/suppliers/${id}/`);
+
 export const getSupplierLedger = (id) =>
   instance.get(`/procurement/suppliers/${id}/ledger/`);
 

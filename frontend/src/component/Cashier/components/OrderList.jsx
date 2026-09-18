@@ -1,6 +1,7 @@
 // src/pages/cashier/components/OrderList.jsx
 import React from "react";
 import OrderCard from "./OrderCard";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const OrderList = ({
   orders = [],
@@ -9,10 +10,11 @@ const OrderList = ({
   onPrintBill,
   onAssignDelivery,
 }) => {
+                    const { t: autoT } = useAutoTranslation();
   if (!orders || orders.length === 0) {
     return (
       <div className="text-center text-gray-500 py-10">
-        No orders found for the selected filters.
+        {autoT("legacy.no_orders_found_for_the_selected_filters_1760fece")}
       </div>
     );
   }

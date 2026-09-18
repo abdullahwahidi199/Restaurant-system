@@ -217,7 +217,7 @@ class ModuleAuditHookTests(TestCase):
         self.assertEqual(update_log.metadata["changes"]["amount"]["old"], "2000.00")
         self.assertEqual(update_log.metadata["changes"]["amount"]["new"], "2500.00")
 
-    def test_procurement_supplier_create_and_update_are_audited(self):
+    def test_procurement_supplier_create_update_and_delete_are_audited(self):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(
                 "/api/procurement/suppliers/",
@@ -240,7 +240,23 @@ class ModuleAuditHookTests(TestCase):
         self.assertTrue(logs.filter(action=AuditAction.CREATE).exists())
         self.assertTrue(logs.filter(action=AuditAction.STATUS_CHANGE).exists())
 
-    def test_contractor_create_and_update_are_audited(self):
+        supplier_id = supplier.id
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(
+                f"/api/procurement/suppliers/{supplier_id}/"
+            )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Supplier.objects.filter(id=supplier_id).exists())
+        self.assertTrue(
+            AuditLog.objects.filter(
+                object_type="Supplier",
+                object_id=str(supplier_id),
+                action=AuditAction.DELETE,
+            ).exists()
+        )
+
+    def test_contractor_create_update_and_delete_are_audited(self):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(
                 "/api/contractors/contractors/",
@@ -263,6 +279,22 @@ class ModuleAuditHookTests(TestCase):
         self.assertTrue(logs.filter(action=AuditAction.CREATE).exists())
         update_log = logs.get(action=AuditAction.UPDATE)
         self.assertEqual(update_log.metadata["changes"]["contact_person"]["new"], "Omar")
+
+        contractor_id = contractor.id
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(
+                f"/api/contractors/contractors/{contractor_id}/"
+            )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Contractor.objects.filter(id=contractor_id).exists())
+        self.assertTrue(
+            AuditLog.objects.filter(
+                object_type="Contractor",
+                object_id=str(contractor_id),
+                action=AuditAction.DELETE,
+            ).exists()
+        )
 
     def test_audit_filters_by_object(self):
         create_audit_log(

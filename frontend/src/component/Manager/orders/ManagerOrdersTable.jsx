@@ -45,8 +45,8 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
             <th>{t("table.total")}</th>
             <th>{t("table.table")}</th>
             <th>{t("table.status")}</th>
-            <th>Created by</th>
-            <th>Recieved by</th>
+            <th>{t("legacy.created_by_5d73cc30")}</th>
+            <th>{t("legacy.recieved_by_da0fed0b")}</th>
 
             <th>{t("table.date")}</th>
             <th className="text-center">{t("table.actions")}</th>
@@ -58,7 +58,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
             <tr key={order.id} className="border-b hover:bg-gray-50">
               <td className="p-3">{order.order_number}</td>
               <td className="p-3">{order.name}</td>
-              <td className="p-3">{order.total} AFN</td>
+              <td className="p-3">{order.total} {t("labels.afn")}</td>
               <td className="p-3">{getOrderTableLabel(order)}</td>
               <td className="p-3">
                 <span
@@ -71,7 +71,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
               {order.received_by_name ? (
                 <td>{order.received_by_name}</td>
               ) : (
-                <td>Not paid yet</td>
+                <td>{t("legacy.not_paid_yet_413df8dd")}</td>
               )}
               <td className="p-3">
                 {new Date(order.created_at).toLocaleDateString()}
@@ -81,7 +81,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
                   <button
                     onClick={() => onView(order)}
                     className="bg-blue-100 p-2 rounded hover:bg-blue-200"
-                    aria-label="View order"
+                    aria-label={t("legacy.view_order_0df27975")}
                   >
                     <Eye size={16} />
                   </button>
@@ -96,7 +96,7 @@ export default function ManagerOrdersTable({ orders, onView, onCancel, role }) {
                     <button
                       disabled
                       className="bg-gray-100 p-2 rounded opacity-40 cursor-not-allowed"
-                      title="Cannot cancel this order"
+                      title={t("legacy.cannot_cancel_this_order_26731abf")}
                     >
                       <XCircle size={16} />
                     </button>

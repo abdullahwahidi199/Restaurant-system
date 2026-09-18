@@ -192,11 +192,11 @@ export default function DeliveryOrderForm() {
       return;
     }
     if (!formData.name.trim()) {
-      toast.error("Please fill in customer name");
+      toast.error(t("legacy.please_fill_in_customer_name_2738e6dd"));
       return;
     }
     if (!formData.distance_km) {
-      toast.error("Please enter delivery distance");
+      toast.error(t("legacy.please_enter_delivery_distance_5b8b1d4b"));
       return;
     }
 
@@ -288,10 +288,10 @@ export default function DeliveryOrderForm() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                Delivery Order
+                {t("legacy.delivery_order_4081c2f7")}
               </h1>
               <p className="text-xs text-gray-500">
-                Create a new delivery order
+                {t("legacy.create_a_new_delivery_order_99bda619")}
               </p>
             </div>
           </div>
@@ -390,7 +390,7 @@ export default function DeliveryOrderForm() {
             <p className="text-sm text-gray-400">
               {searchQuery
                 ? `No items found for "${searchQuery}"`
-                : "No items in this category"}
+                : t("legacy.no_items_in_this_category_54d4a340")}
             </p>
           </div>
         ) : (
@@ -403,7 +403,7 @@ export default function DeliveryOrderForm() {
                       <span className="w-1 h-5 rounded-full bg-emerald-500" />
                       {group.category}
                       <span className="text-xs font-normal text-gray-400">
-                        {group.items.length} item
+                        {group.items.length} {t("labels.item")}
                         {group.items.length !== 1 && "s"}
                       </span>
                     </h2>
@@ -482,7 +482,7 @@ export default function DeliveryOrderForm() {
                           </h3>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-base font-bold text-emerald-600">
-                              Afs {parseFloat(item.price).toLocaleString()}
+                              {t("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()}
                             </span>
                             {isSelected ? (
                               <div
@@ -557,7 +557,7 @@ export default function DeliveryOrderForm() {
                 </h2>
                 {totalItems > 0 && (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {totalItems} item{totalItems !== 1 && "s"}
+                    {totalItems} {t("labels.item")}{totalItems !== 1 && "s"}
                   </p>
                 )}
               </div>
@@ -581,7 +581,7 @@ export default function DeliveryOrderForm() {
                       {t("menu.cart.empty")}
                     </p>
                     <p className="text-xs text-gray-300 mt-1">
-                      Tap items from the menu to add
+                      {t("legacy.tap_items_from_the_menu_to_add_3a49f282")}
                     </p>
                   </div>
                 </div>
@@ -616,11 +616,11 @@ export default function DeliveryOrderForm() {
                       </p>
 
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Afs {parseFloat(item.price).toLocaleString()} each
+                        {t("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()} {t("legacy.each_b32f279e")}
                       </p>
 
                       <textarea
-                        placeholder="Item note..."
+                        placeholder={t("legacy.item_note_75dbac71")}
                         value={item.note || ""}
                         onChange={(e) =>
                           handleItemNoteChange(item.id, e.target.value)
@@ -681,7 +681,7 @@ export default function DeliveryOrderForm() {
                     />
                     <input
                       type="text"
-                      placeholder="Customer Name *"
+                      placeholder={t("legacy.customer_name_e25608b4")}
                       value={formData.name}
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
@@ -697,7 +697,7 @@ export default function DeliveryOrderForm() {
                     />
                     <input
                       type="tel"
-                      placeholder="Phone Number *"
+                      placeholder={t("legacy.phone_number_b94477dd")}
                       value={formData.phone}
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
@@ -713,7 +713,7 @@ export default function DeliveryOrderForm() {
                     />
                     <input
                       type="address"
-                      placeholder="Address *"
+                      placeholder={t("legacy.address_d89c9350")}
                       value={formData.address}
                       onChange={(e) =>
                         setFormData({ ...formData, address: e.target.value })
@@ -732,7 +732,7 @@ export default function DeliveryOrderForm() {
                     <input
                       type="number"
                       step="0.1"
-                      placeholder="Distance (KM) *"
+                      placeholder={t("legacy.distance_km_66efaa6d")}
                       value={formData.distance_km}
                       onChange={(e) =>
                         setFormData({
@@ -751,7 +751,7 @@ export default function DeliveryOrderForm() {
                       className="absolute left-3.5 top-4 text-gray-400"
                     />
                     <textarea
-                      placeholder="Note (optional)"
+                      placeholder={t("legacy.note_optional_4e395670")}
                       value={formData.note}
                       onChange={(e) =>
                         setFormData({ ...formData, note: e.target.value })
@@ -764,10 +764,10 @@ export default function DeliveryOrderForm() {
 
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-medium text-gray-600">
-                    Total
+                    {t("table.total")}
                   </span>
                   <span className="text-xl font-bold text-gray-900">
-                    Afs {totalAmount.toLocaleString()}
+                    {t("legacy.afs_2050680c")} {totalAmount.toLocaleString()}
                   </span>
                 </div>
 
@@ -779,12 +779,12 @@ export default function DeliveryOrderForm() {
                   {submitting ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      Creating Order...
+                      {t("legacy.creating_order_7fe1d7f0")}
                     </>
                   ) : (
                     <>
                       <Check size={16} strokeWidth={3} />
-                      Create Order • Afs {totalAmount.toLocaleString()}
+                      {t("legacy.create_order_afs_3f443c63")} {totalAmount.toLocaleString()}
                     </>
                   )}
                 </button>

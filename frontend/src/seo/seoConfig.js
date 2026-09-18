@@ -1,4 +1,4 @@
-export const SITE_URL = "https://pakhlai.com";
+import i18n from "../i18n";export const SITE_URL = "https://pakhlai.com";
 export const SITE_NAME = "Pakhlai";
 export const COMPANY_NAME = "Asanlink";
 export const FOUNDER_NAME = "Abdullah Wahidi";
@@ -85,16 +85,16 @@ export const baseWebsite = {
 export const publicPages = [
   {
     path: "/",
-    title: "Pakhlai — Find Restaurants & Order Food Online",
+    title: i18n.t("legacy.pakhlai_find_restaurants_order_food_online_d66fe9b9"),
     description:
-      "Find restaurants, browse real menus, and order your favorite food online with Pakhlai.",
+      i18n.t("legacy.find_restaurants_browse_real_menus_and_order_your_favo_0b8d4c3c"),
     breadcrumbs: [{ name: "Home", path: "/" }],
   },
   {
     path: "/about",
-    title: "About Pakhlai | Cloud Restaurant Management System",
+    title: i18n.t("legacy.about_pakhlai_cloud_restaurant_management_system_02a5a865"),
     description:
-      "Learn the story of Pakhlai, a restaurant management system founded and developed by Abdullah Wahidi to simplify restaurant operations.",
+      i18n.t("legacy.learn_the_story_of_pakhlai_a_restaurant_management_sys_871337dc"),
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "About", path: "/about" },
@@ -102,9 +102,9 @@ export const publicPages = [
   },
   {
     path: "/founder",
-    title: "Abdullah Wahidi | Founder and Developer of Pakhlai",
+    title: i18n.t("legacy.abdullah_wahidi_founder_and_developer_of_pakhlai_68b44003"),
     description:
-      "Meet Abdullah Wahidi, founder of Pakhlai, software engineer, and developer of the Pakhlai Restaurant Management System.",
+      i18n.t("legacy.meet_abdullah_wahidi_founder_of_pakhlai_software_engin_b993313e"),
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "Founder", path: "/founder" },
@@ -112,9 +112,9 @@ export const publicPages = [
   },
   {
     path: "/privacy",
-    title: "Privacy Policy | Pakhlai",
+    title: i18n.t("legacy.privacy_policy_pakhlai_7dd5efde"),
     description:
-      "Learn how Pakhlai handles customer, delivery, account, and ordering information.",
+      i18n.t("legacy.learn_how_pakhlai_handles_customer_delivery_account_an_46b72b8d"),
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "Privacy", path: "/privacy" },
@@ -122,9 +122,9 @@ export const publicPages = [
   },
   {
     path: "/terms",
-    title: "Terms of Service | Pakhlai",
+    title: i18n.t("legacy.terms_of_service_pakhlai_5d252d47"),
     description:
-      "Read the terms for using Pakhlai restaurant discovery and online food ordering.",
+      i18n.t("legacy.read_the_terms_for_using_pakhlai_restaurant_discovery__1912f27f"),
     breadcrumbs: [
       { name: "Home", path: "/" },
       { name: "Terms", path: "/terms" },
@@ -147,9 +147,9 @@ export const getPageSeo = (pathname) => {
 
   if (normalizedPath.startsWith("/menu/")) {
     return {
-      title: "Restaurant Menu on Pakhlai | Online Menu and Ordering",
+      title: i18n.t("legacy.restaurant_menu_on_pakhlai_online_menu_and_ordering_37576449"),
       description:
-        "View a restaurant menu powered by Pakhlai, the cloud-based restaurant management system created by Abdullah Wahidi.",
+        i18n.t("legacy.view_a_restaurant_menu_powered_by_pakhlai_the_cloud_ba_27aec714"),
       canonicalPath: normalizedPath,
       robots: "index, follow",
       type: "website",
@@ -164,7 +164,7 @@ export const getPageSeo = (pathname) => {
     return {
       title: `${SITE_NAME} Account Access`,
       description:
-        "Secure account access for Pakhlai customers and restaurant users.",
+        i18n.t("legacy.secure_account_access_for_pakhlai_customers_and_restau_85b02312"),
       canonicalPath: normalizedPath,
       robots: "noindex, follow",
       type: "website",
@@ -182,7 +182,7 @@ export const getPageSeo = (pathname) => {
     return {
       title: `${SITE_NAME} Restaurant Operations Dashboard`,
       description:
-        "Private Pakhlai restaurant operations dashboard for authorized staff.",
+        i18n.t("legacy.private_pakhlai_restaurant_operations_dashboard_for_au_6dd4e14d"),
       canonicalPath: normalizedPath,
       robots: "noindex, nofollow",
       type: "website",

@@ -11,6 +11,7 @@ import EditIngredientModal from "./EditIngredientModal";
 import instance from "../../../api/axiosInstance";
 import { ArrowUpRight, FileText, AlertTriangle, PackageX, X } from "lucide-react";
 import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
+import TablePagination from "../../../modules/shared/erp/components/TablePagination";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -335,7 +336,7 @@ export default function IngredientList() {
 
         </div>
 
-          <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => handleDownloadPDF("all")}
@@ -361,32 +362,16 @@ export default function IngredientList() {
                 {t("inventory_manager.ingredients.out_of_stock_report", { defaultValue: "Out of Stock Report" })}
               </button>
             </div>
-            <span className="text-sm text-gray-500">
-              {t("inventory_manager.common.page_of", {
-                defaultValue: "Page {{page}} of {{totalPages}}",
-                page,
-                totalPages,
-              })}
-            </span>
-
-            <div className="grid grid-cols-2 gap-2 sm:flex">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded border px-4 py-2 disabled:opacity-50"
-              >
-                {t("inventory_manager.common.prev", { defaultValue: "Prev" })}
-              </button>
-
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded border px-4 py-2 disabled:opacity-50"
-              >
-                {t("inventory_manager.common.next", { defaultValue: "Next" })}
-              </button>
-            </div>
           </div>
+          <TablePagination
+            page={page}
+            totalItems={count}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            loading={loading}
+            className="mt-4"
+          />
         </>
       )}
 

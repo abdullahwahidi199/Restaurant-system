@@ -11,7 +11,7 @@ import OperationsNavbar from "./OperationsManagerNavbar";
 
 export default function OperationsManagerLayout() {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWarningDismissed, setIsWarningDismissed] = useState(false);
@@ -105,7 +105,7 @@ export default function OperationsManagerLayout() {
             <div>
               <p className="font-semibold theme-text-primary">{alert.text}</p>
               <p className="text-xs theme-text-muted">
-                {subscription.days_left} days remaining
+                {subscription.days_left} {t("legacy.days_remaining_9182f5ff")}
               </p>
             </div>
 

@@ -19,7 +19,7 @@ export default function StaffManagement() {
   const { auth, activeBranch } = useContext(AuthContext);
   const isDemo = auth?.user?.isDemo;
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language !== "en";
+  const isRTL = i18n.dir() === "rtl";
 
   const token = auth?.tokens?.access;
   const BASE_URL = import.meta.env.VITE_MEDIA_URL;

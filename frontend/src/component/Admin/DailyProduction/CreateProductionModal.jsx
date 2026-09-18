@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import Select from "react-select";
 import instance from "../../../api/axiosInstance";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function CreateProductionModal({
   production,
   onClose,
   onSuccess,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [items, setItems] = useState([]);
 
   const [form, setForm] = useState({
@@ -57,7 +59,7 @@ export default function CreateProductionModal({
         className="bg-white w-full max-w-md rounded-xl p-6 space-y-4"
       >
         <h2 className="text-xl font-semibold">
-          {production ? "Adjust Production" : "Create Production"}
+          {production ? autoT("legacy.adjust_production_5fd9d2be") : autoT("legacy.create_production_703a8779")}
         </h2>
 
         {!production && (
@@ -85,7 +87,7 @@ export default function CreateProductionModal({
             })
           }
           className="w-full border rounded p-2"
-          placeholder="Quantity Produced"
+          placeholder={autoT("legacy.quantity_produced_d9759867")}
         />
 
         <textarea
@@ -98,7 +100,7 @@ export default function CreateProductionModal({
             })
           }
           className="w-full border rounded p-2"
-          placeholder="Notes"
+          placeholder={autoT("inventory_manager.common.notes")}
         />
 
         <div className="flex justify-end gap-2">
@@ -107,14 +109,14 @@ export default function CreateProductionModal({
             onClick={onClose}
             className="border px-4 py-2 rounded"
           >
-            Cancel
+            {autoT("staff.cancel")}
           </button>
 
           <button
             type="submit"
             className="bg-indigo-600 text-white px-4 py-2 rounded"
           >
-            Save
+            {autoT("legacy.save_efc007a3")}
           </button>
         </div>
       </form>

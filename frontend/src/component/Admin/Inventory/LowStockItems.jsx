@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
-import { AlertTriangle, PackageX, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { motion as Motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import EmptyState from "../../../modules/shared/erp/components/EmptyState";
+import StatusBadge from "../../../modules/shared/erp/components/StatusBadge";
 
 export default function LowStockItems() {
   const { t } = useTranslation();
@@ -10,21 +12,21 @@ export default function LowStockItems() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchLowStock();
-  }, []);
-
-  const fetchLowStock = async () => {
+  const fetchLowStock = useCallback(async () => {
     try {
       setLoading(true);
       const res = await instance.get("/inventory/low-stock/");
       setItems(res.data);
-    } catch (err) {
+    } catch {
       setError(t("inventory_manager.low_stock.load_failed", { defaultValue: "Failed to load low stock items" }));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    fetchLowStock();
+  }, [fetchLowStock]);
 
   if (loading) {
     return (
@@ -43,16 +45,16 @@ export default function LowStockItems() {
   }
 
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border bg-white p-4 shadow-sm sm:p-5"
+      className="theme-card p-4 sm:p-5"
     >
       
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <AlertTriangle className="text-red-500 w-5 h-5" />
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h2 className="text-base font-semibold theme-text-primary">
             {t("inventory_manager.low_stock.title", { defaultValue: "Low Stock Items" })}
           </h2>
         </div>
@@ -68,12 +70,10 @@ export default function LowStockItems() {
 
       
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-          <PackageX className="w-8 h-8 mb-2" />
-          <p className="text-sm">
-            {t("inventory_manager.low_stock.all_stocked", { defaultValue: "All ingredients are sufficiently stocked" })}
-          </p>
-        </div>
+        <EmptyState
+          title={t("inventory_manager.low_stock.all_stocked", { defaultValue: "All ingredients are sufficiently stocked" })}
+          description={t("inventory_manager.low_stock.empty_description", { defaultValue: "Low-stock ingredients will appear here when attention is needed." })}
+        />
       ) : (
         <>
         <div className="space-y-3 md:hidden">
@@ -98,17 +98,12 @@ export default function LowStockItems() {
                       })}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
-                      critical
-                        ? "bg-red-100 text-red-700"
-                        : "bg-orange-100 text-orange-700"
-                    }`}
-                  >
-                    {critical
+                  <StatusBadge
+                    status={critical ? "out_of_stock" : "low_stock"}
+                    label={critical
                       ? t("inventory_manager.common.out_of_stock", { defaultValue: "Out of Stock" })
                       : t("inventory_manager.common.low_stock", { defaultValue: "Low Stock" })}
-                  </span>
+                  />
                 </div>
                 <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm">
                   <span className="font-semibold text-gray-900">
@@ -157,18 +152,12 @@ export default function LowStockItems() {
                     </td>
 
                     <td className="py-3">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium
-                          ${
-                            critical
-                              ? "bg-red-100 text-red-700"
-                              : "bg-orange-100 text-orange-700"
-                          }`}
-                      >
-                        {critical
+                      <StatusBadge
+                        status={critical ? "out_of_stock" : "low_stock"}
+                        label={critical
                           ? t("inventory_manager.common.out_of_stock", { defaultValue: "Out of Stock" })
                           : t("inventory_manager.common.low_stock", { defaultValue: "Low Stock" })}
-                      </span>
+                      />
                     </td>
                   </tr>
                 );
@@ -178,6 +167,6 @@ export default function LowStockItems() {
         </div>
         </>
       )}
-    </motion.div>
+    </Motion.div>
   );
 }

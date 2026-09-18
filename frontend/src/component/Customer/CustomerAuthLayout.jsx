@@ -28,7 +28,7 @@ const CustomerAuthLayout = ({
           className="customer-auth-brand"
           aria-label={t("customerAuth.shared.home", "Pakhlai home")}
         >
-          <img src="/rmsLogo.png" alt="Pakhlai" />
+          <img src="/rmsLogo.png" alt={t("landing.marketplace.brand.name")} />
         </Link>
 
         <Link to="/" className="customer-auth-back">

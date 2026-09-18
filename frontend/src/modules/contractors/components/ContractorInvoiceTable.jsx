@@ -4,12 +4,14 @@ import DataTable from "../../shared/erp/components/DataTable";
 import StatusBadge from "../../shared/erp/components/StatusBadge";
 import { money } from "../../shared/erp/formatters";
 import { getContractorInvoiceNumber } from "../utils/calculations";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ContractorInvoiceTable({ invoices, onOpen, onPayment, compact = false }) {
+                 const { t: autoT } = useAutoTranslation();
   return (
     <DataTable
       rows={invoices}
-      empty="No contractor invoices found."
+      empty={autoT("legacy.no_contractor_invoices_found_bebcd9bf")}
       columns={[
         {
           key: "invoice",
@@ -32,11 +34,11 @@ export default function ContractorInvoiceTable({ invoices, onOpen, onPayment, co
           className: "px-4 py-3",
           render: (invoice) => (
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => onOpen(invoice.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" title="Open invoice">
+              <button type="button" onClick={() => onOpen(invoice.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" title={autoT("legacy.open_invoice_587e51ea")}>
                 <Eye className="h-4 w-4" />
               </button>
               {Number(invoice.remaining_balance || 0) > 0 && invoice.status !== "draft" && (
-                <button type="button" onClick={() => onPayment(invoice)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" title="Record payment">
+                <button type="button" onClick={() => onPayment(invoice)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" title={autoT("legacy.record_payment_86e56322")}>
                   <CreditCard className="h-4 w-4" />
                 </button>
               )}

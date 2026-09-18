@@ -12,8 +12,10 @@ import {
   getPublicRestaurantEntryPath,
   persistPublicOrderingContext,
 } from "../../api/publicOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function CustomerHomepage() {
+                 const { t: autoT } = useAutoTranslation();
   const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [branchInfo, setBranchInfo] = useState(null);
   const [branches, setBranches] = useState([]);
@@ -124,11 +126,10 @@ export default function CustomerHomepage() {
 
             <div className="text-left">
               <p className="text-sm font-semibold text-amber-800">
-                Delivery unavailable
+                {autoT("legacy.delivery_unavailable_543cb743")}
               </p>
               <p className="text-sm text-amber-700">
-                Delivery is currently unavailable for this branch. Please check
-                back later.
+                {autoT("legacy.delivery_is_currently_unavailable_for_this_branch_plea_98f3e6d6")}
               </p>
             </div>
           </div>

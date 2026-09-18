@@ -61,7 +61,7 @@ export default function StationFormModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setError("Station name is required.");
+      setError(t("legacy.station_name_is_required_8bc791a9"));
       return;
     }
 
@@ -106,7 +106,7 @@ export default function StationFormModal({
               <Utensils className="h-5 w-5" />
             </div>
             <h2 className="text-xl font-bold text-[var(--theme-text-primary)]">
-              {editingStation ? "Edit Kitchen Station" : "Create New Station"}
+              {editingStation ? t("legacy.edit_kitchen_station_cc163df3") : t("legacy.create_new_station_ecd5e292")}
             </h2>
           </div>
           <button
@@ -128,12 +128,12 @@ export default function StationFormModal({
           {/* Station Name (English) */}
           <div>
             <label className="block text-sm font-semibold text-[var(--theme-text-primary)] mb-1">
-              Station Name (English) <span className="text-red-500">*</span>
+              {t("legacy.station_name_english_b05d5343")} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="name"
-              placeholder="e.g., Juice Bar, Dessert Station, Grill"
+              placeholder={t("legacy.e_g_juice_bar_dessert_station_grill_8f3e3481")}
               value={formData.name}
               onChange={handleChange}
               className="w-full rounded-lg border border-[var(--theme-input-border)] bg-[var(--theme-input-bg)] px-3.5 py-2.5 text-[var(--theme-text-primary)] focus:border-[var(--theme-input-focus)] focus:ring-2 focus:ring-[var(--theme-input-ring)] outline-none transition"
@@ -176,12 +176,12 @@ export default function StationFormModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-semibold text-[var(--theme-text-primary)] mb-1">
-              Description / Notes
+              {t("legacy.description_notes_60cdf079")}
             </label>
             <textarea
               name="description"
               rows={2}
-              placeholder="Optional notes about what is prepared here..."
+              placeholder={t("legacy.optional_notes_about_what_is_prepared_here_1ed9ef1f")}
               value={formData.description}
               onChange={handleChange}
               className="w-full rounded-lg border border-[var(--theme-input-border)] bg-[var(--theme-input-bg)] px-3.5 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-input-focus)] focus:ring-2 focus:ring-[var(--theme-input-ring)] outline-none transition"
@@ -191,7 +191,7 @@ export default function StationFormModal({
           {/* Branch Override (Optional) */}
           <div>
             <label className="block text-sm font-semibold text-[var(--theme-text-primary)] mb-1">
-              Assigned Branch
+              {t("legacy.assigned_branch_fa5d2147")}
             </label>
             <select
               name="branch"
@@ -199,7 +199,7 @@ export default function StationFormModal({
               onChange={handleChange}
               className="w-full rounded-lg border border-[var(--theme-input-border)] bg-[var(--theme-input-bg)] px-3.5 py-2.5 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-input-focus)] focus:ring-2 focus:ring-[var(--theme-input-ring)] outline-none transition"
             >
-              <option value="">All Branches (Restaurant Wide)</option>
+              <option value="">{t("legacy.all_branches_restaurant_wide_c52b353b")}</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -207,7 +207,7 @@ export default function StationFormModal({
               ))}
             </select>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1">
-              Leave blank if this station is available across all branches.
+              {t("legacy.leave_blank_if_this_station_is_available_across_all_br_ce426d99")}
             </p>
           </div>
 
@@ -223,11 +223,10 @@ export default function StationFormModal({
               />
               <div>
                 <span className="block text-sm font-semibold text-[var(--theme-text-primary)]">
-                  Default Station (Main Kitchen)
+                  {t("legacy.default_station_main_kitchen_05a7da5e")}
                 </span>
                 <span className="block text-xs text-[var(--theme-text-secondary)]">
-                  New menu items and platters without an assigned station will
-                  automatically route here.
+                  {t("legacy.new_menu_items_and_platters_without_an_assigned_statio_a0ca7a20")}
                 </span>
               </div>
             </label>
@@ -242,11 +241,10 @@ export default function StationFormModal({
               />
               <div>
                 <span className="block text-sm font-semibold text-[var(--theme-text-primary)]">
-                  Active Station
+                  {t("legacy.active_station_c671415f")}
                 </span>
                 <span className="block text-xs text-[var(--theme-text-secondary)]">
-                  Inactive stations cannot be selected for new items or assigned
-                  to staff.
+                  {t("legacy.inactive_stations_cannot_be_selected_for_new_items_or__1224cbcb")}
                 </span>
               </div>
             </label>
@@ -256,8 +254,7 @@ export default function StationFormModal({
             <div className="flex items-center gap-2 p-3 rounded-lg bg-[var(--theme-primary-subtle)] border border-[var(--theme-primary-soft)] text-xs text-[var(--theme-primary)]">
               <ShieldAlert className="h-4 w-4 shrink-0" />
               <span>
-                Setting this as default will unmark any previously selected
-                default station.
+                {t("legacy.setting_this_as_default_will_unmark_any_previously_sel_a15a5405")}
               </span>
             </div>
           )}
@@ -269,7 +266,7 @@ export default function StationFormModal({
               onClick={closeModal}
               className="px-5 py-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:bg-[var(--theme-hover)] text-[var(--theme-text-primary)] font-medium text-sm transition"
             >
-              Cancel
+              {t("staff.cancel")}
             </button>
             <button
               type="submit"
@@ -277,10 +274,10 @@ export default function StationFormModal({
               className="px-6 py-2 rounded-lg bg-[var(--theme-primary)] hover:bg-[var(--theme-primary-hover)] text-[var(--theme-text-inverse)] font-bold text-sm shadow-sm transition disabled:opacity-50"
             >
               {loading
-                ? "Saving..."
+                ? t("saving")
                 : editingStation
-                  ? "Update Station"
-                  : "Create Station"}
+                  ? t("legacy.update_station_4b816b2f")
+                  : t("legacy.create_station_f70532c4")}
             </button>
           </div>
         </form>

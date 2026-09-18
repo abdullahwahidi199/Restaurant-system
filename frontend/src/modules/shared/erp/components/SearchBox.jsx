@@ -1,14 +1,16 @@
 import React from "react";
 import { Search } from "lucide-react";
+import i18n from "../../../../i18n";
 
-export default function SearchBox({ value, onChange, placeholder = "Search" }) {
+export default function SearchBox({ value, onChange, placeholder = i18n.t("legacy.search_bce06414") }) {
   return (
     <div className="relative">
-      <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 theme-text-muted" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 pl-9 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+        type="search"
+        className="theme-input h-[38px] w-full px-3 pl-9 text-[13px] shadow-sm"
         placeholder={placeholder}
       />
     </div>

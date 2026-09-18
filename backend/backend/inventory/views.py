@@ -552,7 +552,7 @@ class SupplierListCreateView(generics.ListCreateAPIView):
         )
 
 
-class SupplierRetrieveUpdateView(generics.RetrieveUpdateAPIView):
+class SupplierRetrieveUpdateView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = SupplierSerializer
     permission_classes = [
         IsRestaurantAdmin | IsInventoryManager |IsOperationsManager |IsFinanceManager,
@@ -590,6 +590,22 @@ class SupplierRetrieveUpdateView(generics.RetrieveUpdateAPIView):
             new_values=changed_new_values(changes),
             metadata={"changes": changes},
         )
+
+    def perform_destroy(self, instance):
+        old_values = _supplier_audit_values(instance)
+        create_audit_log(
+            request=self.request,
+            restaurant=instance.restaurant,
+            branch=instance.branch,
+            action=AuditAction.DELETE,
+            module=AuditModule.PROCUREMENT,
+            object_type="Supplier",
+            object_id=instance.id,
+            object_repr=str(instance),
+            description=f"{_actor_name(self.request)} deleted supplier {instance.name}.",
+            old_values=old_values,
+        )
+        instance.delete()
 
 
 def purchase_invoice_queryset_for_request(request):

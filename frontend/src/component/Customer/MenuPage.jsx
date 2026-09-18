@@ -42,16 +42,18 @@ import {
   flattenMenuCategories,
   sortMenuCategories,
 } from "../Admin/MenuManagement/menuOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
+                       const { t: autoT } = useAutoTranslation();
   if (!src) {
     return (
       <div
         className={`${className} bg-gradient-to-br from-[var(--theme-muted)] to-[var(--theme-border)] flex items-center justify-center`}
       >
         <span className="text-[var(--theme-text-muted)] text-xs sm:text-sm">
-          No Image
+          {autoT("legacy.no_image_33cf70a4")}
         </span>
       </div>
     );
@@ -73,7 +75,7 @@ const ImageWrapper = ({ src, alt, className }) => {
           width: 400,
           height: 300,
           fontSize: 16,
-          label: "Image not available",
+          label: autoT("legacy.image_not_available_ddb6d35d"),
         });
       }}
     />
@@ -272,7 +274,7 @@ export default function MenuPage({
           item.uses_daily_production &&
           i.quantity >= item.production_remaining
         ) {
-          toast.error("Not enough remaining quantity");
+          toast.error(t("legacy.not_enough_remaining_quantity_18670c33"));
           return i;
         }
 
@@ -358,7 +360,7 @@ export default function MenuPage({
       setShowCheckout(false);
     } catch (err) {
       console.error(err);
-      toast.error("Network error. Please try again.");
+      toast.error(t("legacy.network_error_please_try_again_1e3de5e0"));
     }
   };
 
@@ -435,10 +437,10 @@ export default function MenuPage({
             )}
             <div className="min-w-0">
               <p className="text-xs font-black uppercase text-orange-700">
-                Online menu
+                {t("legacy.online_menu_3a592ed3")}
               </p>
               <h1 className="mt-1 truncate text-2xl font-black text-stone-950 sm:text-3xl">
-                {restaurantInfo?.name || "Restaurant"}
+                {restaurantInfo?.name || t("legacy.restaurant_3585d755")}
               </h1>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-stone-600 sm:text-sm">
                 {branchInfo?.name ? (
@@ -464,7 +466,7 @@ export default function MenuPage({
             }`}
           >
             <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
-            {orderingClosed ? "Delivery unavailable" : "Accepting orders"}
+            {orderingClosed ? t("legacy.delivery_unavailable_543cb743") : t("legacy.accepting_orders_e7552507")}
           </span>
         </div>
       </section>
@@ -501,7 +503,7 @@ export default function MenuPage({
             <div className="flex flex-shrink-0 items-center rounded-lg border border-stone-200 bg-white p-0.5 shadow-sm sm:p-1">
               <button
                 onClick={() => setViewMode("grid")}
-                aria-label="Grid view"
+                aria-label={t("legacy.grid_view_d44ec861")}
                 className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${
                   viewMode === "grid"
                     ? "bg-orange-600 text-white shadow-md"
@@ -512,7 +514,7 @@ export default function MenuPage({
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                aria-label="List view"
+                aria-label={t("legacy.list_view_694bbd75")}
                 className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl transition-all ${
                   viewMode === "list"
                     ? "bg-orange-600 text-white shadow-md"
@@ -596,7 +598,7 @@ export default function MenuPage({
                           }`}
                         >
                           {item.final_availability
-                            ? t("menu.available") || "Available"
+                            ? t("menu.available") || t("available")
                             : t("menu.unavailable")}
                         </span>
                       </div>
@@ -673,7 +675,7 @@ export default function MenuPage({
                       <div className="mt-auto border-t border-stone-100 pt-2 sm:pt-3">
                         <div className="flex items-baseline gap-0.5 sm:gap-1 mb-2 sm:mb-3">
                           <span className="text-sm font-black text-stone-950 sm:text-lg md:text-2xl">
-                            AFN{" "}
+                            {t("labels.afn")}{" "}
                             <span className="text-xs sm:text-sm md:text-xl">
                               {parseFloat(item.price).toFixed(2)}
                             </span>
@@ -770,7 +772,7 @@ export default function MenuPage({
                           }`}
                         >
                           {item.final_availability
-                            ? t("menu.available") || "Available"
+                            ? t("menu.available") || t("available")
                             : t("menu.unavailable")}
                         </span>
                       </div>
@@ -843,7 +845,7 @@ export default function MenuPage({
                       <div className="mt-auto flex items-center justify-between gap-2 border-t border-stone-100 pt-1.5 sm:pt-2">
                         <div className="flex items-baseline gap-0.5 whitespace-nowrap min-w-0">
                           <span className="text-xs sm:text-lg md:text-xl font-bold text-gray-900">
-                            AFN{" "}
+                            {t("labels.afn")}{" "}
                             <span className="text-[10px] sm:text-base">
                               {parseFloat(item.price).toFixed(2)}
                             </span>
@@ -931,7 +933,7 @@ export default function MenuPage({
               </span>
             </div>
             <span className="font-bold text-sm">
-              AFN {cartTotals.total.toFixed(2)}
+              {t("labels.afn")} {cartTotals.total.toFixed(2)}
             </span>
           </button>
         </div>
@@ -971,7 +973,7 @@ export default function MenuPage({
               </h2>
               <p className="text-xs text-gray-500">
                 {cartTotals.itemCount}{" "}
-                {cartTotals.itemCount === 1 ? "item" : "items"}
+                {cartTotals.itemCount === 1 ? t("labels.item") : t("labels.items")}
               </p>
             </div>
           </div>
@@ -997,7 +999,7 @@ export default function MenuPage({
                 onClick={() => setShowCart(false)}
                 className="mt-4 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
               >
-                Browse Menu
+                {t("legacy.browse_menu_523bd7c9")}
               </button>
             </div>
           ) : (
@@ -1027,7 +1029,7 @@ export default function MenuPage({
                       </button>
                     </div>
                     <p className="text-xs sm:text-sm text-orange-600 font-medium mb-1 sm:mb-2">
-                      AFN {parseFloat(item.price).toFixed(2)}
+                      {t("labels.afn")} {parseFloat(item.price).toFixed(2)}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between gap-1">
@@ -1049,7 +1051,7 @@ export default function MenuPage({
                         </button>
                       </div>
                       <span className="font-bold text-gray-900 text-xs sm:text-sm">
-                        AFN{" "}
+                        {t("labels.afn")}{" "}
                         {(parseFloat(item.price) * item.quantity).toFixed(2)}
                       </span>
                     </div>
@@ -1061,7 +1063,7 @@ export default function MenuPage({
                 className="w-full mt-3 sm:mt-4 py-2 sm:py-2.5 text-xs sm:text-sm text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg sm:rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                {t("menu.cart.clear") || "Clear Cart"}
+                {t("legacy.clear_cart_610fd81a")}
               </button>
             </ul>
           )}
@@ -1075,7 +1077,7 @@ export default function MenuPage({
                 {t("menu.cart.total")}
               </span>
               <span className="font-bold text-lg sm:text-xl text-gray-900">
-                AFN {cartTotals.total.toFixed(2)}
+                {t("labels.afn")} {cartTotals.total.toFixed(2)}
               </span>
             </div>
             <button

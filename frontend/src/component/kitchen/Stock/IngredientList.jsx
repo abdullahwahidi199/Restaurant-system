@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { getIngredientsPages } from "../../../api/inventoryApi";
+import { useTranslation as useAutoTranslation } from "react-i18next";
+import TablePagination from "../../../modules/shared/erp/components/TablePagination";
 // import AdjustStockModal from "./AdjustStockModal";
 // import EditIngredientModal from "./EditIngredientModal";
 
 export default function KichenManagerIngredientList() {
+                 const { t: autoT } = useAutoTranslation();
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [count, setCount] = useState(0);
   const pageSize = 15;
-
-  const [adjustIngredient, setAdjustIngredient] = useState(null);
-  const [editIngredient, setEditIngredient] = useState(null);
 
   const [search, setSearch] = useState("");
 
@@ -44,37 +44,35 @@ export default function KichenManagerIngredientList() {
     return () => clearTimeout(delay);
   }, [search, page, fetchIngredients]);
 
-  const refresh = () => fetchIngredients(page, search);
-
   return (
     <div className="p-6 bg-white rounded-xl shadow">
-      <h2 className="text-xl font-semibold mb-4">Current Stock</h2>
+      <h2 className="text-xl font-semibold mb-4">{autoT("inventory_manager.ingredients.current_stock")}</h2>
 
       <input
         type="text"
-        placeholder="Search by name..."
+        placeholder={autoT("inventory_manager.ingredients.search_placeholder")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="mb-4 w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
 
       {loading && (
-        <div className="mb-3 text-gray-500 text-sm">Loading ingredients...</div>
+        <div className="mb-3 text-gray-500 text-sm">{autoT("inventory_manager.ingredients.loading")}</div>
       )}
 
       {ingredients.length === 0 ? (
-        <p className="text-gray-500">No ingredients found.</p>
+        <p className="text-gray-500">{autoT("inventory_manager.ingredients.empty")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left text-sm text-gray-600">
-                <th className="p-3">Name</th>
-                <th className="p-3">Quantity</th>
-                <th className="p-3">Min Threshold</th>
-                <th className="p-3">Cost / Unit</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Action</th>
+                <th className="p-3">{autoT("attendance.table.name")}</th>
+                <th className="p-3">{autoT("inventory_manager.common.quantity")}</th>
+                <th className="p-3">{autoT("inventory_manager.ingredients.min_threshold")}</th>
+                <th className="p-3">{autoT("inventory_manager.common.cost_per_unit")}</th>
+                <th className="p-3">{autoT("table.status")}</th>
+                <th className="p-3">{autoT("inventory_manager.common.action")}</th>
               </tr>
             </thead>
 
@@ -100,8 +98,8 @@ export default function KichenManagerIngredientList() {
                     >
                       {Number(ingredient.quantity_available) <=
                       Number(ingredient.minimum_threshold)
-                        ? "Low Stock"
-                        : "OK"}
+                        ? autoT("inventory_manager.common.low_stock")
+                        : autoT("inventory_manager.common.ok")}
                     </span>
                   </td>
                   {/* <td className="p-3">
@@ -125,29 +123,15 @@ export default function KichenManagerIngredientList() {
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-gray-500">
-              Page {page} of {totalPages}
-            </span>
-
-            <div className="flex gap-2">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-4 py-2 border rounded disabled:opacity-50"
-              >
-                Prev
-              </button>
-
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-4 py-2 border rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <TablePagination
+            page={page}
+            totalItems={count}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            loading={loading}
+            className="mt-4"
+          />
         </div>
       )}
 

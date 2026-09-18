@@ -11,31 +11,41 @@ import {
 
 const palette = {
   draft: ["theme-muted ring-[var(--theme-border)]", Circle],
-  open: ["bg-sky-50 text-sky-700 ring-sky-200", CircleDot],
-  pending: ["bg-orange-50 text-orange-700 ring-orange-200", Clock3],
-  unpaid: ["bg-orange-50 text-orange-700 ring-orange-200", Clock3],
-  partially_paid: ["bg-sky-50 text-sky-700 ring-sky-200", PauseCircle],
-  approved: ["bg-violet-50 text-violet-700 ring-violet-200", CheckCircle2],
-  applied: ["bg-violet-50 text-violet-700 ring-violet-200", CheckCircle2],
-  paid: ["bg-emerald-50 text-emerald-700 ring-emerald-200", CheckCircle2],
-  active: ["bg-emerald-50 text-emerald-700 ring-emerald-200", CheckCircle2],
-  completed: ["bg-emerald-50 text-emerald-700 ring-emerald-200", CheckCircle2],
-  cancelled: ["bg-rose-50 text-rose-700 ring-rose-200", XCircle],
-  expired: ["bg-rose-50 text-rose-700 ring-rose-200", AlertTriangle],
-  overdue: ["bg-rose-50 text-rose-700 ring-rose-200", AlertTriangle],
-  rejected: ["bg-rose-50 text-rose-700 ring-rose-200", XCircle],
+  open: ["theme-badge-info ring-sky-200", CircleDot],
+  pending: ["theme-badge-warning ring-orange-200", Clock3],
+  unpaid: ["theme-badge-warning ring-orange-200", Clock3],
+  low_stock: ["theme-badge-warning ring-orange-200", AlertTriangle],
+  late: ["theme-badge-warning ring-amber-200", Clock3],
+  partially_paid: ["theme-badge-info ring-sky-200", PauseCircle],
+  in_progress: ["theme-badge-info ring-sky-200", Clock3],
+  reserved: ["theme-badge-info ring-sky-200", Clock3],
+  approved: ["bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)] ring-violet-200", CheckCircle2],
+  applied: ["bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)] ring-violet-200", CheckCircle2],
+  paid: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  active: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  completed: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  delivered: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  present: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  ready: ["bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)] ring-violet-200", CheckCircle2],
+  cancelled: ["theme-badge-danger ring-rose-200", XCircle],
+  expired: ["theme-badge-danger ring-rose-200", AlertTriangle],
+  overdue: ["theme-badge-danger ring-rose-200", AlertTriangle],
+  rejected: ["theme-badge-danger ring-rose-200", XCircle],
+  absent: ["theme-badge-danger ring-rose-200", XCircle],
+  out_of_stock: ["theme-badge-danger ring-rose-200", AlertTriangle],
+  leave: ["bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)] ring-violet-200", PauseCircle],
   inactive: ["theme-muted ring-[var(--theme-border)]", PauseCircle],
 };
 
-export default function StatusBadge({ status }) {
-  const value = status || "unknown";
-  const [classes, Icon] = palette[value] || ["bg-slate-100 text-slate-700 ring-slate-200", CircleDot];
+export default function StatusBadge({ status, label, count, showIcon = true, className = "" }) {
+  const value = String(status || "unknown").toLowerCase();
+  const [classes, Icon] = palette[value] || ["theme-muted ring-[var(--theme-border)]", CircleDot];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${classes}`}
+      className={`erp-status-badge inline-flex items-center gap-1.5 rounded-full font-semibold capitalize ring-1 ring-inset ${classes} ${className}`}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {String(value).replaceAll("_", " ")}
+      {showIcon && <Icon className="h-3 w-3" aria-hidden="true" />}
+      {label ?? count ?? String(value).replaceAll("_", " ")}
     </span>
   );
 }

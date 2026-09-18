@@ -3,8 +3,10 @@ import { useState } from "react";
 import instance from "../../api/axiosInstance";
 import { toast } from "react-hot-toast";
 import { getOrderStatusErrorMessage } from "./orderStatusError";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function OrderItem({ item, readOnly = false }) {
+                 const { t: autoT } = useAutoTranslation();
   const [statusError, setStatusError] = useState("");
   const [updating, setUpdating] = useState(false);
 
@@ -95,7 +97,7 @@ export default function OrderItem({ item, readOnly = false }) {
 
             {item.is_new && item.status !== "ready" && (
               <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                New • {item.added_by_name}
+                {autoT("legacy.new_49c3862e")} {item.added_by_name}
               </span>
             )}
           </div>
@@ -127,7 +129,7 @@ export default function OrderItem({ item, readOnly = false }) {
             onClick={() => updateStatus("approved")}
             className="bg-blue-500 hover:bg-blue-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Approve
+            {autoT("inventory_manager.common.approve")}
           </button>
         )}
 
@@ -138,7 +140,7 @@ export default function OrderItem({ item, readOnly = false }) {
               onClick={() => updateStatus("pending")}
               className="bg-yellow-500 hover:bg-yellow-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Re-Pending
+              {autoT("legacy.re_pending_4414f78b")}
             </button>
 
             <button
@@ -146,14 +148,14 @@ export default function OrderItem({ item, readOnly = false }) {
               onClick={() => updateStatus("ready")}
               className="bg-green-500 hover:bg-green-600 active:scale-95 transition-colors text-white text-[10px] px-2 py-1 rounded font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Ready
+              {autoT("status.ready")}
             </button>
           </>
         )}
 
         {item.status === "ready" && !readOnly && (
           <span className="text-[10px] text-green-600 flex items-center italic">
-            Completed
+            {autoT("stats.completed")}
           </span>
         )}
       </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ReservationCancellationToast({
   reservationNumber,
@@ -7,6 +8,7 @@ export default function ReservationCancellationToast({
   onConfirm,
   onClose,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [show, setShow] = useState(true);
 
   useEffect(() => {
@@ -55,16 +57,16 @@ export default function ReservationCancellationToast({
             </svg>
 
             <p className="font-semibold text-red-700">
-              Cancel Reservation #{reservationNumber}
+              {autoT("legacy.cancel_reservation_d2a7779d")}{reservationNumber}
             </p>
           </div>
 
           <div className="px-4 py-4">
             <p className="text-sm text-gray-700">
-              Are you sure you want to cancel this reservation?
+              {autoT("legacy.are_you_sure_you_want_to_cancel_this_reservation_187d50bd")}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              This action cannot be undone.
+              {autoT("legacy.this_action_cannot_be_undone_951f495b")}
             </p>
 
             <div className="flex justify-end gap-2 mt-4">
@@ -72,14 +74,14 @@ export default function ReservationCancellationToast({
                 onClick={handleCancel}
                 className="px-3 py-1.5 text-sm rounded-lg border border-gray-800 text-black hover:bg-gray-100"
               >
-                No
+                {autoT("info.no")}
               </button>
 
               <button
                 onClick={handleConfirm}
                 className="px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700"
               >
-                Yes, Cancel
+                {autoT("legacy.yes_cancel_610bfbb6")}
               </button>
             </div>
           </div>

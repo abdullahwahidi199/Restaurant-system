@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import i18n from "../../i18n";
 
 // Fixed base route to match React Router: "/finance-manager"
 const financeManagerBase = "/finance-manager";
@@ -20,7 +21,7 @@ export function getFinanceManagerNavigationGroups(t, role) {
   const tree = [
     {
       id: "expenses",
-      label: "Expenses",
+      label: i18n.t("nav.expenses"),
       icon: Wallet,
       children: [
         {
@@ -34,59 +35,59 @@ export function getFinanceManagerNavigationGroups(t, role) {
     },
     {
       id: "procurement",
-      label: "Procurement",
+      label: i18n.t("landing.features.groups.inventory.items.procurement"),
       icon: ShoppingCart,
       children: [
         {
           id: "procurement-dashboard",
           to: `${financeManagerBase}/procurement`,
-          label: "Dashboard",
+          label: i18n.t("nav.dashboard"),
           icon: LayoutDashboard,
           end: true,
         },
         {
           id: "procurement-purchase-invoices",
           to: `${financeManagerBase}/procurement/purchase-invoices`,
-          label: "Purchase Invoices",
+          label: i18n.t("landing.features.groups.inventory.items.invoices"),
           icon: ReceiptText,
           end: false,
         },
         {
           id: "procurement-create-purchase-invoice",
           to: `${financeManagerBase}/procurement/purchase-invoices/new`,
-          label: "Create Purchase Invoice",
+          label: i18n.t("inventory_manager.low_stock.create_purchase_invoice"),
           icon: FilePlus2,
         },
         {
           id: "procurement-suppliers",
           to: `${financeManagerBase}/procurement/suppliers`,
-          label: "Suppliers",
+          label: i18n.t("landing.features.groups.inventory.items.suppliers"),
           icon: Users,
           end: false,
         },
         {
           id: "procurement-supplier-payments",
           to: `${financeManagerBase}/procurement/supplier-payments`,
-          label: "Supplier Payments",
+          label: i18n.t("legacy.supplier_payments_6ef8f5d6"),
           icon: HandCoins,
         },
         {
           id: "procurement-payables",
           to: `${financeManagerBase}/procurement/payables`,
-          label: "Outstanding Payables",
+          label: i18n.t("legacy.outstanding_payables_f6045147"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "payroll",
-      label: "Payroll",
+      label: i18n.t("landing.features.groups.staff.items.payroll"),
       icon: Wallet,
       children: [
         {
           id: "payroll-dashboard",
           to: `${financeManagerBase}/payroll`,
-          label: "Dashboard",
+          label: i18n.t("nav.dashboard"),
           icon: LayoutDashboard,
           end: true,
           matches: [`${financeManagerBase}/payroll/employees`],
@@ -94,91 +95,91 @@ export function getFinanceManagerNavigationGroups(t, role) {
         {
           id: "payroll-run",
           to: `${financeManagerBase}/payroll/run`,
-          label: "Payroll Wizard",
+          label: i18n.t("legacy.payroll_wizard_107ea6bd"),
           icon: FilePlus2,
         },
         {
           id: "payroll-records",
           to: `${financeManagerBase}/payroll/records`,
-          label: "Payroll Records",
+          label: i18n.t("legacy.payroll_records_ebec138d"),
           icon: ReceiptText,
           end: false,
         },
         {
           id: "payroll-advances",
           to: `${financeManagerBase}/payroll/advances`,
-          label: "Salary Advances",
+          label: i18n.t("legacy.salary_advances_e8cda02b"),
           icon: HandCoins,
         },
         {
           id: "payroll-payments",
           to: `${financeManagerBase}/payroll/payments`,
-          label: "Payroll Payments",
+          label: i18n.t("legacy.payroll_payments_bc2648b7"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "contractors",
-      label: "Contractors",
+      label: i18n.t("landing.features.groups.finance.items.contractors"),
       icon: HardHat,
       children: [
         {
           id: "contractors-dashboard",
           to: `${financeManagerBase}/contractors`,
-          label: "Dashboard",
+          label: i18n.t("nav.dashboard"),
           icon: LayoutDashboard,
           end: true,
         },
         {
           id: "contractors-list",
           to: `${financeManagerBase}/contractors/contractors`,
-          label: "Contractors",
+          label: i18n.t("landing.features.groups.finance.items.contractors"),
           icon: HardHat,
           end: false,
         },
         {
           id: "contractors-contracts",
           to: `${financeManagerBase}/contractors/contracts`,
-          label: "Service Contracts",
+          label: i18n.t("legacy.service_contracts_d376d778"),
           icon: ClipboardList,
         },
         {
           id: "contractors-invoices",
           to: `${financeManagerBase}/contractors/invoices`,
-          label: "Service Invoices",
+          label: i18n.t("legacy.service_invoices_7d0409f3"),
           icon: ReceiptText,
           end: false,
         },
         {
           id: "contractors-create-invoice",
           to: `${financeManagerBase}/contractors/invoices/new`,
-          label: "Create Invoice",
+          label: i18n.t("legacy.create_invoice_32815b0b"),
           icon: FilePlus2,
         },
         {
           id: "contractors-payments",
           to: `${financeManagerBase}/contractors/payments`,
-          label: "Payments",
+          label: i18n.t("landing.marketplace.owner.items.payments"),
           icon: HandCoins,
         },
         {
           id: "contractors-payables",
           to: `${financeManagerBase}/contractors/payables`,
-          label: "Payables",
+          label: i18n.t("legacy.payables_a4fb9796"),
           icon: CreditCard,
         },
       ],
     },
     {
       id: "audit",
-      label: "Audit",
+      label: i18n.t("legacy.audit_fa1703dd"),
       icon: ShieldCheck,
       children: [
         {
           id: "audit-logs",
           to: `${financeManagerBase}/audit-logs`,
-          label: "Audit Logs",
+          label: i18n.t("legacy.audit_logs_344c7ffc"),
           icon: ShieldCheck,
           end: true,
         },

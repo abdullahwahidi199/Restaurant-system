@@ -180,7 +180,7 @@ export default function IndividualItem() {
   }, [ingredients, highlightIngredient]);
 
   if (!item) {
-    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+    return <p className="text-center mt-10 text-gray-500">{t("dashboard.loading")}</p>;
   }
 
   const unavailableReasons = item.unavailable_reasons || [];
@@ -220,7 +220,7 @@ export default function IndividualItem() {
             <div className="flex items-center gap-2">
               <span className="flex h-3 w-3 rounded-full bg-red-500" />
               <span className="font-semibold text-red-700 text-sm uppercase tracking-wide">
-                Currently Unavailable
+                {t("legacy.currently_unavailable_a19bd026")}
               </span>
             </div>
 
@@ -239,8 +239,8 @@ export default function IndividualItem() {
                   />
                 </svg>
                 <span>
-                  This item has been{" "}
-                  <strong>manually marked unavailable</strong>.
+                  {t("legacy.this_item_has_been_41428c6f")}{" "}
+                  <strong>{t("legacy.manually_marked_unavailable_9667c21d")}</strong>.
                 </span>
               </div>
             )}
@@ -248,7 +248,7 @@ export default function IndividualItem() {
             {hasUnavailableReasons && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-red-800">
-                  Insufficient ingredients:
+                  {t("legacy.insufficient_ingredients_a7c992e4")}
                 </p>
 
                 {unavailableReasons.map((reason) => (
@@ -277,7 +277,7 @@ export default function IndividualItem() {
                           {reason.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Required:{" "}
+                          {t("legacy.required_d5793988")}{" "}
                           <span className="font-medium text-red-600">
                             {Number(reason.required).toFixed(2)} {reason.unit}
                           </span>
@@ -286,12 +286,12 @@ export default function IndividualItem() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-xs text-gray-500">In Stock</p>
+                      <p className="text-xs text-gray-500">{t("legacy.in_stock_97d82654")}</p>
                       <p className="text-sm font-bold text-red-600">
                         {Number(reason.available).toFixed(2)} {reason.unit}
                       </p>
                       <p className="text-xs text-red-500 mt-0.5">
-                        Short by{" "}
+                        {t("legacy.short_by_10210fe0")}{" "}
                         {(
                           Number(reason.required) - Number(reason.available)
                         ).toFixed(2)}{" "}
@@ -309,7 +309,7 @@ export default function IndividualItem() {
           <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-center gap-2">
             <span className="flex h-3 w-3 rounded-full bg-green-500" />
             <span className="font-semibold text-green-700 text-sm">
-              Available
+              {t("available")}
             </span>
           </div>
         )}
@@ -318,7 +318,7 @@ export default function IndividualItem() {
           {preview && (
             <img
               src={preview}
-              alt="preview"
+              alt={t("legacy.preview_1aa787fe")}
               className="w-36 h-36 object-cover rounded border border-[var(--theme-border)] mb-2"
             />
           )}
@@ -334,16 +334,15 @@ export default function IndividualItem() {
                 <span>{t("kitchen_station", "Kitchen Station Routing")}</span>
               </label>
               <span className="text-xs font-semibold text-[var(--theme-text-muted)]">
-                Where should orders go?
+                {t("legacy.where_should_orders_go_c1e7de8d")}
               </span>
             </div>
             <p className="text-xs text-[var(--theme-text-secondary)]">
-              Select which station prepares this item. When ordered, it will
-              automatically route to this station screen:
+              {t("legacy.select_which_station_prepares_this_item_when_ordered_i_0a58f2ae")}
             </p>
             {stations.length === 0 ? (
               <p className="text-xs text-[var(--theme-text-muted)] italic py-2">
-                No stations available. Using default Main Kitchen.
+                {t("legacy.no_stations_available_using_default_main_kitchen_b17db0ce")}
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
@@ -379,7 +378,7 @@ export default function IndividualItem() {
                       {st.is_default && (
                         <div className="mt-2 flex justify-start">
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] uppercase shrink-0">
-                            Default
+                            {t("menu.sort.default")}
                           </span>
                         </div>
                       )}
@@ -393,14 +392,14 @@ export default function IndividualItem() {
           {/* English name */}
           <div>
             <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
-              Name (English)
+              {t("legacy.name_english_3f8bd4a4")}
             </label>
             <input
               name="name"
               value={item.name || ""}
               onChange={handleChange}
               className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
-              placeholder="Name"
+              placeholder={t("attendance.table.name")}
             />
           </div>
 
@@ -437,7 +436,7 @@ export default function IndividualItem() {
           {/* English description */}
           <div>
             <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
-              Description (English)
+              {t("legacy.description_english_57b179b0")}
             </label>
             <textarea
               name="description"
@@ -445,7 +444,7 @@ export default function IndividualItem() {
               onChange={handleChange}
               className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
               rows={3}
-              placeholder="Description"
+              placeholder={t("description")}
             />
           </div>
 
@@ -483,7 +482,7 @@ export default function IndividualItem() {
 
           <div>
             <label className="block text-sm font-medium text-[var(--theme-text-secondary)] mb-1">
-              Price
+              {t("menuDetails.price")}
             </label>
             <input
               type="number"
@@ -491,16 +490,16 @@ export default function IndividualItem() {
               value={item.price || ""}
               onChange={handleChange}
               className="w-full border border-[var(--theme-input-border)] rounded-lg px-3 py-2 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
-              placeholder="Price"
+              placeholder={t("menuDetails.price")}
             />
           </div>
 
           <div className="border border-[var(--theme-border)] p-3 rounded-lg bg-[var(--theme-card)]">
             <p className="text-[var(--theme-text-primary)]">
-              <b>Total Cost:</b> {Number(item.cost_per_unit || 0).toFixed(2)}
+              <b>{t("legacy.total_cost_21e39a52")}</b> {Number(item.cost_per_unit || 0).toFixed(2)}
             </p>
             <p className="text-[var(--theme-success)]">
-              <b>Profit:</b> {Number(item.profit_per_unit || 0).toFixed(2)}
+              <b>{t("legacy.profit_16bfae30")}</b> {Number(item.profit_per_unit || 0).toFixed(2)}
             </p>
           </div>
 
@@ -524,13 +523,13 @@ export default function IndividualItem() {
                 onChange={handleChange}
                 className="rounded border-[var(--theme-border-strong)] text-[var(--theme-primary)]"
               />
-              Uses Daily Production
+              {t("legacy.uses_daily_production_9c6991a4")}
             </label>
           </div>
 
           <div className="border-t border-[var(--theme-border)] pt-4">
             <h3 className="font-medium mb-3 text-[var(--theme-text-primary)]">
-              Recipe Ingredients
+              {t("legacy.recipe_ingredients_f5b23534")}
             </h3>
 
             {ingredients.map((ing, index) => {
@@ -584,7 +583,7 @@ export default function IndividualItem() {
                         )
                       }
                       className="w-28 border border-[var(--theme-input-border)] rounded px-2 py-1 bg-[var(--theme-input-bg)] text-[var(--theme-text-primary)]"
-                      placeholder="Qty"
+                      placeholder={t("inventory_manager.common.qty")}
                     />
 
                     <button
@@ -598,7 +597,7 @@ export default function IndividualItem() {
 
                   <div className="text-sm text-[var(--theme-text-secondary)] pl-1">
                     <p>
-                      Cost contribution:{" "}
+                      {t("legacy.cost_contribution_c445e906")}{" "}
                       <span className="font-medium text-[var(--theme-text-primary)]">
                         {ing.ingredient_cost ?? 0}
                       </span>
@@ -620,11 +619,11 @@ export default function IndividualItem() {
                         />
                       </svg>
                       <span>
-                        <strong>Low stock!</strong> Need{" "}
+                        <strong>{t("legacy.low_stock_581c1b6e")}</strong> {t("legacy.need_ed4855c2")}{" "}
                         {Number(unavailableReason.required).toFixed(2)}{" "}
-                        {unavailableReason.unit}, only{" "}
+                        {unavailableReason.unit}{t("legacy.only_545012c1")}{" "}
                         {Number(unavailableReason.available).toFixed(2)}{" "}
-                        {unavailableReason.unit} available (short by{" "}
+                        {unavailableReason.unit} {t("legacy.available_short_by_233fe20f")}{" "}
                         {(
                           Number(unavailableReason.required) -
                           Number(unavailableReason.available)
@@ -641,7 +640,7 @@ export default function IndividualItem() {
               onClick={addIngredientRow}
               className="mt-2 px-4 py-1.5 bg-[var(--theme-muted)] hover:bg-[var(--theme-muted-hover)] text-[var(--theme-text-primary)] rounded-lg transition"
             >
-              + Add Ingredient
+              {t("legacy.add_ingredient_374ed1a3")}
             </button>
           </div>
 

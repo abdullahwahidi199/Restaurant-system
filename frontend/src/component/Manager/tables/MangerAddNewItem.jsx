@@ -18,6 +18,7 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "../../Admin/MenuManagement/menuOrdering";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function ManagerAddItem({
   orderId,
@@ -25,6 +26,7 @@ export default function ManagerAddItem({
   refetchTables,
   onItemAdded,
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const [menuData, setMenuData] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedItems, setSelectedItems] = useState([]);
@@ -59,7 +61,7 @@ export default function ManagerAddItem({
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load menu");
+      toast.error(autoT("legacy.failed_to_load_menu_ce2894b4"));
     } finally {
       setLoading(false);
     }
@@ -197,7 +199,7 @@ export default function ManagerAddItem({
 
   const handleAddItems = async () => {
     if (selectedItems.length === 0) {
-      toast.error("Please select at least one item");
+      toast.error(autoT("legacy.please_select_at_least_one_item_cc00fadd"));
       return;
     }
     setSubmitting(true);
@@ -214,13 +216,13 @@ export default function ManagerAddItem({
 
     try {
       await instance.patch(`/orders/orders/${orderId}/add-items/`, payload);
-      toast.success("Items added successfully!");
+      toast.success(autoT("legacy.items_added_successfully_7ec4a60a"));
       await refetchTables?.();
       await onItemAdded?.();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add items");
+      toast.error(autoT("legacy.failed_to_add_items_173773ab"));
     } finally {
       setSubmitting(false);
     }
@@ -257,13 +259,13 @@ export default function ManagerAddItem({
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                Add Items to Order
+                {autoT("legacy.add_items_to_order_d84c37ef")}
                 <span className="ml-2 text-sm font-medium text-gray-400">
                   #{orderId}
                 </span>
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                Browse the menu and tap to add
+                {autoT("legacy.browse_the_menu_and_tap_to_add_83b7e2e1")}
               </p>
             </div>
           </div>
@@ -288,7 +290,7 @@ export default function ManagerAddItem({
                 />
                 <input
                   type="text"
-                  placeholder="Search menu items..."
+                  placeholder={autoT("search_menu_items")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50/80 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition placeholder:text-gray-400"
@@ -358,7 +360,7 @@ export default function ManagerAddItem({
                     className="animate-spin text-emerald-500"
                     size={32}
                   />
-                  <p className="text-sm text-gray-400">Loading menu...</p>
+                  <p className="text-sm text-gray-400">{autoT("menu.loading")}</p>
                 </div>
               ) : filteredItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -368,7 +370,7 @@ export default function ManagerAddItem({
                   <p className="text-sm text-gray-400">
                     {searchQuery
                       ? `No items found for "${searchQuery}"`
-                      : "No items in this category"}
+                      : autoT("legacy.no_items_in_this_category_54d4a340")}
                   </p>
                 </div>
               ) : (
@@ -381,7 +383,7 @@ export default function ManagerAddItem({
                             <span className="w-1 h-4 rounded-full bg-emerald-500" />
                             {group.category}
                             <span className="text-xs font-normal text-gray-400">
-                              {group.items.length} item
+                              {group.items.length} {autoT("labels.item")}
                               {group.items.length !== 1 && "s"}
                             </span>
                           </h3>
@@ -449,7 +451,7 @@ export default function ManagerAddItem({
                                 {!item.final_availability && (
                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                     <span className="text-xs font-semibold text-white bg-red-500/90 px-2.5 py-1 rounded-lg">
-                                      Unavailable
+                                      {autoT("menu.unavailable")}
                                     </span>
                                   </div>
                                 )}
@@ -462,7 +464,7 @@ export default function ManagerAddItem({
                                 </h4>
                                 <div className="flex items-center justify-between mt-1.5">
                                   <span className="text-sm font-bold text-emerald-600">
-                                    Afs{" "}
+                                    {autoT("legacy.afs_2050680c")}{" "}
                                     {parseFloat(item.price).toLocaleString()}
                                   </span>
                                   {isSelected ? (
@@ -531,11 +533,11 @@ export default function ManagerAddItem({
             <div className="px-5 py-4 border-b border-gray-100 bg-white">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
-                  Order Summary
+                  {autoT("legacy.order_summary_c7df8a99")}
                 </h3>
                 {totalItems > 0 && (
                   <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                    {totalItems} item{totalItems !== 1 && "s"}
+                    {totalItems} {autoT("labels.item")}{totalItems !== 1 && "s"}
                   </span>
                 )}
               </div>
@@ -550,10 +552,10 @@ export default function ManagerAddItem({
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-400">
-                      No items selected
+                      {autoT("legacy.no_items_selected_7c727287")}
                     </p>
                     <p className="text-xs text-gray-300 mt-1">
-                      Tap items from the menu to add
+                      {autoT("legacy.tap_items_from_the_menu_to_add_3a49f282")}
                     </p>
                   </div>
                 </div>
@@ -590,12 +592,12 @@ export default function ManagerAddItem({
                       </p>
 
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Afs {parseFloat(item.menu_item.price).toLocaleString()}{" "}
-                        each
+                        {autoT("legacy.afs_2050680c")} {parseFloat(item.menu_item.price).toLocaleString()}{" "}
+                        {autoT("legacy.each_b32f279e")}
                       </p>
 
                       <textarea
-                        placeholder="Item note..."
+                        placeholder={autoT("legacy.item_note_75dbac71")}
                         value={item.note || ""}
                         onChange={(e) =>
                           handleItemNoteChange(
@@ -655,9 +657,9 @@ export default function ManagerAddItem({
             {selectedItems.length > 0 && (
               <div className="border-t border-gray-100 bg-white px-5 py-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Subtotal</span>
+                  <span className="text-sm text-gray-500">{autoT("legacy.subtotal_97f7359e")}</span>
                   <span className="text-lg font-bold text-gray-900">
-                    Afs {totalAmount.toLocaleString()}
+                    {autoT("legacy.afs_2050680c")} {totalAmount.toLocaleString()}
                   </span>
                 </div>
                 <button
@@ -668,12 +670,12 @@ export default function ManagerAddItem({
                   {submitting ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      Adding...
+                      {autoT("adding")}
                     </>
                   ) : (
                     <>
                       <Check size={16} strokeWidth={3} />
-                      Add {totalItems} Item{totalItems !== 1 && "s"} — Afs{" "}
+                      {autoT("add")} {totalItems} {autoT("legacy.item_ecdda59a")}{totalItems !== 1 && "s"} {autoT("legacy.afs_7e6dc0b4")}{" "}
                       {totalAmount.toLocaleString()}
                     </>
                   )}

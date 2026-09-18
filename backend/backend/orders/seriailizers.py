@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from menu.serializers import MenuItemSerializer,PlatterSerializer
-from menu.models import MenuItem, Platter
+from menu.models import MenuItem, Platter, Station
 from customers.serializers import CustomerProfileSerializer
 from .models import OrderItem,Order,Table,Reservation,DiscountRequest,DiscountCard
 from customers.models import Customer
@@ -16,6 +16,44 @@ def scope_order_menu_queryset(queryset, restaurant, branch):
     if branch:
         return queryset.filter(Q(branch=branch) | Q(branch__isnull=True))
     return queryset.filter(branch__isnull=True)
+
+
+def get_order_item_station(serializer, obj):
+    """Return the configured station, or the applicable default kitchen.
+
+    Migration 0020 assigned legacy menu entries to a default station, but the
+    menu fields remain nullable and newer entries can still be saved without
+    one.  Treat those entries as Main Kitchen consistently instead of emitting
+    a null station id that station-filtered kitchen clients discard.
+    """
+    station = getattr(obj, "target_station", None)
+    if station:
+        return station
+
+    source = obj.menu_item or obj.platter
+    restaurant_id = getattr(source, "restaurant_id", None)
+    if not restaurant_id:
+        restaurant_id = getattr(obj.order, "restaurant_id", None)
+    branch_id = getattr(obj.order, "branch_id", None)
+    if not restaurant_id:
+        return None
+
+    cache = serializer.context.setdefault("_default_order_stations", {})
+    cache_key = (restaurant_id, branch_id)
+    if cache_key not in cache:
+        defaults = Station.objects.filter(
+            restaurant_id=restaurant_id,
+            is_default=True,
+            is_active=True,
+        )
+        station = None
+        if branch_id:
+            station = defaults.filter(branch_id=branch_id).order_by("id").first()
+        if station is None:
+            station = defaults.filter(branch__isnull=True).order_by("id").first()
+        cache[cache_key] = station
+
+    return cache[cache_key]
 
 
 def get_branch_decimal(branch, restaurant, field_name):
@@ -110,11 +148,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
             )
 
     def get_station_id(self, obj):
-        station = getattr(obj, "target_station", None)
+        station = get_order_item_station(self, obj)
         return station.id if station else None
 
     def get_station_name(self, obj):
-        station = getattr(obj, "target_station", None)
+        station = get_order_item_station(self, obj)
         return station.name if station else "Main Kitchen"
 
     def validate(self, data):
@@ -320,6 +358,7 @@ class TablePanelOrderSerializer(serializers.ModelSerializer):
             "order_number",
             "status",
             "created_at",
+            "updated_at",
         ]
 
     def get_total(self, obj):
@@ -689,7 +728,16 @@ class OrderSerializer(serializers.ModelSerializer):
             'order_type','table', 'branch', 'order_type_display', 'status', 'status_display','is_printed','order_number','discount_percent','discount_requests',
             'created_at','created_by','paid_at','received_by','created_by_name','received_by_name', 'updated_at','delivery_boy','delivery_fee','delivery_boy_details', 'items', 'total','preparation_time',
         ]
-        read_only_fields = ['created_at', 'updated_at', 'total', 'branch']
+        read_only_fields = [
+            'created_at',
+            'updated_at',
+            'total',
+            'branch',
+            'status',
+            'created_by',
+            'paid_at',
+            'received_by',
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1054,6 +1102,8 @@ class OrderListSerializer(serializers.ModelSerializer):
             "created_by_name",
             "received_by_name",
             "created_at",
+            "updated_at",
+            "paid_at",
         ]
 
     def get_total(self, obj):
@@ -1192,11 +1242,11 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
         ]
     
     def get_station_id(self, obj):
-        station = getattr(obj, "target_station", None)
+        station = get_order_item_station(self, obj)
         return station.id if station else None
 
     def get_station_name(self, obj):
-        station = getattr(obj, "target_station", None)
+        station = get_order_item_station(self, obj)
         return station.name if station else "Main Kitchen"
     def get_added_by_name(self, obj):
         if obj.is_new and obj.added_by:

@@ -12,7 +12,11 @@ from django.db.models import Prefetch
 
 
 import json
+import logging
 from django.core.serializers.json import DjangoJSONEncoder
+
+
+logger = logging.getLogger(__name__)
 
 def make_json_safe(data):
     return json.loads(
@@ -49,6 +53,16 @@ def broadcast_order(order):
 )
 
     group_name = f"orders_{order.restaurant.id}"
+
+    logger.info(
+        "order_websocket_broadcast order_id=%s status=%s paid_at_set=%s "
+        "updated_at=%s group=%s",
+        order.pk,
+        order.status,
+        bool(order.paid_at),
+        order.updated_at.isoformat() if order.updated_at else None,
+        group_name,
+    )
 
     async_to_sync(channel_layer.group_send)(
         group_name,
@@ -118,20 +132,22 @@ from .seriailizers import OrderSerializer, TableSerializer, OrderItemMiniSeriali
 
 def broadcast_order_item_update(instance, action="ITEM_UPDATED"):
     """Broadcast ONLY the changed item, not the whole order"""
-    if not instance or not instance.order_id or not instance.order.restaurant:
+    if not instance or not instance.order_id:
         return
     
     try:
         # Fetch only the specific item with needed relations
         item = OrderItem.objects.select_related(
-            'menu_item', 'platter', 'added_by'
+            'menu_item', 'platter', 'added_by', 'order__restaurant'
         ).get(pk=instance.pk)
+        if not item.order.restaurant_id:
+            return
         
         serialized_item = make_json_safe(
             OrderItemMiniSerializer(item).data
         )
         
-        group_name = f"orders_{instance.order.restaurant.id}"
+        group_name = f"orders_{item.order.restaurant_id}"
         
         async_to_sync(channel_layer.group_send)(
             group_name,
@@ -140,7 +156,11 @@ def broadcast_order_item_update(instance, action="ITEM_UPDATED"):
                 "message": {
                     "type": action,  # "ITEM_UPDATED", "ITEM_CREATED", "ITEM_DELETED"
                     "order_id": instance.order_id,
-                    "item": serialized_item
+                    "item": serialized_item,
+                    "order_updated_at": (
+                        item.order.updated_at.isoformat()
+                        if item.order.updated_at else None
+                    ),
                 },
             }
         )
@@ -154,15 +174,13 @@ def broadcast_order_item_delete(instance):
         return
     
     try:
-        restaurant_id = instance.order.restaurant_id if instance._state.adding == False else None
-        if not restaurant_id:
-            # Item already deleted, fetch order info from instance
-            restaurant_id = Order.objects.filter(pk=instance.order_id).values_list('restaurant_id', flat=True).first()
-        
-        if not restaurant_id:
+        order = Order.objects.only("restaurant_id", "updated_at").filter(
+            pk=instance.order_id
+        ).first()
+        if not order:
             return
             
-        group_name = f"orders_{restaurant_id}"
+        group_name = f"orders_{order.restaurant_id}"
         
         async_to_sync(channel_layer.group_send)(
             group_name,
@@ -171,7 +189,10 @@ def broadcast_order_item_delete(instance):
                 "message": {
                     "type": "ITEM_DELETED",
                     "order_id": instance.order_id,
-                    "item_id": instance.pk
+                    "item_id": instance.pk,
+                    "order_updated_at": (
+                        order.updated_at.isoformat() if order.updated_at else None
+                    ),
                 },
             }
         )
@@ -184,9 +205,16 @@ from django.db.models import ExpressionWrapper
 
 def broadcast_table_items_update(order):
     """Broadcast only item count and total for table updates - MUCH lighter"""
+    if not order or not order.pk:
+        return
+
+    # Signal callbacks can hold a model snapshot loaded before another request
+    # committed payment. Always publish the post-commit database truth.
+    order = Order.objects.select_related("table", "restaurant").filter(
+        pk=order.pk
+    ).first()
     if not order or not order.table or not order.restaurant:
         return
-    
 
     group_name = f"orders_{order.restaurant_id}"
     line_total = ExpressionWrapper(
@@ -221,7 +249,10 @@ def broadcast_table_items_update(order):
                 "order_id": order.id,
                 "item_count": order.items.exclude(status='cancelled').count(),
                 "order_total": str(total),
-                "order_status": order.status
+                "order_status": order.status,
+                "order_updated_at": (
+                    order.updated_at.isoformat() if order.updated_at else None
+                ),
             },
         }
     )
@@ -235,7 +266,8 @@ def order_item_updated(sender, instance, created, **kwargs):
         lambda: broadcast_order_item_update(
             instance,
             "ITEM_CREATED" if created else "ITEM_UPDATED"
-        )
+        ),
+        robust=True,
     )
 
     if instance.order_id:
@@ -248,7 +280,8 @@ def order_item_updated(sender, instance, created, **kwargs):
             ).get(pk=instance.order_id)
 
             transaction.on_commit(
-                lambda: broadcast_table_items_update(order)
+                lambda: broadcast_table_items_update(order),
+                robust=True,
             )
 
         except Order.DoesNotExist:
@@ -271,7 +304,7 @@ def order_item_deleted(sender, instance, **kwargs):
             if order:
                 broadcast_table_items_update(order)
     
-    transaction.on_commit(_broadcast)
+    transaction.on_commit(_broadcast, robust=True)
 # Keep this for actual Order changes (status, details, etc.)
 @receiver(post_save, sender=Order)
 def order_post_save(sender, instance, created, **kwargs):
@@ -328,16 +361,19 @@ def broadcast_discount(discount, event_type="NEW_DISCOUNT_REQUEST"):
     )
 @receiver(post_save, sender=DiscountRequest)
 def discount_post_save(sender, instance, created, **kwargs):
-
+    event_type = None
     if created:
-        broadcast_discount(instance, "NEW_DISCOUNT_REQUEST")
+        event_type = "NEW_DISCOUNT_REQUEST"
+    elif instance.status == "approved":
+        event_type = "DISCOUNT_APPROVED"
+    elif instance.status == "rejected":
+        event_type = "DISCOUNT_REJECTED"
 
-    else:
-        if instance.status == "approved":
-            broadcast_discount(instance, "DISCOUNT_APPROVED")
+    def _broadcast():
+        if event_type:
+            broadcast_discount(instance, event_type)
+        # Keep order clients synchronized after the transaction has committed,
+        # so they never observe a discount state that later rolls back.
+        broadcast_order(instance.order)
 
-        elif instance.status == "rejected":
-            broadcast_discount(instance, "DISCOUNT_REJECTED")
-
-    # ALSO update order realtime
-    broadcast_order(instance.order)
+    transaction.on_commit(_broadcast, robust=True)

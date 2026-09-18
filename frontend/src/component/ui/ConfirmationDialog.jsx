@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 const focusableSelector = [
   "a[href]",
@@ -33,6 +34,7 @@ export default function ConfirmationDialog({
   onCancel,
   sizeClassName = "max-w-2xl",
 }) {
+                 const { t: autoT } = useAutoTranslation();
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef(null);
@@ -122,7 +124,7 @@ export default function ConfirmationDialog({
 
   return (
     <div
-      className={`fixed inset-0 z-[70] flex items-center justify-center bg-gray-500/25 px-4 py-6 backdrop-blur-[2px] transition-opacity duration-200 ${
+      className={`fixed inset-0 z-[70] flex items-center justify-center bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-[2px] transition-opacity duration-200 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
       onMouseDown={(event) => {
@@ -136,7 +138,7 @@ export default function ConfirmationDialog({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`max-h-[92vh] w-full ${sizeClassName} overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-5 text-gray-900 shadow-2xl outline-none transition-all duration-200 sm:p-6 ${
+        className={`theme-modal-surface max-h-[92vh] w-full ${sizeClassName} overflow-y-auto p-5 outline-none transition-all duration-200 sm:p-6 ${
           visible
             ? "translate-y-0 scale-100 opacity-100"
             : "translate-y-3 scale-95 opacity-0"
@@ -146,14 +148,14 @@ export default function ConfirmationDialog({
           <div>
             <h2
               id={titleId}
-              className="text-xl font-bold text-gray-950"
+              className="text-[17px] font-bold theme-text-primary"
             >
               {title}
             </h2>
             {description && (
               <p
                 id={descriptionId}
-                className="mt-2 text-sm leading-6 text-gray-600"
+                className="mt-1.5 text-[13px] leading-5 theme-text-secondary"
               >
                 {description}
               </p>
@@ -163,8 +165,8 @@ export default function ConfirmationDialog({
             type="button"
             onClick={closeDialog}
             disabled={loading}
-            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Close dialog"
+            className="theme-btn theme-btn-ghost theme-btn-icon disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label={autoT("legacy.close_dialog_7b290202")}
           >
             <X size={20} />
           </button>
@@ -185,12 +187,12 @@ export default function ConfirmationDialog({
           </div>
         )}
 
-        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+        <div className="mt-5 flex flex-col-reverse gap-2 border-t border-[var(--theme-border)] pt-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={closeDialog}
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="theme-btn theme-btn-outline h-[38px] px-4 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -198,7 +200,7 @@ export default function ConfirmationDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-500"
+            className="theme-btn theme-btn-primary h-[38px] px-4 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={17} />

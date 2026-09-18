@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TablesDisplay from "./TablesDisplayModal";
 import TableAddModal from "./TableAddModal";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 import useOrdersSocket from "../../../hooks/useOrdersSocket";
+import {
+  applyOrderSnapshotToTable,
+  applyTableItemsSnapshot,
+  isFinalizedOrder,
+  mergeTableSnapshot,
+  reconcileTableSnapshots,
+  rememberFinalizedOrderSnapshot,
+} from "../../../utils/orderSnapshot";
 
 export default function TableBaseModal() {
   const [tables, setTables] = useState([]);
@@ -12,18 +20,26 @@ export default function TableBaseModal() {
   const [error, setError] = useState(null);
   const [addTableDisplay, setAddTableDisplay] = useState(false);
   const [search, setSearch] = useState("");
+  const finalizedSnapshotsRef = useRef(new Map());
+  const socketRevisionRef = useRef(0);
 
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   const fetchTables = async () => {
+    const revisionAtStart = socketRevisionRef.current;
     try {
       const res = await instance.get("/orders/tables/", {
         params: { view: "panel" },
       });
 
       const data = res.data;
-      setTables(data);
+      setTables((current) =>
+        reconcileTableSnapshots(current, data, {
+          finalizedSnapshots: finalizedSnapshotsRef.current,
+          preserveMissing: socketRevisionRef.current !== revisionAtStart,
+        }),
+      );
     } catch (err) {
       console.error("Failed to fetch tables", err);
       setError(err.message);
@@ -37,20 +53,20 @@ export default function TableBaseModal() {
   }, []);
 
   const handleOrder = (order) => {
+    rememberFinalizedOrderSnapshot(finalizedSnapshotsRef.current, order);
     setTables((prev) =>
-      prev.map((table) =>
-        table.id === order.table
-          ? {
-              ...table,
-              status: "occupied",
-            }
-          : table,
-      ),
+      prev.map((table) => {
+        const synced = applyOrderSnapshotToTable(table, order);
+        return !isFinalizedOrder(order) && table.id === order.table
+          ? { ...synced, status: "occupied" }
+          : synced;
+      }),
     );
   };
 
   const handleSocketMessage = (msg) => {
     if (!msg) return;
+    socketRevisionRef.current++;
 
     if (msg.type === "NEW_ORDER") {
       handleOrder(msg.order);
@@ -63,34 +79,32 @@ export default function TableBaseModal() {
         const idx = prev.findIndex((t) => t.id === incomingTable.id);
         if (idx >= 0) {
           const copy = [...prev];
-          copy[idx] = incomingTable;
+          copy[idx] = mergeTableSnapshot(copy[idx], incomingTable, {
+            finalizedSnapshots: finalizedSnapshotsRef.current,
+          });
           return copy;
         }
-        return [incomingTable, ...prev];
+        return [
+          mergeTableSnapshot(null, incomingTable, {
+            finalizedSnapshots: finalizedSnapshotsRef.current,
+          }),
+          ...prev,
+        ];
       });
     }
 
     if (msg.type === "TABLE_ITEMS_UPDATED") {
       setTables((prev) =>
-        prev.map((table) => {
-          if (table.id !== msg.table_id || !table.current_order) return table;
-          if (table.current_order.id !== msg.order_id) return table;
-
-          return {
-            ...table,
-            current_order: {
-              ...table.current_order,
-              item_count: msg.item_count,
-              total: msg.order_total,
-              status: msg.order_status,
-            },
-          };
-        }),
+        prev.map((table) =>
+          applyTableItemsSnapshot(table, msg, {
+            finalizedSnapshots: finalizedSnapshotsRef.current,
+          }),
+        ),
       );
     }
   };
 
-  useOrdersSocket(handleSocketMessage);
+  useOrdersSocket(handleSocketMessage, fetchTables);
 
   const filteredTables = tables
     .filter((t) => {
@@ -140,7 +154,7 @@ export default function TableBaseModal() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search Tables"
+          placeholder={t("legacy.search_tables_c1655dc0")}
           className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button

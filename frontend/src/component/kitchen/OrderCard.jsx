@@ -3,8 +3,10 @@ import { Clock, CheckCircle, Utensils, CheckCircle2 } from "lucide-react";
 import OrderItem from "./OrderItem";
 import instance from "../../api/axiosInstance";
 import KitchenBillPrintModal from "./KitchenBillPrintModal";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function OrderCard({ order }) {
+                 const { t: autoT } = useAutoTranslation();
   const [updating, setUpdating] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [time, setTime] = useState(0);
@@ -78,11 +80,11 @@ export default function OrderCard({ order }) {
       <div className="flex justify-between items-start">
         <div>
           {order.order_type === "dine-in" ? (
-            <h2 className="text-lg font-semibold">Table {order.tableName}</h2>
+            <h2 className="text-lg font-semibold">{autoT("legacy.table_0424f6e7")} {order.tableName}</h2>
           ) : order.order_type === "takeaway" ? (
-            <h2 className="text-lg font-semibold">Take away</h2>
+            <h2 className="text-lg font-semibold">{autoT("legacy.take_away_ea127dce")}</h2>
           ) : (
-            <h2 className="text-lg font-semibold">Delivery</h2>
+            <h2 className="text-lg font-semibold">{autoT("settings_center.nav.delivery")}</h2>
           )}
           <p className="text-xs text-gray-500 mt-1">
             {new Date(order.created_at).toLocaleTimeString()}
@@ -101,14 +103,14 @@ export default function OrderCard({ order }) {
           <span>👤 {order.name}</span>
           <span>📞 {order.phone}</span>
         </p>
-        <p className="font-semibold text-gray-800">Total: {order.total} AFN</p>
+        <p className="font-semibold text-gray-800">{autoT("legacy.total_d8e7170f")} {order.total} {autoT("labels.afn")}</p>
       </div>
 
       {/* Notes Section */}
       {order.note && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
           <p className="text-xs font-semibold text-yellow-800 mb-1">
-            📝 Notes:
+            {autoT("legacy.notes_31ae506e")}
           </p>
           <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
             {order.note}
@@ -139,7 +141,7 @@ export default function OrderCard({ order }) {
             onClick={() => updateOrderStatus("in_progress")}
             className="flex-1 min-w-[100px] flex items-center justify-center gap-1 bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
           >
-            <Clock size={16} /> Start
+            <Clock size={16} /> {autoT("legacy.start_952f3754")}
           </button>
         )}
 
@@ -147,7 +149,7 @@ export default function OrderCard({ order }) {
           onClick={() => setShowPrint(true)}
           className="flex-1 min-w-[80px] bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
         >
-          Print
+          {autoT("legacy.print_5b221e9c")}
         </button>
 
         {/* 2️⃣ SHOW MARK READY IF ITEMS STARTED BUT NOT YET READY */}
@@ -160,7 +162,7 @@ export default function OrderCard({ order }) {
             }}
             className="flex-1 min-w-[120px] flex items-center justify-center gap-1 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-600 transition-colors"
           >
-            <CheckCircle size={16} /> Mark Ready
+            <CheckCircle size={16} /> {autoT("legacy.mark_ready_c4329a4d")}
           </button>
         )}
 
@@ -168,7 +170,7 @@ export default function OrderCard({ order }) {
         {allStationItemsReady && (
           <div className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md text-xs font-bold">
             <CheckCircle2 size={16} className="text-green-600 shrink-0" />
-            <span>Your Station Ready</span>
+            <span>{autoT("legacy.your_station_ready_12f2f924")}</span>
           </div>
         )}
       </div>

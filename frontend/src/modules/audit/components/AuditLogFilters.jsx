@@ -1,8 +1,10 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { AUDIT_ACTION_OPTIONS, AUDIT_MODULE_OPTIONS } from "../auditConfig";
+import { useTranslation as useAutoTranslation } from "react-i18next";
 
 export default function AuditLogFilters({ filters, onChange }) {
+                 const { t: autoT } = useAutoTranslation();
   const update = (field, value) => onChange({ ...filters, [field]: value, page: 1 });
 
   return (
@@ -12,12 +14,12 @@ export default function AuditLogFilters({ filters, onChange }) {
         <input
           value={filters.search || ""}
           onChange={(event) => update("search", event.target.value)}
-          placeholder="Search audit logs..."
+          placeholder={autoT("legacy.search_audit_logs_32507e59")}
           className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         />
       </div>
       <select value={filters.module || ""} onChange={(event) => update("module", event.target.value)} className="h-10 rounded-lg border border-slate-200 px-3 text-sm">
-        <option value="">All modules</option>
+        <option value="">{autoT("legacy.all_modules_d52b5af0")}</option>
         {AUDIT_MODULE_OPTIONS.map(([value, label]) => (
           <option key={value} value={value}>
             {label}
@@ -25,7 +27,7 @@ export default function AuditLogFilters({ filters, onChange }) {
         ))}
       </select>
       <select value={filters.action || ""} onChange={(event) => update("action", event.target.value)} className="h-10 rounded-lg border border-slate-200 px-3 text-sm">
-        <option value="">All actions</option>
+        <option value="">{autoT("legacy.all_actions_7b34db9e")}</option>
         {AUDIT_ACTION_OPTIONS.map(([value, label]) => (
           <option key={value} value={value}>
             {label}

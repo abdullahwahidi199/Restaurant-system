@@ -17,7 +17,7 @@ export default function LogoUpload({
     <div>
       <label className="block mb-1 font-medium">{label || t("logo")}</label>
       {logo && (
-        <img src={logo} alt={label || "Logo"} className={imageClassName} />
+        <img src={logo} alt={label || t("logo")} className={imageClassName} />
       )}
       <input type="file" accept="image/*" onChange={handleFileChange} />
     </div>

@@ -68,7 +68,7 @@ export default function LegalPage({ type }) {
               className="mt-2 inline-flex min-h-11 items-center gap-2 font-bold text-orange-700 hover:text-orange-800"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
-              contact@pakhlai.com
+              {t("legacy.contact_pakhlai_com_18a17676")}
             </a>
           </div>
         </article>

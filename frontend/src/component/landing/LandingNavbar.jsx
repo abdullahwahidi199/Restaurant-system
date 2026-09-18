@@ -3,11 +3,12 @@ import { useTranslation } from "react-i18next";
 import { Globe2, Menu, X } from "lucide-react";
 import CTAButton from "./CTAButton";
 import { landingLinks, navItems } from "../../data/landing/landingData";
+import i18n from "../../i18n";
 
 const languages = [
-  { code: "en", label: "EN" },
+  { code: "en", label: i18n.t("legacy.en_734a78cd") },
   { code: "fa", label: "دری" },
-  { code: "ps", label: "PS" },
+  { code: "ps", label: i18n.t("legacy.ps_02543e7a") },
 ];
 
 function LandingNavbar() {
