@@ -16,6 +16,7 @@ import {
   UserRound,
   UtensilsCrossed,
 } from "lucide-react";
+import { getStaffHomePath } from "../config/staffRoutes";
 
 // Maps technical errors to friendly messages
 const formatRetryAfter = (seconds) => {
@@ -86,21 +87,6 @@ const getFriendlyError = (error) => {
   return "Login failed. Please check your credentials and try again.";
 };
 
-const getRedirectPath = (role) => {
-  if (role === "SuperAdmin") return "/super-admin";
-  if (role === "Admin") return "/admin/dashboard";
-  if (role === "BranchAdmin") return "/admin/dashboard";
-  if (role === "Manager") return "/manager";
-  if (role === "Cashier") return "/cashier";
-  if (role === "InventoryManager") return "/inventory-manager";
-  if (role === "FinanceManager") return "/finance-manager";
-  if (role === "OperationsManager") return "/operations-manager";
-  if (role === "Call_operator") return "/call-operator";
-  if (role === "Waiter") return "/waiter";
-  if (role === "Kitchen_manager") return "/kitchen";
-  return "/";
-};
-
 export default function StaffLogin() {
   const { login } = useContext(AuthContext);
   const { t, i18n } = useTranslation();
@@ -122,7 +108,7 @@ export default function StaffLogin() {
 
       toast.success(t("login.success", "Welcome back! Redirecting..."));
 
-      const redirectPath = getRedirectPath(role);
+      const redirectPath = getStaffHomePath(role);
       if (data.requires_branch_selection) {
         nav("/select-branch", { state: { redirectPath } });
       } else {

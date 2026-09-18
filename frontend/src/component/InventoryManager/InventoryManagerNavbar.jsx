@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ChefHat,
   ClipboardList,
   FileText,
   Globe2,
@@ -8,7 +9,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   SlidersHorizontal,
-  UtensilsCrossed,
   X,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -19,9 +19,21 @@ function Tooltip({ label }) {
 }
 
 const languageOptions = [
-  { code: "en", label: i18n.t("legacy.en_734a78cd"), nameKey: "inventory_manager.languages.english" },
-  { code: "fa", label: i18n.t("legacy.fa_c919853c"), nameKey: "inventory_manager.languages.dari" },
-  { code: "ps", label: i18n.t("legacy.ps_02543e7a"), nameKey: "inventory_manager.languages.pashto" },
+  {
+    code: "en",
+    label: i18n.t("legacy.en_734a78cd"),
+    nameKey: "inventory_manager.languages.english",
+  },
+  {
+    code: "fa",
+    label: i18n.t("legacy.fa_c919853c"),
+    nameKey: "inventory_manager.languages.dari",
+  },
+  {
+    code: "ps",
+    label: i18n.t("legacy.ps_02543e7a"),
+    nameKey: "inventory_manager.languages.pashto",
+  },
 ];
 
 function LanguageControl({ expanded, i18n, t }) {
@@ -91,44 +103,60 @@ export default function InventoryManagerNavbar({
   const navItems = [
     {
       to: "/inventory-manager",
-      label: t("inventory_manager.nav.dashboard", { defaultValue: "Dashboard" }),
+      label: t("inventory_manager.nav.dashboard", {
+        defaultValue: "Dashboard",
+      }),
       icon: ClipboardList,
       end: true,
     },
     {
       to: "/inventory-manager/inventory/ingredients",
-      label: t("inventory_manager.nav.ingredients", { defaultValue: "Ingredients" }),
+      label: t("inventory_manager.nav.ingredients", {
+        defaultValue: "Ingredients",
+      }),
       icon: ClipboardList,
     },
     {
       to: "/inventory-manager/inventory/stock-levels",
-      label: t("inventory_manager.nav.stock_levels", { defaultValue: "Stock Levels" }),
+      label: t("inventory_manager.nav.stock_levels", {
+        defaultValue: "Stock Levels",
+      }),
       icon: PackageSearch,
     },
     {
       to: "/inventory-manager/inventory/stock-movements",
-      label: t("inventory_manager.nav.stock_movements", { defaultValue: "Stock Movements" }),
+      label: t("inventory_manager.nav.stock_movements", {
+        defaultValue: "Stock Movements",
+      }),
       icon: FileText,
     },
     {
       to: "/inventory-manager/inventory/stock-adjustments",
-      label: t("inventory_manager.nav.stock_adjustments", { defaultValue: "Stock Adjustments" }),
+      label: t("inventory_manager.nav.stock_adjustments", {
+        defaultValue: "Stock Adjustments",
+      }),
       icon: SlidersHorizontal,
     },
     {
       to: "/inventory-manager/inventory/low-stock",
-      label: t("inventory_manager.nav.low_stock_alerts", { defaultValue: "Low Stock Alerts" }),
+      label: t("inventory_manager.nav.low_stock_alerts", {
+        defaultValue: "Low Stock Alerts",
+      }),
       icon: PackageSearch,
     },
     {
       to: "/inventory-manager/inventory/reports",
-      label: t("inventory_manager.nav.inventory_reports", { defaultValue: "Inventory Reports" }),
+      label: t("inventory_manager.nav.inventory_reports", {
+        defaultValue: "Inventory Reports",
+      }),
       icon: FileText,
     },
     {
-      to: "/inventory-manager/menu",
-      label: t("inventory_manager.nav.menu", { defaultValue: "Menu" }),
-      icon: UtensilsCrossed,
+      to: "/inventory-manager/daily-production",
+      label: t("legacy.daily_production_64c16322", {
+        defaultValue: "Daily Production",
+      }),
+      icon: ChefHat,
     },
   ];
 
@@ -140,7 +168,9 @@ export default function InventoryManagerNavbar({
           mobileOpen ? "admin-sidebar-backdrop-open" : ""
         }`}
         onClick={onCloseMobile}
-        aria-label={t("inventory_manager.a11y.close_navigation", { defaultValue: "Close navigation" })}
+        aria-label={t("inventory_manager.a11y.close_navigation", {
+          defaultValue: "Close navigation",
+        })}
       />
 
       <aside
@@ -148,7 +178,9 @@ export default function InventoryManagerNavbar({
         className={`admin-sidebar ${
           expanded ? "admin-sidebar-expanded" : "admin-sidebar-collapsed"
         } ${mobileOpen ? "admin-sidebar-mobile-open" : ""}`}
-        aria-label={t("inventory_manager.a11y.navigation", { defaultValue: "Inventory manager navigation" })}
+        aria-label={t("inventory_manager.a11y.navigation", {
+          defaultValue: "Inventory manager navigation",
+        })}
       >
         <div className="admin-sidebar-brand">
           <div className="admin-brand-content">
@@ -158,10 +190,14 @@ export default function InventoryManagerNavbar({
             {expanded && (
               <div className="admin-brand-copy">
                 <span className="admin-brand-title">
-                  {t("inventory_manager.sidebar.title", { defaultValue: "Inventory" })}
+                  {t("inventory_manager.sidebar.title", {
+                    defaultValue: "Inventory",
+                  })}
                 </span>
                 <span className="admin-brand-subtitle">
-                  {t("inventory_manager.sidebar.subtitle", { defaultValue: "Stock Control" })}
+                  {t("inventory_manager.sidebar.subtitle", {
+                    defaultValue: "Stock Control",
+                  })}
                 </span>
               </div>
             )}
@@ -173,8 +209,12 @@ export default function InventoryManagerNavbar({
             onClick={onToggleCollapse}
             aria-label={
               collapsed
-                ? t("inventory_manager.a11y.expand_sidebar", { defaultValue: "Expand sidebar" })
-                : t("inventory_manager.a11y.collapse_sidebar", { defaultValue: "Collapse sidebar" })
+                ? t("inventory_manager.a11y.expand_sidebar", {
+                    defaultValue: "Expand sidebar",
+                  })
+                : t("inventory_manager.a11y.collapse_sidebar", {
+                    defaultValue: "Collapse sidebar",
+                  })
             }
           >
             {collapsed ? (
@@ -188,7 +228,9 @@ export default function InventoryManagerNavbar({
             type="button"
             className="admin-sidebar-mobile-close"
             onClick={onCloseMobile}
-            aria-label={t("inventory_manager.a11y.close_sidebar", { defaultValue: "Close sidebar" })}
+            aria-label={t("inventory_manager.a11y.close_sidebar", {
+              defaultValue: "Close sidebar",
+            })}
           >
             <X className="h-4 w-4" />
           </button>
@@ -215,7 +257,7 @@ export default function InventoryManagerNavbar({
                   style={{ "--nav-depth": 0 }}
                 >
                   <span className="admin-nav-icon-wrap">
-                    <Icon className="admin-nav-icon" />
+                    {React.createElement(Icon, { className: "admin-nav-icon" })}
                   </span>
                   {expanded && <span className="admin-nav-label">{label}</span>}
                   {!expanded && <Tooltip label={label} />}

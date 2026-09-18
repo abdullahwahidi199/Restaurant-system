@@ -43,6 +43,7 @@ import {
   sortMenuCategories,
 } from "../Admin/MenuManagement/menuOrdering";
 import { useTranslation as useAutoTranslation } from "react-i18next";
+import { API_BASE_URL } from "../../config/runtimeConfig";
 
 // Fallback image component
 const ImageWrapper = ({ src, alt, className }) => {
@@ -136,7 +137,7 @@ export default function MenuPage({
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
 
   const user = localStorage.getItem("customer");
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = API_BASE_URL;
   const BASE_MEDIA_URL = import.meta.env.VITE_MEDIA_URL;
 
   const [cart, setCart] = useState(() => {

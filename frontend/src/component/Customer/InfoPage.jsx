@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import RestaurantNotFound from "../../RestaurantNotFoundPage";
 import { getMediaUrl } from "../../api/publicOrdering";
+import { API_BASE_URL } from "../../config/runtimeConfig";
 
 export default function Info() {
   const [restaurantInfo, setRestaurantInfo] = useState(null);
@@ -24,14 +25,13 @@ export default function Info() {
   const { t, i18n } = useTranslation();
 
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
-  const BASE_URL = import.meta.env.VITE_API_URL;
   const { slug } = useParams();
 
   useEffect(() => {
     const fetchRestaurantInfo = async () => {
       try {
         const res = await fetch(
-          `${BASE_URL}/restaurant/public/${slug}/`,
+          `${API_BASE_URL}/restaurant/public/${slug}/`,
         );
 
         if (!res.ok) {

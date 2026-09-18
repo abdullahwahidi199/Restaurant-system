@@ -1,9 +1,10 @@
 // src/auth/axiosInstance.js
 import axios from "axios";
+import { getStaffLoginPath } from "../config/appEnvironment";
+import { API_BASE_URL } from "../config/runtimeConfig";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
 const instance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 let isRefreshing = false;
@@ -59,7 +60,7 @@ instance.interceptors.response.use(
         // no refresh token: logout
         localStorage.removeItem("authTokens");
         localStorage.removeItem("user");
-        window.location.href = "/staff-login";
+        window.location.href = getStaffLoginPath();
         return Promise.reject(err);
       }
 
@@ -76,11 +77,14 @@ instance.interceptors.response.use(
 
       isRefreshing = true;
       try {
-        const response = await axios.post(`${BASE_URL}users/token/refresh/`, {
+        const response = await axios.post(`${API_BASE_URL}/users/token/refresh/`, {
           refresh: tokens.refresh,
         });
         const newAccess = response.data.access;
-        const newTokens = { access: newAccess, refresh: tokens.refresh };
+        const newTokens = {
+          access: newAccess,
+          refresh: response.data.refresh || tokens.refresh,
+        };
         localStorage.setItem("authTokens", JSON.stringify(newTokens));
         processQueue(null, newAccess);
         originalRequest.headers["Authorization"] = "Bearer " + newAccess;
@@ -89,7 +93,7 @@ instance.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem("authTokens");
         localStorage.removeItem("user");
-        window.location.href = "/staff-login";
+        window.location.href = getStaffLoginPath();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

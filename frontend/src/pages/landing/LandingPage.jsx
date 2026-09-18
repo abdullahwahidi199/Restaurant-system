@@ -51,6 +51,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/landing.css";
 import i18n from "../../i18n";
+import { API_BASE_URL } from "../../config/runtimeConfig";
 
 const CUSTOMER_SESSION_EVENT = "pakhlai:customer-session";
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || "";
@@ -2467,7 +2468,7 @@ function MarketplaceFooter() {
 }
 
 const publicClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
 });
 
 const EMPTY_DISCOVERY = {

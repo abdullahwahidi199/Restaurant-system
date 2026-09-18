@@ -13,6 +13,7 @@ import {
   persistPublicOrderingContext,
 } from "../../api/publicOrdering";
 import { useTranslation as useAutoTranslation } from "react-i18next";
+import { API_BASE_URL } from "../../config/runtimeConfig";
 
 export default function CustomerHomepage() {
                  const { t: autoT } = useAutoTranslation();
@@ -24,7 +25,7 @@ export default function CustomerHomepage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState(false);
 
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = API_BASE_URL;
   const params = useParams();
   const navigate = useNavigate();
   const restaurantSlug = params.restaurantSlug || params.slug;

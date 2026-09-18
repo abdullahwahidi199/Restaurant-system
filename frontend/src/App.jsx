@@ -24,7 +24,7 @@ import HomePage from "./component/waiter/HomePage";
 import KitchenHomepage from "./component/kitchen/Homepage";
 import CustomerHomepage from "./component/Customer/HomePage";
 import CustomerSignUpModal from "./component/Customer/CustomerSignupModal";
-import Login from "./component/Customer/CustomerLoginModal";
+import DomainAwareLogin from "./component/DomainAwareLogin";
 import Orders from "./component/Customer/Orders";
 import RestaurantSettings from "./component/Admin/settings/SettingsBaseModal";
 import Infopage from "./component/Customer/InfoPage";
@@ -124,14 +124,20 @@ import FinanceManagerLayout from "./component/FinanceManager/FinanceManagerLayou
 import OperationsManagerLayout from "./component/OperationsManager/OperationsManagerLayout";
 import LegalPage from "./pages/LegalPage";
 import { useTranslation as useAutoTranslation } from "react-i18next";
-
-const BASE_URL = import.meta.env.VITE_API_URL;
+import AppDomainGuard from "./routing/AppDomainGuard";
 
 function App() {
   const { t: autoT } = useAutoTranslation();
   const router = createBrowserRouter(
     createRoutesFromElements(
-      <Route path="/" element={<RootLayout />}>
+      <Route
+        path="/"
+        element={
+          <AppDomainGuard>
+            <RootLayout />
+          </AppDomainGuard>
+        }
+      >
         <Route index element={<SystemLanding />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="founder" element={<FounderPage />} />
@@ -151,7 +157,7 @@ function App() {
         </Route>
 
         <Route path="signup" element={<CustomerSignUpModal />} />
-        <Route path="login" element={<Login />} />
+        <Route path="login" element={<DomainAwareLogin />} />
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="orders" element={<Orders />} />
 

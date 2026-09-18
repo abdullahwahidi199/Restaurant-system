@@ -3,18 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Building2, Check } from "lucide-react";
 import { AuthContext } from "../../api/authforRBC";
 import { useTranslation as useAutoTranslation } from "react-i18next";
-
-const routeByRole = {
-  SuperAdmin: "/super-admin",
-  Admin: "/admin/dashboard",
-  BranchAdmin: "/admin/dashboard",
-  Manager: "/manager",
-  Cashier: "/cashier",
-  InventoryManager: "/inventory-manager",
-  Call_operator: "/call-operator",
-  Waiter: "/waiter",
-  Kitchen_manager: "/kitchen",
-};
+import { getStaffHomePath } from "../../config/staffRoutes";
 
 export default function BranchSelectionPage() {
                  const { t: autoT } = useAutoTranslation();
@@ -35,8 +24,7 @@ export default function BranchSelectionPage() {
   const redirectPath = useMemo(() => {
     return (
       location.state?.redirectPath ||
-      routeByRole[auth?.user?.role] ||
-      "/"
+      getStaffHomePath(auth?.user?.role)
     );
   }, [auth?.user?.role, location.state?.redirectPath]);
 

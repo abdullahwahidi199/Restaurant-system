@@ -1,22 +1,24 @@
 // src/api/auth.jsx
 import axios from "axios";
+import { API_BASE_URL } from "../config/runtimeConfig";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
 });
-const API_URL = import.meta.env.VITE_API_URL;
-const publicApi = axios.create({ baseURL: API_URL });
-const normalizedApiUrl = String(API_URL || "").replace(/\/+$/, "");
+const publicApi = axios.create({ baseURL: API_BASE_URL });
 
 export const refreshToken = async () => {
   const refresh = localStorage.getItem("refresh_token");
   if (!refresh) return null;
 
   try {
-    const res = await axios.post(`${normalizedApiUrl}/customer/token/refresh/`, {
+    const res = await axios.post(`${API_BASE_URL}/customer/token/refresh/`, {
       refresh,
     });
     localStorage.setItem("access_token", res.data.access);
+    if (res.data.refresh) {
+      localStorage.setItem("refresh_token", res.data.refresh);
+    }
     return res.data.access;
   } catch (err) {
     console.error("Token refresh failed:", err);

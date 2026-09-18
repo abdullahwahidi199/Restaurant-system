@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef } from "react";
 import { AuthContext } from "../api/authforRBC";
+import { buildWebSocketUrl } from "../config/runtimeConfig";
 
 export default function useDiscountSocket(onMessage) {
   const { auth } = useContext(AuthContext);
@@ -12,8 +13,7 @@ export default function useDiscountSocket(onMessage) {
     if (socketRef.current) return; // prevent duplicate connections
 
     const socket = new WebSocket(
-      `wss://pakhlai.com/ws/discounts/${restaurantId}/`,
-      // `ws://127.0.0.1:8001/ws/discounts/${restaurantId}/`,
+      buildWebSocketUrl(`/ws/discounts/${restaurantId}/`),
     );
 
     socketRef.current = socket;

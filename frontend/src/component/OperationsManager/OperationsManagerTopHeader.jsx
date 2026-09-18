@@ -16,6 +16,7 @@ import { findActiveOperationsManagerNavigationItem } from "./OperationsManagerNa
 import OperationsGlobalSearch from "./OperationsManagerSearch";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import i18n from "../../i18n";
+import { getStaffLoginPath } from "../../config/appEnvironment";
 
 const languageOptions = [
   { code: "en", label: i18n.t("legacy.en_734a78cd"), name: "English" },
@@ -126,7 +127,7 @@ function ProfileMenu({ open, onToggle, onClose }) {
   const handleLogout = () => {
     logout();
     onClose();
-    navigate("/staff-login", { replace: true });
+    navigate(getStaffLoginPath(), { replace: true });
   };
 
   return (

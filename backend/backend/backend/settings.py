@@ -35,7 +35,8 @@ ALLOWED_HOSTS = [
     '185.197.249.94',
     'pakhlai.com',
     'www.pakhlai.com',
-'localhost',
+    'app.pakhlai.com',
+    'localhost',
     '127.0.0.1',
     '10.10.10.216'
 ]   
@@ -91,6 +92,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://10.10.10.216:5173",
     "https://pakhlai.com",
     "https://www.pakhlai.com",
+    "https://app.pakhlai.com",
     "http://185.197.249.94",
     "http://127.0.0.1:5173",
     "https://restaurant-frontend-git-main-rmss-projects-a596e3ee.vercel.app",
@@ -138,25 +140,25 @@ TRUSTED_PROXY_IPS = [
     for ip in os.environ.get("TRUSTED_PROXY_IPS", "").split(",")
     if ip.strip()
 ]
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rms_db',
-        'USER':'rms_user',
-        'PASSWORD':'AbdullahWahidi123',
-        'HOST':'localhost',
-        'PORT':'5432'
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'rms_db',
+#         'USER':'rms_user',
+#         'PASSWORD':'AbdullahWahidi123',
+#         'HOST':'localhost',
+#         'PORT':'5432'
+#     }
+# }
 
 RATELIMIT_IP_META_KEY = "HTTP_CF_CONNECTING_IP"
 BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 from datetime import timedelta
@@ -240,7 +242,8 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 CSRF_TRUSTED_ORIGINS = [
     "https://pakhlai.com",
-    "https://www.pakhlai.com"
+    "https://www.pakhlai.com",
+    "https://app.pakhlai.com",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

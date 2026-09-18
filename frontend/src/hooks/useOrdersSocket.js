@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef } from "react";
 import { AuthContext } from "../api/authforRBC";
+import { buildWebSocketUrl } from "../config/runtimeConfig";
 
 export default function useOrdersSocket(onMessage, onReconnect) {
   const { auth } = useContext(AuthContext);
@@ -76,9 +77,7 @@ export default function useOrdersSocket(onMessage, onReconnect) {
 
       console.log("🔗 Connecting to WS...");
       const socket = new WebSocket(
-        // `ws://127.0.0.1:8001/ws/orders/${restaurantId}/`,
-        `wss://pakhlai.com/ws/orders/${restaurantId}/`,
-        // `ws://10.10.10.216:8001/ws/orders/${restaurantId}/`,
+        buildWebSocketUrl(`/ws/orders/${restaurantId}/`),
       );
 
       socketRef.current = socket;

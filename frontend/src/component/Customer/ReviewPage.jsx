@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import {
   getStoredPublicOrderingContext,
   getReviewApiPath,
 } from "../../api/publicOrdering";
+import { API_BASE_URL } from "../../config/runtimeConfig";
 
 export default function ReviewItemModel({
   itemId = "",
@@ -24,7 +25,7 @@ export default function ReviewItemModel({
 
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "ps" || i18n.language === "fa";
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const BASE_URL = API_BASE_URL;
   const params = useParams();
   const storedContext = getStoredPublicOrderingContext();
   const publicContext = {
