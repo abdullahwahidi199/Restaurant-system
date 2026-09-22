@@ -612,7 +612,7 @@ class OrderPaymentIntegrityTests(TestCase):
         self.assertEqual(order.note, "Late non-status edit")
         self.assertEqual(table.status, "available")
 
-    def test_paid_order_rejects_pending_discount_approval(self):
+    def test_paid_order_allows_pending_discount_approval(self):
         order, _ = self._create_order()
         discount = DiscountRequest.objects.create(
             order=order,
@@ -630,13 +630,13 @@ class OrderPaymentIntegrityTests(TestCase):
             HTTP_X_BRANCH_ID=str(self.branch.id),
         )
 
-        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(response.status_code, 200, response.data)
         discount.refresh_from_db()
         order.refresh_from_db()
-        self.assertEqual(discount.status, "pending")
-        self.assertIsNone(discount.approved_by)
+        self.assertEqual(discount.status, "approved")
+        self.assertEqual(discount.approved_by, self.manager_user.staff_profile)
         self.assertEqual(order.status, "completed")
-        self.assertEqual(order.discount_percent, 0)
+        self.assertEqual(order.discount_percent, discount.discount_percent)
         self.assertIsNotNone(order.paid_at)
 
     def test_active_discount_approval_preserves_status_and_advances_updated_at(self):

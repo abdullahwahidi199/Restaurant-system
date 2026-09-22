@@ -2284,7 +2284,7 @@ def approve_discount_or_reject(request, pk):
         return Response({"message": "Rejected"})
 
     if action == "approve":
-        if order.status in FINALIZED_ORDER_STATUSES:
+        if order.status in {"delivered", "cancelled"}:
             return finalized_order_response(order)
 
         discount.status = "approved"
