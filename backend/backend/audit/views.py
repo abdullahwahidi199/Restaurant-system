@@ -14,7 +14,11 @@ from restaurants.permissions import (
     IsSuperAdmin,
 )
 
-from .constants import AuditAction, AuditModule
+from .constants import (
+    PRODUCTION_MOVEMENT_OBJECT_TYPE,
+    AuditAction,
+    AuditModule,
+)
 from .models import AuditLog
 from .serializers import AuditLogSerializer
 
@@ -50,6 +54,8 @@ class AuditLogListView(generics.ListAPIView):
         else:
             staff = user.staff_profile
             qs = qs.filter(restaurant=staff.restaurant)
+            if staff.role not in {"Admin", "BranchAdmin", "OperationsManager"}:
+                qs = qs.exclude(object_type=PRODUCTION_MOVEMENT_OBJECT_TYPE)
             branch = get_requested_branch(
                 self.request,
                 allow_all=True,
@@ -109,8 +115,33 @@ class AuditLogListView(generics.ListAPIView):
                 | Q(object_id__icontains=search)
                 | Q(user__username__icontains=search)
                 | Q(user__staff_profile__name__icontains=search)
+                | Q(metadata__order_id__icontains=search)
             )
 
         ordering = self.request.query_params.get("ordering", "newest")
         return qs.order_by("created_at", "id") if ordering == "oldest" else qs.order_by("-created_at", "-id")
 
+
+class ProductionMovementListView(AuditLogListView):
+    """Read-only, production-specific audit feed for authorized operators."""
+
+    permission_classes = [
+        IsSuperAdmin | IsRestaurantAdmin | IsOperationsManager,
+        IsSameRestaurant,
+        IsRestaurantActive,
+    ]
+
+    def get_queryset(self):
+        qs = super().get_queryset().filter(
+            object_type=PRODUCTION_MOVEMENT_OBJECT_TYPE,
+        )
+
+        movement_type = self.request.query_params.get("movement_type")
+        if movement_type:
+            qs = qs.filter(metadata__movement_type=movement_type)
+
+        menu_item_id = self.request.query_params.get("menu_item")
+        if menu_item_id:
+            qs = qs.filter(metadata__menu_item_id=str(menu_item_id))
+
+        return qs

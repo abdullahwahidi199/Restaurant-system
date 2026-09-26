@@ -10,6 +10,7 @@ from .serializers import (
     PayrollSerializer,
     SalaryAdvanceSerializer,
     AttendanceSerializer,
+    DeliveryAssignmentStaffSerializer,
     StaffListSerializer,
 )
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
@@ -989,13 +990,25 @@ def DeliveryBoyListView(request):
         restaurant = request.user.staff_profile.restaurant
         active_branch = get_active_branch(request, raise_exception=False)
 
-        dileveryBoys = Staff.objects.filter(
+        delivery_boys = Staff.objects.filter(
             role='DeliveryBoy',
             restaurant=restaurant
         )
         if active_branch:
-            dileveryBoys = dileveryBoys.filter(branches=active_branch)
-        serializer=StaffSerializer(dileveryBoys,many=True)
+            delivery_boys = delivery_boys.filter(branches=active_branch)
+
+        # The assignment picker only needs identity/contact fields.  Using the
+        # full StaffSerializer here also serialized every delivery, order,
+        # reservation, attendance, and payroll record for every driver.
+        delivery_boys = delivery_boys.only(
+            "id",
+            "name",
+            "phone",
+            "vehicle_number",
+            "image",
+            "status",
+        ).distinct()
+        serializer = DeliveryAssignmentStaffSerializer(delivery_boys, many=True)
         return Response(serializer.data)
     
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

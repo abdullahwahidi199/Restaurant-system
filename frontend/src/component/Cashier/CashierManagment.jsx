@@ -301,7 +301,6 @@ const CashierManagement = () => {
   const getDeliveryBoys = async () => {
     const response = await instance.get(`/users/deliveryBoys/`);
     const data = response.data;
-    console.log("delivere", data);
     setDeliveryBoys(data);
   };
 

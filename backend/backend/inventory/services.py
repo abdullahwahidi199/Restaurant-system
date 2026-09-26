@@ -121,7 +121,13 @@ from .utils import update_menu_item_availability
 # ✅ Deduct stock for a single menu item
 def deduct_menu_item_stock(menu_item, quantity, order, ingredient_ids):
     if menu_item.uses_daily_production:
-        consume_production(menu_item, int(quantity), branch=order.branch)
+        consume_production(
+            menu_item,
+            int(quantity),
+            branch=order.branch,
+            actor=order.created_by,
+            order=order,
+        )
         return
     recipe_items = get_recipe_items(menu_item, branch=order.branch)
 
@@ -188,6 +194,10 @@ def deduct_stock_for_order(order):
         # 🔹 Platter (multiple menu items)
         elif order_item.platter:
             for platter_item in order_item.platter.items.all():
+                # Platter composition must not consume the standalone daily-
+                # production balance for an included menu item.
+                if platter_item.menu_item.uses_daily_production:
+                    continue
                 deduct_menu_item_stock(
                     menu_item=platter_item.menu_item,
                     quantity=platter_item.quantity * order_item.quantity,
@@ -615,9 +625,6 @@ def deduct_batch_stock_for_order_items(order_items, order):
             for platter_item in platter_items:
                 mi = platter_item.menu_item
                 if mi.uses_daily_production:
-                    production_consumptions[mi] += (
-                        int(platter_item.quantity) * int(order_item.quantity)
-                    )
                     continue
                 recipe_items = get_recipe_items(platter_item.menu_item, branch=order.branch)
                 
@@ -641,7 +648,13 @@ def deduct_batch_stock_for_order_items(order_items, order):
                         )
                     )
     for mi, qty in production_consumptions.items():
-        consume_production(mi, qty, branch=order.branch)
+        consume_production(
+            mi,
+            qty,
+            branch=order.branch,
+            actor=order.created_by,
+            order=order,
+        )
     
     # Step 2: Batch update ingredients in a single query per ingredient
     if ingredient_requirements:
@@ -731,6 +744,8 @@ def deduct_stock_for_order_item(order_item, order):
     # ✅ PLATTER
     elif order_item.platter:
         for platter_item in order_item.platter.items.all():
+            if platter_item.menu_item.uses_daily_production:
+                continue
             qty = Decimal(str(platter_item.quantity)) * Decimal(str(order_item.quantity))
             deduct_menu_item_stock(
                 menu_item=platter_item.menu_item,

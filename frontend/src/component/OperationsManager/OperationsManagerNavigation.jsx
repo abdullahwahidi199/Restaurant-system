@@ -6,6 +6,7 @@ import {
   FilePlus2,
   Grid2X2,
   HandCoins,
+  History,
   LayoutDashboard,
   ListChecks,
   Package,
@@ -68,6 +69,16 @@ export function getOperationsManagerNavigationGroups(t, role) {
           to: `${operationsManagerBase}/daily_production`,
           label: t?.("nav.dailyProduction") || "Daily Production",
           icon: Soup,
+          end: true,
+        },
+        {
+          id: "operations-production-movements",
+          to: `${operationsManagerBase}/daily-production-movements`,
+          label:
+            t?.("production.movements", {
+              defaultValue: "Production Movements",
+            }) || "Production Movements",
+          icon: History,
           end: true,
         },
       ],
@@ -275,6 +286,12 @@ const operationsManagerNavigationSearchKeywords = {
     "batch",
     "prep",
     "kitchen",
+  ],
+  "operations-production-movements": [
+    "production",
+    "movement",
+    "audit",
+    "history",
   ],
   "menu-items": ["menu", "item", "dish", "food", "price"],
   "menu-platters": ["platter", "combo", "deal", "menu", "bundle"],

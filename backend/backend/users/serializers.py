@@ -30,6 +30,14 @@ class StaffMiniSerializer(serializers.ModelSerializer):
         fields=['id','name','role','image','custom_role']
 
 
+class DeliveryAssignmentStaffSerializer(serializers.ModelSerializer):
+    """Small staff representation used by the order-assignment picker."""
+
+    class Meta:
+        model = Staff
+        fields = ["id", "name", "phone", "vehicle_number", "image", "status"]
+
+
 class LoginRateLimitConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoginRateLimitConfig
@@ -683,5 +691,4 @@ class StaffSerializer(serializers.ModelSerializer):
             branch_ids = [branch]
         ensure_staff_branch_assignment(instance, branch_ids)
         return instance
-
 

@@ -17,7 +17,7 @@ from restaurants.branching import get_active_branch, get_requested_branch
 from restaurants.models import Branch, Restaurant, Subscription
 from users.models import LoginRateLimitConfig, Payroll, Staff
 from users.payroll_services import generate_payroll
-from users.serializers import StaffSerializer
+from users.serializers import DeliveryAssignmentStaffSerializer, StaffSerializer
 
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
@@ -307,6 +307,113 @@ class PayrollGenerationTests(TestCase):
             )
 
         self.assertEqual(len(payrolls), 1)
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class DeliveryAssignmentStaffTests(TestCase):
+    def setUp(self):
+        self.restaurant = Restaurant.objects.create(
+            name="Delivery Assignment Restaurant",
+            email="delivery-assignment@example.com",
+            phone="0720000000",
+            address="Test address",
+        )
+        Subscription.objects.create(
+            restaurant=self.restaurant,
+            starts_at=date.today() - timedelta(days=1),
+            expires_at=date.today() + timedelta(days=30),
+            max_branches=2,
+            is_active=True,
+        )
+        self.branch = Branch.objects.create(
+            restaurant=self.restaurant,
+            name="Main Branch",
+            code="DELIVERY-MAIN",
+            is_main_branch=True,
+            is_active=True,
+        )
+        self.other_branch = Branch.objects.create(
+            restaurant=self.restaurant,
+            name="Other Branch",
+            code="DELIVERY-OTHER",
+            is_active=True,
+        )
+
+        cashier_user = User.objects.create_user(
+            username="delivery-cashier",
+            password="password",
+        )
+        cashier = Staff.objects.create(
+            user=cashier_user,
+            restaurant=self.restaurant,
+            active_branch=self.branch,
+            name="Delivery Cashier",
+            role="Cashier",
+            email="delivery-cashier@example.com",
+            phone="0720000001",
+        )
+        cashier.branches.add(self.branch)
+
+        self.driver = Staff.objects.create(
+            restaurant=self.restaurant,
+            active_branch=self.branch,
+            name="Main Driver",
+            role="DeliveryBoy",
+            email="main-driver@example.com",
+            phone="0720000002",
+            vehicle_number="DEL-1",
+        )
+        self.driver.branches.add(self.branch)
+
+        other_driver = Staff.objects.create(
+            restaurant=self.restaurant,
+            active_branch=self.other_branch,
+            name="Other Driver",
+            role="DeliveryBoy",
+            email="other-driver@example.com",
+            phone="0720000003",
+        )
+        other_driver.branches.add(self.other_branch)
+
+        self.client = APIClient()
+        self.client.force_authenticate(user=cashier_user)
+
+    def test_delivery_boy_endpoint_returns_only_assignment_fields_for_branch(self):
+        response = self.client.get(
+            "/api/users/deliveryBoys/",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0],
+            {
+                "id": self.driver.id,
+                "name": "Main Driver",
+                "phone": "0720000002",
+                "vehicle_number": "DEL-1",
+                "image": None,
+                "status": "Active",
+            },
+        )
+
+    def test_delivery_assignment_serializer_does_not_load_staff_history(self):
+        queryset = Staff.objects.filter(id=self.driver.id).only(
+            "id",
+            "name",
+            "phone",
+            "vehicle_number",
+            "image",
+            "status",
+        )
+
+        with self.assertNumQueries(1):
+            data = list(
+                DeliveryAssignmentStaffSerializer(queryset, many=True).data
+            )
+
+        self.assertEqual(data[0]["id"], self.driver.id)
 
 
 RATE_LIMIT_TEST_CACHES = {

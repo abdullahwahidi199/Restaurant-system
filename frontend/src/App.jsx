@@ -119,6 +119,7 @@ import DailyProduction from "./component/Admin/DailyProduction/DailyProduction";
 import InventoryManagerRoot from "./component/InventoryManager/InventoryManagerRoot";
 import BranchManagement from "./component/Admin/branches/BranchManagement";
 import AuditLogPage from "./modules/audit/AuditLogPage";
+import ProductionMovementPage from "./modules/audit/ProductionMovementPage";
 import BranchSelectionPage from "./component/branch/BranchSelectionPage";
 import FinanceManagerLayout from "./component/FinanceManager/FinanceManagerLayout";
 import OperationsManagerLayout from "./component/OperationsManager/OperationsManagerLayout";
@@ -207,6 +208,10 @@ function App() {
 
           <Route path="menu/platter/:id" element={<PlatterDetails />} />
           <Route path="daily_production" element={<DailyProduction />} />
+          <Route
+            path="daily-production-movements"
+            element={<ProductionMovementPage />}
+          />
           <Route path="orders" element={<OrderBase />} />
           <Route path="tables" element={<TableBaseModal />} />
           <Route path="expenses" element={<ExpensesMain />} />
@@ -496,6 +501,10 @@ function App() {
 
           <Route path="menu/platter/:id" element={<PlatterDetails />} />
           <Route path="daily_production" element={<DailyProduction />} />
+          <Route
+            path="daily-production-movements"
+            element={<ProductionMovementPage />}
+          />
 
           <Route path="tables" element={<TableBaseModal />} />
           <Route path="expenses" element={<ExpensesMain />} />

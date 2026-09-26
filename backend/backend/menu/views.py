@@ -1313,7 +1313,8 @@ def production_list_create(request):
             )
         elif action == 'decrement':
             production = decrement_production(
-                menu_item=menu_item, quantity=quantity, branch=branch, notes=notes,
+                menu_item=menu_item, quantity=quantity, branch=branch,
+                notes=notes, actor=staff,
             )
         else:
             return Response({'error': f'Invalid action: {action}'}, status=400)
@@ -1344,11 +1345,13 @@ def production_detail(request, pk):
         return Response({'error': 'Not found'}, status=404)
 
     if request.method == 'PATCH':
+        staff = getattr(request.user, 'staff_profile', None)
         try:
             production = adjust_production(
                 production,
                 new_quantity=request.data.get('quantity', production.quantity_produced),
                 notes=request.data.get('notes'),
+                actor=staff,
             )
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
@@ -1356,5 +1359,11 @@ def production_detail(request, pk):
 
     # DELETE
     refund = request.query_params.get('refund', 'false').lower() == 'true'
-    clear_production(production.menu_item, branch=production.branch, refund_remaining=refund)
+    clear_production(
+        production.menu_item,
+        branch=production.branch,
+        refund_remaining=refund,
+        actor=getattr(request.user, 'staff_profile', None),
+        notes=production.notes,
+    )
     return Response(status=204)

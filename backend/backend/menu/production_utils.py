@@ -3,6 +3,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import F, Q
 
+from audit.constants import PRODUCTION_MOVEMENT_OBJECT_TYPE, AuditAction, AuditModule
+from audit.services import create_audit_log
 from inventory.models import MenuItemIngredient, Ingredient, StockMovement
 from .models import Production
 
@@ -25,6 +27,88 @@ def _locked_recipe_ingredient(recipe, branch):
     return ingredient
 
 
+def _actor_user(actor):
+    if actor is None:
+        return None
+    return getattr(actor, "user", actor)
+
+
+def _record_production_movement(
+    *,
+    menu_item,
+    branch,
+    production_id,
+    movement_type,
+    before_produced,
+    after_produced,
+    before_remaining,
+    after_remaining,
+    actor=None,
+    order=None,
+    notes="",
+    refunded_ingredients=False,
+):
+    actor_user = _actor_user(actor)
+    actor_label = (
+        getattr(actor, "name", None)
+        or getattr(actor_user, "get_username", lambda: "System")()
+        or "System"
+    )
+    order_label = f" for order #{order.id}" if order else ""
+    descriptions = {
+        "create": "created production",
+        "replace": "replaced production",
+        "increment": "added production",
+        "decrement": "reduced production",
+        "adjust": "adjusted production",
+        "consume": "consumed production",
+        "restore": "restored production",
+        "clear": "cleared production",
+    }
+    action = AuditAction.UPDATE
+    if movement_type == "create":
+        action = AuditAction.CREATE
+    elif movement_type == "clear":
+        action = AuditAction.DELETE
+    elif movement_type == "restore":
+        action = AuditAction.RESTORE
+
+    create_audit_log(
+        user=actor_user,
+        restaurant=menu_item.restaurant,
+        branch=branch,
+        action=action,
+        module=AuditModule.MENU,
+        object_type=PRODUCTION_MOVEMENT_OBJECT_TYPE,
+        object_id=production_id or menu_item.id,
+        object_repr=menu_item.name,
+        description=(
+            f"{actor_label} {descriptions.get(movement_type, 'changed production')} "
+            f"for {menu_item.name}{order_label}."
+        ),
+        old_values={
+            "quantity_produced": before_produced,
+            "quantity_remaining": before_remaining,
+        },
+        new_values={
+            "quantity_produced": after_produced,
+            "quantity_remaining": after_remaining,
+        },
+        metadata={
+            "movement_type": movement_type,
+            "quantity_change": after_remaining - before_remaining,
+            "actor_name": actor_label,
+            "actor_role": getattr(actor, "role", "") or "",
+            "menu_item_id": str(menu_item.id),
+            "production_id": str(production_id) if production_id else None,
+            "order_id": str(order.id) if order else None,
+            "order_number": getattr(order, "order_number", None) if order else None,
+            "notes": notes or "",
+            "refunded_ingredients": bool(refunded_ingredients),
+        },
+    )
+
+
 @transaction.atomic
 def create_or_replace_production(menu_item, quantity, branch, created_by=None, notes=""):
     """
@@ -43,8 +127,15 @@ def create_or_replace_production(menu_item, quantity, branch, created_by=None, n
     if quantity <= 0:
         raise ValueError("Quantity must be positive.")
 
-    # Remove any existing production for this item
-    Production.objects.filter(menu_item=menu_item, branch=branch).delete()
+    # Preserve the previous balance for the movement ledger before replacing it.
+    existing = Production.objects.select_for_update().filter(
+        menu_item=menu_item,
+        branch=branch,
+    ).first()
+    before_produced = existing.quantity_produced if existing else 0
+    before_remaining = existing.quantity_remaining if existing else 0
+    if existing:
+        existing.delete()
 
     # Deduct ingredients for the WHOLE batch (once, not per order)
     recipe_items = _recipe_items_for_branch(menu_item, branch)
@@ -99,11 +190,24 @@ def create_or_replace_production(menu_item, quantity, branch, created_by=None, n
     from inventory.utils import update_platter_availability_from_menu_item
     update_platter_availability_from_menu_item(menu_item, branch=branch)
 
+    _record_production_movement(
+        menu_item=menu_item,
+        branch=branch,
+        production_id=production.id,
+        movement_type="replace" if existing else "create",
+        before_produced=before_produced,
+        after_produced=production.quantity_produced,
+        before_remaining=before_remaining,
+        after_remaining=production.quantity_remaining,
+        actor=created_by,
+        notes=notes,
+    )
+
     return production
 
 
 @transaction.atomic
-def adjust_production(production, new_quantity, notes=None):
+def adjust_production(production, new_quantity, notes=None, actor=None, movement_type="adjust"):
     """
     Adjust the produced quantity of an existing production.
     Deducts/refunds ingredients for the DIFFERENCE only.
@@ -113,11 +217,25 @@ def adjust_production(production, new_quantity, notes=None):
     if new_quantity < 0:
         raise ValueError("Quantity cannot be negative.")
 
+    before_produced = production.quantity_produced
+    before_remaining = production.quantity_remaining
     diff = new_quantity - production.quantity_produced
     if diff == 0:
         if notes is not None:
             production.notes = notes
             production.save(update_fields=["notes"])
+            _record_production_movement(
+                menu_item=production.menu_item,
+                branch=production.branch,
+                production_id=production.id,
+                movement_type=movement_type,
+                before_produced=before_produced,
+                after_produced=production.quantity_produced,
+                before_remaining=before_remaining,
+                after_remaining=production.quantity_remaining,
+                actor=actor,
+                notes=notes,
+            )
         return production
 
     menu_item = production.menu_item
@@ -179,11 +297,24 @@ def adjust_production(production, new_quantity, notes=None):
     from inventory.utils import update_platter_availability_from_menu_item
     update_platter_availability_from_menu_item(menu_item, branch=branch)
 
+    _record_production_movement(
+        menu_item=menu_item,
+        branch=branch,
+        production_id=production.id,
+        movement_type=movement_type,
+        before_produced=before_produced,
+        after_produced=production.quantity_produced,
+        before_remaining=before_remaining,
+        after_remaining=production.quantity_remaining,
+        actor=actor,
+        notes=notes or "",
+    )
+
     return production
 
 
 @transaction.atomic
-def consume_production(menu_item, quantity, branch):
+def consume_production(menu_item, quantity, branch, actor=None, order=None):
     """
     Decrement remaining count when an order is placed.
     Raises ValueError if not enough remaining.
@@ -209,6 +340,7 @@ def consume_production(menu_item, quantity, branch):
             f"{menu_item.name} remaining."
         )
 
+    before_remaining = production.quantity_remaining
     production.quantity_remaining -= quantity
     production.save(update_fields=["quantity_remaining"])
 
@@ -219,11 +351,24 @@ def consume_production(menu_item, quantity, branch):
         from inventory.utils import update_platter_availability_from_menu_item
         update_platter_availability_from_menu_item(menu_item, branch=branch)
 
+    _record_production_movement(
+        menu_item=menu_item,
+        branch=branch,
+        production_id=production.id,
+        movement_type="consume",
+        before_produced=production.quantity_produced,
+        after_produced=production.quantity_produced,
+        before_remaining=before_remaining,
+        after_remaining=production.quantity_remaining,
+        actor=actor,
+        order=order,
+    )
+
     return production
 
 
 @transaction.atomic
-def restore_production(menu_item, quantity, branch):
+def restore_production(menu_item, quantity, branch, actor=None, order=None):
     """
     Increment remaining count (e.g., when an order is cancelled).
     Capped at quantity_produced.
@@ -240,6 +385,7 @@ def restore_production(menu_item, quantity, branch):
         return None
 
     quantity = int(quantity)
+    before_remaining = production.quantity_remaining
     was_zero = production.quantity_remaining == 0
     production.quantity_remaining = min(
         production.quantity_produced,
@@ -253,11 +399,24 @@ def restore_production(menu_item, quantity, branch):
         from inventory.utils import update_platter_availability_from_menu_item
         update_platter_availability_from_menu_item(menu_item, branch=branch)
 
+    _record_production_movement(
+        menu_item=menu_item,
+        branch=branch,
+        production_id=production.id,
+        movement_type="restore",
+        before_produced=production.quantity_produced,
+        after_produced=production.quantity_produced,
+        before_remaining=before_remaining,
+        after_remaining=production.quantity_remaining,
+        actor=actor,
+        order=order,
+    )
+
     return production
 
 
 @transaction.atomic
-def clear_production(menu_item, branch, refund_remaining=False):
+def clear_production(menu_item, branch, refund_remaining=False, actor=None, notes=""):
     """
     Clear current production (e.g., end of service).
     Optionally refund ingredients for the unsold remaining portion.
@@ -272,6 +431,10 @@ def clear_production(menu_item, branch, refund_remaining=False):
 
     if not production:
         return None
+
+    production_id = production.id
+    before_produced = production.quantity_produced
+    before_remaining = production.quantity_remaining
 
     if refund_remaining and production.quantity_remaining > 0:
         recipe_items = _recipe_items_for_branch(menu_item, branch)
@@ -301,6 +464,20 @@ def clear_production(menu_item, branch, refund_remaining=False):
     from inventory.utils import update_platter_availability_from_menu_item
     update_platter_availability_from_menu_item(menu_item, branch=branch)
 
+    _record_production_movement(
+        menu_item=menu_item,
+        branch=branch,
+        production_id=production_id,
+        movement_type="clear",
+        before_produced=before_produced,
+        after_produced=0,
+        before_remaining=before_remaining,
+        after_remaining=0,
+        actor=actor,
+        notes=notes,
+        refunded_ingredients=refund_remaining,
+    )
+
     return True
 
 @transaction.atomic
@@ -329,11 +506,17 @@ def increment_production(menu_item, quantity, branch, created_by=None, notes="")
         )
 
     new_qty = existing.quantity_produced + quantity
-    return adjust_production(existing, new_quantity=new_qty, notes=notes)
+    return adjust_production(
+        existing,
+        new_quantity=new_qty,
+        notes=notes,
+        actor=created_by,
+        movement_type="increment",
+    )
 
 
 @transaction.atomic
-def decrement_production(menu_item, quantity, branch, notes=""):
+def decrement_production(menu_item, quantity, branch, notes="", actor=None):
     """
     Reduce produced quantity by `quantity`.
     Cannot go below the number already sold.
@@ -360,7 +543,19 @@ def decrement_production(menu_item, quantity, branch, notes=""):
         )
     if new_qty == 0:
         # Nothing left to sell; clear it
-        clear_production(menu_item, branch=branch, refund_remaining=False)
+        clear_production(
+            menu_item,
+            branch=branch,
+            refund_remaining=False,
+            actor=actor,
+            notes=notes,
+        )
         return None
 
-    return adjust_production(existing, new_quantity=new_qty, notes=notes)
+    return adjust_production(
+        existing,
+        new_quantity=new_qty,
+        notes=notes,
+        actor=actor,
+        movement_type="decrement",
+    )

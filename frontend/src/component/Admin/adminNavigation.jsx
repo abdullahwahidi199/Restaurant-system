@@ -10,6 +10,7 @@ import {
   FilePlus2,
   HandCoins,
   HardHat,
+  History,
   LayoutDashboard,
   Package,
   PackageSearch,
@@ -67,6 +68,14 @@ export function getAdminNavigationGroups(t, role) {
           to: `${adminBase}/daily_production`,
           label: i18n.t("legacy.daily_productions_3566ee61"),
           icon: Utensils,
+        },
+        {
+          id: "daily-production-movements",
+          to: `${adminBase}/daily-production-movements`,
+          label: i18n.t("production.movements", {
+            defaultValue: "Production Movements",
+          }),
+          icon: History,
         },
         {
           id: "discount-requests",
@@ -426,6 +435,7 @@ const navigationSearchKeywords = {
   tables: ["table", "floor", "dining"],
   reservations: ["booking", "reservation", "calendar"],
   "daily-production": ["production", "kitchen", "prep"],
+  "daily-production-movements": ["production", "movement", "audit", "history"],
   "discount-requests": ["discount", "approval", "request"],
   "discount-cards": ["discount", "cards", "loyalty"],
   menu: ["menu", "items", "platter", "restaurant", "catalog"],

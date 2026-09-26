@@ -1,6 +1,9 @@
 from django.db import models
 
 
+PRODUCTION_MOVEMENT_OBJECT_TYPE = "ProductionMovement"
+
+
 class AuditAction(models.TextChoices):
     CREATE = "CREATE", "Create"
     UPDATE = "UPDATE", "Update"
