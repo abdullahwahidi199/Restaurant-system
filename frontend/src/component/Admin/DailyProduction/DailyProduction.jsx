@@ -3,6 +3,7 @@ import {
   Boxes,
   ChefHat,
   CheckCircle2,
+  FileDown,
   Package,
   RefreshCw,
   Search,
@@ -25,6 +26,7 @@ export default function DailyProduction() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -78,6 +80,36 @@ export default function DailyProduction() {
       await fetchItems({ initial: !hasLoaded });
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (downloadingPdf) return;
+    setDownloadingPdf(true);
+    setError("");
+    try {
+      const response = await instance.get("/menu/production/pdf/", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `daily_production_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          autoT("production.pdf_error", {
+            defaultValue: "The daily production PDF could not be downloaded.",
+          }),
+      );
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -216,18 +248,33 @@ export default function DailyProduction() {
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={loading || refreshing}
-          className="theme-btn theme-btn-outline inline-flex h-9 items-center gap-2 self-start px-3 sm:self-auto"
-        >
-          <RefreshCw
-            className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            aria-hidden="true"
-          />
-          {autoT("production.refresh", { defaultValue: "Refresh" })}
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={downloadPdf}
+            disabled={loading || !hasLoaded || downloadingPdf}
+            className="theme-btn theme-btn-primary inline-flex h-9 items-center gap-2 px-3"
+          >
+            <FileDown className="h-4 w-4" aria-hidden="true" />
+            {downloadingPdf
+              ? autoT("production.downloading_pdf", {
+                  defaultValue: "Downloading PDF...",
+                })
+              : autoT("legacy.download_pdf_98e5ef06")}
+          </button>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={loading || refreshing}
+            className="theme-btn theme-btn-outline inline-flex h-9 items-center gap-2 px-3"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {autoT("production.refresh", { defaultValue: "Refresh" })}
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -497,7 +544,8 @@ export default function DailyProduction() {
   );
 }
 
-function Metric({ label, value, icon: Icon, tone = "neutral" }) {
+function Metric({ label, value, icon: iconComponent, tone = "neutral" }) {
+  const Icon = iconComponent;
   const color = tone === "success" ? "theme-badge-success" : "theme-muted";
   return (
     <div

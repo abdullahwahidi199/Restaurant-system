@@ -1232,6 +1232,273 @@ def menu_item_sales(request):
     return Response(data)
 
 
+@api_view(["GET"])
+@permission_classes([
+    IsAuthenticated,
+    IsSameRestaurant,
+    IsRestaurantActive,
+    IsRestaurantAdmin | IsKitchenManager | IsInventoryManager | IsOperationsManager,
+])
+def production_pdf_report(request):
+    """Download the current production snapshot for the active branch."""
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from xml.sax.saxutils import escape
+
+    restaurant = request.user.staff_profile.restaurant
+    branch = get_active_branch(request)
+    generated_at = timezone.localtime()
+
+    menu_items = list(
+        ordered_menu_items(
+            filter_menu_queryset(
+                request,
+                MenuItem.objects.filter(
+                    restaurant=restaurant,
+                    uses_daily_production=True,
+                ),
+                restaurant,
+            )
+        ).select_related("category")
+    )
+    productions = {
+        production.menu_item_id: production
+        for production in Production.objects.filter(
+            restaurant=restaurant,
+            branch=branch,
+            menu_item_id__in=[item.id for item in menu_items],
+        ).select_related("created_by")
+    }
+
+    produced_total = sum(
+        production.quantity_produced for production in productions.values()
+    )
+    remaining_total = sum(
+        production.quantity_remaining for production in productions.values()
+    )
+    sold_total = produced_total - remaining_total
+    active_count = sum(
+        production.quantity_remaining > 0 for production in productions.values()
+    )
+
+    response = HttpResponse(content_type="application/pdf")
+    filename = f"daily_production_{generated_at:%Y-%m-%d}.pdf"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    document = SimpleDocTemplate(
+        response,
+        pagesize=landscape(A4),
+        leftMargin=12 * mm,
+        rightMargin=12 * mm,
+        topMargin=12 * mm,
+        bottomMargin=14 * mm,
+        title="Daily Production Report",
+        author=restaurant.name,
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "ProductionTitle",
+        parent=styles["Heading1"],
+        alignment=TA_CENTER,
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor("#172033"),
+        spaceAfter=4,
+    )
+    meta_style = ParagraphStyle(
+        "ProductionMeta",
+        parent=styles["Normal"],
+        alignment=TA_CENTER,
+        fontSize=8.5,
+        leading=11,
+        textColor=colors.HexColor("#5B6475"),
+    )
+    cell_style = ParagraphStyle(
+        "ProductionCell",
+        parent=styles["Normal"],
+        alignment=TA_LEFT,
+        fontSize=7.5,
+        leading=9.5,
+        textColor=colors.HexColor("#273043"),
+    )
+    number_style = ParagraphStyle(
+        "ProductionNumber",
+        parent=cell_style,
+        alignment=TA_RIGHT,
+    )
+    center_style = ParagraphStyle(
+        "ProductionCenter",
+        parent=cell_style,
+        alignment=TA_CENTER,
+    )
+    note_style = ParagraphStyle(
+        "ProductionNote",
+        parent=cell_style,
+        fontSize=6.5,
+        leading=8,
+        textColor=colors.HexColor("#697386"),
+    )
+
+    safe_restaurant = escape(str(restaurant.name))
+    safe_branch = escape(str(branch.name))
+    story = [
+        Paragraph("Daily Production Report", title_style),
+        Paragraph(safe_restaurant, meta_style),
+        Paragraph(
+            f"Branch: {safe_branch} &nbsp;&nbsp;|&nbsp;&nbsp; "
+            f"Generated: {generated_at:%d %b %Y, %I:%M %p}",
+            meta_style,
+        ),
+        Spacer(1, 7 * mm),
+    ]
+
+    summary_data = [
+        ["Tracked items", "Active batches", "Produced", "Sold", "Remaining"],
+        [
+            str(len(menu_items)),
+            str(active_count),
+            str(produced_total),
+            str(sold_total),
+            str(remaining_total),
+        ],
+    ]
+    summary = Table(summary_data, colWidths=[document.width / 5] * 5)
+    summary.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E9EEF8")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#475569")),
+                ("TEXTCOLOR", (0, 1), (-1, 1), colors.HexColor("#172033")),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 7.5),
+                ("FONTSIZE", (0, 1), (-1, 1), 12),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, 0), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 3),
+                ("TOPPADDING", (0, 1), (-1, 1), 5),
+                ("BOTTOMPADDING", (0, 1), (-1, 1), 7),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#D8E0EC")),
+            ]
+        )
+    )
+    story.extend([summary, Spacer(1, 6 * mm)])
+
+    rows = [
+        [
+            "#",
+            "Item / notes",
+            "Category",
+            "Produced",
+            "Sold",
+            "Remaining",
+            "Status",
+            "Prepared by",
+            "Last updated",
+        ]
+    ]
+    for index, item in enumerate(menu_items, start=1):
+        production = productions.get(item.id)
+        produced = production.quantity_produced if production else 0
+        remaining = production.quantity_remaining if production else 0
+        sold = produced - remaining
+        if not production:
+            status_label = "No batch"
+        elif remaining <= 0:
+            status_label = "Sold out"
+        else:
+            status_label = "In stock"
+
+        item_content = f"<b>{escape(str(item.name))}</b>"
+        if production and production.notes:
+            item_content += (
+                f"<br/><font size='6.5' color='#697386'>"
+                f"Notes: {escape(str(production.notes))}</font>"
+            )
+        prepared_by = (
+            production.created_by.name
+            if production and production.created_by
+            else "-"
+        )
+        updated_at = (
+            timezone.localtime(production.updated_at).strftime("%d %b %Y, %I:%M %p")
+            if production
+            else "-"
+        )
+        rows.append(
+            [
+                Paragraph(str(index), center_style),
+                Paragraph(item_content, cell_style),
+                Paragraph(
+                    escape(str(item.category.name if item.category else "Uncategorized")),
+                    cell_style,
+                ),
+                Paragraph(str(produced), number_style),
+                Paragraph(str(sold), number_style),
+                Paragraph(str(remaining), number_style),
+                Paragraph(status_label, center_style),
+                Paragraph(escape(str(prepared_by)), cell_style),
+                Paragraph(updated_at, note_style),
+            ]
+        )
+
+    if menu_items:
+        production_table = Table(
+            rows,
+            repeatRows=1,
+            colWidths=[9 * mm, 46 * mm, 31 * mm, 22 * mm, 18 * mm, 22 * mm, 26 * mm, 34 * mm, 42 * mm],
+        )
+        production_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#26364F")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, 0), 7.5),
+                    ("ALIGN", (0, 0), (0, -1), "CENTER"),
+                    ("ALIGN", (3, 0), (6, -1), "RIGHT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7F9FC")]),
+                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#D5DCE8")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
+        story.append(production_table)
+    else:
+        story.append(
+            Paragraph(
+                "No menu items are configured for daily production.",
+                meta_style,
+            )
+        )
+
+    def add_page_footer(canvas, doc):
+        canvas.saveState()
+        canvas.setStrokeColor(colors.HexColor("#D5DCE8"))
+        canvas.line(12 * mm, 9 * mm, landscape(A4)[0] - 12 * mm, 9 * mm)
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#697386"))
+        canvas.drawString(12 * mm, 5.5 * mm, f"{restaurant.name} - {branch.name}")
+        canvas.drawRightString(
+            landscape(A4)[0] - 12 * mm,
+            5.5 * mm,
+            f"Page {doc.page}",
+        )
+        canvas.restoreState()
+
+    document.build(story, onFirstPage=add_page_footer, onLaterPages=add_page_footer)
+    return response
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsSameRestaurant, IsRestaurantActive, IsRestaurantAdmin | IsKitchenManager | IsInventoryManager | IsOperationsManager])
 def production_list_create(request):

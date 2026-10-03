@@ -194,3 +194,31 @@ class ProductionMovementTests(TestCase):
         self.assertEqual(movement["user_name"], self.admin.name)
         self.assertEqual(movement["metadata"]["movement_type"], "create")
 
+    def test_daily_production_pdf_download(self):
+        self._reset_production()
+        client = APIClient()
+        client.force_authenticate(self.admin_user)
+
+        response = client.get(
+            "/api/menu/production/pdf/",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertIn("daily_production_", response["Content-Disposition"])
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertGreater(len(response.content), 1000)
+
+    def test_daily_production_pdf_uses_production_permissions(self):
+        manager_user, _ = self._staff_user("production-manager", "Manager")
+        client = APIClient()
+        client.force_authenticate(manager_user)
+
+        response = client.get(
+            "/api/menu/production/pdf/",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 403)
+

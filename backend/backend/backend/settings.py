@@ -157,7 +157,7 @@ BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
+#     }ko
 # }
 
 
