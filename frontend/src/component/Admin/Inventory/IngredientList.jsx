@@ -9,7 +9,17 @@ import {
 import AdjustStockModal from "./AdjustStockModal";
 import EditIngredientModal from "./EditIngredientModal";
 import instance from "../../../api/axiosInstance";
-import { ArrowUpRight, FileText, AlertTriangle, PackageX, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Eye,
+  FileText,
+  PackageX,
+  Pencil,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import AuditTimeline from "../../../modules/audit/components/AuditTimeline";
 import TablePagination from "../../../modules/shared/erp/components/TablePagination";
 
@@ -211,31 +221,43 @@ export default function IngredientList() {
                   />
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3">
                   <button
+                    type="button"
                     onClick={() => openIngredientDetail(ingredient)}
-                    className="rounded-lg border px-3 py-2 text-sm font-medium text-gray-700"
+                    className="theme-btn theme-btn-outline theme-btn-icon"
+                    title={t("inventory_manager.common.view", { defaultValue: "View" })}
+                    aria-label={t("inventory_manager.common.view", { defaultValue: "View" })}
                   >
-                    {t("inventory_manager.common.view", { defaultValue: "View" })}
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => setAdjustIngredient(ingredient)}
-                    className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+                    className="theme-btn theme-btn-primary theme-btn-icon"
+                    title={t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
+                    aria-label={t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
                   >
-                    {t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
+                    <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => setEditIngredient(ingredient)}
-                    className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white"
+                    className="theme-btn theme-btn-success theme-btn-icon"
+                    title={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                    aria-label={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
                   >
-                    {t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
                   </button>
                   {ingredient.menu_items_count === 0 && (
                     <button
+                      type="button"
                       onClick={() => deleteIngredient(ingredient.id)}
-                      className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white"
+                      className="theme-btn theme-btn-danger theme-btn-icon"
+                      title={t("inventory_manager.common.delete", { defaultValue: "Delete" })}
+                      aria-label={t("inventory_manager.common.delete", { defaultValue: "Delete" })}
                     >
-                      {t("inventory_manager.common.delete", { defaultValue: "Delete" })}
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -300,31 +322,43 @@ export default function IngredientList() {
                     </span>
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-3">
+                    <div className="flex items-center gap-1.5">
                       <button
+                        type="button"
                         onClick={() => openIngredientDetail(ingredient)}
-                        className="px-3 py-1 text-sm rounded-lg border text-gray-700"
+                        className="theme-btn theme-btn-outline theme-btn-icon"
+                        title={t("inventory_manager.common.view", { defaultValue: "View" })}
+                        aria-label={t("inventory_manager.common.view", { defaultValue: "View" })}
                       >
-                        {t("inventory_manager.common.view", { defaultValue: "View" })}
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setAdjustIngredient(ingredient)}
-                        className="px-3 py-1 text-sm rounded-lg bg-blue-600 text-white"
+                        className="theme-btn theme-btn-primary theme-btn-icon"
+                        title={t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
+                        aria-label={t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
                       >
-                        {t("inventory_manager.common.adjust", { defaultValue: "Adjust" })}
+                        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setEditIngredient(ingredient)}
-                        className="px-3 py-1 text-sm rounded-lg bg-green-600 text-white"
+                        className="theme-btn theme-btn-success theme-btn-icon"
+                        title={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                        aria-label={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
                       >
-                        {t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {ingredient.menu_items_count === 0 && (
                         <button
+                          type="button"
                           onClick={() => deleteIngredient(ingredient.id)}
-                          className="px-3 py-1 text-sm rounded-lg bg-red-600 text-white"
+                          className="theme-btn theme-btn-danger theme-btn-icon"
+                          title={t("inventory_manager.common.delete", { defaultValue: "Delete" })}
+                          aria-label={t("inventory_manager.common.delete", { defaultValue: "Delete" })}
                         >
-                          {t("inventory_manager.common.delete", { defaultValue: "Delete" })}
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
                     </div>

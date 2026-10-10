@@ -48,7 +48,7 @@ export default function PayrollDashboard({
         <Panel title={autoT("legacy.employees_awaiting_payment_2b3562dd")} to={`${basePath}/payroll/records`}>
           <div className="divide-y divide-[var(--theme-border)]">
             {awaiting.length ? awaiting.map((payroll) => (
-              <div key={payroll.id} className="flex min-h-[52px] items-center justify-between gap-3 py-2.5">
+              <div key={payroll.id} className="flex min-h-11 items-center justify-between gap-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold theme-text-primary">{payroll.staff_name}</p>
                   <p className="truncate text-[11px] theme-text-muted">{payroll.period_start} {autoT("to")} {payroll.period_end}</p>
@@ -64,7 +64,7 @@ export default function PayrollDashboard({
         <Panel title={autoT("legacy.upcoming_payroll_4ef67d0e")} to={`${basePath}/payroll/run`}>
           <div className="divide-y divide-[var(--theme-border)]">
             {upcoming.length ? upcoming.map((employee) => (
-              <Link key={employee.id} to={`${basePath}/payroll/employees/${employee.id}`} className="flex min-h-[52px] items-center justify-between gap-3 py-2.5 hover:bg-[var(--theme-hover)]">
+              <Link key={employee.id} to={`${basePath}/payroll/employees/${employee.id}`} className="flex min-h-11 items-center justify-between gap-3 py-2 hover:bg-[var(--theme-hover)]">
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold theme-text-primary">{employee.name}</p>
                   <p className="truncate text-[11px] capitalize theme-text-muted">{employee.role} - {employee.salary_type}</p>

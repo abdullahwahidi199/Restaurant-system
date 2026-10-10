@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation as useAutoTranslation } from "react-i18next";
+import { Minus, Plus, Trash2 } from "lucide-react";
 
 export default function ProductionCard({
   item,
@@ -7,7 +8,7 @@ export default function ProductionCard({
   onDecrement,
   onClear,
 }) {
-                 const { t: autoT } = useAutoTranslation();
+  const { t: autoT } = useAutoTranslation();
   const [qty, setQty] = useState(1);
   const prod = item.production;
   const hasProd = !!prod;
@@ -15,7 +16,7 @@ export default function ProductionCard({
   const sold = hasProd ? prod.quantity_produced - prod.quantity_remaining : 0;
 
   return (
-    <div className="p-4 flex items-center gap-4">
+    <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold truncate">{item.name}</h3>
@@ -59,35 +60,54 @@ export default function ProductionCard({
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          min="1"
-          value={qty}
-          onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-          className="w-16 border rounded-lg px-2 py-1 text-center text-sm"
-        />
+      <div className="flex flex-wrap items-end gap-2 lg:justify-end">
+        <label className="min-w-24">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider theme-text-muted">
+            {autoT("inventory_manager.common.quantity", {
+              defaultValue: "Quantity",
+            })}
+          </span>
+          <input
+            type="number"
+            min="1"
+            inputMode="numeric"
+            value={qty}
+            aria-label={autoT("inventory_manager.common.quantity", {
+              defaultValue: "Quantity",
+            })}
+            onChange={(event) =>
+              setQty(Math.max(1, parseInt(event.target.value, 10) || 1))
+            }
+            className="theme-input h-10 w-24 rounded-xl px-3 text-center text-sm font-bold tabular-nums"
+          />
+        </label>
         <button
+          type="button"
           onClick={() => onIncrement(qty)}
-          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+          className="theme-btn theme-btn-primary h-10 gap-2 rounded-xl px-3.5 text-sm shadow-sm"
           title={autoT("legacy.cook_more_add_to_batch_66e39279")}
         >
+          <Plus className="h-4 w-4" aria-hidden="true" />
           {autoT("legacy.cook_d8402b40")}
         </button>
         <button
+          type="button"
           onClick={() => onDecrement(qty)}
           disabled={!hasProd}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-40"
+          className="theme-btn theme-btn-warning h-10 gap-2 rounded-xl px-3.5 text-sm"
           title={autoT("legacy.reduce_batch_0c0db485")}
         >
+          <Minus className="h-4 w-4" aria-hidden="true" />
           {autoT("legacy.reduce_24267c81")}
         </button>
         {hasProd && (
           <button
+            type="button"
             onClick={() => onClear(false)}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium"
+            className="theme-btn theme-btn-ghost h-10 gap-2 rounded-xl px-3 text-sm text-[var(--theme-danger)]"
             title={autoT("legacy.clear_production_b938db48")}
           >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
             {autoT("legacy.clear_719ea396")}
           </button>
         )}

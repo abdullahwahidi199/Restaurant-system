@@ -72,16 +72,8 @@ export default function PayrollWorkspace({
   const isAdvancesView = model.activeTab === "advances";
 
   return (
-    <section
-      className={
-        isAdvancesView
-          ? "space-y-3 px-0 pb-4 sm:space-y-5 sm:px-4 sm:pb-6 lg:px-5"
-          : "space-y-4 px-4 pb-6 lg:px-5"
-      }
-    >
+    <section className="space-y-4">
       <PageHeader
-        eyebrow={autoT("legacy.pakhlai_payroll_d8b27f68")}
-        breadcrumb={isFinance ? autoT("legacy.finance_payroll_593d4f70") : autoT("legacy.admin_finance_payroll_170af40e")}
         icon={Wallet}
         title={pageMeta.title}
         description={pageMeta.description}

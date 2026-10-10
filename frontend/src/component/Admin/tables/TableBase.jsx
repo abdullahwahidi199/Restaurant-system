@@ -5,6 +5,12 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import instance from "../../../api/axiosInstance";
 import useOrdersSocket from "../../../hooks/useOrdersSocket";
+import ActionButton from "../../../modules/shared/erp/components/ActionButton";
+import Alert from "../../../modules/shared/erp/components/Alert";
+import EmptyState from "../../../modules/shared/erp/components/EmptyState";
+import LoadingState from "../../../modules/shared/erp/components/LoadingState";
+import PageHeader from "../../../modules/shared/erp/components/PageHeader";
+import TableWorkspaceToolbar from "../../ui/TableWorkspaceToolbar";
 import {
   applyOrderSnapshotToTable,
   applyTableItemsSnapshot,
@@ -20,6 +26,7 @@ export default function TableBaseModal() {
   const [error, setError] = useState(null);
   const [addTableDisplay, setAddTableDisplay] = useState(false);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
   const finalizedSnapshotsRef = useRef(new Map());
   const socketRevisionRef = useRef(0);
 
@@ -29,6 +36,7 @@ export default function TableBaseModal() {
   const fetchTables = async () => {
     const revisionAtStart = socketRevisionRef.current;
     try {
+      setError(null);
       const res = await instance.get("/orders/tables/", {
         params: { view: "panel" },
       });
@@ -106,10 +114,25 @@ export default function TableBaseModal() {
 
   useOrdersSocket(handleSocketMessage, fetchTables);
 
+  const getDisplayStatus = (table) =>
+    table.current_reservation ? "reserved" : table.status;
+
+  const statusCounts = tables.reduce(
+    (counts, table) => {
+      const status = getDisplayStatus(table);
+      counts[status] = (counts[status] || 0) + 1;
+      return counts;
+    },
+    { available: 0, occupied: 0, reserved: 0, unavailable: 0 },
+  );
+
   const filteredTables = tables
     .filter((t) => {
-      const name = t.name.toLowerCase();
-      return name.includes(search.toLowerCase());
+      const name = String(t.name || "").toLowerCase();
+      const matchesSearch = name.includes(search.trim().toLowerCase());
+      const matchesFilter =
+        filter === "all" || getDisplayStatus(t) === filter;
+      return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       const extractNumber = (name) => {
@@ -129,46 +152,85 @@ export default function TableBaseModal() {
 
       return a.name.localeCompare(b.name);
     });
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">{t("loading_tables")}</p>
-      </div>
-    );
+  const filters = [
+    {
+      key: "all",
+      label: t("tables_workspace.all"),
+      count: tables.length,
+    },
+    {
+      key: "available",
+      label: t("tables_workspace.available"),
+      count: statusCounts.available,
+    },
+    {
+      key: "occupied",
+      label: t("tables_workspace.occupied"),
+      count: statusCounts.occupied,
+    },
+    {
+      key: "reserved",
+      label: t("tables_workspace.reserved"),
+      count: statusCounts.reserved,
+    },
+    {
+      key: "unavailable",
+      label: t("tables_workspace.unavailable"),
+      count: statusCounts.unavailable,
+    },
+  ];
 
-  if (error)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-red-500">{error}</p>
-      </div>
-    );
+  const totalCapacity = tables.reduce(
+    (total, table) => total + Number(table.capacity || 0),
+    0,
+  );
 
   return (
-    <div className="p-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div
-        className={`flex items-center mb-6 ${isRTL ? "justify-between flex-row-reverse" : "justify-between"}`}
-      >
-        <h2 className="text-2xl font-semibold text-gray-800">{t("tables")}</h2>
+    <div className="space-y-5" dir={isRTL ? "rtl" : "ltr"}>
+      <PageHeader
+        title={t("tables")}
+        description={loading ? t("loading_tables") : t("tables_workspace.overview", {
+          tables: tables.length,
+          seats: totalCapacity,
+        })}
+        actions={
+          <ActionButton
+            icon={Plus}
+            variant="primary"
+            onClick={() => setAddTableDisplay(true)}
+          >
+            {t("add_table")}
+          </ActionButton>
+        }
+      />
 
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("legacy.search_tables_c1655dc0")}
-          className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={() => setAddTableDisplay(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-200"
-        >
-          <Plus size={18} />
-          {t("add_table")}
-        </button>
-      </div>
+      {error ? (
+        <Alert tone="error" message={error} onClose={() => setError(null)} />
+      ) : loading ? (
+        <LoadingState label={t("loading_tables")} />
+      ) : (
+        <>
+          <TableWorkspaceToolbar
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder={t("tables_workspace.search_placeholder")}
+            filters={filters}
+            activeFilter={filter}
+            onFilter={setFilter}
+          />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <TablesDisplay tables={filteredTables} onUpdate={fetchTables} />
-      </div>
+          {filteredTables.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <TablesDisplay tables={filteredTables} onUpdate={fetchTables} />
+            </div>
+          ) : (
+            <EmptyState
+              title={t("tables_workspace.no_results_title")}
+              description={t("tables_workspace.no_results_description")}
+            />
+          )}
+        </>
+      )}
 
       {addTableDisplay && (
         <TableAddModal

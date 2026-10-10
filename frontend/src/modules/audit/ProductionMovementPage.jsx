@@ -3,6 +3,7 @@ import { History, RefreshCw, Search } from "lucide-react";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import { getProductionMovements } from "../../api/auditApi";
 import PageHeader from "../shared/erp/components/PageHeader";
+import TablePagination from "../shared/erp/components/TablePagination";
 
 const movementLabels = {
   create: "Created",
@@ -80,12 +81,8 @@ export default function ProductionMovementPage() {
     }));
 
   return (
-    <section className="space-y-4 px-4 pb-6 lg:px-5">
+    <section className="min-w-0 space-y-4">
       <PageHeader
-        eyebrow={t("production.audit", { defaultValue: "Production audit" })}
-        breadcrumb={t("production.movements", {
-          defaultValue: "Daily production movements",
-        })}
         icon={History}
         title={t("production.movements", {
           defaultValue: "Daily production movements",
@@ -104,7 +101,7 @@ export default function ProductionMovementPage() {
         ]}
       />
 
-      <div className="theme-card grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="theme-card grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-5">
         <label className="relative md:col-span-2">
           <span className="sr-only">
             {t("production.search_movements", {
@@ -173,21 +170,64 @@ export default function ProductionMovementPage() {
         </p>
       )}
 
-      <div className="theme-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b theme-border theme-surface-muted">
+      <div className="theme-table overflow-hidden">
+        <div className="space-y-2 p-3 md:hidden">
+          {loading ? (
+            <div className="py-8 text-center text-sm theme-text-secondary">
+              {t("production.loading_movements", {
+                defaultValue: "Loading production movements...",
+              })}
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="py-8 text-center text-sm theme-text-secondary">
+              {t("production.no_movements", {
+                defaultValue: "No production movements found.",
+              })}
+            </div>
+          ) : (
+            rows.map((row) => {
+              const metadata = row.metadata || {};
+              const movement = metadata.movement_type || "adjust";
+              const change = number(metadata.quantity_change);
+              const before = number(row.old_values?.quantity_remaining);
+              const after = number(row.new_values?.quantity_remaining);
+              const orderReference = metadata.order_number || metadata.order_id;
+              return (
+                <article key={row.id} className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3">
+                  <div className="flex items-start justify-between gap-3 border-b border-[var(--theme-border)] pb-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold theme-text-primary">{row.object_repr || "—"}</p>
+                      <p className="mt-0.5 text-xs theme-text-muted">{formatDateTime(row.created_at)}</p>
+                    </div>
+                    <span className="theme-badge theme-badge-neutral whitespace-nowrap">
+                      {movementLabels[movement] || movement}
+                    </span>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 py-3 text-xs">
+                    <div><dt className="theme-text-muted">Change</dt><dd className={`mt-0.5 font-semibold tabular-nums ${change > 0 ? "text-emerald-600" : change < 0 ? "text-rose-600" : "theme-text-secondary"}`}>{change > 0 ? "+" : ""}{change}</dd></div>
+                    <div><dt className="theme-text-muted">Balance</dt><dd className="mt-0.5 tabular-nums theme-text-primary">{before} → {after}</dd></div>
+                    <div><dt className="theme-text-muted">Done by</dt><dd className="mt-0.5 truncate theme-text-secondary">{metadata.actor_name || row.user_name || "System"}</dd></div>
+                    <div><dt className="theme-text-muted">Reference</dt><dd className="mt-0.5 truncate theme-text-secondary">{orderReference ? `Order #${orderReference}` : metadata.notes || "—"}</dd></div>
+                  </dl>
+                </article>
+              );
+            })
+          )}
+        </div>
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[860px] rtl:text-right ltr:text-left">
+            <thead>
               <tr>
                 {["When", "Item", "Movement", "Change", "Balance", "Done by", "Reference"].map(
                   (heading) => (
-                    <th key={heading} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide theme-text-secondary">
+                    <th key={heading} className="whitespace-nowrap">
                       {heading}
                     </th>
                   ),
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y theme-divide">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center theme-text-secondary">
@@ -213,29 +253,31 @@ export default function ProductionMovementPage() {
                   const after = number(row.new_values?.quantity_remaining);
                   const orderReference = metadata.order_number || metadata.order_id;
                   return (
-                    <tr key={row.id} className="theme-table-row align-top">
-                      <td className="whitespace-nowrap px-4 py-3 theme-text-secondary">
+                    <tr key={row.id} className="border-b border-[var(--theme-border)] align-top">
+                      <td className="whitespace-nowrap theme-text-secondary">
                         {formatDateTime(row.created_at)}
                       </td>
-                      <td className="px-4 py-3 font-semibold theme-text-primary">
+                      <td className="max-w-48 truncate whitespace-nowrap font-semibold theme-text-primary">
                         {row.object_repr || "-"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <span className="theme-badge theme-badge-neutral whitespace-nowrap">
                           {movementLabels[movement] || movement}
                         </span>
                       </td>
-                      <td className={`whitespace-nowrap px-4 py-3 font-semibold tabular-nums ${change > 0 ? "text-emerald-600" : change < 0 ? "text-rose-600" : "theme-text-secondary"}`}>
+                      <td className={`whitespace-nowrap font-semibold tabular-nums ${change > 0 ? "text-emerald-600" : change < 0 ? "text-rose-600" : "theme-text-secondary"}`}>
                         {change > 0 ? "+" : ""}{change}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums theme-text-primary">
+                      <td className="whitespace-nowrap tabular-nums theme-text-primary">
                         {before} → {after}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium theme-text-primary">{metadata.actor_name || row.user_name || "System"}</div>
-                        <div className="text-xs theme-text-secondary">{metadata.actor_role || row.user_role || row.branch_name || "-"}</div>
+                      <td className="max-w-44 truncate whitespace-nowrap">
+                        <span className="font-medium theme-text-primary">{metadata.actor_name || row.user_name || "System"}</span>
+                        {(metadata.actor_role || row.user_role || row.branch_name) && (
+                          <span className="ms-1.5 text-xs theme-text-muted">· {metadata.actor_role || row.user_role || row.branch_name}</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3 theme-text-secondary">
+                      <td className="max-w-48 truncate whitespace-nowrap theme-text-secondary">
                         {orderReference ? `Order #${orderReference}` : metadata.notes || "-"}
                       </td>
                     </tr>
@@ -247,27 +289,17 @@ export default function ProductionMovementPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          disabled={(filters.page || 1) <= 1 || loading}
-          onClick={() => setFilters((current) => ({ ...current, page: Math.max((current.page || 1) - 1, 1) }))}
-          className="theme-btn theme-btn-outline h-9 px-3"
-        >
-          {t("menu_item_sales.previous", { defaultValue: "Previous" })}
-        </button>
-        <span className="text-sm theme-text-secondary">
-          {t("legacy.page_fb06270f", { defaultValue: "Page" })} {filters.page || 1}
-        </span>
-        <button
-          type="button"
-          disabled={(filters.page || 1) * 20 >= count || loading}
-          onClick={() => setFilters((current) => ({ ...current, page: (current.page || 1) + 1 }))}
-          className="theme-btn theme-btn-outline h-9 px-3"
-        >
-          {t("inventory_manager.common.next", { defaultValue: "Next" })}
-        </button>
-      </div>
+      <TablePagination
+        page={filters.page || 1}
+        totalItems={count}
+        pageSize={20}
+        hasPrevious={(filters.page || 1) > 1}
+        hasNext={(filters.page || 1) * 20 < count}
+        loading={loading}
+        onPageChange={(page) =>
+          setFilters((current) => ({ ...current, page }))
+        }
+      />
     </section>
   );
 }

@@ -718,7 +718,9 @@ def payroll_generate_view(request):
         action=AuditAction.CREATE,
         module=AuditModule.PAYROLL,
         object_type="PayrollBatch",
-        object_id=",".join(str(payroll.id) for payroll in payrolls),
+        # The complete list belongs in metadata. Keeping the indexed identifier
+        # short prevents large payroll runs from overflowing the audit column.
+        object_id=f"batch:{payrolls[0].id}" if payrolls else "batch:empty",
         object_repr=f"{len(payrolls)} payroll records",
         description=f"{actor_name(request)} generated {len(payrolls)} payroll records.",
         new_values={"count": len(payrolls)},

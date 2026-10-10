@@ -1,6 +1,10 @@
-import { Search, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
+import Toolbar from "../../../modules/shared/erp/components/Toolbar";
+import Field from "../../../modules/shared/erp/components/Field";
+import SearchBox from "../../../modules/shared/erp/components/SearchBox";
+import ActionButton from "../../../modules/shared/erp/components/ActionButton";
 
 export default function OrderFilters({ filters, setFilters, onSearch }) {
   const { t } = useTranslation();
@@ -10,29 +14,22 @@ export default function OrderFilters({ filters, setFilters, onSearch }) {
 
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
   return (
-    <div
-      className="bg-white p-4 rounded-xl shadow flex flex-wrap items-center justify-between gap-3"
-      dir={isRTL ? "rtl" : "ltr"}
-    >
-      <div className="flex items-center gap-2">
-        <Search size={18} />
-        <input
-          type="text"
-          name="search"
-          placeholder={t("filters.search_placeholder")}
-          value={filters.search}
-          onChange={handleChange}
-          className="border rounded-lg px-3 py-1 focus:outline-none"
-        />
-      </div>
+    <div dir={isRTL ? "rtl" : "ltr"}>
+      <Toolbar title={t("filterss")} compactMobile>
+        <Field label={t("filters.search_placeholder")}>
+          <SearchBox
+            value={filters.search}
+            onChange={(value) => setFilters({ ...filters, search: value })}
+            placeholder={t("filters.search_placeholder")}
+          />
+        </Field>
 
-      <div className="flex items-center gap-2">
-        <Filter size={18} />
+        <Field label={t("table.status")}>
         <select
           name="status"
           value={filters.status}
           onChange={handleChange}
-          className="border cursor-pointer rounded-lg px-2 py-1"
+          className="theme-select w-full cursor-pointer px-3"
         >
           <option value="">{t("filters.all_statuses")}</option>
           <option value="pending">{t("status.pending")}</option>
@@ -41,33 +38,17 @@ export default function OrderFilters({ filters, setFilters, onSearch }) {
           <option value="completed">{t("status.completed")}</option>
           <option value="cancelled">{t("status.cancelled")}</option>
         </select>
-      </div>
+        </Field>
 
-      <div className="flex gap-2">
-        <label>{t("filters.from")}:</label>
-        <input
-          type="date"
-          name="start_date"
-          value={filters.start_date}
-          onChange={handleChange}
-          className="border cursor-pointer rounded-lg px-2 py-1"
-        />
-        <label>{t("filters.to")}:</label>
-        <input
-          type="date"
-          name="end_date"
-          value={filters.end_date}
-          onChange={handleChange}
-          className="border cursor-pointer rounded-lg px-2 py-1"
-        />
-      </div>
-
-      <button
-        onClick={onSearch}
-        className="bg-blue-600 cursor-pointer text-white px-4 py-1.5 rounded-lg hover:bg-blue-700"
-      >
+        <ActionButton
+          onClick={() => onSearch(1)}
+          icon={Filter}
+          variant="primary"
+          className="self-end"
+        >
         {t("filters.apply")}
-      </button>
+        </ActionButton>
+      </Toolbar>
     </div>
   );
 }

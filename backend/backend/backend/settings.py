@@ -28,7 +28,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-secret")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG =True
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 ALLOWED_HOSTS = [
@@ -38,6 +43,7 @@ ALLOWED_HOSTS = [
     'app.pakhlai.com',
     'localhost',
     '127.0.0.1',
+    '10.0.2.2',
     '10.10.10.216'
 ]   
 
@@ -99,6 +105,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://restaurant-frontend-gamma-nine.vercel.app"
 ]
 
+# Flutter web uses an available random port while running locally.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
+
 CORS_ALLOW_HEADERS = (
     *default_headers,
     "x-branch-id",
@@ -157,7 +169,7 @@ BASE_URL = "https://pakhlai.com"  # Change this to your actual domain
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
 #         'NAME': BASE_DIR / 'db.sqlite3',
-#     }ko
+#     }
 # }
 
 

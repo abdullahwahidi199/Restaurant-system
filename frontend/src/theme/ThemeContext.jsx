@@ -31,17 +31,17 @@ export const THEMES = [
   },
   {
     id: "neumorphism",
-    name: "Soft Neumorphism",
+    name: "Soft Neutral",
     description: i18n.t("theme.softNeumorphismDescription", {
       defaultValue:
-        "Soft tactile surfaces with a clean light Pakhlai interface.",
+        "A low-contrast light palette with flat operational surfaces.",
     }),
   },
   {
     id: "glass",
-    name: "Glassmorphism",
+    name: "Slate Night",
     description: i18n.t("theme.glassmorphismDescription", {
-      defaultValue: "Layered translucent surfaces with a dark Pakhlai glow.",
+      defaultValue: "A focused dark palette for low-light operations.",
     }),
   },
 ];

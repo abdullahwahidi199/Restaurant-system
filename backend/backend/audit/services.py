@@ -21,6 +21,13 @@ SENSITIVE_FIELD_NAMES = {
 }
 
 
+def bounded_audit_text(field_name, value):
+    """Normalize audit identifiers to the limits declared by the model."""
+    text = str(value or "")
+    max_length = AuditLog._meta.get_field(field_name).max_length
+    return text[:max_length] if max_length else text
+
+
 def _is_sensitive(field_name):
     normalized = str(field_name or "").lower()
     return any(part in normalized for part in SENSITIVE_FIELD_NAMES)
@@ -161,24 +168,31 @@ def create_audit_log(
         "restaurant": restaurant,
         "branch": branch,
         "user": actor if getattr(actor, "is_authenticated", False) else None,
-        "action": action,
-        "module": module,
-        "object_type": object_type or "",
-        "object_id": str(object_id or ""),
-        "object_repr": str(object_repr or "")[:255],
+        "action": bounded_audit_text("action", action),
+        "module": bounded_audit_text("module", module),
+        "object_type": bounded_audit_text("object_type", object_type),
+        "object_id": bounded_audit_text("object_id", object_id),
+        "object_repr": bounded_audit_text("object_repr", object_repr),
         "description": description or "",
         "old_values": normalize_audit_value(old_values or {}),
         "new_values": normalize_audit_value(new_values or {}),
         "metadata": normalize_audit_value(metadata or {}),
         "ip_address": get_client_ip(request),
-        "user_agent": (request.META.get("HTTP_USER_AGENT", "") if request else ""),
+        # Some production databases predate the TextField definition and still
+        # enforce varchar(100). Migration 0003 repairs that schema drift; this
+        # bound also keeps audit logging safe while deployments are rolling.
+        "user_agent": (
+            request.META.get("HTTP_USER_AGENT", "")[:100] if request else ""
+        ),
     }
 
     def _create():
         return AuditLog.objects.create(**payload)
 
     if on_commit:
-        transaction.on_commit(_create)
+        # Audit logging must not turn a completed business operation into a 500.
+        # Django logs callback failures when robust=True so they remain visible.
+        transaction.on_commit(_create, robust=True)
         return None
     return _create()
 

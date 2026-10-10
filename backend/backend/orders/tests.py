@@ -781,6 +781,37 @@ class OrderPaymentIntegrityTests(TestCase):
         self.assertIsNone(item.cancelled_at)
         self.assertEqual(order.status, "completed")
 
+    def test_cancelling_last_unfinished_item_marks_order_ready(self):
+        order, ready_item = self._create_order(
+            status="in_progress",
+            item_status="ready",
+        )
+        unfinished_item = OrderItem.objects.create(
+            order=order,
+            menu_item=self.other_station_item,
+            quantity=1,
+            price_at_order=self.other_station_item.price,
+            status="pending",
+            is_new=True,
+        )
+
+        self.client.force_authenticate(self.cashier_user)
+        response = self.client.patch(
+            f"/api/orders/order-items/{unfinished_item.id}/cancel/",
+            format="json",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["order_status"], "ready")
+        order.refresh_from_db()
+        ready_item.refresh_from_db()
+        unfinished_item.refresh_from_db()
+        self.assertEqual(order.status, "ready")
+        self.assertIsNotNone(order.preparation_end)
+        self.assertEqual(ready_item.status, "ready")
+        self.assertEqual(unfinished_item.status, "cancelled")
+
     def test_paid_delivery_order_cannot_be_assigned(self):
         order, _ = self._create_order(order_type="delivery")
         self._mark_paid(order)
@@ -931,6 +962,39 @@ class OrderRealtimeRegressionTests(TransactionTestCase):
         if data is not None:
             kwargs.update({"data": data, "format": "json"})
         return request(path, **kwargs)
+
+    def test_order_list_summary_uses_period_before_table_filters(self):
+        pending, _ = self._create_order(status="pending")
+        completed, _ = self._create_order(status="completed")
+        cancelled, _ = self._create_order(status="cancelled")
+        older_pending, _ = self._create_order(status="pending")
+
+        Order.objects.filter(pk=pending.pk).update(name="Pending guest")
+        Order.objects.filter(pk=completed.pk).update(name="Completed guest")
+        Order.objects.filter(pk=cancelled.pk).update(name="Cancelled guest")
+        Order.objects.filter(pk=older_pending.pk).update(
+            name="Older guest",
+            created_at=timezone.now() - timedelta(days=2),
+        )
+
+        today = timezone.localdate().isoformat()
+        response = self._api_request(
+            "get",
+            (
+                "/api/orders/orders/"
+                f"?start_date={today}&end_date={today}"
+                "&status=completed&search=Completed"
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], completed.id)
+        self.assertEqual(
+            response.data["summary"],
+            {"total": 3, "pending": 1, "completed": 1},
+        )
 
     def _communicator(self):
         return WebsocketCommunicator(

@@ -3,6 +3,14 @@ import React, { useContext } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "./authforRBC";
 import { getStaffLoginPath } from "../config/appEnvironment";
+import PortalLogoutButton from "../component/shared/PortalLogoutButton";
+
+const rolesWithHeaderLogout = new Set([
+  "Admin",
+  "BranchAdmin",
+  "FinanceManager",
+  "OperationsManager",
+]);
 
 export default function RequireAuth({ children, allowedRoles = [] }) {
   const { auth } = useContext(AuthContext);
@@ -31,5 +39,10 @@ export default function RequireAuth({ children, allowedRoles = [] }) {
     );
   }
 
-  return children;
+  return (
+    <>
+      {children}
+      {!rolesWithHeaderLogout.has(role) && <PortalLogoutButton />}
+    </>
+  );
 }

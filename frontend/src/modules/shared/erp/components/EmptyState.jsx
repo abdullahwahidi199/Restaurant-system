@@ -8,13 +8,13 @@ export default function EmptyState({
   action,
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-muted)] px-5 py-6 text-center">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--theme-surface)] theme-text-muted shadow-sm ring-1 ring-[var(--theme-border)]">
-        <Inbox className="h-5 w-5" />
+    <div className="rounded-lg border border-dashed border-[var(--theme-border)] bg-[var(--theme-muted)] px-4 py-5 text-center">
+      <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--theme-surface)] theme-text-muted ring-1 ring-[var(--theme-border)]">
+        <Inbox className="h-4 w-4" />
       </div>
-      <h3 className="mt-3 text-sm font-semibold theme-text-primary">{title}</h3>
+      <h3 className="mt-2.5 text-sm font-semibold theme-text-primary">{title}</h3>
       <p className="mx-auto mt-1 max-w-md text-[13px] theme-text-muted">{description}</p>
-      {action && <div className="mt-3">{action}</div>}
+      {action && <div className="mt-2.5">{action}</div>}
     </div>
   );
 }

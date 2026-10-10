@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Eye, Calendar, Users, Clock, Phone, Mail } from "lucide-react";
+import { useState } from "react";
+import { Eye, Calendar, Users, Phone } from "lucide-react";
 import ReservationDetails from "./ReservationDetails";
 import EmptyState from "../../../modules/shared/erp/components/EmptyState";
 import StatusBadge from "../../../modules/shared/erp/components/StatusBadge";
@@ -38,144 +38,94 @@ export default function ReservationsTable({ reservations }) {
     <div className="w-full">
       {/* Desktop View */}
       <div className="theme-table hidden overflow-hidden md:block">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] rtl:text-right ltr:text-left">
           <thead>
-            <tr className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-100">
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+            <tr>
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   #
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   {autoT("table.customer")}
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   {autoT("legacy.table_0424f6e7")}
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   {autoT("legacy.date_time_63ae7caf")}
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   {autoT("legacy.guests_3c23a670")}
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                   {autoT("table.status")}
                 </div>
               </th>
-              <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+              <th className="text-right">
                 {autoT("table.actions")}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {reservations.map((reservation, index) => {
+          <tbody>
+            {reservations.map((reservation) => {
               return (
                 <tr
                   key={reservation.id}
-                  className={`group hover:bg-gradient-to-r hover:from-slate-50 hover:to-blue-50 transition-all duration-300 ${
-                    index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                  }`}
+                  className="border-b border-[var(--theme-border)]"
                 >
-                  <td className="px-4 py-2.5">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 font-bold text-sm">
-                      #{reservation.reservation_number}
+                  <td className="font-semibold theme-text-primary">
+                    <span>
+                      #{reservation.reservation_number ?? reservation.id}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {reservation.customer_name}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="flex items-center gap-1 text-xs text-gray-400">
-                            <Phone className="w-3 h-3" />
-                            {reservation.phone}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                        <svg
-                          className="w-4 h-4 text-amber-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 6h16M4 12h16M4 18h16"
-                          />
-                        </svg>
-                      </div>
-                      <span className="font-medium text-gray-800 text-sm">
-                        {reservation.table_name}
+                  <td>
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="font-semibold theme-text-primary">{reservation.customer_name}</span>
+                      <span className="flex items-center gap-1 text-xs theme-text-muted">
+                        <Phone className="h-3 w-3" />
+                        {reservation.phone || "—"}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg w-fit">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700">
-                          {formatDate(reservation.reservation_date)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg w-fit">
-                        <Clock className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-xs font-medium text-blue-600">
-                          {formatTime(reservation.start_time)} -{" "}
-                          {formatTime(reservation.end_time)}
-                        </span>
-                      </div>
-                    </div>
+                  <td>
+                    <span>{reservation.table_name || "—"}</span>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-purple-600" />
-                      </div>
-                      <span className="font-semibold text-gray-700">
-                        {reservation.guests}
+                  <td>
+                    <div className="flex items-center gap-2 whitespace-nowrap text-xs">
+                      <span className="font-medium theme-text-secondary">
+                        {formatDate(reservation.reservation_date)}
                       </span>
-                      <span className="text-xs text-gray-400">{autoT("legacy.guests_f8122851")}</span>
+                      <span className="theme-text-muted">
+                        {formatTime(reservation.start_time)} – {formatTime(reservation.end_time)}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td>
+                    <span className="tabular-nums">{reservation.guests}</span>
+                  </td>
+                  <td>
                     <StatusBadge status={reservation.status} />
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td>
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelectedReservation(reservation)}
-                        className="group/btn theme-btn theme-btn-outline theme-btn-icon relative"
+                        className="theme-btn theme-btn-outline theme-btn-icon text-[var(--theme-info)]"
                         title={autoT("legacy.view_details_907b3bee")}
                         aria-label={autoT("legacy.view_details_907b3bee")}
                       >
-                        <Eye className="w-4.5 h-4.5 text-gray-500 group-hover/btn:text-blue-600 transition-colors" />
-                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                          {autoT("legacy.view_details_907b3bee")}
-                        </span>
+                        <Eye className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -184,6 +134,7 @@ export default function ReservationsTable({ reservations }) {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="md:hidden space-y-4 px-2">

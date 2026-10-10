@@ -9,11 +9,11 @@ import {
   Truck,
   Users,
   Activity,
-  Download,
 } from "lucide-react";
 import instance from "../../../api/axiosInstance";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import ErpStatusBadge from "../../../modules/shared/erp/components/StatusBadge";
+import ReportHeader from "./ReportHeader";
 
 export default function OrdersReport({ startDate, endDate }) {
                  const { t: autoT } = useAutoTranslation();
@@ -101,96 +101,96 @@ export default function OrdersReport({ startDate, endDate }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 bg-white rounded-lg shadow-sm">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <>
+        <ReportHeader
+          onExport={handleGeneratePDF}
+          exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+          disabled
+        />
+        <div className="theme-card flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--theme-border)] border-t-[var(--theme-primary)]" />
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg border border-red-200">
-        {error}
-      </div>
+      <>
+        <ReportHeader
+          onExport={handleGeneratePDF}
+          exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+          disabled
+        />
+        <div className="rounded-lg border border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] p-4 text-sm text-[var(--theme-danger-hover)]">
+          {error}
+        </div>
+      </>
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <ReportHeader
+        onExport={handleGeneratePDF}
+        exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+        disabled
+      />
+    );
+  }
 
   return (
-    <div className="bg-gray-50 min-h-screen p-6 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">{autoT("menu_item_sales.orders_report")}</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {autoT("legacy.showing_data_from_255a40bc")}{" "}
-              <span className="font-medium">{data.range.start}</span> {autoT("to")}{" "}
-              <span className="font-medium">{data.range.end}</span>
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <div className="px-3 py-2 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-              {autoT("legacy.total_orders_7c2384ae")} {data.totals.total_orders}
-            </div>
-
-            {/* ✅ PDF Button */}
-            <button
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow"
-            >
-              <Download size={16} />
-              {autoT("inventory_manager.reports.generate_pdf")}
-            </button>
-          </div>
-        </div>
+    <div className="min-w-0 space-y-4">
+        <ReportHeader
+          onExport={handleGeneratePDF}
+          exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+        />
 
         {/* Menu Item Search */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        <div className="theme-card p-3.5">
+          <h3 className="mb-3 text-sm font-semibold theme-text-primary">
             {autoT("legacy.menu_item_sales_lookup_2299fa52")}
           </h3>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               type="text"
               value={itemSearch}
               onChange={(e) => setItemSearch(e.target.value)}
               placeholder={autoT("legacy.enter_menu_item_name_b5b27bc8")}
-              className="flex-1 border rounded-lg px-3 py-2 text-sm"
+              className="theme-input h-9 min-w-0 flex-1 px-3 text-sm"
             />
 
             <button
               onClick={handleItemSearch}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
+              className="theme-btn theme-btn-outline h-9 px-4"
             >
               {autoT("legacy.search_bce06414")}
             </button>
           </div>
 
           {searchLoading && (
-            <p className="text-xs text-gray-400 mt-2">{autoT("legacy.searching_ba2b5a5f")}</p>
+            <p className="mt-2 text-xs theme-text-muted">{autoT("legacy.searching_ba2b5a5f")}</p>
           )}
 
           {itemResult && itemResult.length > 0 && (
-            <div className="mt-4 border-t pt-3">
+            <div className="mt-4 divide-y divide-[var(--theme-border)] border-t border-[var(--theme-border)] pt-2">
               {itemResult.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between py-2 border-b last:border-0"
+                  className="flex items-center justify-between gap-3 py-2"
                 >
                   <div>
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium theme-text-primary">
                       {item.menu_item__name || item.platter__name}
                     </p>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-700">
+                  <div className="text-end">
+                    <p className="text-sm font-semibold theme-text-primary">
                       {item.total_sold} {autoT("legacy.sold_147f6d85")}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs theme-text-muted">
                       {formatCurrency(item.total_revenue)}
                     </p>
                   </div>
@@ -200,87 +200,80 @@ export default function OrdersReport({ startDate, endDate }) {
           )}
 
           {itemResult && itemResult.length === 0 && (
-            <p className="text-xs text-gray-400 mt-2">{autoT("legacy.no_results_found_658e79f9")}</p>
+            <p className="mt-2 text-xs theme-text-muted">{autoT("legacy.no_results_found_658e79f9")}</p>
           )}
         </div>
         {/* Key Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             title={autoT("overview.totalRevenue")}
             value={formatCurrency(data.totals.total_revenue)}
-            icon={<DollarSign className="text-green-600" size={20} />}
+            icon={<DollarSign size={20} />}
             subtext={`Lost: ${formatCurrency(data.totals.lost_revenue)}`}
-            color="bg-green-50"
           />
           <MetricCard
             title={autoT("stats.total_orders")}
             value={data.totals.total_orders}
-            icon={<ShoppingBag className="text-blue-600" size={20} />}
+            icon={<ShoppingBag size={20} />}
             subtext={`Avg Value: ${formatCurrency(data.totals.average_order_value)}`}
-            color="bg-blue-50"
           />
           <MetricCard
             title={autoT("stats.completed")}
             value={data.totals.completed_orders}
-            icon={<CheckCircle className="text-emerald-600" size={20} />}
-            color="bg-emerald-50"
+            icon={<CheckCircle size={20} />}
           />
           <MetricCard
             title={autoT("status.cancelled")}
             value={data.totals.cancelled_orders}
-            icon={<XCircle className="text-red-600" size={20} />}
+            icon={<XCircle size={20} />}
             subtext={autoT("nav.orders")}
-            color="bg-red-50"
           />
         </div>
 
         {/* NEW: Revenue Breakdown Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <MetricCard
             title={autoT("legacy.food_revenue_fb1c5455")}
             value={formatCurrency(data.totals.food_revenue)}
-            icon={<Utensils className="text-orange-600" size={20} />}
-            color="bg-orange-50"
+            icon={<Utensils size={20} />}
           />
           <MetricCard
             title={autoT("legacy.delivery_revenue_39546555")}
             value={formatCurrency(data.totals.delivery_revenue)}
-            icon={<Truck className="text-blue-600" size={20} />}
-            color="bg-blue-50"
+            icon={<Truck size={20} />}
           />
           <MetricCard
             title={autoT("legacy.reservation_revenue_96c94fb3")}
             value={formatCurrency(data.totals.reservation_revenue)}
-            icon={<Users className="text-purple-600" size={20} />}
-            color="bg-purple-50"
+            icon={<Users size={20} />}
           />
         </div>
 
         {/* Middle Section: Order Types & Status */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* By Order Type */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          <div className="theme-card p-3.5">
+            <h3 className="mb-4 text-sm font-semibold theme-text-primary">
               {autoT("legacy.by_order_type_6fd39576")}
             </h3>
             <div className="space-y-4">
               {data.by_type.map((type, index) => (
                 <div key={index}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="capitalize font-medium text-gray-700">
+                  <div className="mb-1 flex justify-between gap-3 text-sm">
+                    <span className="capitalize font-medium theme-text-primary">
                       {type.order_type}
                     </span>
-                    <span className="text-gray-500">{type.count} {autoT("legacy.orders_96584038")}</span>
+                    <span className="theme-text-muted">{type.count} {autoT("legacy.orders_96584038")}</span>
                   </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--theme-muted)]">
                     <div
-                      className="bg-blue-600 h-2.5 rounded-full"
+                      className="h-2 rounded-full bg-[var(--theme-primary)]"
                       style={{
                         width: `${(type.count / data.totals.total_orders) * 100}%`,
                       }}
                     ></div>
                   </div>
-                  <div className="text-right text-xs text-gray-500 mt-1">
+                  <div className="mt-1 text-end text-xs theme-text-muted">
                     {formatCurrency(type.revenue)}
                   </div>
                 </div>
@@ -289,17 +282,17 @@ export default function OrdersReport({ startDate, endDate }) {
           </div>
 
           {/* By Status */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          <div className="theme-card p-3.5">
+            <h3 className="mb-4 text-sm font-semibold theme-text-primary">
               {autoT("legacy.order_status_a15b0b10")}
             </h3>
             <div className="space-y-3">
               {data.by_status.map((status, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50"
+                  className="flex items-center justify-between rounded-lg p-2 transition hover:bg-[var(--theme-hover)]"
                 >
-                  <span className="capitalize text-sm text-gray-700">
+                  <span className="text-sm capitalize theme-text-secondary">
                     {status.status.replace("_", " ")}
                   </span>
                   <StatusBadge count={status.count} status={status.status} />
@@ -309,27 +302,27 @@ export default function OrdersReport({ startDate, endDate }) {
           </div>
 
           {/* Top Items */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          <div className="theme-card p-3.5">
+            <h3 className="mb-4 text-sm font-semibold theme-text-primary">
               {autoT("menu_item_sales.top_selling_items")}
             </h3>
             <div className="space-y-4">
               {data.top_items.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--theme-primary-soft)] text-xs font-semibold text-[var(--theme-primary)]">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium theme-text-primary">
                         {item.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs theme-text-muted">
                         {item.quantity_sold} {autoT("legacy.sold_147f6d85")}
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-semibold theme-text-primary">
                     {formatCurrency(item.revenue)}
                   </span>
                 </div>
@@ -339,34 +332,34 @@ export default function OrdersReport({ startDate, endDate }) {
         </div>
 
         {/* Bottom Section: Performance & Daily Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 gap-4">
           {/* Daily Breakdown */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <Activity size={20} className="text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-800">
+          <div className="theme-table overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-[var(--theme-border)] p-4">
+              <Activity size={18} className="text-[var(--theme-primary)]" />
+              <h3 className="text-sm font-semibold theme-text-primary">
                 {autoT("legacy.daily_breakdown_b37690b6")}
               </h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-500">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+              <table className="w-full min-w-[520px] text-start text-sm">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 rounded-l-lg">{autoT("table.date")}</th>
+                    <th className="px-4 py-3 text-start">{autoT("table.date")}</th>
                     <th className="px-4 py-3">{autoT("nav.orders")}</th>
-                    <th className="px-4 py-3 rounded-r-lg text-right">
+                    <th className="px-4 py-3 text-end">
                       {autoT("dashboard.best_selling.revenue")}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.daily_breakdown.map((day, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">
+                    <tr key={index} className="border-t border-[var(--theme-border)] transition hover:bg-[var(--theme-hover)]">
+                      <td className="px-4 py-3 font-medium theme-text-primary">
                         {day.date}
                       </td>
-                      <td className="px-4 py-3">{day.orders}</td>
-                      <td className="px-4 py-3 text-right font-medium text-green-600">
+                      <td className="px-4 py-3 theme-text-secondary">{day.orders}</td>
+                      <td className="px-4 py-3 text-end font-semibold text-[var(--theme-primary)]">
                         {formatCurrency(day.revenue)}
                       </td>
                     </tr>
@@ -378,25 +371,29 @@ export default function OrdersReport({ startDate, endDate }) {
         </div>
 
         {/* Average Prep Time (Footer Note) */}
-        <div className="text-center text-xs text-gray-400 mt-8">
-          {autoT("legacy.average_preparation_time_2daaeca2")}{" "}
-          {formatNumber(data.totals.average_preparation_minutes)} {autoT("legacy.minutes_be2e2bb6")}
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)] px-3 py-2 text-xs theme-text-muted">
+          <Clock className="h-4 w-4 text-[var(--theme-primary)]" aria-hidden="true" />
+          <span>
+            {autoT("legacy.average_preparation_time_2daaeca2")}{" "}
+            <strong className="font-semibold theme-text-primary">
+              {formatNumber(data.totals.average_preparation_minutes)} {autoT("legacy.minutes_be2e2bb6")}
+            </strong>
+          </span>
         </div>
-      </div>
     </div>
   );
 }
 
-function MetricCard({ title, value, icon, subtext, color }) {
+function MetricCard({ title, value, icon, subtext }) {
   return (
-    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-        <h2 className="text-2xl font-bold text-gray-800">{value}</h2>
-        {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
+    <article className="theme-kpi-card flex min-w-0 items-start justify-between gap-3 p-3.5">
+      <div className="min-w-0">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide theme-text-muted">{title}</p>
+        <p className="truncate text-xl font-semibold tabular-nums theme-text-primary" title={String(value)}>{value}</p>
+        {subtext && <p className="mt-1 truncate text-xs theme-text-muted">{subtext}</p>}
       </div>
-      <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
-    </div>
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--theme-primary-soft)] text-[var(--theme-primary)]">{icon}</div>
+    </article>
   );
 }
 

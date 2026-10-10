@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Customer
+from .models import Customer, CustomerAddress
+from django.db import transaction
+import math
 from django.contrib.auth import authenticate
 
 
@@ -75,3 +77,57 @@ class CustomerLoginSerializer(serializers.Serializer):
             data['user'] = user
             return data
         raise serializers.ValidationError("Invalid credentials or no customer profile")
+
+
+class CustomerAddressSerializer(serializers.ModelSerializer):
+    latitude = serializers.FloatField(required=False, allow_null=True, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, allow_null=True, min_value=-180, max_value=180)
+    class Meta:
+        model = CustomerAddress
+        fields = [
+            "id",
+            "label",
+            "address_line",
+            "area",
+            "city",
+            "instructions",
+            "latitude",
+            "longitude",
+            "is_default",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        latitude = attrs.get("latitude", getattr(self.instance, "latitude", None))
+        longitude = attrs.get("longitude", getattr(self.instance, "longitude", None))
+        if (latitude is None) != (longitude is None):
+            raise serializers.ValidationError(
+                {"location": "Latitude and longitude must be provided together."}
+            )
+        if latitude is not None and not (math.isfinite(latitude) and math.isfinite(longitude)):
+            raise serializers.ValidationError({"location": "Enter valid coordinates."})
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        customer = validated_data["customer"]
+        Customer.objects.select_for_update().get(pk=customer.pk)
+        if not customer.addresses.exists():
+            validated_data["is_default"] = True
+        address = super().create(validated_data)
+        if address.is_default:
+            customer.addresses.exclude(pk=address.pk).update(is_default=False)
+        return address
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        Customer.objects.select_for_update().get(pk=instance.customer_id)
+        if instance.is_default and validated_data.get("is_default") is False:
+            # Clearing the only default would leave checkout without a selection.
+            validated_data["is_default"] = True
+        address = super().update(instance, validated_data)
+        if address.is_default:
+            address.customer.addresses.exclude(pk=address.pk).update(is_default=False)
+        return address

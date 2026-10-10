@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -90,6 +90,39 @@ class AuditUtilityTests(TestCase):
         log.description = "Changed later"
         with self.assertRaises(ValueError):
             log.save()
+
+    def test_legacy_length_limits_do_not_break_audit_creation(self):
+        restaurant, branch = create_restaurant("Audit Lengths")
+        request = RequestFactory().post(
+            "/api/users/payrolls/generate/",
+            HTTP_USER_AGENT="modern-browser/" + ("x" * 200),
+        )
+
+        log = create_audit_log(
+            request=request,
+            restaurant=restaurant,
+            branch=branch,
+            action=AuditAction.CREATE,
+            module=AuditModule.PAYROLL,
+            object_type="PayrollBatch" * 20,
+            object_id=",".join(str(value) for value in range(100)),
+            object_repr="Payroll records" * 30,
+            on_commit=False,
+        )
+
+        self.assertEqual(len(log.user_agent), 100)
+        self.assertLessEqual(
+            len(log.object_type),
+            AuditLog._meta.get_field("object_type").max_length,
+        )
+        self.assertLessEqual(
+            len(log.object_id),
+            AuditLog._meta.get_field("object_id").max_length,
+        )
+        self.assertLessEqual(
+            len(log.object_repr),
+            AuditLog._meta.get_field("object_repr").max_length,
+        )
 
 
 class AuditApiIsolationTests(TestCase):

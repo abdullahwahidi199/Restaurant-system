@@ -308,7 +308,7 @@ const CashierManagement = () => {
     getDeliveryBoys();
   }, []);
   return (
-    <div className="rms-standalone-workspace min-h-screen bg-[var(--theme-background)] p-4 sm:p-5 lg:p-6">
+    <div className="rms-standalone-workspace min-h-screen bg-[var(--theme-background)] p-3 sm:p-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h1 className="text-2xl font-bold">{autoT("legacy.cashier_orders_c2c457fc")}</h1>

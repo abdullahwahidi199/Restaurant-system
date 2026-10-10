@@ -17,7 +17,7 @@ const normalizePaginatedResponse = (data) =>
       };
 
 export default function DiscountRequestMain() {
-                 const { t: autoT } = useAutoTranslation();
+  const { t: autoT } = useAutoTranslation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +63,7 @@ export default function DiscountRequestMain() {
 
   const approveRequest = async (id) => {
     try {
-      const res = await instance.patch(
+      await instance.patch(
         `/orders/discounts/${id}/approveOrReject/`,
         {
           action: "approve",
@@ -78,7 +78,7 @@ export default function DiscountRequestMain() {
 
   const rejectRequest = async (id) => {
     try {
-      const res = await instance.patch(
+      await instance.patch(
         `/orders/discounts/${id}/approveOrReject/`,
         {
           action: "reject",
@@ -126,7 +126,7 @@ export default function DiscountRequestMain() {
   }
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 md:flex-row md:items-center">
+      <div className="theme-card flex flex-col gap-2 p-3 md:flex-row md:items-center">
         <input
           type="search"
           value={search}
@@ -135,7 +135,7 @@ export default function DiscountRequestMain() {
             setSearch(event.target.value);
           }}
           placeholder={autoT("legacy.search_order_table_customer_reason_d05d8939")}
-          className="min-w-0 flex-1 rounded-md border border-gray-200 px-3 py-2 text-sm"
+          className="theme-input h-9 min-w-0 flex-1 px-3"
         />
         <button
           type="button"
@@ -143,12 +143,17 @@ export default function DiscountRequestMain() {
             setPage(1);
             setSearch("");
           }}
-          className="rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          className="theme-btn theme-btn-outline h-9 px-3"
         >
           {autoT("inventory_manager.common.reset")}
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {error && (
+        <div className="rounded-lg border border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] px-4 py-3 text-sm text-[var(--theme-danger-hover)]">
+          {error}
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {requests.length > 0 ? (
           requests.map((req) => (
             <DiscountRequestCard

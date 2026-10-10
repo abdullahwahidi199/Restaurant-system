@@ -15,7 +15,7 @@ export default function AdvanceTable({ advances }) {
         { key: "employee", header: "Employee", render: (advance) => advance.staff_name },
         { key: "reason", header: "Reason", render: (advance) => advance.reason || advance.notes || "-" },
         { key: "applied", header: "Applied", render: (advance) => <StatusBadge status={advance.is_applied ? "applied" : "open"} /> },
-        { key: "amount", header: "Amount", className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary", render: (advance) => money(advance.amount) },
+        { key: "amount", header: "Amount", className: "text-right font-semibold tabular-nums theme-text-primary", render: (advance) => money(advance.amount) },
       ]}
     />
   );

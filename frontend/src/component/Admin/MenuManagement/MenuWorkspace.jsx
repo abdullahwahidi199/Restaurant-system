@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import {
   closestCenter,
@@ -232,7 +232,7 @@ function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       type="button"
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-gray-950 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-[var(--theme-primary)] px-3 text-xs font-semibold text-[var(--theme-text-inverse)] shadow-sm transition hover:bg-[var(--theme-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       {...props}
     >
       {children}
@@ -252,7 +252,8 @@ function SecondaryButton({ children, className = "", ...props }) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, tone = "slate" }) {
+function StatCard({ icon, label, value, tone = "slate" }) {
+  const StatIcon = icon;
   const tones = {
     slate: "bg-slate-50 text-slate-700 ring-slate-200",
     emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -263,7 +264,7 @@ function StatCard({ icon: Icon, label, value, tone = "slate" }) {
   };
 
   return (
-    <motion.div
+    <Motion.div
       className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
     >
       <div className="flex items-center justify-between gap-3">
@@ -274,10 +275,10 @@ function StatCard({ icon: Icon, label, value, tone = "slate" }) {
         <span
           className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ring-1 ${tones[tone]}`}
         >
-          <Icon className="h-4 w-4" />
+          <StatIcon className="h-4 w-4" />
         </span>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -313,7 +314,7 @@ function EmptyState({ canManage, onAddCategory, onAddItem, hasCategory }) {
   return (
     <div className="flex min-h-[380px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
       <div className="max-w-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
           <PackageOpen className="h-7 w-7" />
         </div>
         <h3 className="mt-5 text-lg font-semibold text-gray-950">
@@ -363,9 +364,9 @@ function CategoryRail({
         <button
           type="button"
           onClick={() => onSelect("all")}
-          className={`flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+          className={`flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] ${
             String(selectedCategoryId) === "all"
-              ? "bg-gray-950 text-white shadow-sm"
+              ? "bg-[var(--theme-primary)] text-[var(--theme-text-inverse)] shadow-sm"
               : "text-gray-700 hover:bg-gray-50"
           }`}
         >
@@ -403,9 +404,9 @@ function CategoryRail({
               <button
                 type="button"
                 onClick={() => onSelect(category.id)}
-                className={`flex h-10 min-w-[150px] max-w-[220px] items-center gap-2 rounded-lg px-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-gray-900 ${
+                className={`flex h-10 min-w-[150px] max-w-[220px] items-center gap-2 rounded-lg px-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] ${
                   isSelected
-                    ? "bg-gray-950 text-white shadow-sm"
+                    ? "bg-[var(--theme-primary)] text-[var(--theme-text-inverse)] shadow-sm"
                     : "text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -493,7 +494,7 @@ function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveIt
 
       <AnimatePresence>
         {open && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
@@ -542,7 +543,7 @@ function ItemActionMenu({ item, detailPath, canManage, categories = [], onMoveIt
                 </select>
               </label>
             )}
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -589,7 +590,7 @@ function ItemCard({
   const detailPath = getDetailPath(item, detailBase);
 
   return (
-    <motion.article
+    <Motion.article
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -671,7 +672,7 @@ function ItemCard({
           onMoveItem={onMoveItem}
         />
       </div>
-    </motion.article>
+    </Motion.article>
   );
 }
 
@@ -1270,8 +1271,8 @@ export default function MenuWorkspace({
     sortBy !== "menu_order";
 
   return (
-    <div className="min-h-screen bg-gray-50" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="mx-auto max-w-7xl space-y-3">
+    <div className="min-w-0" dir={isRTL ? "rtl" : "ltr"}>
+      <div className="w-full space-y-3">
         <section className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
@@ -1581,7 +1582,7 @@ export default function MenuWorkspace({
                         items={visibleItems.map((item) => item.stableKey)}
                         strategy={rectSortingStrategy}
                       >
-                        <motion.div
+                        <Motion.div
                           layout
                           className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                         >
@@ -1610,7 +1611,7 @@ export default function MenuWorkspace({
                               )}
                             </SortableMenuItem>
                           ))}
-                        </motion.div>
+                        </Motion.div>
                       </SortableContext>
                     </DndContext>
                   ) : (
@@ -1638,7 +1639,7 @@ export default function MenuWorkspace({
 
       <AnimatePresence>
         {selectedItems.length > 0 && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
@@ -1664,7 +1665,7 @@ export default function MenuWorkspace({
                 </SecondaryButton>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 

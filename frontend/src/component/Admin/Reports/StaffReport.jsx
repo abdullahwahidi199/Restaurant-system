@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import instance from "../../../api/axiosInstance";
 import {
   DollarSign,
@@ -10,11 +10,11 @@ import {
   Truck,
   Users,
   Activity,
-  Download,
 } from "lucide-react";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import ErpStatusBadge from "../../../modules/shared/erp/components/StatusBadge";
+import ReportHeader from "./ReportHeader";
 const formatCurrency = (value = 0) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -65,32 +65,32 @@ function StatusBadge({ status }) {
 
 function SectionCard({ title, subtitle, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="theme-card p-4">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        <h3 className="text-sm font-semibold theme-text-primary">{title}</h3>
+        {subtitle && <p className="mt-1 text-xs theme-text-muted">{subtitle}</p>}
       </div>
       {children}
     </section>
   );
 }
 
-function StatCard({ label, value, helper, dotClass = "bg-blue-500" }) {
+function StatCard({ label, value, helper }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+    <div className="theme-kpi-card p-3.5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <span className={`h-2.5 w-2.5 rounded-full ${dotClass}`} />
+        <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">{label}</p>
+        <span className="h-2 w-2 rounded-full bg-[var(--theme-primary)]" />
       </div>
-      <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
-      {helper && <p className="mt-2 text-sm text-slate-500">{helper}</p>}
+      <p className="mt-2 truncate text-xl font-semibold tabular-nums theme-text-primary" title={String(value)}>{value}</p>
+      {helper && <p className="mt-1 truncate text-xs theme-text-muted">{helper}</p>}
     </div>
   );
 }
 
 function EmptyState({ message }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+    <div className="rounded-lg border border-dashed border-[var(--theme-border-strong)] bg-[var(--theme-muted)] px-4 py-8 text-center text-sm theme-text-muted">
       {message}
     </div>
   );
@@ -98,37 +98,37 @@ function EmptyState({ message }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}
-            className="h-32 animate-pulse rounded-2xl border border-slate-200 bg-slate-100"
+            className="h-28 animate-pulse rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)]"
           />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
-        <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="h-72 animate-pulse rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)]" />
+        <div className="h-72 animate-pulse rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)]" />
       </div>
 
-      <div className="h-80 animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
+      <div className="h-80 animate-pulse rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)]" />
     </div>
   );
 }
 
 function DataTable({ columns, rows, emptyText = i18n.t("legacy.no_data_available_929ebf20") }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
+    <div className="theme-table overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50">
+        <table className="min-w-full text-sm">
+          <thead>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key || column.label}
-                  className="whitespace-nowrap px-4 py-3 text-left font-medium text-slate-600"
+                  className="whitespace-nowrap px-4 py-3 text-start font-medium"
                 >
                   {column.label}
                 </th>
@@ -136,17 +136,17 @@ function DataTable({ columns, rows, emptyText = i18n.t("legacy.no_data_available
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-[var(--theme-border)]">
             {rows?.length ? (
               rows.map((row, rowIndex) => (
                 <tr
                   key={`${row.staff_id ?? row.id ?? row.date ?? rowIndex}-${rowIndex}`}
-                  className="hover:bg-slate-50"
+                  className="transition hover:bg-[var(--theme-hover)]"
                 >
                   {columns.map((column) => (
                     <td
                       key={column.key || column.label}
-                      className="whitespace-nowrap px-4 py-3 text-slate-700"
+                      className="whitespace-nowrap px-4 py-3 theme-text-secondary"
                     >
                       {column.render
                         ? column.render(row[column.key], row, rowIndex)
@@ -159,7 +159,7 @@ function DataTable({ columns, rows, emptyText = i18n.t("legacy.no_data_available
               <tr>
                 <td
                   colSpan={Math.max(columns.length, 1)}
-                  className="px-4 py-8 text-center text-slate-500"
+                  className="px-4 py-8 text-center theme-text-muted"
                 >
                   {emptyText}
                 </td>
@@ -238,7 +238,6 @@ export default function StaffReport({ startDate, endDate }) {
   }, [startDate, endDate, fetchStaffReport]);
 
   const report = reportData?.data || {};
-  const range = report.range || {};
   const totals = report.totals || {};
   const byRole = report.by_role || [];
   const attendanceSummary = report.attendance_summary || [];
@@ -253,66 +252,19 @@ export default function StaffReport({ startDate, endDate }) {
   const advanceHistory = report.advance_history || [];
   const employeeEarnings = report.employee_earnings || [];
   const employeeDeductions = report.employee_deductions || [];
-  const topPerformers = report.top_performers || [];
-
-  const payrollColumns = useMemo(() => {
-    if (!payrollSummary.length) return [];
-
-    return Object.keys(payrollSummary[0]).map((key) => ({
-      key,
-      label: formatLabel(key),
-      render: (value) => formatValue(key, value),
-    }));
-  }, [payrollSummary]);
-
   const hasReport = !!reportData;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-              {formatLabel(reportData?.type || "staff")} {autoT("legacy.report_ee45c303")}
-            </p>
-
-            <h2 className="mt-1 text-2xl font-bold text-slate-900">
-              {autoT("legacy.staff_performance_attendance_overview_0b144846")}
-            </h2>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <span className="rounded-full bg-slate-100 px-3 py-1">
-                {autoT("legacy.requested_0bb6adcc")}{" "}
-                {reportData?.start && reportData?.end
-                  ? `${formatDate(reportData.start)} - ${formatDate(reportData.end)}`
-                  : autoT("legacy.no_date_selected_d4ee6469")}
-              </span>
-
-              <span className="rounded-full bg-slate-100 px-3 py-1">
-                {autoT("legacy.range_92b69b2b")}{" "}
-                {range?.start && range?.end
-                  ? `${formatDate(range.start)} - ${formatDate(range.end)}`
-                  : autoT("no_data")}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow"
-            >
-              <Download size={16} />
-              {autoT("inventory_manager.reports.generate_pdf")}
-            </button>
-          </div>
-        </div>
-      </section>
+    <div className="space-y-4">
+      <ReportHeader
+        onExport={handleGeneratePDF}
+        exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+        disabled={loading || !hasReport}
+      />
 
       {/* Error */}
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] px-4 py-3 text-sm text-[var(--theme-danger-hover)]">
           {error}
         </div>
       )}
@@ -395,7 +347,7 @@ export default function StaffReport({ startDate, endDate }) {
           </div>
 
           {/* Role + Attendance Breakdown */}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <SectionCard
               title={autoT("legacy.staff_by_role_bbcc24bd")}
               subtitle={autoT("legacy.distribution_of_employees_across_roles_672132d0")}
@@ -411,21 +363,21 @@ export default function StaffReport({ startDate, endDate }) {
                       <div key={`${item.role}-${index}`}>
                         <div className="mb-2 flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-slate-800">
+                            <p className="font-medium theme-text-primary">
                               {formatLabel(item.role)}
                             </p>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs theme-text-muted">
                               {formatPercent(percentage)} {autoT("legacy.of_total_staff_b9a1e0ed")}
                             </p>
                           </div>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                          <span className="rounded-md bg-[var(--theme-muted)] px-2.5 py-1 text-xs font-semibold theme-text-secondary">
                             {item.count}
                           </span>
                         </div>
 
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--theme-muted)]">
                           <div
-                            className="h-full rounded-full bg-blue-500"
+                            className="h-full rounded-full bg-[var(--theme-primary)]"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -454,19 +406,19 @@ export default function StaffReport({ startDate, endDate }) {
                         <div className="mb-2 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <StatusBadge status={item.status} />
-                            <span className="text-sm text-slate-600">
+                            <span className="text-sm theme-text-secondary">
                               {formatPercent(percentage)}
                             </span>
                           </div>
 
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                          <span className="rounded-md bg-[var(--theme-muted)] px-2.5 py-1 text-xs font-semibold theme-text-secondary">
                             {item.count}
                           </span>
                         </div>
 
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--theme-muted)]">
                           <div
-                            className="h-full rounded-full bg-emerald-500"
+                            className="h-full rounded-full bg-[var(--theme-primary)]"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -508,7 +460,7 @@ export default function StaffReport({ startDate, endDate }) {
           </SectionCard>
 
           {/* Performance Tables */}
-          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-3">
             <SectionCard
               title={autoT("legacy.waiter_performance_bc62cb45")}
               subtitle={autoT("legacy.orders_handled_completed_orders_and_revenue_1695bf4e")}
@@ -587,7 +539,7 @@ export default function StaffReport({ startDate, endDate }) {
             </SectionCard>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
             <SectionCard
               title={autoT("legacy.salary_history_f6ce559d")}
               subtitle={autoT("legacy.current_salary_profile_configured_for_each_employee_6f4cecb0")}
@@ -701,7 +653,7 @@ export default function StaffReport({ startDate, endDate }) {
             />
           </SectionCard>
 
-          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
             <SectionCard
               title={autoT("legacy.payment_history_cfeba031")}
               subtitle={autoT("legacy.salary_payment_trail_and_references_3c4f960c")}
@@ -752,7 +704,7 @@ export default function StaffReport({ startDate, endDate }) {
             </SectionCard>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
             <SectionCard
               title={autoT("legacy.employee_earnings_141e24ce")}
               subtitle={autoT("legacy.approved_payroll_earnings_payments_and_outstanding_bal_acda231c")}

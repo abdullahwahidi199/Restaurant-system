@@ -58,7 +58,7 @@ export default function ProcurementDashboard({
                   key={supplier.id}
                   type="button"
                   onClick={() => onOpenSupplier(supplier)}
-                  className="min-h-[54px] w-full py-2.5 text-left transition hover:bg-[var(--theme-hover)]"
+                  className="min-h-11 w-full py-2 text-left transition hover:bg-[var(--theme-hover)]"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[13px] font-semibold theme-text-primary">{supplier.name}</span>
@@ -85,7 +85,7 @@ export default function ProcurementDashboard({
                 key={invoice.id}
                 type="button"
                 onClick={() => onOpenInvoice(invoice)}
-                className="flex min-h-[52px] w-full items-center justify-between gap-3 py-2.5 text-left transition hover:bg-[var(--theme-hover)]"
+                className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left transition hover:bg-[var(--theme-hover)]"
               >
                 <div>
                   <p className="text-[13px] font-semibold theme-text-primary">

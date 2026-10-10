@@ -65,7 +65,7 @@ export default function PayrollRun({ form, staffOptions, saving, onChange, onTog
                   key={employee.value}
                   onClick={() => onToggleStaff(employee.value)}
                   aria-pressed={selected}
-                  className={`flex min-h-[52px] w-full items-center gap-3 border-b border-[var(--theme-border)] px-3 py-2 text-left transition last:border-b-0 ${selected ? "bg-[var(--theme-primary-subtle)]" : "hover:bg-[var(--theme-hover)]"}`}
+                  className={`flex min-h-11 w-full items-center gap-2.5 border-b border-[var(--theme-border)] px-3 py-1.5 text-left transition last:border-b-0 ${selected ? "bg-[var(--theme-primary-subtle)]" : "hover:bg-[var(--theme-hover)]"}`}
                 >
                   <span className={`flex h-4 w-4 flex-none items-center justify-center rounded border ${selected ? "border-[var(--theme-primary)] bg-[var(--theme-primary)] text-[var(--theme-text-inverse)]" : "border-[var(--theme-border-strong)]"}`}>
                     {selected && <Check className="h-3 w-3" />}

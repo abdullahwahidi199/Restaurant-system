@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import ManagerTablesDisplay from "./ManagerTables";
+import ManagerTablesDisplay from "./ManagerTablesWorkspace";
 import instance from "../../../api/axiosInstance";
 import useOrdersSocket from "../../../hooks/useOrdersSocket";
-import { useTranslation as useAutoTranslation } from "react-i18next";
 import {
   applyOrderSnapshotToTable,
   applyTableItemsSnapshot,
@@ -12,7 +11,6 @@ import {
 } from "../../../utils/orderSnapshot";
 
 export default function ManagerTablesHome() {
-                 const { t: autoT } = useAutoTranslation();
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,6 +20,7 @@ export default function ManagerTablesHome() {
   const fetchTables = async () => {
     const revisionAtStart = socketRevisionRef.current;
     try {
+      setError(null);
       const res = await instance.get("/orders/tables/", {
         params: { view: "panel" },
       });
@@ -94,18 +93,13 @@ export default function ManagerTablesHome() {
   // SOCKET CONNECTION
   useOrdersSocket(handleTableMessage, fetchTables);
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-500">{autoT("loading_tables")}</p>
-      </div>
-    );
-
-  if (error) return <p>{error}</p>;
-
   return (
-    <div>
-      <ManagerTablesDisplay tables={tables} refetchTables={fetchTables} />
-    </div>
+    <ManagerTablesDisplay
+      tables={tables}
+      loading={loading}
+      error={error}
+      onDismissError={() => setError(null)}
+      refetchTables={fetchTables}
+    />
   );
 }

@@ -1,5 +1,13 @@
 # React + Vite
 
+## Pakhlai app download
+
+The marketplace landing page has public Android download buttons in its header,
+mobile menu, hero, and footer. Build the signed Flutter APK, run
+`npm run publish:android`, then `npm run build` and deploy the complete `dist`
+directory. See [download hosting notes](public/downloads/README.md) and
+[Android release setup](../app/README.md#android-website-download).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

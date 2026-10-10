@@ -330,6 +330,9 @@ class PublicBranchSerializer(serializers.ModelSerializer):
     public_url = serializers.SerializerMethodField()
     effective_delivery_available = serializers.SerializerMethodField()
     effective_min_order_amount = serializers.SerializerMethodField()
+    base_delivery_fee = serializers.SerializerMethodField()
+    price_per_km = serializers.SerializerMethodField()
+    delivery_radius_km = serializers.SerializerMethodField()
     is_open = serializers.SerializerMethodField()
     qr_code = serializers.ImageField(read_only=True)
 
@@ -351,6 +354,7 @@ class PublicBranchSerializer(serializers.ModelSerializer):
             "delivery_available",
             "effective_delivery_available",
             "effective_min_order_amount",
+            "base_delivery_fee", "price_per_km", "delivery_radius_km", "is_main_branch",
             "is_open",
         ]
 
@@ -368,12 +372,16 @@ class PublicBranchSerializer(serializers.ModelSerializer):
         return obj.restaurant.min_order_amount
 
     def get_is_open(self, obj):
-        if not obj.is_active:
-            return False
-        opening_hours = (obj.opening_hours or obj.restaurant.opening_hours or "").lower()
-        if "closed" in opening_hours:
-            return False
-        return True
+        return _branch_is_open(obj)
+
+    def get_base_delivery_fee(self, obj):
+        return _effective_branch_value(obj, "base_delivery_fee")
+
+    def get_price_per_km(self, obj):
+        return _effective_branch_value(obj, "price_per_km")
+
+    def get_delivery_radius_km(self, obj):
+        return _effective_branch_value(obj, "delivery_radius_km")
 
 
 class PublicRestaurantSerializer(serializers.ModelSerializer):
@@ -403,6 +411,7 @@ class PublicRestaurantSerializer(serializers.ModelSerializer):
             "x",
             "delivery_available",
             "min_order_amount",
+            "base_delivery_fee", "price_per_km", "delivery_radius_km",
         ]
 
     def get_public_url(self, obj):

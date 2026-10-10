@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getStockMovements } from "../../../api/inventoryApi";
 import EditStockMovement from "./EditStockModal";
 import TablePagination from "../../../modules/shared/erp/components/TablePagination";
+import { Pencil } from "lucide-react";
 
 export default function StockMovementList() {
   const { t } = useTranslation();
@@ -249,10 +250,13 @@ export default function StockMovementList() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedMovement(m)}
-                className="mt-4 w-full rounded-lg border px-3 py-2 text-sm font-medium text-blue-600"
+                className="theme-btn theme-btn-outline theme-btn-icon mt-4 ms-auto"
+                title={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                aria-label={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
               >
-                {t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                <Pencil className="h-4 w-4" aria-hidden="true" />
               </button>
             </article>
           ))}
@@ -333,10 +337,13 @@ export default function StockMovementList() {
 
                   <td className="p-3">
                     <button
+                      type="button"
                       onClick={() => setSelectedMovement(m)}
-                      className="text-blue-600 hover:underline"
+                      className="theme-btn theme-btn-outline theme-btn-icon"
+                      title={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                      aria-label={t("inventory_manager.common.edit", { defaultValue: "Edit" })}
                     >
-                      {t("inventory_manager.common.edit", { defaultValue: "Edit" })}
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </td>
                 </tr>

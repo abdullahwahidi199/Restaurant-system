@@ -14,7 +14,7 @@ export default function Timeline({ items, empty = i18n.t("legacy.no_activity_yet
   return (
     <div className="divide-y divide-[var(--theme-border)]">
       {items.map((item) => (
-        <div key={item.id} className="relative min-h-[52px] py-2.5 pl-7">
+        <div key={item.id} className="relative min-h-11 py-2 pl-7">
           <span className="absolute left-0 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--theme-secondary)] text-[var(--theme-text-inverse)]">
             <Activity className="h-3 w-3" />
           </span>

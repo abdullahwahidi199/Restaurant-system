@@ -33,42 +33,36 @@ export default function PageHeader({
   }, [activeTab, compactMobile]);
 
   return (
-    <header
-      className={
-        compactMobile
-          ? "erp-page-header -mx-4 border-b px-4 py-3 shadow-sm theme-surface sm:py-4 lg:-mx-6 lg:px-6"
-          : "erp-page-header -mx-4 border-b px-4 py-4 shadow-sm theme-surface lg:-mx-6 lg:px-6"
-      }
-    >
-      <div className={`flex flex-col ${compactMobile ? "gap-3 sm:gap-4" : "gap-4"} xl:flex-row xl:items-center xl:justify-between`}>
-        <div className="min-w-0">
-          <div className={compactMobile ? "flex flex-wrap items-center gap-x-1.5 gap-y-1 sm:block" : ""}>
-            {breadcrumb && (
-              <div className={`${compactMobile ? "sm:mb-2" : "mb-2"} text-xs font-semibold theme-text-muted`}>{breadcrumb}</div>
+    <header className="erp-page-header">
+      {breadcrumb && (
+        <div className="mb-2 text-xs font-medium theme-text-muted">{breadcrumb}</div>
+      )}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-2.5">
+          {Icon && (
+            <span className="erp-page-icon grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[rgb(var(--theme-primary-rgb)/0.2)] bg-[var(--theme-primary-soft)] text-[var(--theme-primary-hover)]">
+              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+          )}
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide theme-text-muted">{eyebrow}</p>
             )}
-            {(eyebrow || Icon) && (
-              <div className={`inline-flex items-center gap-1.5 rounded-full border font-semibold uppercase tracking-wide theme-muted ${compactMobile ? "px-1.5 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-[11px]" : "px-2.5 py-1 text-[11px]"}`}>
-                {Icon && <Icon className="h-3.5 w-3.5" />}
-                {eyebrow}
-              </div>
+            <h1 className="erp-page-title font-semibold tracking-tight theme-text-primary">{title}</h1>
+            {description && (
+              <p className="mt-0.5 max-w-3xl text-[13px] leading-[1.4] theme-text-secondary">{description}</p>
             )}
           </div>
-          <h1 className={`erp-page-title ${compactMobile ? "mt-1.5 sm:mt-2" : "mt-2"} font-bold tracking-tight theme-text-primary`}>
-            {title}
-          </h1>
-          {description && (
-            <p className="mt-1 max-w-3xl text-xs leading-5 theme-text-muted">{description}</p>
-          )}
         </div>
-        <div className={`flex min-w-0 flex-col ${compactMobile ? "gap-2 sm:gap-3" : "gap-3"} sm:flex-row sm:items-center`}>
+        <div className={`flex min-w-0 flex-col ${compactMobile ? "gap-2" : "gap-3"} sm:flex-row sm:items-center sm:justify-end`}>
           {quickStats.length > 0 && (
             <div className="grid grid-cols-2 gap-2 sm:flex">
               {quickStats.map((stat) => (
-                <div key={stat.label} className={`min-w-0 theme-card ${compactMobile ? "px-2.5 py-2 sm:px-3" : "px-3 py-2"}`}>
+                <div key={stat.label} className="min-w-0 border-s border-[var(--theme-border)] px-3 py-0.5 first:border-s-0">
                   <p className="text-[10px] font-semibold uppercase tracking-wide theme-text-muted">
                     {stat.label}
                   </p>
-                  <p className="mt-0.5 break-words text-[13px] font-bold leading-tight tabular-nums theme-text-primary">{stat.value}</p>
+                  <p className="mt-0.5 break-words text-[13px] font-semibold leading-tight tabular-nums theme-text-primary">{stat.value}</p>
                 </div>
               ))}
             </div>
@@ -77,7 +71,7 @@ export default function PageHeader({
         </div>
       </div>
       {tabs.length > 0 && (
-        <nav className={`${compactMobile ? "erp-tabs-scroll -mx-4 mt-3 gap-1.5 px-4 sm:mx-0 sm:mt-4 sm:gap-2 sm:px-0" : "mt-4 gap-2"} flex overflow-x-auto`}>
+        <nav className="erp-tabs-scroll mt-3 flex gap-1 overflow-x-auto border-b border-[var(--theme-border)]">
           {tabs.map((tab) => {
             const active = activeTab === tab.key;
             const className = `erp-tab inline-flex items-center gap-2 whitespace-nowrap transition ${

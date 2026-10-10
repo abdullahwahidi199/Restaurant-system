@@ -114,12 +114,9 @@ function SearchResult({ item, query, active, onSelect, id }) {
       aria-selected={active}
     >
       <span className="admin-search-result-icon">
-        <Icon className="h-4 w-4" />
+        <Icon className="h-3.5 w-3.5" />
       </span>
       <span className="admin-search-result-copy">
-        <span className="admin-search-result-module">
-          {item.moduleLabel}
-        </span>
         <span className="admin-search-result-title">
           <Highlight text={item.displayLabel || item.label} query={query} />
         </span>
@@ -132,11 +129,13 @@ function SearchResult({ item, query, active, onSelect, id }) {
   );
 }
 
-function ResultGroup({ label, icon: Icon, children }) {
+function ResultGroup({ label, icon, children }) {
+  const GroupIcon = icon;
+
   return (
     <section className="admin-search-group">
       <div className="admin-search-group-label">
-        <Icon className="h-3.5 w-3.5" />
+        <GroupIcon className="h-3.5 w-3.5" />
         <span>{label}</span>
       </div>
       <div className="admin-search-group-items">{children}</div>

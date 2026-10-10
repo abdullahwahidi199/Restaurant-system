@@ -1,16 +1,28 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ManagerNavbar from "./ManagerNavbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import useDiscountSocket from "../../hooks/useDiscoutSocket";
 import notification from "../../../src/assets/sounds/notification.mp3";
 import BranchSwitcher from "../branch/BranchSwitcher";
+import { Menu } from "lucide-react";
 
 export default function ManagerRootLayout() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.dir() === "rtl";
   const [discountAlert, setDiscountAlert] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   const playSound = () => {
     const audio = new Audio(notification);
@@ -35,18 +47,12 @@ export default function ManagerRootLayout() {
       dir={isRTL ? "rtl" : "ltr"}
     >
       {discountAlert && (
-        <div
+        <button
+          type="button"
           onClick={() => navigate("/manager/discount-requests")}
-          className="
-      fixed top-6 right-6 z-50
-      bg-orange-500 text-white
-      px-5 py-4 rounded-xl shadow-2xl
-      cursor-pointer
-      animate-bounce
-      w-72
-    "
+          className="fixed top-4 z-50 w-72 cursor-pointer rounded-lg border border-[var(--theme-warning)] bg-[var(--theme-warning-soft)] px-4 py-3 text-start text-[var(--theme-warning-hover)] shadow-lg ltr:right-4 rtl:left-4"
         >
-          <div className="font-bold text-lg">{t("legacy.new_discount_request_cfe57c13")}</div>
+          <div className="font-semibold">{t("legacy.new_discount_request_cfe57c13")}</div>
 
           <div className="text-sm mt-1">
             {t("table.order_number")}{discountAlert.order_number}
@@ -55,18 +61,36 @@ export default function ManagerRootLayout() {
           <div className="text-xs mt-2 opacity-90">
             {t("legacy.click_to_review_pending_requests_9503e7a8")}
           </div>
-        </div>
+        </button>
       )}
-      <ManagerNavbar />
+      <ManagerNavbar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+      />
 
-      <main className="operational-main flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
-        <div className="mx-auto max-w-[92rem]">
-          <div className="mb-4 flex justify-end">
-            <BranchSwitcher />
+      <div className="admin-content-frame">
+        <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            <button
+              type="button"
+              className="admin-mobile-menu-button"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label={t("inventory_manager.a11y.open_sidebar", { defaultValue: "Open navigation" })}
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <div className="admin-page-heading">
+              <h1>{t("staff.roles.manager")}</h1>
+            </div>
           </div>
-          <Outlet />
-        </div>
-      </main>
+          <div className="admin-topbar-actions"><BranchSwitcher /></div>
+        </header>
+        <main className="admin-main operational-main">
+          <div className="admin-main-inner"><Outlet /></div>
+        </main>
+      </div>
     </div>
   );
 }

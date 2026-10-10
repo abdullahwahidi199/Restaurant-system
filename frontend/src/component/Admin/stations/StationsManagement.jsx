@@ -20,7 +20,7 @@ import StationDeleteModal from "./StationDeleteModal";
 export default function StationManagement() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const { auth, activeBranch } = useContext(AuthContext);
+  const { activeBranch } = useContext(AuthContext);
 
   const [stations, setStations] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -103,9 +103,9 @@ export default function StationManagement() {
   return (
     <div
       dir={isRTL ? "rtl" : "ltr"}
-      className="min-h-screen bg-[var(--theme-background)] p-6 text-[var(--theme-text-primary)]"
+      className="min-w-0 text-[var(--theme-text-primary)]"
     >
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-4">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--theme-border)] pb-5">
           <div className="flex items-center gap-3">

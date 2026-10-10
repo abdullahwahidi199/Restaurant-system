@@ -5,6 +5,7 @@ from rest_framework import status, generics
 from restaurants.models import Restaurant
 from .models import Category,MenuItem,Review,PlatterItem,Platter,Production,Station
 from .serializers import CategorySerializer,MenuItemSerializer,ReveiwSerializer,StationSerializer,PlatterSerializer,ProductionSerializer
+from .public_serializers import PublicCategorySerializer, PublicMenuItemSerializer, PublicPlatterSerializer
 from reports.models import Notification
 from rest_framework.permissions import AllowAny, BasePermission, SAFE_METHODS
 from rest_framework.decorators import permission_classes
@@ -668,12 +669,15 @@ def public_categories(request, slug=None, restaurant_slug=None, branch_slug=None
     categories = ordered_categories(filter_public_menu_queryset(
         Category.objects.filter(restaurant=restaurant),
         branch,
-    )).prefetch_related(*get_public_category_menu_prefetches(restaurant, branch))
+    ))
+    summary_only = request.query_params.get("summary") == "1"
+    if not summary_only:
+        categories = categories.prefetch_related(*get_public_category_menu_prefetches(restaurant, branch))
 
-    serializer = CategorySerializer(
+    serializer = PublicCategorySerializer(
         categories,
         many=True,
-        context={"branch": branch, "restaurant": restaurant},
+        context={"branch": branch, "restaurant": restaurant, "summary_only": summary_only},
     )
     return Response(serializer.data)
 
@@ -684,7 +688,7 @@ def public_menu_items(request, slug=None, restaurant_slug=None, branch_slug=None
     restaurant, branch = get_public_menu_context(restaurant_slug or slug, branch_slug)
     menu_items = public_menu_item_queryset(restaurant, branch)
 
-    serializer = MenuItemSerializer(
+    serializer = PublicMenuItemSerializer(
         menu_items,
         many=True,
         context={"branch": branch, "restaurant": restaurant},
@@ -701,7 +705,7 @@ def public_menu_item_detail(request, pk, slug=None, restaurant_slug=None, branch
         pk=pk,
     )
 
-    serializer = MenuItemSerializer(
+    serializer = PublicMenuItemSerializer(
         item,
         context={"branch": branch, "restaurant": restaurant},
     )
@@ -890,7 +894,7 @@ def public_platters(request, slug=None, restaurant_slug=None, branch_slug=None):
         branch,
     )
 
-    serializer = PlatterSerializer(
+    serializer = PublicPlatterSerializer(
         platters,
         many=True,
         context={"branch": branch, "restaurant": restaurant},
@@ -915,7 +919,7 @@ def public_platter_detail(
         pk=pk,
     )
 
-    serializer = PlatterSerializer(
+    serializer = PublicPlatterSerializer(
         platter,
         context={"branch": branch, "restaurant": restaurant},
     )

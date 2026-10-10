@@ -410,12 +410,12 @@ export default function TakeAwayOrderForm() {
                   return (
                     <div
                       key={`${item.type}-${item.id}`}
-                      className={`flex items-center gap-4 px-4 py-3 transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-1.5 transition-colors ${
                         isSelected ? "bg-emerald-50/50" : "hover:bg-gray-50"
                       } ${!item.final_availability ? "opacity-60" : ""}`}
                     >
                       {/* Image */}
-                      <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
                         {item.image ? (
                           <img
                             src={item.image}
@@ -425,7 +425,7 @@ export default function TakeAwayOrderForm() {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <UtensilsCrossed
-                              size={20}
+                              size={16}
                               className="text-gray-300"
                             />
                           </div>
@@ -435,9 +435,14 @@ export default function TakeAwayOrderForm() {
                       {/* Name & Category */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-gray-800 truncate">
+                          <h3 className="min-w-0 flex-1 truncate text-base font-bold text-gray-900">
                             {item.name}
                           </h3>
+                          {activeCategory === "All" && (
+                            <span className="hidden max-w-24 shrink-0 truncate rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 sm:inline">
+                              {item.category}
+                            </span>
+                          )}
                           {item.type === "platter" && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
                               {t("labels.platter")}
@@ -449,16 +454,11 @@ export default function TakeAwayOrderForm() {
                             </span>
                           )}
                         </div>
-                        {activeCategory === "All" && (
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">
-                            {item.category}
-                          </p>
-                        )}
                       </div>
 
                       {/* Price */}
                       <div className="text-right flex-shrink-0 w-24">
-                        <span className="text-sm font-bold text-emerald-600">
+                        <span className="text-base font-extrabold text-emerald-700">
                           {t("legacy.afs_2050680c")} {parseFloat(item.price).toLocaleString()}
                         </span>
                       </div>
@@ -487,7 +487,7 @@ export default function TakeAwayOrderForm() {
                           <button
                             onClick={() => handleIncrement(item)}
                             disabled={!item.final_availability}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Plus size={14} />
                             {t("add")}

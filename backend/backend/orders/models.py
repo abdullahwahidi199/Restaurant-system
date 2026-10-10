@@ -274,6 +274,13 @@ class Order(models.Model):
 
     order_number=models.PositiveIntegerField(null=True,
     blank=True)
+    client_order_id = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Client-generated idempotency key for marketplace orders.",
+    )
     customer = models.ForeignKey(
         'customers.Customer', on_delete=models.SET_NULL,
         related_name='orders', null=True, blank=True

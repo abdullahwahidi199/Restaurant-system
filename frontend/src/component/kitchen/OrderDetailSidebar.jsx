@@ -75,9 +75,14 @@ export default function OrderDetailSidebar({
   };
 
   const getOrderTitle = () => {
-    if (order.order_type === "dine-in") return `Table ${order.tableName}`;
-    if (order.order_type === "takeaway") return "Takeaway Order";
-    return "Delivery Order";
+    if (order.order_type === "dine-in") {
+      const tableLabel = autoT("table.table").replace("#", "").trim();
+      return `${tableLabel} ${order.tableName || "—"}`;
+    }
+    if (order.order_type === "takeaway") {
+      return autoT("legacy.takeaway_order_32e0d890");
+    }
+    return autoT("legacy.delivery_order_4081c2f7");
   };
 
   const statusColors = {
@@ -139,11 +144,15 @@ export default function OrderDetailSidebar({
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white p-4">
         <div className="min-w-0">
-          <h3 className="font-semibold text-lg text-gray-800">
+          <h3 className="truncate text-2xl font-black tracking-tight text-slate-950">
             {getOrderTitle()}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(order.created_at).toLocaleString()}
+          <p className="mt-0.5 flex items-center gap-2 text-xs font-medium text-gray-500">
+            <span className="font-bold text-gray-700">
+              #{order.order_number || "—"}
+            </span>
+            <span aria-hidden="true">•</span>
+            <span>{new Date(order.created_at).toLocaleString()}</span>
           </p>
         </div>
         <button

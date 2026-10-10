@@ -155,12 +155,8 @@ export default function ContractorWorkspace({
   };
 
   return (
-    <section className="space-y-5 px-4 pb-6 lg:px-5">
+    <section className="space-y-4">
       <PageHeader
-        eyebrow={autoT("legacy.contractor_management_0367d787")}
-        breadcrumb={
-          isFinance ? autoT("legacy.finance_contractors_b0b500e3") : autoT("legacy.admin_finance_contractors_b16a0329")
-        }
         icon={Wrench}
         title={pageMeta.title}
         description={pageMeta.description}

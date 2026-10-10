@@ -1,54 +1,68 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 // import OrderStats from "./OrderStats";
 import OrderStats from "../../Admin/order/OrderStats";
 import OrderFilters from "../../Admin/order/OrderFilters";
-import ManagerOrdersTable from "./ManagerOrdersTable";
+import OrderPeriodBar from "../../Admin/order/OrderPeriodBar";
+import OrdersTable from "../../Admin/order/OrdersTable";
 import OrderDetailsModal from "../../Admin/order/OrderDetailsModal";
 import instance from "../../../api/axiosInstance";
 import useOrdersSocket from "../../../hooks/useOrdersSocket";
-import { ClipboardList, Clock, CheckCircle, DollarSign } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import OrderCancellationToast from "../../OrderCancellationToast";
-import { AuthContext } from "../../../api/authforRBC";
 import PaginationControls from "../../ui/PaginationControls";
+import PageHeader from "../../../modules/shared/erp/components/PageHeader";
 import {
   freshestOrderSnapshot,
   reconcileOrderSnapshots,
   upsertOrderSnapshot,
 } from "../../../utils/orderSnapshot";
+import { getOrderPeriodRange } from "../../Admin/order/orderPeriod";
 
 export default function ManagerOrderBase() {
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [count, setCount] = useState(0);
+  const [summary, setSummary] = useState({ total: 0, pending: 0, completed: 0 });
+  const [period, setPeriod] = useState(() => getOrderPeriodRange("today"));
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showCancelToast, setShowCancelToast] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState(null);
   const latestSnapshotsRef = useRef(new Map());
   const socketRevisionRef = useRef(0);
+  const requestSequenceRef = useRef(0);
+  const fetchOrdersRef = useRef(null);
+  const pageRef = useRef(1);
+  const liveRefreshTimerRef = useRef(null);
   const { t } = useTranslation();
   const [filters, setFilters] = useState({
     search: "",
     status: "",
-    start_date: "",
-    end_date: "",
   });
   const role = JSON.parse(localStorage.getItem("user"))?.role;
 
-  const fetchOrders = async (pageNumber = 1) => {
+  const fetchOrders = async (pageNumber = 1, requestedPeriod = period) => {
+    const requestSequence = ++requestSequenceRef.current;
     const revisionAtStart = socketRevisionRef.current;
     // ensure it's always a number
     const page = typeof pageNumber === "number" ? pageNumber : 1;
 
-    let query = new URLSearchParams({
+    const queryParams = {
       ...filters,
       page,
-    }).toString();
+    };
+    if (requestedPeriod.start && requestedPeriod.end) {
+      queryParams.start_date = requestedPeriod.start;
+      queryParams.end_date = requestedPeriod.end;
+    }
+    const query = new URLSearchParams(queryParams).toString();
 
     const res = await instance.get(`/orders/orders/?${query}`);
     const incomingOrders = res.data.results || [];
+    if (requestSequence !== requestSequenceRef.current) return;
+
     for (const incoming of incomingOrders) {
       const id = String(incoming.id);
       latestSnapshotsRef.current.set(
@@ -63,9 +77,16 @@ export default function ManagerOrderBase() {
       }),
     );
     setCount(res.data.count);
+    setSummary(res.data.summary || {
+      total: res.data.count,
+      pending: incomingOrders.filter((order) => order.status === "pending").length,
+      completed: incomingOrders.filter((order) => order.status === "completed").length,
+    });
     setPage(page);
+    pageRef.current = page;
     setTotalPages(Math.ceil(res.data.count / 10));
   };
+  fetchOrdersRef.current = fetchOrders;
 
   const handleWsMessage = useCallback((msg) => {
     console.log("WS message received:", msg);
@@ -86,11 +107,23 @@ export default function ManagerOrderBase() {
         ? freshestOrderSnapshot(current, accepted)
         : current,
     );
+
+    window.clearTimeout(liveRefreshTimerRef.current);
+    liveRefreshTimerRef.current = window.setTimeout(() => {
+      fetchOrdersRef.current?.(pageRef.current);
+    }, 250);
   }, []);
-  useOrdersSocket(handleWsMessage, () => fetchOrders(page));
+  useOrdersSocket(handleWsMessage, () => fetchOrdersRef.current?.(pageRef.current));
   useEffect(() => {
-    fetchOrders();
+    fetchOrdersRef.current?.(1);
+    return () => window.clearTimeout(liveRefreshTimerRef.current);
+    // Fetch once on mount; current callbacks are read from refs.
   }, []);
+
+  const handlePeriodApply = (nextPeriod) => {
+    setPeriod(nextPeriod);
+    fetchOrders(1, nextPeriod);
+  };
 
   const handleViewOrder = async (orderId) => {
     try {
@@ -122,27 +155,35 @@ export default function ManagerOrderBase() {
   const stats = [
     {
       label: t("stats.total_orders"),
-      value: orders.length,
-      icon: <ClipboardList className="w-8 h-8 text-blue-500" />,
+      value: summary.total,
+      icon: <ClipboardList className="h-5 w-5 text-[var(--theme-info)]" />,
     },
     {
       label: t("stats.pending"),
-      value: orders.filter((o) => o.status === "pending").length,
-      icon: <Clock className="w-8 h-8 text-yellow-500" />,
+      value: summary.pending,
+      icon: <Clock className="h-5 w-5 text-[var(--theme-warning)]" />,
     },
     {
       label: t("stats.completed"),
-      value: orders.filter((o) => o.status === "completed").length,
-      icon: <CheckCircle className="w-8 h-8 text-green-500" />,
+      value: summary.completed,
+      icon: <CheckCircle className="h-5 w-5 text-[var(--theme-success)]" />,
     },
   ];
 
   return (
     <div
-      className="p-4 space-y-4"
+      className="space-y-4"
       dir={i18n.language === "fa" || i18n.language === "ps" ? "rtl" : "ltr"}
     >
-      <h1 className="text-2xl font-bold">{t("orders_management")}</h1>
+      <PageHeader
+        icon={ClipboardList}
+        title={t("orders_management")}
+        description={t("orders.workspace_description", {
+          defaultValue: "Review, filter, and manage orders across every service channel.",
+        })}
+      />
+
+      <OrderPeriodBar period={period} onApply={handlePeriodApply} />
 
       <OrderStats stats={stats} />
 
@@ -152,7 +193,7 @@ export default function ManagerOrderBase() {
         onSearch={fetchOrders}
       />
 
-      <ManagerOrdersTable
+      <OrdersTable
         orders={orders}
         onView={(order) => handleViewOrder(order.id)}
         onCancel={handleCancelClick}

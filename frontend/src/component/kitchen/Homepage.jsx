@@ -27,6 +27,7 @@ export default function KitchenHomepage() {
   const search = orderSearch;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const { auth } = useContext(AuthContext);
   const userStationIds = auth?.user?.staff_profile?.stations || [];
 
@@ -78,6 +79,11 @@ export default function KitchenHomepage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentTime(Date.now()), 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const filteredOrders = orders.filter((order) => {
     const query = search.toLowerCase();
@@ -469,7 +475,7 @@ export default function KitchenHomepage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Dine-In Section - Top 50% */}
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-blue-50 to-white border-b border-gray-200 sticky top-0 z-10">
               <div className="flex items-center gap-2">
                 <UtensilsCrossed size={20} className="text-blue-600" />
                 <h2 className="text-lg font-bold text-gray-800">{autoT("legacy.dine_in_51a7c7ec")}</h2>
@@ -489,12 +495,13 @@ export default function KitchenHomepage() {
                   {autoT("legacy.no_dine_in_orders_found_931d24a9")}
                 </p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="px-2 py-1">
                   {dineInOrders.map((order) => (
                     <CompactOrderCard
                       key={order.id}
                       order={order}
                       isSelected={selectedOrder?.id === order.id}
+                      currentTime={currentTime}
                       onClick={() => selectOrder(order)}
                     />
                   ))}
@@ -511,7 +518,7 @@ export default function KitchenHomepage() {
 
           {/* Takeaway & Delivery Section - Bottom 50% */}
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-purple-50 to-white border-b border-gray-200 sticky top-0 z-10">
               <div className="flex items-center gap-2">
                 <Package size={20} className="text-purple-600" />
                 <h2 className="text-lg font-bold text-gray-800">
@@ -533,12 +540,13 @@ export default function KitchenHomepage() {
                   {autoT("legacy.no_takeaway_or_delivery_orders_found_e6d8e9c6")}
                 </p>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="px-2 py-1">
                   {takeawayDeliveryOrders.map((order) => (
                     <CompactOrderCard
                       key={order.id}
                       order={order}
                       isSelected={selectedOrder?.id === order.id}
+                      currentTime={currentTime}
                       onClick={() => selectOrder(order)}
                     />
                   ))}

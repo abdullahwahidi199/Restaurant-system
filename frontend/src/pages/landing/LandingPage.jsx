@@ -52,6 +52,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../styles/landing.css";
 import i18n from "../../i18n";
 import { API_BASE_URL } from "../../config/runtimeConfig";
+import DownloadAppButton, { AppDownloadDetails } from "../../component/landing/DownloadAppButton";
 
 const CUSTOMER_SESSION_EVENT = "pakhlai:customer-session";
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || "";
@@ -457,7 +458,7 @@ function MarketplaceNavbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <a
             href="#restaurant-search"
             onClick={focusSearch}
@@ -485,6 +486,7 @@ function MarketplaceNavbar() {
             </select>
           </label>
           <CustomerAccountMenu />
+          <DownloadAppButton />
           <a
             href={marketplaceLinks.forRestaurants}
             className="marketplace-restaurant-link"
@@ -494,7 +496,7 @@ function MarketplaceNavbar() {
           </a>
         </div>
 
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="flex items-center gap-1 xl:hidden">
           {customer ? (
             <CustomerAccountMenu compact showGuestActions={false} />
           ) : null}
@@ -530,7 +532,7 @@ function MarketplaceNavbar() {
       {open ? (
         <div
           id="marketplace-mobile-navigation"
-          className="marketplace-mobile-menu lg:hidden"
+          className="marketplace-mobile-menu xl:hidden"
         >
           <div className="grid gap-1">
             {marketplaceNavItems.map((item) => (
@@ -545,6 +547,7 @@ function MarketplaceNavbar() {
             ))}
           </div>
           <div className="mt-3 grid gap-2 border-t border-stone-100 pt-3 sm:grid-cols-2">
+            <DownloadAppButton onClick={() => setOpen(false)} className="sm:col-span-2" />
             <label className="marketplace-mobile-link border border-stone-200">
               <Globe2 className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">
@@ -1546,6 +1549,8 @@ function HeroSection({
             <h1>{t("landing.marketplace.hero.title")}</h1>
             <p>{t("landing.marketplace.hero.description")}</p>
 
+            <AppDownloadDetails />
+
             <div
               className="marketplace-hero-trust"
               aria-label={t("landing.marketplace.hero.trustLabel")}
@@ -2426,6 +2431,7 @@ function MarketplaceFooter() {
               <Mail className="h-4 w-4" aria-hidden="true" />
               {t("legacy.contact_pakhlai_com_18a17676")}
             </a>
+            <div className="mt-5"><DownloadAppButton /></div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">

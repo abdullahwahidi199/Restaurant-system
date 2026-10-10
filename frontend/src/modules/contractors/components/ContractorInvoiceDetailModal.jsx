@@ -19,9 +19,9 @@ function Lines({ lines = [] }) {
       columns={[
         { key: "service_type", header: "Service" },
         { key: "description", header: "Description", render: (line) => line.description || "-" },
-        { key: "quantity", header: "Qty", className: "px-4 py-3 text-right" },
-        { key: "unit_price", header: "Unit Price", className: "px-4 py-3 text-right", render: (line) => money(line.unit_price) },
-        { key: "total", header: "Total", className: "px-4 py-3 text-right font-semibold text-slate-950", render: (line) => money(line.total_price) },
+        { key: "quantity", header: "Qty", className: "text-right tabular-nums" },
+        { key: "unit_price", header: "Unit Price", className: "text-right tabular-nums", render: (line) => money(line.unit_price) },
+        { key: "total", header: "Total", className: "text-right font-semibold tabular-nums theme-text-primary", render: (line) => money(line.total_price) },
       ]}
     />
   );

@@ -32,6 +32,9 @@ from django.db.models import Q
 from datetime import timedelta
 from decimal import Decimal
 from collections import defaultdict
+from django.conf import settings
+from .serializers import DashboardSalesQuerySerializer
+from .services.dashboard_sales import build_dashboard_sales
 
 
 def get_report_branch(request):
@@ -48,6 +51,29 @@ def report_branch_payload(branch):
         "name": branch.name if branch else "All Branches",
         "scope": "current" if branch else "all",
     }
+
+
+class DashboardSalesAPIView(APIView):
+    permission_classes = [IsRestaurantAdmin, IsSameRestaurant, IsRestaurantActive]
+
+    def get(self, request):
+        branch = get_report_branch(request)
+        today = timezone.localdate()
+        params = {
+            "start_date": request.query_params.get("start_date", (today - timedelta(days=29)).isoformat()),
+            "end_date": request.query_params.get("end_date", today.isoformat()),
+            "interval": request.query_params.get("interval", "auto"),
+        }
+        serializer = DashboardSalesQuerySerializer(data=params)
+        serializer.is_valid(raise_exception=True)
+        data = build_dashboard_sales(
+            restaurant=request.user.staff_profile.restaurant,
+            branch=branch,
+            calculate_total=DashboardSummaryAPIView._calculate_order_total,
+            **serializer.validated_data,
+        )
+        data["branch"] = report_branch_payload(branch)
+        return Response(data)
 
 
 class DashboardSummaryAPIView(APIView):
@@ -157,9 +183,13 @@ class DashboardSummaryAPIView(APIView):
             )
             if branch:
                 qs = qs.filter(order__branch=branch)
-            return (
+            items = list(
                 qs
-                .values(item_name=F("menu_item__name"), unit_price=F("menu_item__price"))
+                .values(
+                    item_name=F("menu_item__name"),
+                    unit_price=F("menu_item__price"),
+                    image_path=F("menu_item__image"),
+                )
                 .annotate(
                     total_sales=Sum("quantity"),
                     total_revenue=Sum(
@@ -169,6 +199,16 @@ class DashboardSummaryAPIView(APIView):
                 )
                 .order_by("-total_sales")[:5]
             )
+
+            media_prefix = settings.MEDIA_URL.rstrip("/")
+            for item in items:
+                image_path = item.pop("image_path", None)
+                item["image"] = (
+                    f"{media_prefix}/{str(image_path).lstrip('/')}"
+                    if image_path
+                    else None
+                )
+            return items
 
         best_selling_data = {
             "best_selling_today": get_best_selling_items(today),

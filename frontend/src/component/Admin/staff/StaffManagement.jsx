@@ -6,6 +6,11 @@ import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
 import RestrictedToast from "../../RistrictedAction";
 import { useTranslation } from "react-i18next";
+import { Plus, UsersRound } from "lucide-react";
+import PageHeader from "../../../modules/shared/erp/components/PageHeader";
+import ActionButton from "../../../modules/shared/erp/components/ActionButton";
+import SearchBox from "../../../modules/shared/erp/components/SearchBox";
+import LoadingState from "../../../modules/shared/erp/components/LoadingState";
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -21,15 +26,11 @@ export default function StaffManagement() {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.dir() === "rtl";
 
-  const token = auth?.tokens?.access;
-  const BASE_URL = import.meta.env.VITE_MEDIA_URL;
-
   const fetchStaff = async () => {
     setLoading(true);
     try {
       const response = await instance.get("/users/staff/");
       setStaff(response.data);
-      console.log(response.data);
     } catch (err) {
       console.error(
         "Failed to fetch staff:",
@@ -82,7 +83,7 @@ export default function StaffManagement() {
     }
 
     try {
-      const res = await instance.delete(`/users/staff/${id}/`);
+      await instance.delete(`/users/staff/${id}/`);
       setStaff((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error(
@@ -115,33 +116,26 @@ export default function StaffManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-          {t("staff.management")}
-        </h1>
-        <button
-          onClick={openAdd}
-          className="mt-4 md:mt-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-full font-semibold hover:from-purple-500 hover:to-indigo-500 transition"
-        >
-          {t("staff.add")}
-        </button>
-      </div>
+    <div className="space-y-4" dir={isRTL ? "rtl" : "ltr"}>
+      <PageHeader
+        icon={UsersRound}
+        title={t("staff.management")}
+        description={t("staff.management_description", {
+          defaultValue: "Manage staff profiles, assignments, and employment details.",
+        })}
+        actions={<ActionButton icon={Plus} variant="primary" onClick={openAdd}>{t("staff.add")}</ActionButton>}
+      />
 
-      <div className="mb-4">
-        <input
-          type="text"
+      <div className="theme-card max-w-xl p-3">
+        <SearchBox
           placeholder={t("staff.search")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/3 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          onChange={setSearch}
         />
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">
-          {t("staff.loading")}
-        </p>
+        <LoadingState label={t("staff.loading")} />
       ) : (
         <StaffTable
           staff={filteredStaff}

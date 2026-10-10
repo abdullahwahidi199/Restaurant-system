@@ -15,7 +15,7 @@ export default function PaymentTable({ payments }) {
         { key: "period", header: "Period", render: (payment) => payment.payroll_period || payment.period || "-" },
         { key: "method", header: "Method", render: (payment) => formatMethod(payment.payment_method) },
         { key: "reference", header: "Reference", render: (payment) => payment.reference_number || "-" },
-        { key: "amount", header: "Amount", className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary", render: (payment) => money(payment.amount) },
+        { key: "amount", header: "Amount", className: "text-right font-semibold tabular-nums theme-text-primary", render: (payment) => money(payment.amount) },
       ]}
     />
   );

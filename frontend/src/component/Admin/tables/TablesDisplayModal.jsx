@@ -1,7 +1,8 @@
-import { Users, Coffee } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TableUpdateDeleteModal from "./TableUpdateDeleteModal";
 import { useState } from "react";
+import RestaurantTableCard from "../../ui/RestaurantTableCard";
+import RestaurantTableDetails from "../../ui/RestaurantTableDetails";
 
 export default function TablesDisplay({ tables, onUpdate }) {
   const { t } = useTranslation();
@@ -9,82 +10,25 @@ export default function TablesDisplay({ tables, onUpdate }) {
 
   return (
     <>
-      {tables.map((table) => (
-        <div
-          onClick={() => setSelectedTable(table)}
-          key={table.name}
-          className={`border rounded-xl p-4 shadow-md transition hover:scale-105 ${
-            table.status === "available"
-              ? "bg-green-50 border-green-400"
-              : table.status === "unavailable"
-                ? "bg-gray-200 border-gray-400"
-                : "bg-red-50 border-red-400"
-          }`}
-        >
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-xl font-semibold text-gray-800">
-              {t("legacy.table_c3a2f1e1")}{table.name})
-            </h3>
-            <span
-              className={`px-2 py-1 text-sm rounded-full font-medium ${
-                table.status === "available"
-                  ? "bg-green-200 text-green-800"
-                  : "bg-red-200 text-red-800"
-              }`}
-            >
-              {table.status.toUpperCase()}
-            </span>
-          </div>
+      {tables.map((table) => {
+        const status = table.current_reservation ? "reserved" : table.status;
 
-          <div className="flex items-center text-gray-700 mb-2">
-            <Users size={16} className="mr-1" />
-            <span>
-              {t("capacity")}: {table.capacity}
-            </span>
-          </div>
-
-          {table.note && (
-            <div className="text-gray-600 italic mb-2">
-              {t("note")}: {table.note}
-            </div>
-          )}
-
-          {table.current_order ? (
-            <div className="mt-2">
-              <h4 className="font-semibold text-gray-800 mb-1">
-                {t("current_order")}:
-              </h4>
-              <div className="space-y-2">
-                <div className="border p-2 rounded-lg bg-gray-50 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">
-                      {table.current_order.name}
-                    </span>
-                    <span className="text-gray-500">
-                      {table.current_order.phone}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-gray-600 mt-1">
-                    <Coffee size={16} className="mr-1" />
-                    <span>
-                      {t("items")}:{" "}
-                      {table.current_order.item_count ??
-                        table.current_order.items.length}{" "}
-                      |{" "}
-                      {t("total")}{t("legacy.afs_9eff30c8")}{table.current_order.total}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-500 italic mt-2">
-              {" "}
-              {t("no_orders_yet")}
-            </div>
-          )}
-        </div>
-      ))}
+        return (
+          <RestaurantTableCard
+            key={table.id ?? table.name}
+            table={table}
+            status={status}
+            statusLabel={t(`tables_workspace.${status}`)}
+            tableLabel={t("tables_workspace.table")}
+            capacityLabel={t("capacity")}
+            noteLabel={t("note")}
+            actionLabel={t("tables_workspace.edit_table")}
+            onClick={() => setSelectedTable(table)}
+          >
+            <RestaurantTableDetails table={table} />
+          </RestaurantTableCard>
+        );
+      })}
 
       {selectedTable && (
         <TableUpdateDeleteModal

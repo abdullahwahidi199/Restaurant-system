@@ -75,6 +75,34 @@ def broadcast_order(order):
         }
     )
 
+
+def broadcast_customer_order(order):
+    """Notify only the customer that owns this order, without staff payloads."""
+    if not order or not order.pk or not order.customer_id:
+        return
+    current = Order.objects.only(
+        "id",
+        "customer_id",
+        "status",
+        "updated_at",
+    ).filter(pk=order.pk).first()
+    if not current or not current.customer_id:
+        return
+    async_to_sync(channel_layer.group_send)(
+        f"customer_order_{current.id}",
+        {
+            "type": "customer_order_message",
+            "message": {
+                "type": "ORDER_UPDATED",
+                "order_id": current.id,
+                "status": current.status,
+                "updated_at": (
+                    current.updated_at.isoformat() if current.updated_at else None
+                ),
+            },
+        },
+    )
+
 def broadcast_table(table):
     if not table:
         return
@@ -283,6 +311,7 @@ def order_item_updated(sender, instance, created, **kwargs):
                 lambda: broadcast_table_items_update(order),
                 robust=True,
             )
+            transaction.on_commit(lambda: broadcast_customer_order(order), robust=True)
 
         except Order.DoesNotExist:
             pass
@@ -303,6 +332,7 @@ def order_item_deleted(sender, instance, **kwargs):
             order = Order.objects.only('id', 'table_id', 'restaurant_id', 'status').filter(pk=order_id).first()
             if order:
                 broadcast_table_items_update(order)
+                broadcast_customer_order(order)
     
     transaction.on_commit(_broadcast, robust=True)
 # Keep this for actual Order changes (status, details, etc.)
@@ -315,6 +345,7 @@ def order_post_save(sender, instance, created, **kwargs):
         # Order details changed (status, address, etc.)
         # Only broadcast if it's NOT just an item change
         transaction.on_commit(lambda: broadcast_order(instance), robust=True)
+    transaction.on_commit(lambda: broadcast_customer_order(instance), robust=True)
 
 
 @receiver(post_delete, sender=Order)
@@ -375,5 +406,6 @@ def discount_post_save(sender, instance, created, **kwargs):
         # Keep order clients synchronized after the transaction has committed,
         # so they never observe a discount state that later rolls back.
         broadcast_order(instance.order)
+        broadcast_customer_order(instance.order)
 
     transaction.on_commit(_broadcast, robust=True)

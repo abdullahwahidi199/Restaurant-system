@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
-from django.db.models import Q,Prefetch
+from django.db.models import Count, Q, Prefetch
 from django.db import transaction
 from django_ratelimit.core import is_ratelimited
 from orders.signals import broadcast_order_item_update, broadcast_table_items_update
@@ -92,6 +92,23 @@ def numeric_search_value(value):
 
 
 FINALIZED_ORDER_STATUSES = {"completed", "delivered", "cancelled"}
+READY_ITEM_STATUSES = {"ready", "served", "completed", "delivered"}
+ACTIVE_ITEM_STATUSES = {"approved", "in_progress", *READY_ITEM_STATUSES}
+
+
+def order_status_from_items(order):
+    """Return the active order status implied by its non-cancelled items."""
+    item_statuses = list(
+        order.items.exclude(status="cancelled").values_list("status", flat=True)
+    )
+
+    if not item_statuses:
+        return "cancelled"
+    if all(item_status in READY_ITEM_STATUSES for item_status in item_statuses):
+        return "ready"
+    if any(item_status in ACTIVE_ITEM_STATUSES for item_status in item_statuses):
+        return "in_progress"
+    return "pending"
 
 
 def finalized_order_response(order):
@@ -499,14 +516,22 @@ def order_list_create(request):
         )
         orders = branch_scoped(request, orders, allow_all=True)
       
-        status_filter = request.query_params.get('status')
-        if status_filter:
-            orders = orders.filter(status=status_filter)
-
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         if start_date and end_date:
             orders = orders.filter(created_at__date__range=[start_date, end_date])
+
+        # Keep the headline figures scoped to the selected branch and period,
+        # but independent from table-only search and status filters.
+        summary = orders.aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            completed=Count('id', filter=Q(status='completed')),
+        )
+
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            orders = orders.filter(status=status_filter)
 
         search = request.query_params.get('search')
         if search:
@@ -516,7 +541,9 @@ def order_list_create(request):
         page = paginator.paginate_queryset(orders, request)
 
         serializer = OrderListSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+        response.data['summary'] = summary
+        return response
 
     elif request.method == 'POST':
         branch = get_branch_or_response(request)
@@ -1549,32 +1576,7 @@ def update_order_item_status(request, pk):
     # AUTO UPDATE ORDER STATUS
     # =========================================
 
-    active_items = order.items.exclude(status="cancelled")
-
-    total_items = active_items.count()
-
-    approved_count = active_items.filter(
-        status__in=["approved", "ready"]
-    ).count()
-
-    ready_count = active_items.filter(
-        status="ready"
-    ).count()
-
-    
-
-    
-    if total_items == 0:
-        order.status = "cancelled"
-
-    if total_items > 0 and ready_count == total_items:
-        order.status = "ready"
-
-    elif approved_count > 0:
-        order.status = "in_progress"
-
-    else:
-        order.status = "pending"
+    order.status = order_status_from_items(order)
 
     try:
         save_order_change(
@@ -2101,15 +2103,20 @@ def cancel_order_item(request, pk):
 
     item.save(update_fields=["status","cancelled_by","cancelled_at"])
 
+    # A cancelled item is no longer kitchen work. If it was the last unfinished
+    # line, immediately expose the now-ready order to the cashier.
+    order.status = order_status_from_items(order)
+
     save_order_change(
         order,
         request,
         "cancel_order_item",
-        update_fields=[],
+        update_fields=["status", "preparation_start", "preparation_end"],
     )
 
     return Response({
-        "message": "Item cancelled successfully"
+        "message": "Item cancelled successfully",
+        "order_status": order.status,
     })
 from django.utils.dateparse import parse_date
 from django.db.models import Q

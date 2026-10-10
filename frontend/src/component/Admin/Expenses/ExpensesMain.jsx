@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import {
   Plus,
-  Search,
   History as HistoryIcon,
   Printer,
   TrendingDown,
@@ -12,9 +11,6 @@ import {
   Eye,
   Trash2,
   Save,
-  XCircle,
-  AlertCircle,
-  X,
   RotateCcw,
   ArrowUpDown,
 } from "lucide-react";
@@ -31,6 +27,17 @@ import {
 } from "./helpers";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import i18n from "../../../i18n";
+import PageHeader from "../../../modules/shared/erp/components/PageHeader";
+import SharedActionButton from "../../../modules/shared/erp/components/ActionButton";
+import StatCard from "../../../modules/shared/erp/components/StatCard";
+import Toolbar from "../../../modules/shared/erp/components/Toolbar";
+import SharedField from "../../../modules/shared/erp/components/Field";
+import SearchBox from "../../../modules/shared/erp/components/SearchBox";
+import LoadingState from "../../../modules/shared/erp/components/LoadingState";
+import Alert from "../../../modules/shared/erp/components/Alert";
+import EmptyState from "../../../modules/shared/erp/components/EmptyState";
+import Modal from "../../../modules/shared/erp/components/Modal";
+import ConfirmModal from "../../../modules/shared/erp/components/ConfirmModal";
 
 const SORT_OPTIONS = [
   { value: "-date", label: i18n.t("legacy.newest_first_a40bb555") },
@@ -190,119 +197,95 @@ function ExpensesMain() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{autoT("nav.expenses")}</h1>
-          <p className="text-gray-500 mt-1">
-            {autoT("legacy.manage_and_track_all_your_business_expenses_3c30f633")}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate("history/")}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm"
-          >
-            <HistoryIcon size={18} /> {autoT("legacy.history_90ccd649")}
-          </button>
-          <button
-            onClick={() => setAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition shadow-sm"
-          >
-            <Plus size={18} /> {autoT("legacy.new_expense_7c3ae05c")}
-          </button>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={DollarSign}
+        title={autoT("nav.expenses")}
+        description={autoT("legacy.manage_and_track_all_your_business_expenses_3c30f633")}
+        actions={
+          <>
+            <SharedActionButton icon={HistoryIcon} onClick={() => navigate("history/")}>
+              {autoT("legacy.history_90ccd649")}
+            </SharedActionButton>
+            <SharedActionButton icon={Plus} variant="primary" onClick={() => setAddModalOpen(true)}>
+              {autoT("legacy.new_expense_7c3ae05c")}
+            </SharedActionButton>
+          </>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          icon={<FileText className="text-indigo-600" size={22} />}
+          icon={FileText}
           label={autoT("legacy.total_expenses_750134b6")}
           value={stats.total_count}
-          bg="bg-indigo-50"
+          tone="blue"
         />
         <StatCard
-          icon={<TrendingDown className="text-red-600" size={22} />}
+          icon={TrendingDown}
           label={autoT("legacy.total_afn_622d18e0")}
           value={formatCurrency(stats.total_afn, "AFN")}
-          bg="bg-red-50"
+          tone="rose"
         />
         <StatCard
-          icon={<DollarSign className="text-emerald-600" size={22} />}
+          icon={DollarSign}
           label={autoT("legacy.total_usd_34e65e0b")}
           value={formatCurrency(stats.total_usd, "USD")}
-          bg="bg-emerald-50"
+          tone="green"
         />
         <StatCard
-          icon={<Calendar className="text-amber-600" size={22} />}
+          icon={Calendar}
           label={autoT("legacy.this_month_afn_5b038dab")}
           value={formatCurrency(stats.this_month_afn, "AFN")}
-          bg="bg-amber-50"
+          tone="amber"
         />
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder={autoT("legacy.search_by_name_or_description_5b22616a")}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
+      <Toolbar compactMobile>
+        <SharedField label={autoT("legacy.search_by_name_or_description_5b22616a")}>
+          <SearchBox value={searchTerm} onChange={setSearchTerm} placeholder={autoT("legacy.search_by_name_or_description_5b22616a")} />
+        </SharedField>
+        <SharedField label={autoT("legacy.currency_e070de22")}>
           <select
             value={currencyFilter}
             onChange={(e) => setCurrencyFilter(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
+            className="theme-select w-full cursor-pointer px-3"
           >
             <option value="all">{autoT("legacy.all_currencies_f41665a4")}</option>
             <option value="AFN">{autoT("labels.afn")}</option>
             <option value="USD">{autoT("legacy.usd_57814cfb")}</option>
           </select>
-
+        </SharedField>
+        <SharedField label={autoT("legacy.from_date_3b5d11ae")}>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="theme-input w-full px-3"
             title={autoT("legacy.from_date_3b5d11ae")}
           />
-
+        </SharedField>
+        <SharedField label={autoT("legacy.to_date_af244da3")}>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="theme-input w-full px-3"
             title={autoT("legacy.to_date_af244da3")}
           />
-
+        </SharedField>
+        <SharedField label={autoT("legacy.sort_by", { defaultValue: "Sort by" })}>
           <div className="relative">
             <ArrowUpDown
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 theme-text-muted"
               size={16}
             />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
+              className="theme-select w-full cursor-pointer px-3 ps-9"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -311,109 +294,85 @@ function ExpensesMain() {
               ))}
             </select>
           </div>
-
+        </SharedField>
           {hasActiveFilters && (
-            <button
+            <SharedActionButton
               onClick={resetFilters}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              icon={RotateCcw}
+              className="self-end"
               title={autoT("legacy.reset_filters_56553100")}
             >
-              <RotateCcw size={16} /> {autoT("inventory_manager.common.reset")}
-            </button>
+              {autoT("inventory_manager.common.reset")}
+            </SharedActionButton>
           )}
-        </div>
-      </div>
+      </Toolbar>
 
       {/* Table + Pagination */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="theme-table overflow-hidden">
         {loading && expenses.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="mt-3 text-gray-500">{autoT("legacy.loading_expenses_fd739bdc")}</p>
-          </div>
+          <div className="p-4"><LoadingState label={autoT("legacy.loading_expenses_fd739bdc")} /></div>
         ) : error ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="inline-block text-red-500 mb-2" size={32} />
-            <p className="text-red-600 font-medium">{error}</p>
-            <button
-              onClick={() => fetchExpenses(1)}
-              className="mt-3 text-sm text-indigo-600 hover:underline"
-            >
+          <div className="space-y-3 p-4">
+            <Alert tone="error" message={error} />
+            <SharedActionButton onClick={() => fetchExpenses(1)}>
               {autoT("landing.marketplace.discovery.retry")}
-            </button>
+            </SharedActionButton>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
-              <FileText size={32} className="text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {autoT("legacy.no_expenses_found_15f51995")}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {stats.total_count > 0
+          <div className="p-4">
+            <EmptyState
+              title={autoT("legacy.no_expenses_found_15f51995")}
+              description={stats.total_count > 0
                 ? autoT("legacy.try_adjusting_your_filters_11962c19")
                 : autoT("legacy.get_started_by_creating_your_first_expense_3f57ced2")}
-            </p>
-            {stats.total_count > 0 ? (
-              <button
-                onClick={resetFilters}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-              >
-                <RotateCcw size={16} /> {autoT("legacy.reset_filters_5be69856")}
-              </button>
-            ) : (
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-              >
-                <Plus size={18} /> {autoT("legacy.new_expense_7c3ae05c")}
-              </button>
-            )}
+              action={stats.total_count > 0
+                ? <SharedActionButton icon={RotateCcw} variant="primary" onClick={resetFilters}>{autoT("legacy.reset_filters_5be69856")}</SharedActionButton>
+                : <SharedActionButton icon={Plus} variant="primary" onClick={() => setAddModalOpen(true)}>{autoT("legacy.new_expense_7c3ae05c")}</SharedActionButton>}
+            />
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="border-b border-[var(--theme-border)]">
                   <tr>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="text-start">
                       {autoT("attendance.table.name")}
                     </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="text-start">
                       {autoT("table.date")}
                     </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="text-start">
                       {autoT("legacy.amount_43dc8532")}
                     </th>
-                    <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="text-start">
                       {autoT("legacy.afn_equivalent_8efe5e23")}
                     </th>
-                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="text-end">
                       {autoT("table.actions")}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-[var(--theme-border)]">
                   {expenses.map((expense) => (
                     <tr
                       key={expense.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="transition-colors"
                     >
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">
+                      <td>
+                        <div className="font-semibold theme-text-primary">
                           {expense.name}
                         </div>
                         {expense.description && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs mt-0.5">
+                          <div className="mt-0.5 max-w-xs truncate text-xs theme-text-muted">
                             {expense.description}
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                      <td className="whitespace-nowrap theme-text-secondary">
                         {formatDate(expense.date)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${getCurrencyBadge(expense.currency)}`}
                         >
@@ -425,18 +384,18 @@ function ExpensesMain() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">
+                      <td className="whitespace-nowrap font-semibold tabular-nums theme-text-primary">
                         {formatCurrency(expense.amount_afn, "AFN")}
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         <div className="flex justify-end gap-1">
-                          <ActionButton
+                          <IconActionButton
                             onClick={() => navigate(`${expense.id}/`)}
                             icon={<Eye size={16} />}
                             color="indigo"
                             title={autoT("legacy.view_details_907b3bee")}
                           />
-                          <ActionButton
+                          <IconActionButton
                             onClick={() =>
                               printVoucher(
                                 expense,
@@ -448,7 +407,7 @@ function ExpensesMain() {
                             color="emerald"
                             title={autoT("legacy.print_voucher_e313002f")}
                           />
-                          <ActionButton
+                          <IconActionButton
                             onClick={() => setDeleteId(expense.id)}
                             icon={<Trash2 size={16} />}
                             color="red"
@@ -476,13 +435,13 @@ function ExpensesMain() {
 
       {/* Add Modal */}
       {addModalOpen && (
-        <ModalShell
+        <Modal
           onClose={() => setAddModalOpen(false)}
           title={autoT("legacy.add_new_expense_0721cfa5")}
         >
-          <form onSubmit={addNewExpense} className="p-6 space-y-4">
+          <form onSubmit={addNewExpense} className="space-y-4 p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label={autoT("legacy.expense_name_866f5080")} required>
+              <SharedField label={autoT("legacy.expense_name_866f5080")} required>
                 <input
                   type="text"
                   name="name"
@@ -490,20 +449,20 @@ function ExpensesMain() {
                   onChange={handleChange}
                   required
                   placeholder={autoT("legacy.e_g_office_supplies_3a60cc40")}
-                  className="input"
+                  className="theme-input w-full px-3"
                 />
-              </Field>
-              <Field label={autoT("table.date")} required>
+              </SharedField>
+              <SharedField label={autoT("table.date")} required>
                 <input
                   type="date"
                   name="date"
                   value={newExpense.date}
                   onChange={handleChange}
                   required
-                  className="input"
+                  className="theme-input w-full px-3"
                 />
-              </Field>
-              <Field label={autoT("legacy.amount_43dc8532")} required>
+              </SharedField>
+              <SharedField label={autoT("legacy.amount_43dc8532")} required>
                 <input
                   type="number"
                   step="0.01"
@@ -512,23 +471,23 @@ function ExpensesMain() {
                   onChange={handleChange}
                   required
                   placeholder="0.00"
-                  className="input"
+                  className="theme-input w-full px-3"
                 />
-              </Field>
-              <Field label={autoT("legacy.currency_e070de22")}>
+              </SharedField>
+              <SharedField label={autoT("legacy.currency_e070de22")}>
                 <select
                   name="currency"
                   value={newExpense.currency}
                   onChange={handleChange}
-                  className="input bg-white"
+                  className="theme-select w-full px-3"
                 >
                   <option value="AFN">{autoT("legacy.afn_afghani_96edf857")}</option>
                   <option value="USD">{autoT("legacy.usd_us_dollar_2d6f254e")}</option>
                 </select>
-              </Field>
+              </SharedField>
               {newExpense.currency === "USD" && (
                 <div className="md:col-span-2">
-                  <Field label={autoT("legacy.exchange_rate_1_usd_afn_64ac5dcc")}>
+                  <SharedField label={autoT("legacy.exchange_rate_1_usd_afn_64ac5dcc")}>
                     <input
                       type="number"
                       step="0.01"
@@ -536,13 +495,13 @@ function ExpensesMain() {
                       value={newExpense.exchange_rate}
                       onChange={handleChange}
                       placeholder={autoT("legacy.e_g_70_50_7ce1e013")}
-                      className="input"
+                      className="theme-input w-full px-3"
                     />
-                  </Field>
+                  </SharedField>
                   {newExpense.amount && newExpense.exchange_rate && (
-                    <div className="mt-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg text-sm">
-                      <span className="text-gray-600">{autoT("legacy.afn_equivalent_6a6056ff")} </span>
-                      <span className="font-semibold text-indigo-700">
+                    <div className="mt-2 rounded-lg border border-[rgb(var(--theme-primary-rgb)/0.18)] bg-[var(--theme-primary-soft)] px-3 py-2 text-[13px]">
+                      <span className="theme-text-secondary">{autoT("legacy.afn_equivalent_6a6056ff")} </span>
+                      <span className="font-semibold text-[var(--theme-primary-hover)]">
                         {(
                           parseFloat(newExpense.amount) *
                           parseFloat(newExpense.exchange_rate)
@@ -554,44 +513,45 @@ function ExpensesMain() {
                 </div>
               )}
               <div className="md:col-span-2">
-                <Field label={autoT("description")}>
+                <SharedField label={autoT("description")}>
                   <textarea
                     name="description"
                     value={newExpense.description}
                     onChange={handleChange}
                     rows={3}
                     placeholder={autoT("legacy.additional_details_04831c63")}
-                    className="input resize-none"
+                    className="theme-textarea w-full resize-none px-3 py-2"
                   />
-                </Field>
+                </SharedField>
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <button
+              <SharedActionButton
                 type="button"
                 onClick={() => setAddModalOpen(false)}
-                className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
               >
                 {autoT("staff.cancel")}
-              </button>
-              <button
+              </SharedActionButton>
+              <SharedActionButton
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition inline-flex items-center gap-2 disabled:opacity-60"
+                loading={submitting}
+                icon={Save}
+                variant="primary"
               >
-                <Save size={16} />
                 {submitting ? autoT("saving") : autoT("legacy.save_expense_b89a5c08")}
-              </button>
+              </SharedActionButton>
             </div>
           </form>
-        </ModalShell>
+        </Modal>
       )}
 
       {deleteId !== null && (
-        <ConfirmDialog
+        <ConfirmModal
           title={autoT("legacy.delete_expense_1816483d")}
           message={autoT("legacy.are_you_sure_you_want_to_delete_this_expense_this_acti_b54a7692")}
-          onCancel={() => setDeleteId(null)}
+          confirmLabel={autoT("staff.table.delete")}
+          onClose={() => setDeleteId(null)}
           onConfirm={confirmDelete}
         />
       )}
@@ -599,21 +559,7 @@ function ExpensesMain() {
   );
 }
 
-/* ---------- Reusable bits ---------- */
-function StatCard({ icon, label, value, bg }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm text-gray-500 mb-1 truncate">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 truncate">{value}</p>
-        </div>
-        <div className={`p-3 rounded-xl shrink-0 ${bg}`}>{icon}</div>
-      </div>
-    </div>
-  );
-}
-function ActionButton({ onClick, icon, color, title }) {
+function IconActionButton({ onClick, icon, color, title }) {
   const map = {
     indigo: "hover:text-indigo-600 hover:bg-indigo-50",
     emerald: "hover:text-emerald-600 hover:bg-emerald-50",
@@ -621,73 +567,13 @@ function ActionButton({ onClick, icon, color, title }) {
   };
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
-      className={`p-2 text-gray-500 rounded-lg transition ${map[color]}`}
+      className={`theme-btn theme-btn-ghost theme-btn-icon ${map[color]}`}
     >
       {icon}
     </button>
-  );
-}
-function ModalShell({ children, onClose, title }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition"
-          >
-            <XCircle size={22} className="text-gray-500" />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-function Field({ label, required, children }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}
-        {required && <span className="text-red-500"> *</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
-function ConfirmDialog({ title, message, onCancel, onConfirm }) {
-  const { t: autoT } = useAutoTranslation();
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 bg-red-100 rounded-full shrink-0">
-            <Trash2 className="text-red-600" size={20} />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{message}</p>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
-          >
-            {autoT("staff.cancel")}
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
-          >
-            {autoT("staff.table.delete")}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 

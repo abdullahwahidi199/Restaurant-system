@@ -85,7 +85,7 @@ export default function DataTable({
 
   return (
     <div className="theme-table overflow-hidden">
-      <div className="flex min-h-12 items-center justify-between gap-3 border-b px-4 py-2 theme-surface">
+      <div className="flex min-h-10 items-center justify-between gap-3 border-b px-3 py-1.5 theme-surface">
         <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
           {rows.length.toLocaleString()} {autoT("legacy.records_86761b63")}
         </p>
@@ -100,12 +100,12 @@ export default function DataTable({
           </button>
         )}
       </div>
-      <div className="space-y-3 p-3 md:hidden">
+      <div className="space-y-2 p-2.5 md:hidden">
         {rows.length ? (
           visibleRows.map((row, index) => (
             <article
               key={row[rowKey] ?? index}
-              className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-sm"
+              className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3"
             >
               <div className="space-y-2.5">
                 {dataColumns.map((column, columnIndex) => (
@@ -164,16 +164,16 @@ export default function DataTable({
         )}
       </div>
 
-      <div className="hidden max-h-[68vh] overflow-auto md:block">
-        <table className="w-full min-w-[760px] text-left text-[13px]">
-          <thead className="sticky top-0 z-10 text-[11px] font-semibold uppercase tracking-wide backdrop-blur">
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[760px] rtl:text-right ltr:text-left">
+          <thead>
             <tr>
               {columns.map((column) => {
                 const rightAligned = actionKeys.has(column.key) || column.className?.includes("text-right");
                 return (
                 <th
                   key={column.key}
-                  className={column.headerClassName || `px-4 py-2.5 ${rightAligned ? "text-right" : ""}`}
+                  className={column.headerClassName || (rightAligned ? "text-right" : "")}
                   aria-sort={
                     sort.key === column.key
                       ? sort.direction === "asc"
@@ -205,15 +205,15 @@ export default function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--theme-border)]">
+          <tbody>
             {rows.length ? (
               visibleRows.map((row, index) => (
                 <tr
                   key={row[rowKey] ?? index}
-                  className="transition"
+                  className="border-b border-[var(--theme-border)] transition"
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className={column.className || "px-4 py-2.5 align-middle theme-text-secondary"}>
+                    <td key={column.key} className={column.className || "align-middle theme-text-secondary"}>
                       {column.render ? column.render(row, index) : row[column.key]}
                     </td>
                   ))}

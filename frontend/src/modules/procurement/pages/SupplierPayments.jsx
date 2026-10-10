@@ -33,11 +33,10 @@ export default function SupplierPayments({
           { key: "invoice", header: "Invoice", render: (payment) => payment.invoice_number || "-" },
           { key: "method", header: "Method", render: (payment) => formatMethod(payment.payment_method) },
           { key: "reference", header: "Reference", render: (payment) => payment.reference_number || "-" },
-          { key: "amount", header: "Amount", className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary", render: (payment) => money(payment.amount) },
+          { key: "amount", header: "Amount", className: "text-right font-semibold tabular-nums theme-text-primary", render: (payment) => money(payment.amount) },
           {
             key: "action",
             header: "Action",
-            className: "px-4 py-2.5",
             render: (payment) => (
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => onVoucher(payment)} className="theme-btn theme-btn-outline theme-btn-icon theme-text-muted" title={autoT("legacy.print_voucher_b9248a24")} aria-label={autoT("legacy.print_voucher_b9248a24")}>

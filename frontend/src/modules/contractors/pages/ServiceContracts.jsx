@@ -31,11 +31,11 @@ export default function ServiceContracts({ contracts, filters, onFilters, onAdd 
         rows={contracts}
         empty={autoT("legacy.no_service_contracts_found_0c2050a3")}
         columns={[
-          { key: "title", header: "Title", render: (contract) => <span className="font-semibold text-slate-950">{contract.title}</span> },
+          { key: "title", header: "Title", render: (contract) => <span className="font-semibold theme-text-primary">{contract.title}</span> },
           { key: "contractor", header: "Contractor", render: (contract) => contract.contractor_name },
           { key: "period", header: "Period", render: (contract) => `${contract.start_date} to ${contract.end_date || "Open"}` },
-          { key: "value", header: "Value", className: "px-4 py-3 text-right font-semibold text-slate-950", render: (contract) => money(contract.contract_value) },
-          { key: "invoiced", header: "Invoiced", className: "px-4 py-3 text-right", render: (contract) => money(contract.total_invoiced) },
+          { key: "value", header: "Value", className: "text-right font-semibold tabular-nums theme-text-primary", render: (contract) => money(contract.contract_value) },
+          { key: "invoiced", header: "Invoiced", className: "text-right tabular-nums", render: (contract) => money(contract.total_invoiced) },
           { key: "status", header: "Status", render: (contract) => <StatusBadge status={contract.status} /> },
         ]}
       />

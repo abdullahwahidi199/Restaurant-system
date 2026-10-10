@@ -13,32 +13,42 @@ import { useTranslation as useAutoTranslation } from "react-i18next";
 const PALETTES = {
   available: [
     {
-      bg: "bg-emerald-200",
-      border: "border-emerald-400",
-      icon: "text-emerald-600",
+      bg: "bg-[#00c875]/15",
+      border: "border-[#00c875]",
+      hover: "",
+      icon: "text-[#008f54]",
+      filter: "border-[#00c875] bg-[#00c875]/15 text-[#007a48]",
+      dot: "bg-[#00c875]",
     },
   ],
   occupied: [
     {
-      bg: "bg-yellow-100",
-      border: "border-orange-500",
-      icon: "text-orange-600",
+      bg: "bg-[#f59e0b]/15",
+      border: "border-[#f59e0b]",
+      hover: "",
+      icon: "text-[#b45309]",
+      filter: "border-[#f59e0b] bg-[#f59e0b]/15 text-[#92400e]",
+      dot: "bg-[#f59e0b]",
     },
   ],
   reserved: [
     {
-      bg: "bg-purple-200",
-      border: "border-purple-500",
-      hover: "hover:bg-purple-200",
-      icon: "text-purple-600",
+      bg: "bg-[#8f5fd2]/15",
+      border: "border-[#8f5fd2]",
+      hover: "",
+      icon: "text-[#7040b3]",
+      filter: "border-[#8f5fd2] bg-[#8f5fd2]/15 text-[#61349d]",
+      dot: "bg-[#8f5fd2]",
     },
   ],
   unavailable: [
     {
-      bg: "bg-gray-200",
-      border: "border-gray-400",
+      bg: "bg-black/10",
+      border: "border-black/60",
       hover: "",
-      icon: "text-gray-600",
+      icon: "text-black",
+      filter: "border-black/60 bg-black/10 text-black",
+      dot: "bg-black",
     },
   ],
 };
@@ -53,6 +63,21 @@ const pickPalette = (status, tableId) => {
 };
 
 const hasReservationOverride = (status) => status === "reserved";
+
+const getFilterStyle = (status) => {
+  if (status === "all") {
+    return {
+      button: "border-slate-300 bg-white text-slate-700",
+      dot: "bg-blue-500",
+    };
+  }
+
+  const palette = PALETTES[status]?.[0];
+  return {
+    button: palette?.filter || "border-slate-300 bg-white text-slate-700",
+    dot: palette?.dot || "bg-slate-400",
+  };
+};
 
 export default function TablesDisplayModal({ tables, refetchTables }) {
                  const { t: autoT } = useAutoTranslation();
@@ -141,7 +166,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
     const p = pickPalette(key, tableId);
 
     if (key === "unavailable") {
-      return `${p.bg} ${p.border} opacity-70 cursor-not-allowed`;
+      return `${p.bg} ${p.border} opacity-80 cursor-not-allowed`;
     }
     return `${p.bg} ${p.border} ${p.hover}`;
   };
@@ -191,20 +216,14 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-4 py-1.5 rounded-full text-white transition
-                ${filter === s ? "scale-105 shadow" : ""}
-                ${
-                  s === "available"
-                    ? "bg-green-500 hover:bg-green-600"
-                    : s === "occupied"
-                      ? "bg-orange-500 hover:bg-orange-600"
-                      : s === "reserved"
-                        ? "bg-purple-500 hover:bg-purple-600"
-                        : s === "unavailable"
-                          ? "bg-gray-500 hover:bg-gray-600"
-                          : "bg-blue-500 hover:bg-blue-600"
-                }`}
+                className={`flex items-center gap-2 rounded-full border px-4 py-1.5 font-semibold transition
+                ${filter === s ? "scale-105 shadow-sm ring-2 ring-current/20" : "opacity-90 hover:opacity-100"}
+                ${getFilterStyle(s).button}`}
               >
+                <span
+                  aria-hidden="true"
+                  className={`h-2.5 w-2.5 rounded-full ${getFilterStyle(s).dot}`}
+                />
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
             ),
@@ -212,11 +231,23 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
         </div>
       </div>
 
-      <div className="mb-4 text-gray-700 font-medium flex flex-wrap gap-4">
-        <span>🟢 {availableCount} {autoT("available")}</span>
-        <span>🟠 {occupiedCount} {autoT("legacy.occupied_30c51a99")}</span>
-        <span>🟣 {reservedCount} {autoT("legacy.reserved_67a6ff10")}</span>
-        <span>⚫ {unavailableCount} {autoT("menu.unavailable")}</span>
+      <div className="mb-4 flex flex-wrap gap-4 font-medium text-gray-700">
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded-full bg-[#00c875]" />
+          {availableCount} {autoT("available")}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded-full bg-[#f59e0b]" />
+          {occupiedCount} {autoT("legacy.occupied_30c51a99")}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded-full bg-[#8f5fd2]" />
+          {reservedCount} {autoT("legacy.reserved_67a6ff10")}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded-full bg-black" />
+          {unavailableCount} {autoT("menu.unavailable")}
+        </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -340,7 +371,7 @@ export default function TablesDisplayModal({ tables, refetchTables }) {
             setShowCancelToast(false);
             setOrderToCancel(null);
           }}
-          onConfirm={async (id) => await cancelOrder(orderToCancel.id)}
+          onConfirm={() => cancelOrder(orderToCancel.id)}
         />
       )}
     </div>

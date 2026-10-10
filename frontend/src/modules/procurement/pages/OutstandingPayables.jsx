@@ -35,7 +35,7 @@ export default function OutstandingPayables({
                   key={supplier.id}
                   type="button"
                   onClick={() => onOpenSupplier(supplier)}
-                  className="flex min-h-[48px] w-full items-center justify-between gap-3 py-2.5 text-left transition hover:bg-[var(--theme-hover)]"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left transition hover:bg-[var(--theme-hover)]"
                 >
                   <span className="text-[13px] font-semibold theme-text-primary">{supplier.name}</span>
                   <span className="text-xs font-semibold tabular-nums text-[var(--theme-danger)]">{money(supplier.outstanding_balance)}</span>

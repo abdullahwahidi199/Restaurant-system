@@ -10,6 +10,7 @@ export default function ReadyOrders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const fetchReadyOrders = async () => {
     try {
@@ -34,9 +35,14 @@ export default function ReadyOrders() {
     fetchReadyOrders();
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentTime(Date.now()), 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
     <div className="flex h-full">
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2 py-1">
         {loading && (
           <div className="flex justify-center items-center py-10">
             <p className="text-gray-500">{autoT("legacy.loading_ready_orders_2ac23eb5")}</p>
@@ -62,6 +68,7 @@ export default function ReadyOrders() {
               key={order.id}
               order={order}
               isSelected={selectedOrder?.id === order.id}
+              currentTime={currentTime}
               onClick={() => setSelectedOrder(order)}
             />
           ))}

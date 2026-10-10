@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TablePagination from "../../../modules/shared/erp/components/TablePagination";
+import ReportHeader from "./ReportHeader";
 import toast from "react-hot-toast";
 import {
   Bar,
@@ -121,13 +122,13 @@ function ReportSkeleton({ label }) {
 
 function KpiCard({ icon, label, value, hint }) {
   return (
-    <article className="theme-kpi-card min-w-0 p-4">
+    <article className="theme-kpi-card min-w-0 p-3.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wide theme-text-muted">
+          <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
             {label}
           </p>
-          <p className="mt-2 truncate text-xl font-extrabold theme-text-primary" title={String(value)}>
+          <p className="mt-1 truncate text-xl font-semibold tabular-nums theme-text-primary" title={String(value)}>
             {value}
           </p>
           {hint && <p className="mt-1 truncate text-xs theme-text-muted">{hint}</p>}
@@ -143,7 +144,7 @@ function KpiCard({ icon, label, value, hint }) {
 function EmptyReport({ filtered, onReset, t }) {
   return (
     <div className="theme-card border-dashed px-5 py-14 text-center">
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--theme-muted)] theme-text-muted">
+      <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--theme-muted)] theme-text-muted">
         <PackageOpen className="h-7 w-7" />
       </span>
       <h3 className="mt-4 text-lg font-bold theme-text-primary">
@@ -241,7 +242,7 @@ function PdfConfigurator({
       wide
     >
       <form
-        className="space-y-6 p-4 sm:p-6"
+        className="space-y-4 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           onGenerate(config);
@@ -414,7 +415,7 @@ function PdfConfigurator({
           <button
             type="submit"
             disabled={generating || config.startDate > config.endDate}
-            className="theme-btn theme-btn-danger px-5 py-2.5"
+            className="theme-btn theme-btn-primary px-5 py-2.5"
           >
             {generating ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -617,33 +618,55 @@ export default function MenuItemSalesReport({ startDate, endDate, generationKey 
 
   if (loading && !data) {
     return (
-      <ReportSkeleton
-        label={t("menu_item_sales.loading", { defaultValue: "Loading menu item sales report" })}
-      />
+      <>
+        <ReportHeader
+          onExport={openPdf}
+          exportLabel={t("menu_item_sales.generate_pdf", { defaultValue: "Generate PDF" })}
+          disabled
+        />
+        <ReportSkeleton
+          label={t("menu_item_sales.loading", { defaultValue: "Loading menu item sales report" })}
+        />
+      </>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="rounded-2xl border border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] p-6 text-center">
-        <AlertCircle className="mx-auto h-8 w-8 text-[var(--theme-danger)]" />
-        <h3 className="mt-3 font-bold theme-text-primary">
-          {t("menu_item_sales.unable_to_load", { defaultValue: "Unable to load report" })}
-        </h3>
-        <p className="mt-1 text-sm theme-text-secondary">{error}</p>
-        <button
-          type="button"
-          onClick={() => setRetryKey((value) => value + 1)}
-          className="theme-btn theme-btn-outline mt-4 px-4 py-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          {t("menu_item_sales.retry", { defaultValue: "Retry" })}
-        </button>
-      </div>
+      <>
+        <ReportHeader
+          onExport={openPdf}
+          exportLabel={t("menu_item_sales.generate_pdf", { defaultValue: "Generate PDF" })}
+          disabled
+        />
+        <div className="rounded-2xl border border-[var(--theme-danger)] bg-[var(--theme-danger-soft)] p-6 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-[var(--theme-danger)]" />
+          <h3 className="mt-3 font-bold theme-text-primary">
+            {t("menu_item_sales.unable_to_load", { defaultValue: "Unable to load report" })}
+          </h3>
+          <p className="mt-1 text-sm theme-text-secondary">{error}</p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((value) => value + 1)}
+            className="theme-btn theme-btn-outline mt-4 px-4 py-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            {t("menu_item_sales.retry", { defaultValue: "Retry" })}
+          </button>
+        </div>
+      </>
     );
   }
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <ReportHeader
+        onExport={openPdf}
+        exportLabel={t("menu_item_sales.generate_pdf", { defaultValue: "Generate PDF" })}
+        disabled
+      />
+    );
+  }
 
   const { summary, items, category_summary: categories, trend, insights, pagination } = data;
   const filtersActive = hasActiveMenuItemFilters({
@@ -664,43 +687,12 @@ export default function MenuItemSalesReport({ startDate, endDate, generationKey 
   };
 
   return (
-    <div className="space-y-6" aria-busy={loading}>
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <Utensils className="h-6 w-6 text-[var(--theme-primary)]" />
-            <h2 className="text-2xl font-extrabold theme-text-primary">
-              {t("menu_item_sales.title", { defaultValue: "Menu Item Sales" })}
-            </h2>
-          </div>
-          <p className="mt-1 text-sm theme-text-muted">
-            {t("menu_item_sales.period", {
-              defaultValue: "{{start}} – {{end}}",
-              start: data.range.start,
-              end: data.range.end,
-            })}
-            {data.branch?.name ? (
-              <span>
-                {" "}· {t("menu_item_sales.branch", { defaultValue: "Branch" })}: {data.branch.name}
-              </span>
-            ) : null}
-          </p>
-          <p className="mt-1 text-xs theme-text-muted">
-            {t("menu_item_sales.sales_rule_note", {
-              defaultValue:
-                "Completed and delivered orders only; cancelled items are excluded.",
-            })}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={openPdf}
-          className="theme-btn theme-btn-danger w-full px-5 py-2.5 sm:w-auto"
-        >
-          <Download className="h-4 w-4" />
-          {t("menu_item_sales.generate_pdf", { defaultValue: "Generate PDF" })}
-        </button>
-      </header>
+    <div className="space-y-4" aria-busy={loading}>
+      <ReportHeader
+        onExport={openPdf}
+        exportLabel={t("menu_item_sales.generate_pdf", { defaultValue: "Generate PDF" })}
+        disabled={loading || pdfGenerating}
+      />
 
       {error && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--theme-warning)] bg-[var(--theme-warning-soft)] px-4 py-3 text-sm theme-text-secondary">
@@ -746,10 +738,10 @@ export default function MenuItemSalesReport({ startDate, endDate, generationKey 
             <TrendingUp className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide theme-text-muted">
+            <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
               {t("menu_item_sales.top_selling_item", { defaultValue: "Top Selling Item" })}
             </p>
-            <p className="mt-1 truncate font-extrabold theme-text-primary">
+            <p className="mt-1 truncate font-semibold theme-text-primary">
               {top ? itemName(top) : "—"}
             </p>
             <p className="text-sm theme-text-muted">
@@ -764,10 +756,10 @@ export default function MenuItemSalesReport({ startDate, endDate, generationKey 
             <TrendingDown className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wide theme-text-muted">
+            <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">
               {t("menu_item_sales.lowest_selling_item", { defaultValue: "Lowest Selling Item" })}
             </p>
-            <p className="mt-1 truncate font-extrabold theme-text-primary">
+            <p className="mt-1 truncate font-semibold theme-text-primary">
               {lowest ? itemName(lowest) : "—"}
             </p>
             <p className="text-sm theme-text-muted">

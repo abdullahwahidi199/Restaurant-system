@@ -6,10 +6,25 @@ from .serializers import CustomerLoginSerializer, CustomerSignupSerializer,Custo
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from .models import Customer
 from rest_framework.permissions import AllowAny
+from django.core import signing
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from restaurants.models import Restaurant
+from orders.models import Order
+from .models import CustomerAddress
+from .serializers import CustomerAddressSerializer
+from .marketplace import (
+    MarketplaceCheckoutInputSerializer,
+    checkout_payload,
+    create_marketplace_order,
+    serialize_customer_order,
+    sign_checkout_quote,
+    validate_marketplace_checkout,
+)
 from users.login_rate_limit import (
     LoginRateLimitBlocked,
     LoginRateLimitUnavailable,
@@ -51,7 +66,7 @@ def get_restaurant_from_user(request):
     
     return None
 class CustomerProfileView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         customer = get_customer_by_slug(request)
@@ -82,37 +97,187 @@ class CustomerOrdersView(APIView):
             "items__platter",
         ).order_by("-created_at")
 
-        data = [
-            {
-                "id": order.id,
-                "order_type": order.order_type,
-                "restaurant": order.restaurant.name if order.restaurant else None,
-                "restaurant_slug": order.restaurant.slug if order.restaurant else None,
-                "branch": order.branch.name if order.branch else None,
-                "branch_slug": order.branch.slug if order.branch else None,
-                "status": order.status,
-                "total": order.get_total(),
-                "created_at": order.created_at,
-                "updated_at": order.updated_at,
-                "paid_at": order.paid_at,
-                "items": [
-                    {
-                        "menu_item": (
-                            item.menu_item.name
-                            if item.menu_item
-                            else item.platter.name if item.platter else None
-                        ),
-                        "type": "menu_item" if item.menu_item else "platter",
-                        "quantity": item.quantity,
-                        "subtotal": item.get_subtotal()
-                    }
-                    for item in order.items.all()
-                ]
-            }
-            for order in orders
-        ]
+        if "page" in request.query_params:
+            pagination = PageNumberPagination()
+            pagination.page_size = 20
+            page = pagination.paginate_queryset(orders, request, view=self)
+            return pagination.get_paginated_response([
+                serialize_customer_order(order) for order in page
+            ])
+        data = [serialize_customer_order(order) for order in orders]
 
         return Response(data)
+
+    def post(self, request):
+        customer = get_customer_by_slug(request)
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+        serializer = MarketplaceCheckoutInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not serializer.validated_data.get("idempotency_key"):
+            return Response(
+                {"idempotency_key": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            order, created = create_marketplace_order(
+                customer,
+                serializer.validated_data,
+            )
+        except IntegrityError:
+            order = customer.orders.select_related(
+                "restaurant", "branch"
+            ).prefetch_related(
+                "items__menu_item", "items__platter"
+            ).filter(
+                client_order_id=serializer.validated_data["idempotency_key"]
+            ).first()
+            if not order:
+                return Response(
+                    {"detail": "Please review checkout and try again with a new request.", "code": "request_conflict"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            created = False
+        return Response(
+            serialize_customer_order(order),
+            status=(status.HTTP_201_CREATED if created else status.HTTP_200_OK),
+        )
+
+
+class MarketplaceCheckoutValidationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        customer = get_customer_by_slug(request)
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+        serializer = MarketplaceCheckoutInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        checkout = validate_marketplace_checkout(
+            customer,
+            serializer.validated_data,
+        )
+        payload = checkout_payload(checkout)
+        payload["quote_token"] = sign_checkout_quote(customer, serializer.validated_data, checkout)
+        return Response(payload)
+
+
+class CustomerOrderDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_order(self, request, pk):
+        customer = get_customer_by_slug(request)
+        if not customer:
+            return None
+        return customer.orders.select_related(
+            "restaurant", "branch"
+        ).prefetch_related(
+            "items__menu_item", "items__platter"
+        ).filter(pk=pk).first()
+
+    def get(self, request, pk):
+        order = self.get_order(request, pk)
+        if not order:
+            return Response({"detail": "Order not found."}, status=404)
+        return Response(serialize_customer_order(order))
+
+
+class CustomerOrderCancelView(CustomerOrderDetailView):
+    @transaction.atomic
+    def post(self, request, pk):
+        customer = get_customer_by_slug(request)
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+        order = Order.objects.select_for_update().filter(
+            pk=pk,
+            customer=customer,
+        ).first()
+        if not order:
+            return Response({"detail": "Order not found."}, status=404)
+        if order.status != "pending":
+            return Response(
+                {"detail": "This order can no longer be cancelled."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if (timezone.now() - order.created_at).total_seconds() > 120:
+            return Response(
+                {"detail": "The cancellation window has expired."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        order.status = "cancelled"
+        order.save(update_fields=["status", "updated_at"])
+        order = self.get_order(request, pk)
+        return Response(serialize_customer_order(order))
+
+
+class CustomerOrderSocketTicketView(CustomerOrderDetailView):
+    def post(self, request, pk):
+        order = self.get_order(request, pk)
+        if not order:
+            return Response({"detail": "Order not found."}, status=404)
+        ticket = signing.dumps(
+            {"order_id": order.id, "user_id": request.user.id},
+            salt="customer-order-socket",
+            compress=True,
+        )
+        return Response({"ticket": ticket, "expires_in": 60})
+
+
+class CustomerAddressListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_customer(self, request):
+        return get_customer_by_slug(request)
+
+    def get(self, request):
+        customer = self.get_customer(request)
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+        return Response(CustomerAddressSerializer(customer.addresses.all(), many=True).data)
+
+    def post(self, request):
+        customer = self.get_customer(request)
+        if not customer:
+            return Response({"error": "Access denied"}, status=403)
+        serializer = CustomerAddressSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(customer=customer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class CustomerAddressDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_address(self, request, pk):
+        customer = get_customer_by_slug(request)
+        if not customer:
+            return None
+        return CustomerAddress.objects.filter(customer=customer, pk=pk).first()
+
+    def patch(self, request, pk):
+        address = self.get_address(request, pk)
+        if not address:
+            return Response({"detail": "Address not found."}, status=404)
+        serializer = CustomerAddressSerializer(address, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @transaction.atomic
+    def delete(self, request, pk):
+        address = self.get_address(request, pk)
+        if not address:
+            return Response({"detail": "Address not found."}, status=404)
+        customer = address.customer
+        Customer.objects.select_for_update().get(pk=customer.pk)
+        was_default = address.is_default
+        address.delete()
+        if was_default:
+            replacement = customer.addresses.order_by("-updated_at", "id").first()
+            if replacement:
+                replacement.is_default = True
+                replacement.save(update_fields=["is_default", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CustomerReviewsView(APIView):

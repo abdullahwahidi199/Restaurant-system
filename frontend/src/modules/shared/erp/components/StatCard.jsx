@@ -47,7 +47,7 @@ export default function StatCard({
 
   return (
     <div
-      className="theme-kpi-card flex min-w-0 flex-col justify-between gap-3 p-4"
+      className="theme-kpi-card flex min-w-0 flex-col justify-between gap-2.5 p-3.5"
       style={{ borderTopWidth: 1, borderTopColor: "var(--theme-border)" }}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -55,7 +55,7 @@ export default function StatCard({
           <p className="text-xs font-semibold leading-snug theme-text-secondary">
             {label}
           </p>
-          <p className="mt-2 break-words text-2xl font-bold leading-none tracking-tight theme-text-primary">
+          <p className="mt-1.5 break-words text-2xl font-semibold leading-none tracking-tight theme-text-primary">
             {value ?? "—"}
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function StatCard({
       </div>
 
       {(hint || trendLabel) && (
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--theme-border)] pt-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--theme-border)] pt-2">
           {hint && (
             <p className="min-w-0 flex-1 text-xs leading-snug theme-text-muted">
               {hint}

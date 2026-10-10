@@ -16,7 +16,7 @@ export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, comp
         <button
           type="button"
           onClick={() => onOpen(invoice)}
-          className="font-semibold text-slate-950 hover:underline"
+          className="font-semibold theme-text-primary hover:underline"
         >
           {getInvoiceNumber(invoice)}
         </button>
@@ -36,25 +36,24 @@ export default function PurchaseInvoiceTable({ invoices, onOpen, onPayment, comp
     {
       key: "total",
       header: "Total",
-      className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary",
+      className: "text-right font-semibold tabular-nums theme-text-primary",
       render: (invoice) => money(invoice.total_amount),
     },
     !compact && {
       key: "paid",
       header: "Paid",
-      className: "px-4 py-2.5 text-right tabular-nums",
+      className: "text-right tabular-nums",
       render: (invoice) => money(invoice.amount_paid),
     },
     {
       key: "balance",
       header: "Balance",
-      className: "px-4 py-2.5 text-right font-semibold tabular-nums text-[var(--theme-danger)]",
+      className: "text-right font-semibold tabular-nums text-[var(--theme-danger)]",
       render: (invoice) => money(invoice.remaining_balance),
     },
     {
       key: "actions",
       header: "Actions",
-      className: "px-4 py-2.5",
       render: (invoice) => (
         <div className="flex justify-end gap-2">
           <button

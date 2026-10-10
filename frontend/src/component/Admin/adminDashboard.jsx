@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     >
       {alert && !isWarningDismissed && (
         <div
-          className={`fixed top-5 ${isRTL ? "left-5" : "right-5"} z-50 flex items-center gap-3 rounded-lg shadow-2xl transition-all duration-300 animate-in slide-in-from-top-5`}
+          className={`fixed top-4 ${isRTL ? "left-4" : "right-4"} z-50 flex items-stretch overflow-hidden rounded-lg border border-[var(--theme-border-strong)] bg-[var(--theme-surface)] shadow-lg`}
         >
           <div className={`${alert.color} p-4 rounded-l-lg`}>{alert.icon}</div>
           <div className="theme-surface px-6 py-3 rounded-r-lg flex items-center gap-4">
@@ -138,14 +138,14 @@ export default function AdminDashboard() {
       )}
 
       {discountAlert && (
-        <div
+        <button
+          type="button"
           onClick={() => navigate("/admin/dashboard/pending-discount-requests")}
           className="
-      fixed top-6 right-6 z-50
+      fixed top-4 right-4 z-50
       bg-[var(--theme-primary)] text-[var(--theme-text-inverse)]
-      px-5 py-4 rounded-xl shadow-2xl
-      cursor-pointer
-      animate-bounce
+      px-4 py-3 rounded-lg shadow-lg
+      cursor-pointer text-start
       w-72
     "
         >
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
           <div className="text-xs mt-2 opacity-90">
             {t("legacy.click_to_review_pending_requests_9503e7a8")}
           </div>
-        </div>
+        </button>
       )}
 
       <Navbar

@@ -21,3 +21,33 @@ class Customer(models.Model):
         
     def get_orders_history(self):
         return self.orders.exclude(status__in=['pending', 'preparing', 'ready'])
+
+
+class CustomerAddress(models.Model):
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.CASCADE,
+        related_name="addresses",
+    )
+    label = models.CharField(max_length=40, default="Home")
+    address_line = models.TextField()
+    area = models.CharField(max_length=120, blank=True)
+    city = models.CharField(max_length=120, blank=True)
+    instructions = models.TextField(blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-is_default", "-updated_at", "id"]
+        indexes = [
+            models.Index(
+                fields=["customer", "is_default"],
+                name="cust_addr_default_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.customer} - {self.label}"

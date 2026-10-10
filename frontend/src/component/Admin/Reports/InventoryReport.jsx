@@ -9,7 +9,6 @@ import {
   TrendingDown,
   Settings2,
   CheckCircle,
-  Download,
 } from "lucide-react";
 import {
   PieChart,
@@ -20,6 +19,7 @@ import {
   Legend,
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import ReportHeader from "./ReportHeader";
 
 const MOVEMENT_COLORS = {
   order: "var(--theme-chart-1)",
@@ -47,7 +47,7 @@ export default function InventoryReport({ startDate, endDate }) {
       const res = await instance.get("/inventory/low-stock/");
       set_low_stock_items(res.data.length);
       set_low_stock_list(res.data);
-    } catch (error) {
+    } catch {
       console.log("Could not get low stock items");
     }
   };
@@ -109,9 +109,18 @@ export default function InventoryReport({ startDate, endDate }) {
 
   if (loading || !inventoryData || !movementsData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--theme-primary)]"></div>
-      </div>
+      <>
+        <ReportHeader
+          onExport={handleGeneratePDF}
+          exportLabel={t("inventory_manager.reports.generate_pdf", {
+            defaultValue: "Generate PDF",
+          })}
+          disabled
+        />
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--theme-primary)]"></div>
+        </div>
+      </>
     );
   }
 
@@ -126,33 +135,15 @@ export default function InventoryReport({ startDate, endDate }) {
   } = movementsData;
 
   return (
-    <div className="space-y-6 p-1">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold theme-text-primary">
-            {t("inventory_manager.reports.inventory_report", {
-              defaultValue: "Inventory Report",
-            })}
-          </h2>
-          <p className="text-sm theme-text-muted">
-            {t("inventory_manager.reports.report_subtitle", {
-              defaultValue: "Stock status and movement analysis",
-            })}
-          </p>
-        </div>
+    <div className="space-y-4">
+      <ReportHeader
+        onExport={handleGeneratePDF}
+        exportLabel={t("inventory_manager.reports.generate_pdf", {
+          defaultValue: "Generate PDF",
+        })}
+      />
 
-        <button
-          onClick={handleGeneratePDF}
-          className="theme-btn theme-btn-danger w-full px-4 py-2 sm:w-auto"
-        >
-          <Download className="w-4 h-4" />
-          {t("inventory_manager.reports.generate_pdf", {
-            defaultValue: "Generate PDF",
-          })}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title={t("inventory_manager.reports.total_inventory_items", {
             defaultValue: "Total Inventory Items",
@@ -199,9 +190,9 @@ export default function InventoryReport({ startDate, endDate }) {
       </div>
 
       {/* --- Main Content Grid --- */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 xl:gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Stock Movements Chart (Left Side - 3 cols) */}
-        <div className="theme-card p-4 sm:p-6 lg:col-span-3">
+        <div className="theme-card p-4 lg:col-span-3">
           <h3 className="mb-4 text-lg font-semibold theme-text-primary">
             {t("inventory_manager.reports.movement_breakdown", {
               defaultValue: "Movement Breakdown",
@@ -271,7 +262,7 @@ export default function InventoryReport({ startDate, endDate }) {
         </div>
 
         {/* Low Stock List (Right Side - 2 cols) */}
-        <div className="theme-card p-4 sm:p-6 lg:col-span-2">
+        <div className="theme-card p-4 lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
             <List className="h-5 w-5 theme-text-muted" />
             <h3 className="text-lg font-semibold theme-text-primary">
@@ -323,7 +314,7 @@ export default function InventoryReport({ startDate, endDate }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ReportTable
           title={t("inventory_manager.reports.purchase_cost_intelligence", {
             defaultValue: "Purchase Cost Intelligence",
@@ -406,31 +397,30 @@ function StatCard({
   title,
   value,
   icon,
-  bgColor,
-  textColor,
   subtitle,
   isAlert,
 }) {
   return (
-    <div className="theme-kpi-card flex items-start justify-between p-5">
-      <div>
-        <p className="text-sm font-medium theme-text-muted">{title}</p>
-        <p className={`text-2xl font-bold mt-1 ${textColor}`}>{value}</p>
-        {subtitle && <p className="mt-1 text-xs theme-text-muted">{subtitle}</p>}
+    <article className="theme-kpi-card flex min-w-0 items-start justify-between gap-3 p-3.5">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">{title}</p>
+        <p className="mt-1 truncate text-xl font-semibold tabular-nums theme-text-primary" title={String(value)}>{value}</p>
+        {subtitle && <p className="mt-1 truncate text-xs theme-text-muted">{subtitle}</p>}
       </div>
       <div
-        className={`p-3 rounded-lg ${bgColor} ${isAlert ? "animate-pulse" : ""}`}
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--theme-primary-soft)] text-[var(--theme-primary)] ${isAlert ? "animate-pulse" : ""}`}
       >
-        {icon}
+        {React.cloneElement(icon, { className: "h-4 w-4" })}
       </div>
-    </div>
+    </article>
   );
 }
 
 function ReportTable({ title, headers, rows, empty }) {
   return (
-    <div className="theme-card p-4 sm:p-6">
-      <h3 className="mb-4 text-lg font-semibold theme-text-primary">{title}</h3>
+    <div className="theme-table overflow-hidden">
+      <h3 className="border-b border-[var(--theme-border)] p-4 text-sm font-semibold theme-text-primary">{title}</h3>
+      <div className="p-4">
       <div className="space-y-3 md:hidden">
         {rows.length ? (
           rows.map((row, rowIndex) => (
@@ -494,6 +484,7 @@ function ReportTable({ title, headers, rows, empty }) {
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );

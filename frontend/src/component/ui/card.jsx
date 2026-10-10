@@ -7,5 +7,6 @@ export function Card({ children, className = "" }) {
 }
 
 export function CardContent({ children, className = "" }) {
-  return <div className={`p-4 ${className}`}>{children}</div>;
+  const hasCustomPadding = /(^|\s)p[trblxy]?-[^\s]+/.test(className);
+  return <div className={`${hasCustomPadding ? "" : "p-3.5"} ${className}`}>{children}</div>;
 }

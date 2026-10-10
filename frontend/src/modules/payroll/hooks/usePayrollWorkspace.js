@@ -71,7 +71,8 @@ export default function usePayrollWorkspace({
   const handleApiError = useCallback((err, fallback) => {
     console.error(err);
     const detail = err?.response?.data?.detail || err?.response?.data || fallback;
-    setError(typeof detail === "string" ? detail : fallback);
+    const isHtmlError = typeof detail === "string" && /<!doctype\s+html|<html[\s>]/i.test(detail);
+    setError(typeof detail === "string" && !isHtmlError ? detail : fallback);
   }, []);
 
   const loadDashboard = useCallback(async () => {

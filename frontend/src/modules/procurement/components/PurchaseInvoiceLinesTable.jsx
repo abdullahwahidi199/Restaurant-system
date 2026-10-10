@@ -20,7 +20,7 @@ export default function PurchaseInvoiceLinesTable({
           render: (line) => (
             <Link
               to={`${basePath}/inventory/ingredients?ingredient=${line.ingredient}`}
-              className="font-semibold text-slate-950 hover:underline"
+              className="font-semibold theme-text-primary hover:underline"
             >
               {line.ingredient_name}
             </Link>
@@ -29,20 +29,20 @@ export default function PurchaseInvoiceLinesTable({
         {
           key: "quantity",
           header: "Quantity",
-          className: "px-4 py-2.5 text-right tabular-nums",
+          className: "text-right tabular-nums",
           render: (line) =>
             `${Number(line.quantity || 0).toLocaleString()} ${line.ingredient_unit || ""}`,
         },
         {
           key: "unit_price",
           header: "Unit Price",
-          className: "px-4 py-2.5 text-right tabular-nums",
+          className: "text-right tabular-nums",
           render: (line) => money(line.unit_price),
         },
         {
           key: "total",
           header: "Total",
-          className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary",
+          className: "text-right font-semibold tabular-nums theme-text-primary",
           render: (line) => money(line.total_price),
         },
       ]}

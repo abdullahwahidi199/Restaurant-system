@@ -256,7 +256,7 @@ export default function StaffFormModal({
             className="rounded-lg p-2 text-[0px] text-gray-500 transition hover:bg-white hover:text-gray-900"
             aria-label={t("inventory_manager.common.close")}
           >
-            <X size={22} />✕
+            <X size={22} aria-hidden="true" />
           </button>
         </div>
 

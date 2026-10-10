@@ -158,16 +158,8 @@ export default function ProcurementWorkspace({
   };
 
   return (
-    <section className="space-y-4 px-4 pb-6 lg:px-5">
+    <section className="space-y-4">
       <PageHeader
-        eyebrow={autoT("legacy.pakhlai_procurement_34a99e6f")}
-        breadcrumb={
-          isFinance
-            ? autoT("legacy.finance_procurement_4eccf9c9")
-            : isOperations
-              ? autoT("legacy.operations_procurement_35ba51e4")
-              : autoT("legacy.admin_finance_procurement_278fbdf0")
-        }
         icon={Wallet}
         title={pageMeta.title}
         description={pageMeta.description}

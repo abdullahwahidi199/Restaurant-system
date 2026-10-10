@@ -1,48 +1,36 @@
 import { useContext, useEffect, useState } from "react";
 import {
-  Users,
-  Utensils,
-  CalendarCheck,
-  Star,
-  DollarSign,
+  Banknote,
+  MapPin,
+  PackageCheck,
   ShoppingBag,
-  Bell,
+  Utensils,
+  LayoutDashboard,
 } from "lucide-react";
 import { Card, CardContent } from "../../ui/card";
 
 import TopSectionStats from "./TopSectionStatsCard";
-import MonthOverView from "./MonthOverview";
 import DailySalesChart from "./DailySalesChart";
 import BestSellingItems from "./BestSellingItems";
-import Notifications from "./Notifications";
-import LowStockItems from "../Inventory/LowStockItems";
+import DashboardAnalytics from "./DashboardAnalytics";
+import DashboardSideRail from "./DashboardSideRail";
 import { AuthContext } from "../../../api/authforRBC";
 import instance from "../../../api/axiosInstance";
-import DeliveryPerformance from "./DeliveryPerformance";
 import RistrictionMessage from "../../RistrictionMessage";
 import { useTranslation } from "react-i18next";
+import PageHeader from "../../../modules/shared/erp/components/PageHeader";
+import LoadingState from "../../../modules/shared/erp/components/LoadingState";
+import Alert from "../../../modules/shared/erp/components/Alert";
 
 export default function AdminDashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === "fa" || i18n.language === "ps";
-
-  const [currentDate, setCurrentDate] = useState("authTokens");
+  const isRTL = i18n.dir() === "rtl";
 
   const { auth } = useContext(AuthContext);
-  console.log(auth);
   const isDemo = auth?.user?.isDemo;
-
-  useEffect(() => {
-    const date = new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-    setCurrentDate(date);
-  }, []);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -58,71 +46,92 @@ export default function AdminDashboard() {
     fetchSummary();
   }, [t]);
 
-  if (loading)
-    return <p className="text-center mt-10 text-gray-500">{t("dashboard.loading")}</p>;
-  if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
+  if (loading) return <LoadingState label={t("dashboard.loading")} />;
+  if (error) return <Alert tone="error" message={error} />;
+
+  const formatAmount = (value) =>
+    new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }).format(
+      Number(value) || 0,
+    );
+  const currentDate = new Intl.DateTimeFormat(i18n.language, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
 
   const stats = [
     {
-      label: t("dashboard.stats.total_staff"),
-      value: summary.total_staff,
-      icon: <Users className="h-5 w-5 text-[var(--theme-info)]" />,
-    },
-    {
       label: t("dashboard.stats.menu_items"),
-      value: summary.menu_items,
-      icon: <Utensils className="h-5 w-5 text-[var(--theme-warning)]" />,
+      value: formatAmount(summary.menu_items),
+      meta: t("dashboard.available_on_menu", { defaultValue: "Available on the menu" }),
+      color: "var(--theme-warning)",
+      icon: <Utensils className="h-5 w-5 text-[var(--theme-warning)]" aria-hidden="true" />,
     },
     {
-      label: t("dashboard.stats.attendance_rate"),
-      value: `${summary.attendance_rate}%`,
-      icon: <CalendarCheck className="h-5 w-5 text-[var(--theme-primary)]" />,
+      label: t("overview.totalRevenue"),
+      value: `${formatAmount(summary.revenue_month)} AFN`,
+      meta: t("dashboard.this_month", { defaultValue: "This month" }),
+      color: "var(--theme-danger)",
+      icon: <Banknote className="h-5 w-5 text-[var(--theme-danger)]" aria-hidden="true" />,
     },
     {
-      label: t("dashboard.stats.average_rating"),
-      value: `${Number(summary.average_rating).toFixed(1)} ⭐`,
-      icon: <Star className="h-5 w-5 text-[var(--theme-warning)]" />,
+      label: t("overview.totalOrders"),
+      value: formatAmount(summary.total_orders_month),
+      meta: t("dashboard.orders_today", {
+        defaultValue: "{{count}} today",
+        count: summary.total_orders_today || 0,
+      }),
+      color: "var(--theme-info)",
+      icon: <ShoppingBag className="h-5 w-5 text-[var(--theme-info)]" aria-hidden="true" />,
+    },
+    {
+      label: t("overview.totalSold"),
+      value: formatAmount(summary.total_sold_products_month),
+      meta: t("dashboard.items_sold_this_month", { defaultValue: "Items sold this month" }),
+      color: "var(--theme-primary)",
+      icon: <PackageCheck className="h-5 w-5 text-[var(--theme-primary)]" aria-hidden="true" />,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold text-gray-800">
-          {t("dashboard.welcome")}
-        </h1>
-        <p className="mt-1 text-[13px] theme-text-muted">
-          {t("dashboard.overview")} — {currentDate}
-        </p>
-      </div>
+    <div className="space-y-3" dir={isRTL ? "rtl" : "ltr"}>
+      <PageHeader
+        icon={LayoutDashboard}
+        title={t("dashboard.welcome")}
+        actions={
+          <span className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2.5 text-[11px] font-medium theme-text-secondary">
+            <MapPin className="h-3.5 w-3.5 text-[var(--theme-primary)]" aria-hidden="true" />
+            {summary?.branch?.name || t("dashboard.all_branches", { defaultValue: "All branches" })}
+          </span>
+        }
+        description={`${t("dashboard.overview")} — ${currentDate}`}
+      />
 
       {isDemo && <RistrictionMessage />}
 
-      <TopSectionStats stats={stats} />
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="min-w-0 space-y-3">
+          <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(300px,0.82fr)_minmax(0,1.18fr)]">
+            <TopSectionStats stats={stats} />
+            <Card className="min-w-0">
+              <CardContent className="h-full p-3.5">
+                <DailySalesChart />
+              </CardContent>
+            </Card>
+          </section>
 
-      {/* Charts */}
-      <Card className="mb-6">
-        <CardContent className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-          <MonthOverView summary={summary} />
-          <DailySalesChart summary={summary} />
-        </CardContent>
-      </Card>
+          <Card>
+            <CardContent className="p-3.5">
+              <BestSellingItems summary={summary} />
+            </CardContent>
+          </Card>
 
-      {/* Best Selling Items (UNCHANGED) */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <BestSellingItems summary={summary} />
-        </CardContent>
-      </Card>
+          <DashboardAnalytics summary={summary} />
+        </div>
 
-      {/* Alerts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <Notifications />
-          </CardContent>
-        </Card>
-        <LowStockItems /> {/* ✅ Added without removing anything */}
+        <aside className="min-w-0">
+          <DashboardSideRail summary={summary} />
+        </aside>
       </div>
     </div>
   );

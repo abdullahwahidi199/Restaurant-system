@@ -1,105 +1,103 @@
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard,
   Users,
   CalendarCheck,
   Clock,
   Utensils,
-  Info,
-  Menu as MenuIcon,
-  Receipt,
-  Table2,
-  Settings,
-  User,
   X,
-  BarChart,
-  Star,
-  Wallet,
-  Package,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-export default function ManagerNavbar() {
+export default function ManagerNavbar({
+  collapsed = false,
+  mobileOpen = false,
+  onToggleCollapse,
+  onCloseMobile,
+}) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
-  const [isOpen, setIsOpen] = useState(true);
-  const toggleMenu = () => setIsOpen(!isOpen);
 
   const navItems = [
     {
       to: "/manager",
       label: t("nav.orders"),
-      icon: <CalendarCheck size={18} />,
+      icon: CalendarCheck,
     },
     {
       to: "/manager/reservations",
       label: t("landing.features.groups.operations.items.reservations"),
-      icon: <Users size={18} />,
+      icon: Users,
     },
     {
       to: "/manager/tables",
       label: t("nav.tables"),
-      icon: <Clock size={18} />,
+      icon: Clock,
     },
     {
       to: "/manager/menu",
       label: t("nav.menu"),
-      icon: <Utensils size={18} />,
+      icon: Utensils,
     },
     {
       to: "/manager/discount-requests",
       label: t("legacy.discount_requests_ff7e6c6c"),
-      icon: <Clock size={18} />,
+      icon: Clock,
     },
   ];
   return (
-    <nav
-      dir={isRTL ? "rtl" : "ltr"}
-      className={`fixed z-50 flex h-screen flex-col border-e border-[var(--theme-sidebar-border)] bg-[var(--theme-sidebar-bg)] shadow-sm transition-all duration-200 md:static ${
-        isOpen ? "w-[17rem]" : "w-[4.5rem]"
-      }`}
-    >
-      <div className={`flex min-h-[68px] flex-shrink-0 items-center border-b border-[var(--theme-sidebar-border)] px-3 ${isOpen ? "justify-between" : "justify-center"}`}>
-        <h1
-          className={`truncate text-base font-bold theme-text-primary transition-all duration-200 ${!isOpen && "hidden"}`}
-        >
-          {/* {t("nav.admin")} */}
-          {t("staff.roles.manager")}
-        </h1>
+    <>
+      <button
+        type="button"
+        className={`admin-sidebar-backdrop ${mobileOpen ? "admin-sidebar-backdrop-open" : ""}`}
+        onClick={onCloseMobile}
+        aria-label={t("menuDetails.close")}
+      />
+      <nav
+        dir={isRTL ? "rtl" : "ltr"}
+        className={`admin-sidebar ${collapsed ? "admin-sidebar-collapsed" : "admin-sidebar-expanded"} ${mobileOpen ? "admin-sidebar-mobile-open" : ""}`}
+      >
+      <div className="admin-sidebar-brand">
+        <div className="admin-brand-content">
+          <span className="admin-brand-mark">M</span>
+          {!collapsed && <div className="admin-brand-copy"><span className="admin-brand-title">{t("staff.roles.manager")}</span><span className="admin-brand-subtitle">Pakhlai RMS</span></div>}
+        </div>
         <button
           type="button"
-          className="theme-btn theme-btn-ghost theme-btn-icon cursor-pointer"
-          onClick={toggleMenu}
-          aria-label={isOpen ? t("inventory_manager.a11y.collapse_sidebar") : t("inventory_manager.a11y.expand_sidebar")}
-          aria-expanded={isOpen}
+          className="admin-sidebar-collapse"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? t("inventory_manager.a11y.expand_sidebar") : t("inventory_manager.a11y.collapse_sidebar")}
+          aria-expanded={!collapsed}
         >
-          {isOpen ? <X size={18} /> : <MenuIcon size={18} />}
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+        <button type="button" className="admin-sidebar-mobile-close" onClick={onCloseMobile} aria-label={t("menuDetails.close")}>
+          <X size={16} />
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
-          <ul className="space-y-1">
+      <div className="admin-sidebar-scroll">
+          <ul className="admin-tree-list admin-tree-level-0">
             {navItems.map(({ to, label, icon }) => (
               <li key={to}>
                 <NavLink
                   to={to}
                   end
-                  title={isOpen ? undefined : label}
+                  title={collapsed ? label : undefined}
+                  onClick={onCloseMobile}
                   className={({ isActive }) =>
-                    `flex min-h-10 items-center rounded-lg text-sm transition-colors ${isOpen ? "gap-3 px-3" : "justify-center px-2"} ${
-                      isActive
-                        ? "bg-[var(--theme-sidebar-active-bg)] font-semibold text-[var(--theme-sidebar-active-text)] ring-1 ring-inset ring-[var(--theme-primary)]/15"
-                        : "font-medium text-[var(--theme-sidebar-text)] hover:bg-[var(--theme-hover)] hover:text-[var(--theme-text-primary)]"
-                    }`
+                    `admin-nav-row admin-nav-link ${collapsed ? "admin-nav-link-collapsed" : "admin-nav-link-expanded"} ${isActive ? "admin-nav-link-active" : ""}`
                   }
                 >
-                  {icon}
-                  {isOpen && <span className="truncate">{label}</span>}
+                  <span className="admin-nav-icon-wrap">{React.createElement(icon, { className: "admin-nav-icon" })}</span>
+                  {!collapsed && <span className="admin-nav-label">{label}</span>}
                 </NavLink>
               </li>
             ))}
           </ul>
         </div>
-    </nav>
+      </nav>
+    </>
   );
 }

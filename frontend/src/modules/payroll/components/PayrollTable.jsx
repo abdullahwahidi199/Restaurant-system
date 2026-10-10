@@ -23,23 +23,22 @@ export default function PayrollTable({
           header: "Employee",
           render: (payroll) => (
             <div>
-              <Link to={`${basePath}/payroll/records/${payroll.id}`} className="font-semibold text-slate-950 hover:underline">
+              <Link to={`${basePath}/payroll/records/${payroll.id}`} className="font-semibold theme-text-primary hover:underline">
                 {payroll.staff_name}
               </Link>
-              <p className="text-xs capitalize text-slate-500">{payroll.salary_type || payroll.period_type}</p>
+              <p className="text-xs capitalize theme-text-muted">{payroll.salary_type || payroll.period_type}</p>
             </div>
           ),
         },
         { key: "period", header: "Period", render: (payroll) => `${payroll.period_start} to ${payroll.period_end}` },
-        { key: "gross", header: "Gross", className: "px-4 py-2.5 text-right tabular-nums", render: (payroll) => money(payroll.gross_salary) },
-        { key: "net", header: "Net", className: "px-4 py-2.5 text-right font-semibold tabular-nums theme-text-primary", render: (payroll) => money(payroll.net_salary) },
-        { key: "paid", header: "Paid", className: "px-4 py-2.5 text-right tabular-nums", render: (payroll) => money(payroll.amount_paid) },
-        { key: "balance", header: "Balance", className: "px-4 py-2.5 text-right font-semibold tabular-nums text-[var(--theme-danger)]", render: (payroll) => money(payroll.remaining_balance) },
+        { key: "gross", header: "Gross", className: "text-right tabular-nums", render: (payroll) => money(payroll.gross_salary) },
+        { key: "net", header: "Net", className: "text-right font-semibold tabular-nums theme-text-primary", render: (payroll) => money(payroll.net_salary) },
+        { key: "paid", header: "Paid", className: "text-right tabular-nums", render: (payroll) => money(payroll.amount_paid) },
+        { key: "balance", header: "Balance", className: "text-right font-semibold tabular-nums text-[var(--theme-danger)]", render: (payroll) => money(payroll.remaining_balance) },
         { key: "status", header: "Status", render: (payroll) => <StatusBadge status={payroll.status} /> },
         {
           key: "actions",
           header: "Actions",
-          className: "px-4 py-2.5",
           render: (payroll) => {
             const payable = payroll.status !== "draft" && Number(payroll.remaining_balance || 0) > 0;
             return (

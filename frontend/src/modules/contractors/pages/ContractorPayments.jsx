@@ -21,7 +21,7 @@ export default function ContractorPayments({ payments, search, onSearch }) {
           { key: "invoice", header: "Invoice", render: (payment) => payment.invoice_number || "-" },
           { key: "method", header: "Method", render: (payment) => formatMethod(payment.payment_method) },
           { key: "reference", header: "Reference", render: (payment) => payment.reference_number || "-" },
-          { key: "amount", header: "Amount", className: "px-4 py-3 text-right font-semibold text-slate-950", render: (payment) => money(payment.amount) },
+          { key: "amount", header: "Amount", className: "text-right font-semibold tabular-nums theme-text-primary", render: (payment) => money(payment.amount) },
         ]}
       />
     </div>

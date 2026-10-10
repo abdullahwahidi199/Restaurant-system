@@ -12,6 +12,9 @@ import {
 const palette = {
   draft: ["theme-muted ring-[var(--theme-border)]", Circle],
   open: ["theme-badge-info ring-sky-200", CircleDot],
+  available: ["theme-badge-success ring-emerald-200", CheckCircle2],
+  occupied: ["theme-badge-warning ring-orange-200", Clock3],
+  unavailable: ["theme-muted ring-[var(--theme-border)]", PauseCircle],
   pending: ["theme-badge-warning ring-orange-200", Clock3],
   unpaid: ["theme-badge-warning ring-orange-200", Clock3],
   low_stock: ["theme-badge-warning ring-orange-200", AlertTriangle],
@@ -37,7 +40,7 @@ const palette = {
   inactive: ["theme-muted ring-[var(--theme-border)]", PauseCircle],
 };
 
-export default function StatusBadge({ status, label, count, showIcon = true, className = "" }) {
+export default function StatusBadge({ status, label, count, showIcon = false, className = "" }) {
   const value = String(status || "unknown").toLowerCase();
   const [classes, Icon] = palette[value] || ["theme-muted ring-[var(--theme-border)]", CircleDot];
   return (

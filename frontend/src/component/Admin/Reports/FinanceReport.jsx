@@ -9,7 +9,6 @@ import {
   Trash2,
   ShoppingCart,
   AlertCircle,
-  Download,
   Receipt,
   CreditCard,
   HandCoins,
@@ -26,6 +25,7 @@ import {
   Legend,
 } from "recharts";
 import { useTranslation as useAutoTranslation } from "react-i18next";
+import ReportHeader from "./ReportHeader";
 
 // Helper to format currency
 const formatCurrency = (value) =>
@@ -90,9 +90,16 @@ export default function FinanceReport({ startDate, endDate }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--theme-primary)]"></div>
-      </div>
+      <>
+        <ReportHeader
+          onExport={handleGeneratePDF}
+          exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+          disabled
+        />
+        <div className="theme-card flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--theme-border)] border-t-[var(--theme-primary)]" />
+        </div>
+      </>
     );
   }
 
@@ -119,28 +126,14 @@ export default function FinanceReport({ startDate, endDate }) {
   ];
 
   return (
-    <div className="space-y-6 p-1">
-      {/* --- Header --- */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold theme-text-primary">{autoT("legacy.financial_report_ac29ba77")}</h2>
-          <p className="text-sm theme-text-muted">
-            {autoT("legacy.summary_of_revenue_costs_and_profitability_4de20ac1")}
-          </p>
-        </div>
-
-        {/* ✅ PDF Button */}
-        <button
-          onClick={handleGeneratePDF}
-          className="theme-btn theme-btn-danger px-4 py-2"
-        >
-          <Download className="w-4 h-4" />
-          {autoT("inventory_manager.reports.generate_pdf")}
-        </button>
-      </div>
+    <div className="space-y-4">
+      <ReportHeader
+        onExport={handleGeneratePDF}
+        exportLabel={autoT("inventory_manager.reports.generate_pdf")}
+      />
 
       {/* --- KPI Cards --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title={autoT("overview.totalRevenue")}
           value={formatCurrency(revenue)}
@@ -174,7 +167,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <StatCard
           title={autoT("inventory_manager.reports.purchase_value")}
           value={formatCurrency(procurement.purchase_value || expenses.stock_purchases || 0)}
@@ -203,7 +196,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <StatCard
           title={autoT("legacy.contractor_expenses_b22d5462")}
           value={formatCurrency(contractors.expense_value || expenses.contractor_expenses || 0)}
@@ -232,7 +225,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title={autoT("legacy.payroll_cost_36af4f9a")}
           value={formatCurrency(
@@ -270,21 +263,21 @@ export default function FinanceReport({ startDate, endDate }) {
       </div>
 
       {/* --- Main Content Grid --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Profit Calculation Flow (Left Side) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+        <div className="theme-card space-y-4 p-4 sm:p-5 lg:col-span-2">
+          <h3 className="mb-2 text-sm font-semibold theme-text-primary">
             {autoT("legacy.profit_calculation_f7a868ae")}
           </h3>
 
           {/* Revenue */}
-          <div className="flex justify-between items-center text-lg font-medium text-gray-800 border-b pb-2">
+          <div className="flex items-center justify-between border-b border-[var(--theme-border)] pb-2 text-base font-semibold theme-text-primary">
             <span>{autoT("overview.totalRevenue")}</span>
             <span>{formatCurrency(revenue)}</span>
           </div>
 
           {/* COGS Deduction */}
-          <div className="space-y-2 pl-2 border-l-2 border-gray-200 ml-1">
+          <div className="ms-1 space-y-2 border-s-2 border-[var(--theme-border)] ps-2">
             <div className="flex justify-between items-center text-red-500">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
@@ -303,7 +296,7 @@ export default function FinanceReport({ startDate, endDate }) {
           </div>
 
           {/* Operating Deductions */}
-          <div className="space-y-2 pl-2 border-l-2 border-gray-200 ml-1 mt-2">
+          <div className="ms-1 mt-2 space-y-2 border-s-2 border-[var(--theme-border)] ps-2">
             <div className="flex justify-between items-center text-red-500">
               <div className="flex items-center gap-2">
                 <Trash2 className="w-4 h-4" />
@@ -349,7 +342,7 @@ export default function FinanceReport({ startDate, endDate }) {
           </div>
 
           {/* Note about Stock Purchases */}
-          <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-500 flex gap-2 mt-4">
+          <div className="mt-4 flex gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-muted)] p-3 text-xs theme-text-muted">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <p>
               <strong>{autoT("legacy.note_83423c19")}</strong> {autoT("legacy.stock_purchases_95f1885a")}
@@ -359,8 +352,8 @@ export default function FinanceReport({ startDate, endDate }) {
         </div>
 
         {/* Expense Breakdown Chart (Right Side) */}
-        <div className="lg:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        <div className="theme-card p-4 sm:p-5 lg:col-span-3">
+          <h3 className="mb-4 text-sm font-semibold theme-text-primary">
             {autoT("legacy.expense_distribution_c1d781a5")}
           </h3>
 
@@ -397,19 +390,19 @@ export default function FinanceReport({ startDate, endDate }) {
       </div>
 
       {/* --- Detailed Expense List --- */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      <div className="theme-table overflow-hidden p-4 sm:p-5">
+        <h3 className="mb-4 text-sm font-semibold theme-text-primary">
           {autoT("legacy.detailed_expenses_ffc97276")}
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b text-gray-500 text-sm">
+              <tr className="border-b border-[var(--theme-border)] text-sm theme-text-muted">
                 <th className="pb-3 font-medium">{autoT("menu_item_sales.category")}</th>
                 <th className="pb-3 font-medium text-right">{autoT("legacy.amount_43dc8532")}</th>
               </tr>
             </thead>
-            <tbody className="text-gray-700">
+            <tbody className="theme-text-secondary">
               <tr className="border-b border-gray-50">
                 <td className="py-3 flex items-center gap-2">
                   <Package className="w-4 h-4 text-indigo-500" /> {autoT("legacy.cost_of_goods_sold_cogs_05b8a039")}
@@ -450,7 +443,7 @@ export default function FinanceReport({ startDate, endDate }) {
                   {formatCurrency(expenses.payroll || expenses.payroll_expenses || 0)}
                 </td>
               </tr>
-              <tr className="font-bold text-gray-900 bg-gray-50 border-b border-gray-200">
+              <tr className="border-b border-[var(--theme-border)] bg-[var(--theme-muted)] font-semibold theme-text-primary">
                 <td className="py-3">{autoT("legacy.total_operational_expenses_4bf59ead")}</td>
                 <td className="py-3 text-right">
                   {formatCurrency(expenses.total_expenses)}
@@ -540,7 +533,7 @@ export default function FinanceReport({ startDate, endDate }) {
         ]}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ReportTable
           title={autoT("legacy.purchases_by_supplier_d971c47d")}
           empty={autoT("legacy.no_supplier_purchases_in_this_period_0be361c8")}
@@ -566,7 +559,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ReportTable
           title={autoT("legacy.expenses_by_contractor_29e67b0d")}
           empty={autoT("legacy.no_contractor_expenses_in_this_period_db17e06c")}
@@ -592,7 +585,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ReportTable
           title={autoT("legacy.payroll_by_branch_9430471d")}
           empty={autoT("legacy.no_approved_payroll_by_branch_in_this_period_833c9d1f")}
@@ -620,7 +613,7 @@ export default function FinanceReport({ startDate, endDate }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <ReportTable
           title={autoT("legacy.payroll_payment_history_17213ece")}
           empty={autoT("legacy.no_payroll_payments_in_this_period_ed8b2011")}
@@ -682,40 +675,42 @@ export default function FinanceReport({ startDate, endDate }) {
 }
 
 // Reusable Stat Card Component
-function StatCard({ title, value, icon, bgColor, textColor, subtitle }) {
+function StatCard({ title, value, icon, subtitle }) {
   return (
-    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-start justify-between">
-      <div>
-        <p className="text-sm text-gray-500 font-medium">{title}</p>
-        <p className={`text-2xl font-bold mt-1 ${textColor}`}>{value}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    <article className="theme-kpi-card flex min-w-0 items-start justify-between gap-3 p-3.5">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide theme-text-muted">{title}</p>
+        <p className="mt-1 truncate text-xl font-semibold tabular-nums theme-text-primary" title={String(value)}>{value}</p>
+        {subtitle && <p className="mt-1 truncate text-xs theme-text-muted">{subtitle}</p>}
       </div>
-      <div className={`p-3 rounded-lg ${bgColor}`}>{icon}</div>
-    </div>
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--theme-primary-soft)] text-[var(--theme-primary)]">
+        {React.cloneElement(icon, { className: "h-4 w-4" })}
+      </div>
+    </article>
   );
 }
 
 function ReportTable({ title, headers, rows, empty }) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+    <section className="theme-table overflow-hidden">
+      <h3 className="border-b border-[var(--theme-border)] p-4 text-sm font-semibold theme-text-primary">{title}</h3>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[640px] text-start text-sm">
           <thead>
-            <tr className="border-b text-gray-500">
+            <tr>
               {headers.map((header) => (
-                <th key={header} className="pb-3 pr-4 font-medium">
+                <th key={header} className="px-4 py-3 text-start font-medium">
                   {header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="text-gray-700">
+          <tbody className="theme-text-secondary">
             {rows.length ? (
               rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-gray-50">
+                <tr key={rowIndex} className="border-t border-[var(--theme-border)] transition hover:bg-[var(--theme-hover)]">
                   {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="py-3 pr-4">
+                    <td key={cellIndex} className="px-4 py-3">
                       {cell}
                     </td>
                   ))}
@@ -723,7 +718,7 @@ function ReportTable({ title, headers, rows, empty }) {
               ))
             ) : (
               <tr>
-                <td className="py-6 text-center text-gray-500" colSpan={headers.length}>
+                <td className="px-4 py-8 text-center theme-text-muted" colSpan={headers.length}>
                   {empty}
                 </td>
               </tr>
@@ -731,6 +726,6 @@ function ReportTable({ title, headers, rows, empty }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }
