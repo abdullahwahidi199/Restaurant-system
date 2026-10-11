@@ -1,4 +1,6 @@
 from collections import defaultdict
+from decimal import Decimal
+
 from django.db import transaction
 from django.db.models import F, Q
 from menu.production_utils import consume_production
@@ -51,17 +53,42 @@ def get_effective_cost_per_unit(ingredient, branch):
     return stock.cost_per_unit if stock else ingredient.cost_per_unit
 
 
+def _format_stock_quantity(value):
+    """Render inventory quantities without noisy trailing zeroes."""
+    rendered = format(Decimal(str(value)), "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return rendered or "0"
+
+
+def _stock_shortage_detail(ingredient, required, available):
+    required = Decimal(str(required))
+    available = max(Decimal(str(available)), Decimal("0"))
+    shortage = max(required - available, Decimal("0"))
+    unit = ingredient.unit or "unit"
+    return (
+        f"{ingredient.name} (required {_format_stock_quantity(required)} {unit}, "
+        f"available {_format_stock_quantity(available)} {unit}, "
+        f"shortage {_format_stock_quantity(shortage)} {unit})"
+    )
+
+
 def change_ingredient_stock(ingredient, branch, quantity_delta, cost_per_unit=None):
     quantity_delta = Decimal(str(quantity_delta))
 
     if branch and ingredient.branch_id and ingredient.branch_id != branch.id:
         raise ValueError("Ingredient stock belongs to another branch.")
 
-    ingredient.quantity_available += quantity_delta
+    available = Decimal(str(ingredient.quantity_available))
+    new_quantity = available + quantity_delta
+    if new_quantity < 0:
+        required = abs(quantity_delta) if quantity_delta < 0 else Decimal("0")
+        detail = _stock_shortage_detail(ingredient, required, available)
+        raise ValueError(f"Insufficient stock for: {detail}")
+
+    ingredient.quantity_available = new_quantity
     if cost_per_unit is not None:
         ingredient.cost_per_unit = Decimal(str(cost_per_unit))
-    if ingredient.quantity_available < 0:
-        raise ValueError(f"Insufficient stock for {ingredient.name}")
     ingredient.save(update_fields=["quantity_available", "cost_per_unit"])
     return ingredient.quantity_available
 
@@ -108,7 +135,6 @@ def recalc_menu_availability(ingredient_ids):
 
 
 from collections import defaultdict
-from decimal import Decimal
 from django.db import transaction
 from django.db.models import F
 
@@ -669,8 +695,13 @@ def deduct_batch_stock_for_order_items(order_items, order):
         insufficient = []
         for ing_id, required_qty in ingredient_requirements.items():
             ingredient = ingredients.get(ing_id)
-            if ingredient and get_effective_quantity(ingredient, order.branch) < required_qty:
-                insufficient.append(ingredient.name)
+            if not ingredient:
+                continue
+            available = get_effective_quantity(ingredient, order.branch)
+            if available < required_qty:
+                insufficient.append(
+                    _stock_shortage_detail(ingredient, required_qty, available)
+                )
         
         if insufficient:
             raise ValueError(f"Insufficient stock for: {', '.join(insufficient)}")

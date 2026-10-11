@@ -1,6 +1,7 @@
 import shutil
 import tempfile
 from datetime import timedelta
+from decimal import Decimal
 from unittest.mock import patch
 
 from asgiref.sync import async_to_sync, sync_to_async
@@ -12,6 +13,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from inventory.models import Ingredient, MenuItemIngredient
 from menu.models import Category, MenuItem, Station
 from orders.models import DiscountCard, DiscountRequest, Order, OrderItem, Table
 from orders.routing import websocket_urlpatterns
@@ -535,6 +537,77 @@ class OrderPaymentIntegrityTests(TestCase):
         self.assertEqual(response.status_code, 409, response.data)
         self.assertEqual(response.data["error_code"], "insufficient_stock")
         self.assertIn("Rice", response.data["message"])
+        order.refresh_from_db()
+        item.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.assertEqual(item.status, "pending")
+
+    def test_item_status_shortage_names_ingredient_and_quantities(self):
+        ingredient = Ingredient.objects.create(
+            restaurant=self.restaurant,
+            branch=self.branch,
+            name="Rice",
+            unit="kg",
+            quantity_available=Decimal("5.000"),
+            minimum_threshold=Decimal("1.000"),
+            cost_per_unit=Decimal("30.00"),
+        )
+        MenuItemIngredient.objects.create(
+            menu_item=self.menu_item,
+            ingredient=ingredient,
+            quantity_required=Decimal("2.000"),
+        )
+        order, item = self._create_order(status="pending", item_status="pending")
+        item.quantity = 3
+        item.save(update_fields=["quantity"])
+        self.client.force_authenticate(self.kitchen_user)
+
+        response = self.client.patch(
+            f"/api/orders/order-items/{item.id}/status/",
+            {"status": "approved"},
+            format="json",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(response.data["error_code"], "insufficient_stock")
+        self.assertEqual(
+            response.data["error"],
+            "Insufficient stock for: Rice "
+            "(required 6 kg, available 5 kg, shortage 1 kg)",
+        )
+        self.assertIn("required 6 kg", response.data["message"])
+        self.assertIn("available 5 kg", response.data["message"])
+        self.assertIn("shortage 1 kg", response.data["message"])
+        order.refresh_from_db()
+        item.refresh_from_db()
+        ingredient.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        self.assertEqual(item.status, "pending")
+        self.assertEqual(ingredient.quantity_available, Decimal("5.000"))
+
+    def test_item_status_shortage_explains_missing_daily_production(self):
+        self.menu_item.uses_daily_production = True
+        self.menu_item.save(update_fields=["uses_daily_production"])
+        order, item = self._create_order(status="pending", item_status="pending")
+        item.quantity = 4
+        item.save(update_fields=["quantity"])
+        self.client.force_authenticate(self.kitchen_user)
+
+        response = self.client.patch(
+            f"/api/orders/order-items/{item.id}/status/",
+            {"status": "approved"},
+            format="json",
+            HTTP_X_BRANCH_ID=str(self.branch.id),
+        )
+
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(response.data["error_code"], "insufficient_production")
+        self.assertIn("Kabuli Pulao", response.data["message"])
+        self.assertIn("required 4 portion(s)", response.data["message"])
+        self.assertIn("available 0 portion(s)", response.data["message"])
+        self.assertIn("shortage 4 portion(s)", response.data["message"])
+        self.assertIn("no active production batch", response.data["message"])
         order.refresh_from_db()
         item.refresh_from_db()
         self.assertEqual(order.status, "pending")

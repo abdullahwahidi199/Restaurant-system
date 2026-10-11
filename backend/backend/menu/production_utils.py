@@ -322,6 +322,7 @@ def consume_production(menu_item, quantity, branch, actor=None, order=None):
     if not branch:
         raise ValueError("An active branch is required for production.")
 
+    quantity = int(quantity)
     production = Production.objects.select_for_update().filter(
         menu_item=menu_item,
         branch=branch,
@@ -329,15 +330,18 @@ def consume_production(menu_item, quantity, branch, actor=None, order=None):
 
     if not production:
         raise ValueError(
-            f"{menu_item.name} is not available — no active production."
+            f"Insufficient production for: {menu_item.name} "
+            f"(required {quantity} portion(s), available 0 portion(s), "
+            f"shortage {quantity} portion(s); no active production batch)"
         )
 
-    quantity = int(quantity)
-
     if production.quantity_remaining < quantity:
+        shortage = quantity - production.quantity_remaining
         raise ValueError(
-            f"Only {production.quantity_remaining} portion(s) of "
-            f"{menu_item.name} remaining."
+            f"Insufficient production for: {menu_item.name} "
+            f"(required {quantity} portion(s), "
+            f"available {production.quantity_remaining} portion(s), "
+            f"shortage {shortage} portion(s))"
         )
 
     before_remaining = production.quantity_remaining

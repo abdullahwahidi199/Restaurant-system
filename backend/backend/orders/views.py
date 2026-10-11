@@ -149,6 +149,11 @@ def order_status_conflict_response(exc):
         detail,
         flags=re.IGNORECASE,
     )
+    production_error = re.match(
+        r"^insufficient production(?:\s+for)?\s*:?\s*(.*)$",
+        detail,
+        flags=re.IGNORECASE,
+    )
 
     if stock_error:
         ingredients = stock_error.group(1).strip().rstrip(".")
@@ -159,6 +164,18 @@ def order_status_conflict_response(exc):
         payload.update(
             {
                 "error_code": "insufficient_stock",
+                "message": message,
+            }
+        )
+    elif production_error:
+        production_detail = production_error.group(1).strip().rstrip(".")
+        message = "وضعیت سفارش تغییر نکرد، چون تولید آماده کافی نیست"
+        if production_detail:
+            message += f": {production_detail}"
+        message += ". لطفاً مقدار تولید روزانه را بررسی کنید."
+        payload.update(
+            {
+                "error_code": "insufficient_production",
                 "message": message,
             }
         )
