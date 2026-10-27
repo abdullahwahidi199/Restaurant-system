@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pakhlai_mobile/app/router/app_routes.dart';
+import 'package:pakhlai_mobile/core/theme/app_colors.dart';
+import 'package:pakhlai_mobile/core/theme/app_spacing.dart';
+import 'package:pakhlai_mobile/core/widgets/app_badge.dart';
 import 'package:pakhlai_mobile/core/widgets/app_buttons.dart';
 import 'package:pakhlai_mobile/core/widgets/price_text.dart';
 import 'package:pakhlai_mobile/core/widgets/state_views.dart';
@@ -35,15 +38,41 @@ class OrderSuccessScreen extends ConsumerWidget {
             ),
             data: (order) => Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppSpacing.pagePadding),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 72,
-                        color: Theme.of(context).colorScheme.primary,
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: .65, end: 1),
+                        duration: const Duration(milliseconds: 650),
+                        curve: Curves.easeOutBack,
+                        builder: (context, value, child) =>
+                            Transform.scale(scale: value, child: child),
+                        child: Container(
+                          width: 104,
+                          height: 104,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFFF7B43), AppColors.brandDark],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.brand.withValues(alpha: .28),
+                                blurRadius: 32,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            size: 54,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Text(
@@ -51,21 +80,52 @@ class OrderSuccessScreen extends ConsumerWidget {
                         style: Theme.of(context).textTheme.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        s.orderNumber(order.orderNumber),
-                        style: Theme.of(context).textTheme.titleMedium,
+                      const SizedBox(height: AppSpacing.xl),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Column(
+                            children: [
+                              AppBadge(
+                                label: s.orderNumber(order.orderNumber),
+                                tone: AppBadgeTone.brand,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Text(
+                                s.orderSent(order.restaurantName ?? s.appName),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              const Divider(height: 1),
+                              const SizedBox(height: AppSpacing.lg),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      s.total,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall,
+                                    ),
+                                  ),
+                                  PriceText(
+                                    order.total,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(color: AppColors.brandDark),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        s.orderSent(order.restaurantName ?? s.appName),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      PriceText(order.total),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: AppSpacing.xl),
                       PrimaryButton(
                         label: s.trackOrder,
+                        icon: Icons.route_rounded,
                         onPressed: () =>
                             context.go(AppRoutes.orderDetailPath(orderId)),
                       ),

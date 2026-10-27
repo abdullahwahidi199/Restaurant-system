@@ -7,12 +7,20 @@ import {
   isStaffManagementPath,
 } from "../config/staffRoutes";
 
+const publicPreviewPaths = new Set([
+  "/landing",
+  "/about",
+  "/founder",
+  "/privacy",
+  "/terms",
+]);
+
 export default function AppDomainGuard({ children }) {
   const { auth, activeBranch, requiresBranchSelection } =
     useContext(AuthContext);
   const location = useLocation();
 
-  if (!isStaffApp()) return children;
+  if (!isStaffApp() || publicPreviewPaths.has(location.pathname)) return children;
 
   if (
     location.pathname === "/login" ||

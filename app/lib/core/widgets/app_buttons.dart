@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pakhlai_mobile/core/widgets/pressable_scale.dart';
 
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
@@ -24,22 +25,33 @@ class PrimaryButton extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
     );
-    final child = ElevatedButton(
-      onPressed: loading ? null : onPressed,
-      child: Row(
-        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (loading)
-            const SizedBox.square(
-              dimension: 17,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else if (icon != null)
-            Icon(icon, size: 18),
-          if (loading || icon != null) const SizedBox(width: 8),
-          if (expand) Expanded(child: labelWidget) else labelWidget,
-        ],
+    final child = PressableScale(
+      enabled: !loading && onPressed != null,
+      pressedScale: 0.975,
+      child: ElevatedButton(
+        onPressed: loading ? null : onPressed,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Row(
+            key: ValueKey(loading),
+            mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (loading)
+                const SizedBox.square(
+                  dimension: 17,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              else if (icon != null)
+                Icon(icon, size: 18),
+              if (loading || icon != null) const SizedBox(width: 8),
+              if (expand) Expanded(child: labelWidget) else labelWidget,
+            ],
+          ),
+        ),
       ),
     );
     return expand ? SizedBox(width: double.infinity, child: child) : child;
@@ -62,13 +74,18 @@ class SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = icon == null
+    final button = icon == null
         ? OutlinedButton(onPressed: onPressed, child: Text(label))
         : OutlinedButton.icon(
             onPressed: onPressed,
             icon: Icon(icon, size: 18),
             label: Text(label),
           );
+    final child = PressableScale(
+      enabled: onPressed != null,
+      pressedScale: 0.98,
+      child: button,
+    );
     return expand ? SizedBox(width: double.infinity, child: child) : child;
   }
 }

@@ -64,58 +64,87 @@ class _ProfileContent extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: AppColors.brandSoft,
-              foregroundColor: AppColors.brandDark,
-              child: Text(
-                profile.username.isEmpty
-                    ? '?'
-                    : profile.username.characters.first.toUpperCase(),
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(color: AppColors.brandDark),
-              ),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFFFF7438), AppColors.brandDark],
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile.username,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  if (profile.email != null)
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.brand.withValues(alpha: .25),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.brandDark,
+                child: Text(
+                  profile.username.isEmpty
+                      ? '?'
+                      : profile.username.characters.first.toUpperCase(),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(color: AppColors.brandDark),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      profile.email!,
-                      style: Theme.of(context).textTheme.bodySmall,
+                      profile.username,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: Colors.white),
                     ),
-                ],
+                    if (profile.email != null)
+                      Text(
+                        profile.email!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: .75),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.brandSoft,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '${profile.ordersCount}',
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(color: AppColors.brandDark),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .20),
                   ),
-                  Text(
-                    strings.ordersCount,
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${profile.ordersCount}',
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(color: Colors.white),
+                    ),
+                    Text(
+                      strings.ordersCount,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: .72),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.xl),
         Card(

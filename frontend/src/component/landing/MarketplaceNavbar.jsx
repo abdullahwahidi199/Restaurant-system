@@ -8,6 +8,7 @@ import {
 } from "../../data/landing/marketplaceData";
 import { useCustomerSession } from "../../api/customerSession";
 import CustomerAccountMenu from "../Customer/CustomerAccountMenu";
+import DownloadAppButton from "./DownloadAppButton";
 import i18n from "../../i18n";
 
 const languages = [
@@ -73,7 +74,7 @@ export default function MarketplaceNavbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <a
             href="#restaurant-search"
             onClick={focusSearch}
@@ -97,13 +98,14 @@ export default function MarketplaceNavbar() {
             </select>
           </label>
           <CustomerAccountMenu />
+          <DownloadAppButton />
           <a href={marketplaceLinks.forRestaurants} className="marketplace-restaurant-link">
             <Store className="h-4 w-4" aria-hidden="true" />
             {t("landing.marketplace.nav.forRestaurants")}
           </a>
         </div>
 
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="marketplace-mobile-actions flex items-center gap-1 xl:hidden">
           {customer ? (
             <CustomerAccountMenu compact showGuestActions={false} />
           ) : null}
@@ -129,7 +131,7 @@ export default function MarketplaceNavbar() {
       </nav>
 
       {open ? (
-        <div id="marketplace-mobile-navigation" className="marketplace-mobile-menu lg:hidden">
+        <div id="marketplace-mobile-navigation" className="marketplace-mobile-menu xl:hidden">
           <div className="grid gap-1">
             {marketplaceNavItems.map((item) => (
               <NavigationLink

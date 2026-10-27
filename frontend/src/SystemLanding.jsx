@@ -1,1 +1,1 @@
-export { default } from "./pages/landing/LandingPage";
+export { default } from "./pages/landing/SmoothMarketplace";

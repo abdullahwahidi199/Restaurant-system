@@ -79,8 +79,8 @@ import OrderAddModal from "./component/waiter/OrderAddModal";
 import ReportsMainPage from "./component/Admin/Reports/ReportsMainPage";
 import SuperAdminMain from "./superAdmin/SuperAdminMain";
 import SystemLanding from "./SystemLanding";
-import AboutPage from "./pages/AboutPage";
-import FounderPage from "./pages/FounderPage";
+import AboutPage from "./pages/PremiumAboutPage";
+import FounderPage from "./pages/PremiumFounderPage";
 import ExpensesMain from "./component/Admin/Expenses/ExpensesMain";
 import ExpenseHistory from "./component/Admin/Expenses/ExpensesHistory";
 import IndividualExpense from "./component/Admin/Expenses/IndividualExpense";
@@ -123,7 +123,7 @@ import ProductionMovementPage from "./modules/audit/ProductionMovementPage";
 import BranchSelectionPage from "./component/branch/BranchSelectionPage";
 import FinanceManagerLayout from "./component/FinanceManager/FinanceManagerLayout";
 import OperationsManagerLayout from "./component/OperationsManager/OperationsManagerLayout";
-import LegalPage from "./pages/LegalPage";
+import LegalPage from "./pages/PremiumLegalPage";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import AppDomainGuard from "./routing/AppDomainGuard";
 
@@ -140,6 +140,7 @@ function App() {
         }
       >
         <Route index element={<SystemLanding />} />
+        <Route path="landing" element={<SystemLanding />} />
         <Route path="about" element={<AboutPage />} />
         <Route path="founder" element={<FounderPage />} />
         <Route path="privacy" element={<LegalPage type="privacy" />} />

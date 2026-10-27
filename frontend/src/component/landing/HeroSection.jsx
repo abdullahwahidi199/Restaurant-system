@@ -1,4 +1,10 @@
-import { Check, MapPin, ShoppingBag, Sparkles } from "lucide-react";
+import {
+  Check,
+  MapPin,
+  ShoppingBag,
+  Sparkles,
+  UtensilsCrossed,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import MarketplaceSearch from "./MarketplaceSearch";
 
@@ -32,6 +38,25 @@ function HeroSection({
             <h1>{t("landing.marketplace.hero.title")}</h1>
             <p>{t("landing.marketplace.hero.description")}</p>
 
+            <div id="restaurant-search" className="marketplace-hero-search marketplace-enter">
+              <MarketplaceSearch
+                cuisines={cuisines}
+                dishes={dishes}
+                location={location}
+                onExplore={onExplore}
+                onLocationChange={onLocationChange}
+                onValueChange={onSearchValueChange}
+                restaurants={restaurants}
+                searchResults={searchResults}
+                searchStatus={searchStatus}
+                status={status}
+                value={searchValue}
+              />
+              <p className="marketplace-search-hint">
+                {t("landing.marketplace.search.hint")}
+              </p>
+            </div>
+
             <div className="marketplace-hero-trust" aria-label={t("landing.marketplace.hero.trustLabel")}>
               {trustKeys.map((key) => (
                 <span key={key}>
@@ -43,6 +68,10 @@ function HeroSection({
           </div>
 
           <figure className="marketplace-hero-visual marketplace-enter" aria-label={t("landing.marketplace.hero.imageLabel")}>
+            <div className="marketplace-hero-visual-label">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {t("landing.marketplace.brand.tagline")}
+            </div>
             <img
               src="/images/pakhlai-hero-feast.webp"
               alt={t("landing.marketplace.hero.imageAlt")}
@@ -53,6 +82,15 @@ function HeroSection({
               fetchPriority="high"
             />
             <div className="marketplace-hero-image-shade" aria-hidden="true" />
+            <div className="marketplace-hero-menu-note" aria-hidden="true">
+              <span>
+                <UtensilsCrossed className="h-5 w-5" />
+              </span>
+              <div>
+                <strong>{t("landing.marketplace.hero.trust.menus")}</strong>
+                <small>{t("landing.marketplace.search.hint")}</small>
+              </div>
+            </div>
             <figcaption className="marketplace-hero-caption">
               <span className="marketplace-hero-caption-icon">
                 <ShoppingBag className="h-5 w-5" aria-hidden="true" />
@@ -67,24 +105,6 @@ function HeroSection({
             </figcaption>
           </figure>
 
-          <div id="restaurant-search" className="marketplace-hero-search marketplace-enter">
-            <MarketplaceSearch
-              cuisines={cuisines}
-              dishes={dishes}
-              location={location}
-              onExplore={onExplore}
-              onLocationChange={onLocationChange}
-              onValueChange={onSearchValueChange}
-              restaurants={restaurants}
-              searchResults={searchResults}
-              searchStatus={searchStatus}
-              status={status}
-              value={searchValue}
-            />
-            <p className="marketplace-search-hint">
-              {t("landing.marketplace.search.hint")}
-            </p>
-          </div>
         </div>
       </div>
     </section>

@@ -16,8 +16,17 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.end,
+    crossAxisAlignment: CrossAxisAlignment.center,
     children: [
+      Container(
+        width: 4,
+        height: subtitle == null ? 22 : 36,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
+      const SizedBox(width: 10),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,7 +40,12 @@ class SectionHeader extends StatelessWidget {
         ),
       ),
       if (actionLabel != null)
-        TextButton(onPressed: onAction, child: Text(actionLabel!)),
+        TextButton.icon(
+          onPressed: onAction,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+          label: Text(actionLabel!),
+        ),
     ],
   );
 }

@@ -376,6 +376,18 @@ abstract class AppLocalizations {
   /// **'Menu'**
   String get menu;
 
+  /// No description provided for @listView.
+  ///
+  /// In en, this message translates to:
+  /// **'List view'**
+  String get listView;
+
+  /// No description provided for @cardView.
+  ///
+  /// In en, this message translates to:
+  /// **'Card view'**
+  String get cardView;
+
   /// No description provided for @selectBranch.
   ///
   /// In en, this message translates to:

@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:pakhlai_mobile/core/theme/app_colors.dart';
 import 'package:pakhlai_mobile/core/theme/app_radius.dart';
 import 'package:pakhlai_mobile/core/theme/app_typography.dart';
+import 'package:pakhlai_mobile/core/theme/premium_theme.dart';
 
 abstract final class AppTheme {
-  static ThemeData get light => _build(Brightness.light);
-  static ThemeData get dark => _build(Brightness.dark);
+  static ThemeData get light => PremiumTheme.light;
+  static ThemeData get dark => PremiumTheme.dark;
+
+  /// Retains the original seed-based builder for callers that need a compact
+  /// theme without the expressive component overrides.
+  static ThemeData fromBrightness(Brightness brightness) => _build(brightness);
 
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;

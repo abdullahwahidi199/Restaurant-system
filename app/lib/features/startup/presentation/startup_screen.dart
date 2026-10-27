@@ -25,35 +25,51 @@ class StartupScreen extends ConsumerWidget {
     final bootstrap = ref.watch(appBootstrapProvider);
     final strings = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppColors.brand,
+      backgroundColor: AppColors.brandDark,
       body: SafeArea(
-        child: bootstrap.when(
-          loading: () => const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                BrandMark(light: true),
-                SizedBox(height: 28),
-                SizedBox.square(
-                  dimension: 22,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFFFF7438), AppColors.brand, AppColors.brandDeep],
+            ),
+          ),
+          child: bootstrap.when(
+            loading: () => Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: .84, end: 1),
+                duration: const Duration(milliseconds: 700),
+                curve: Curves.easeOutBack,
+                builder: (context, scale, child) =>
+                    Transform.scale(scale: scale, child: child),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    BrandMark(light: true),
+                    SizedBox(height: 32),
+                    SizedBox.square(
+                      dimension: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-          error: (error, stackTrace) => ErrorState(
-            title: strings.somethingWentWrong,
-            description: customerErrorMessage(
-              error,
-              AppLocalizations.of(context),
+            error: (error, stackTrace) => ErrorState(
+              title: strings.somethingWentWrong,
+              description: customerErrorMessage(
+                error,
+                AppLocalizations.of(context),
+              ),
+              retryLabel: strings.retry,
+              onRetry: () => ref.invalidate(appBootstrapProvider),
             ),
-            retryLabel: strings.retry,
-            onRetry: () => ref.invalidate(appBootstrapProvider),
+            data: (_) => const SizedBox.expand(),
           ),
-          data: (_) => const SizedBox.expand(),
         ),
       ),
     );

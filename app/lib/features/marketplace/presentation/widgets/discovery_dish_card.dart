@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pakhlai_mobile/core/theme/app_radius.dart';
 import 'package:pakhlai_mobile/core/widgets/network_image_view.dart';
 import 'package:pakhlai_mobile/core/widgets/price_text.dart';
+import 'package:pakhlai_mobile/core/widgets/pressable_scale.dart';
 import 'package:pakhlai_mobile/features/marketplace/domain/menu_models.dart';
 
 class DiscoveryDishCard extends StatelessWidget {
@@ -12,44 +13,48 @@ class DiscoveryDishCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 160,
-    child: Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            NetworkImageView(imageUrl: item.imageUrl, aspectRatio: 1.55),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.restaurantName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const Spacer(),
-                    PriceText(
-                      item.price,
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                  ],
+    width: 170,
+    child: PressableScale(
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              NetworkImageView(imageUrl: item.imageUrl, aspectRatio: 1.65),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(11),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.restaurantName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const Spacer(),
+                      PriceText(
+                        item.price,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ),
@@ -70,30 +75,50 @@ class CuisineTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 78,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          children: [
-            SizedBox.square(
-              dimension: 54,
-              child: NetworkImageView(
-                imageUrl: imageUrl,
-                borderRadius: BorderRadius.circular(AppRadius.md),
+    width: 84,
+    child: PressableScale(
+      pressedScale: 0.95,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withValues(alpha: .6),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x143A2116),
+                      blurRadius: 14,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: SizedBox.square(
+                  dimension: 52,
+                  child: NetworkImageView(
+                    imageUrl: imageUrl,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ],
+              const SizedBox(height: 5),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+          ),
         ),
       ),
     ),

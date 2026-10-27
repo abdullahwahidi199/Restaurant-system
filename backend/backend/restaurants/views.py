@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import NotFound
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.cache import cache
-from django.db.models import Avg, Count, Exists, OuterRef, Prefetch, Q
+from django.db.models import Avg, Count, Exists, OuterRef, Prefetch, Q, Sum
 from django.utils import timezone
 from menu.models import Category, MenuItem, Platter
 from .branching import get_active_branch, set_active_branch
@@ -422,6 +422,48 @@ def with_discovery_prefetches(queryset):
     )
 
 
+def attach_discovery_order_counts(restaurants):
+    """Attach sold quantities without exposing order or customer data."""
+    from orders.models import OrderItem
+
+    menu_items = [
+        item
+        for restaurant in restaurants
+        for item in getattr(restaurant, "_discovery_menu_items", ())
+    ]
+    platters = [
+        item
+        for restaurant in restaurants
+        for item in getattr(restaurant, "_discovery_platters", ())
+    ]
+
+    menu_counts = {
+        row["menu_item_id"]: row["total"]
+        for row in OrderItem.objects.filter(
+            menu_item_id__in=[item.id for item in menu_items],
+        )
+        .exclude(status="cancelled")
+        .exclude(order__status="cancelled")
+        .values("menu_item_id")
+        .annotate(total=Sum("quantity"))
+    }
+    platter_counts = {
+        row["platter_id"]: row["total"]
+        for row in OrderItem.objects.filter(
+            platter_id__in=[item.id for item in platters],
+        )
+        .exclude(status="cancelled")
+        .exclude(order__status="cancelled")
+        .values("platter_id")
+        .annotate(total=Sum("quantity"))
+    }
+
+    for item in menu_items:
+        item._discovery_order_count = menu_counts.get(item.id, 0)
+    for platter in platters:
+        platter._discovery_order_count = platter_counts.get(platter.id, 0)
+
+
 def location_ordered_restaurant_ids(queryset, coordinates, limit):
     restaurant_rows = list(queryset.values(
         "id",
@@ -561,6 +603,7 @@ def restaurant_discovery(request):
             )[:limit]
         ))
 
+    attach_discovery_order_counts(restaurants)
     attach_discovery_location_metrics(
         restaurants,
         coordinates,

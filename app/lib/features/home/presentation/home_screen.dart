@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pakhlai_mobile/app/router/app_routes.dart';
+import 'package:pakhlai_mobile/core/theme/app_colors.dart';
+import 'package:pakhlai_mobile/core/theme/app_radius.dart';
 import 'package:pakhlai_mobile/core/theme/app_spacing.dart';
-import 'package:pakhlai_mobile/core/widgets/app_buttons.dart';
 import 'package:pakhlai_mobile/core/widgets/brand_mark.dart';
 import 'package:pakhlai_mobile/core/widgets/search_field.dart';
 import 'package:pakhlai_mobile/core/widgets/section_header.dart';
@@ -32,37 +33,46 @@ class HomeScreen extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               const SliverToBoxAdapter(child: _HomeHeader()),
-              SliverPadding(
-                padding: const EdgeInsetsDirectional.fromSTEB(
-                  AppSpacing.pagePadding,
-                  4,
-                  AppSpacing.pagePadding,
-                  AppSpacing.lg,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: SearchField(
-                    hint: strings.searchHint,
-                    readOnly: true,
-                    onTap: () => context.go(AppRoutes.search),
-                  ),
-                ),
-              ),
               SliverToBoxAdapter(
-                child: discovery.when(
-                  loading: () => const _HomeSkeleton(),
-                  error: (error, stackTrace) => SizedBox(
-                    height: 420,
-                    child: ErrorState(
-                      title: strings.somethingWentWrong,
-                      description: customerErrorMessage(
-                        error,
-                        AppLocalizations.of(context),
-                      ),
-                      retryLabel: strings.retry,
-                      onRetry: () => ref.invalidate(homeDiscoveryProvider),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 420),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.025),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
                     ),
                   ),
-                  data: (data) => _HomeContent(data: data),
+                  child: discovery.when(
+                    loading: () => const KeyedSubtree(
+                      key: ValueKey('loading'),
+                      child: _HomeSkeleton(),
+                    ),
+                    error: (error, stackTrace) => SizedBox(
+                      key: const ValueKey('error'),
+                      height: 420,
+                      child: ErrorState(
+                        title: strings.somethingWentWrong,
+                        description: customerErrorMessage(
+                          error,
+                          AppLocalizations.of(context),
+                        ),
+                        retryLabel: strings.retry,
+                        onRetry: () => ref.invalidate(homeDiscoveryProvider),
+                      ),
+                    ),
+                    data: (data) => KeyedSubtree(
+                      key: ValueKey(
+                        'data-${data.restaurants.length}-${data.dishes.length}',
+                      ),
+                      child: _HomeContent(data: data),
+                    ),
+                  ),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
@@ -81,44 +91,163 @@ class _HomeHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
     final location = ref.watch(deliveryLocationProvider);
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 12, 14),
-      child: Row(
+    final theme = Theme.of(context);
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [Color(0xFFFF7438), AppColors.brand, AppColors.brandDark],
+          stops: [0, 0.56, 1],
+        ),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(AppRadius.xl),
+        ),
+      ),
+      child: Stack(
         children: [
-          const BrandMark(compact: true),
-          const SizedBox(width: 10),
-          Expanded(
+          PositionedDirectional(
+            top: -72,
+            end: -58,
+            child: Container(
+              width: 190,
+              height: 190,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            bottom: 32,
+            start: -55,
+            child: Container(
+              width: 125,
+              height: 125,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              AppSpacing.pagePadding,
+              14,
+              AppSpacing.pagePadding,
+              24,
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  strings.deliverTo,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const SizedBox(height: 1),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16),
-                    const SizedBox(width: 3),
-                    Flexible(
-                      child: Text(
-                        location.label.isEmpty
-                            ? strings.chooseAddress
-                            : location.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall,
+                    const BrandMark(compact: true, light: true),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => context.push(AppRoutes.addresses),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 3,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        strings.deliverTo,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.72,
+                                              ),
+                                            ),
+                                      ),
+                                      Text(
+                                        location.label.isEmpty
+                                            ? strings.chooseAddress
+                                            : location.label,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: Colors.white,
+                                  size: 19,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+                    ),
+                    const SizedBox(width: 7),
+                    IconButton(
+                      onPressed: () => context.go(AppRoutes.profile),
+                      tooltip: strings.profileAction,
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size.square(46),
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.white.withValues(alpha: 0.16),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.24),
+                        ),
+                      ),
+                      icon: const Icon(Icons.person_outline_rounded, size: 21),
                     ),
                   ],
                 ),
+                const SizedBox(height: 14),
+                Theme(
+                  data: theme.copyWith(
+                    inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+                      fillColor: Colors.white,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  child: SearchField(
+                    hint: strings.searchHint,
+                    readOnly: true,
+                    onTap: () => context.go(AppRoutes.search),
+                    suffix: Container(
+                      margin: const EdgeInsetsDirectional.only(end: 7),
+                      decoration: BoxDecoration(
+                        color: AppColors.brandSoft,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        color: AppColors.brandDark,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          AppIconButton(
-            icon: Icons.person_outline_rounded,
-            tooltip: strings.profileAction,
-            onPressed: () => context.go(AppRoutes.profile),
           ),
         ],
       ),
@@ -147,6 +276,7 @@ class _HomeContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const SizedBox(height: AppSpacing.xl),
         if (data.cuisines.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -190,7 +320,7 @@ class _HomeContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         SizedBox(
-          height: 210,
+          height: 238,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.pagePadding,
@@ -218,7 +348,7 @@ class _HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
-            height: 184,
+            height: 204,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.pagePadding,

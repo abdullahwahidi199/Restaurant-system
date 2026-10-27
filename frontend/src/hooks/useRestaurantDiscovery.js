@@ -38,6 +38,7 @@ export default function useRestaurantDiscovery(coordinates = null, query = "") {
   const [reloadKey, setReloadKey] = useState(0);
   const [searchResults, setSearchResults] = useState(null);
   const [searchStatus, setSearchStatus] = useState("idle");
+  const [searchError, setSearchError] = useState(null);
 
   const reload = useCallback(() => setReloadKey((value) => value + 1), []);
 
@@ -72,11 +73,13 @@ export default function useRestaurantDiscovery(coordinates = null, query = "") {
     if (normalizedQuery.length < 2) {
       setSearchResults(null);
       setSearchStatus("idle");
+      setSearchError(null);
       return undefined;
     }
 
     const controller = new AbortController();
     setSearchStatus("loading");
+    setSearchError(null);
     const timer = window.setTimeout(async () => {
       try {
         const response = await publicClient.get("/restaurant/discovery/", {
@@ -91,6 +94,7 @@ export default function useRestaurantDiscovery(coordinates = null, query = "") {
       } catch (requestError) {
         if (requestError?.code === "ERR_CANCELED") return;
         setSearchResults(null);
+        setSearchError(requestError);
         setSearchStatus("error");
       }
     }, 220);
@@ -101,5 +105,13 @@ export default function useRestaurantDiscovery(coordinates = null, query = "") {
     };
   }, [latitude, longitude, query, reloadKey]);
 
-  return { ...data, status, error, reload, searchResults, searchStatus };
+  return {
+    ...data,
+    status,
+    error,
+    reload,
+    searchResults,
+    searchStatus,
+    searchError,
+  };
 }

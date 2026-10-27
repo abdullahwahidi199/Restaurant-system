@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from customers.models import Customer
 from menu.models import Category, MenuItem, Platter, Review
+from orders.models import Order, OrderItem
 from restaurants.models import Branch, Restaurant, Subscription
 from restaurants.views import get_discovery_limit
 
@@ -213,7 +214,7 @@ class RestaurantDiscoveryApiTests(TestCase):
             is_available=False,
             is_manually_available=True,
         )
-        Platter.objects.create(
+        platter = Platter.objects.create(
             restaurant=restaurant,
             branch=active_branch,
             category=category,
@@ -222,6 +223,24 @@ class RestaurantDiscoveryApiTests(TestCase):
             is_available=True,
             is_manually_available=True,
         )
+        order = Order.objects.create(
+            restaurant=restaurant,
+            branch=active_branch,
+            order_type="delivery",
+            name="Marketplace customer",
+        )
+        OrderItem.objects.create(
+            order=order,
+            menu_item=menu_item,
+            quantity=4,
+        )
+        cancelled_item = OrderItem.objects.create(
+            order=order,
+            platter=platter,
+            quantity=10,
+        )
+        cancelled_item.status = "cancelled"
+        cancelled_item.save(update_fields=["status"])
         customer = Customer.objects.create(phone="0700111222", address="Kabul")
         Review.objects.create(
             customer=customer,
@@ -271,6 +290,12 @@ class RestaurantDiscoveryApiTests(TestCase):
             {dish["name"] for dish in response.data["dishes"]},
             {"Chicken Mantoo", "Family Kabuli Platter"},
         )
+        dishes_by_name = {
+            dish["name"]: dish for dish in response.data["dishes"]
+        }
+        self.assertEqual(dishes_by_name["Chicken Mantoo"]["order_count"], 4)
+        self.assertEqual(dishes_by_name["Family Kabuli Platter"]["order_count"], 0)
+        self.assertEqual(response.data["dishes"][0]["name"], "Chicken Mantoo")
 
     def test_search_matches_restaurant_branch_category_item_and_platter(self):
         restaurant, _subscription = self.create_restaurant(

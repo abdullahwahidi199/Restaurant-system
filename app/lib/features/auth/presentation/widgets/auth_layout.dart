@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pakhlai_mobile/core/theme/app_spacing.dart';
+import 'package:pakhlai_mobile/core/theme/app_colors.dart';
+import 'package:pakhlai_mobile/core/theme/app_radius.dart';
 import 'package:pakhlai_mobile/core/widgets/app_scaffold.dart';
 import 'package:pakhlai_mobile/core/widgets/app_top_bar.dart';
 import 'package:pakhlai_mobile/core/widgets/brand_mark.dart';
@@ -23,12 +25,6 @@ class AuthLayout extends StatelessWidget {
     return AppScaffold(
       appBar: AppTopBar(title: strings.appName),
       body: SingleChildScrollView(
-        padding: const EdgeInsetsDirectional.fromSTEB(
-          AppSpacing.pagePadding,
-          AppSpacing.md,
-          AppSpacing.pagePadding,
-          AppSpacing.xxl,
-        ),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 440),
@@ -36,21 +32,63 @@ class AuthLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: BrandMark(compact: true),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(title, style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  Container(
+                    padding: const EdgeInsetsDirectional.fromSTEB(
+                      AppSpacing.pagePadding,
+                      AppSpacing.lg,
+                      AppSpacing.pagePadding,
+                      72,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: AlignmentDirectional.topStart,
+                        end: AlignmentDirectional.bottomEnd,
+                        colors: [
+                          Color(0xFFFF7438),
+                          AppColors.brand,
+                          AppColors.brandDark,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(AppRadius.xl),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const BrandMark(light: true),
+                        const SizedBox(height: AppSpacing.xxl),
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(color: Colors.white),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.78),
+                              ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xl),
-                  child,
+                  Transform.translate(
+                    offset: const Offset(0, -48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.pagePadding,
+                      ),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
                 ],
               ),
             ),

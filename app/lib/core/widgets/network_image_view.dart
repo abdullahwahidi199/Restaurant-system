@@ -23,9 +23,15 @@ class NetworkImageView extends StatelessWidget {
       child: imageUrl == null || imageUrl!.isEmpty
           ? const _ImageFallback()
           : CachedNetworkImage(
+              key: ValueKey(imageUrl),
               imageUrl: imageUrl!,
+              cacheKey: imageUrl,
               fit: fit,
               fadeInDuration: const Duration(milliseconds: 180),
+              fadeOutDuration: Duration.zero,
+              placeholderFadeInDuration: Duration.zero,
+              useOldImageOnUrlChange: true,
+              filterQuality: FilterQuality.medium,
               placeholder: (context, url) => const _ImagePlaceholder(),
               errorWidget: (context, url, error) => const _ImageFallback(),
             ),

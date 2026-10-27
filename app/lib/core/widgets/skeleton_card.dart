@@ -33,7 +33,7 @@ class _SkeletonCardState extends State<SkeletonCard>
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest
             .withValues(alpha: 0.55 + (_controller.value * 0.25)),
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
     ),
   );

@@ -126,7 +126,9 @@ export default function MenuPage({
   const [favorites, setFavorites] = useState([]);
   const [orders, setOrders] = useState([]);
   const [sortOption, setSortOption] = useState(t("menu.sort.default"));
-  const [showCart, setShowCart] = useState(false);
+  const [showCart, setShowCart] = useState(
+    () => new URLSearchParams(window.location.search).get("cart") === "open",
+  );
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [reviewItemId, setReviewItemId] = useState(null);

@@ -67,9 +67,12 @@ class _RestaurantBody extends ConsumerStatefulWidget {
   ConsumerState<_RestaurantBody> createState() => _RestaurantBodyState();
 }
 
+enum _MenuLayout { list, grid }
+
 class _RestaurantBodyState extends ConsumerState<_RestaurantBody> {
   String? _selectedBranchSlug;
   int? _selectedCategoryId;
+  _MenuLayout _menuLayout = _MenuLayout.list;
 
   RestaurantBranch? get _selectedBranch {
     final branches = widget.restaurant.branches;
@@ -210,7 +213,26 @@ class _RestaurantBodyState extends ConsumerState<_RestaurantBody> {
         : menu.categories
               .where((category) => category.id == _selectedCategoryId)
               .toList();
+    final itemCount = visibleCategories.fold<int>(
+      0,
+      (count, category) => count + category.items.length,
+    );
     return [
+      SliverPadding(
+        padding: const EdgeInsetsDirectional.fromSTEB(
+          AppSpacing.pagePadding,
+          0,
+          AppSpacing.pagePadding,
+          AppSpacing.md,
+        ),
+        sliver: SliverToBoxAdapter(
+          child: _MenuViewToolbar(
+            itemCount: itemCount,
+            layout: _menuLayout,
+            onChanged: (layout) => setState(() => _menuLayout = layout),
+          ),
+        ),
+      ),
       SliverPersistentHeader(
         pinned: true,
         delegate: _CategoryHeaderDelegate(
@@ -235,38 +257,81 @@ class _RestaurantBodyState extends ConsumerState<_RestaurantBody> {
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pagePadding,
-          ),
-          sliver: SliverList.separated(
-            itemCount: category.items.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final item = category.items[index];
-              return MenuItemCard(
-                item: item,
-                onTap: () => showMenuItemSheet(
-                  context: context,
-                  item: item,
+        if (_menuLayout == _MenuLayout.list)
+          SliverPadding(
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              AppSpacing.pagePadding,
+              AppSpacing.md,
+              AppSpacing.pagePadding,
+              AppSpacing.sm,
+            ),
+            sliver: SliverList.separated(
+              itemCount: category.items.length,
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppSpacing.md),
+              itemBuilder: (context, index) => _menuItemCard(
+                item: category.items[index],
+                restaurant: restaurant,
+                branch: branch,
+                layout: MenuItemCardLayout.list,
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsetsDirectional.fromSTEB(
+              AppSpacing.pagePadding,
+              AppSpacing.md,
+              AppSpacing.pagePadding,
+              AppSpacing.sm,
+            ),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 230,
+                mainAxisExtent: 282,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisSpacing: AppSpacing.md,
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return _menuItemCard(
+                  item: category.items[index],
                   restaurant: restaurant,
                   branch: branch,
-                ),
-                onAdd: item.isAvailable && branch.canOrder
-                    ? () => addMarketplaceItemToCart(
-                        context: context,
-                        ref: ref,
-                        item: item,
-                        restaurant: restaurant,
-                        branch: branch,
-                      )
-                    : null,
-              );
-            },
+                  layout: MenuItemCardLayout.grid,
+                );
+              }, childCount: category.items.length),
+            ),
           ),
-        ),
       ],
     ];
+  }
+
+  Widget _menuItemCard({
+    required MarketplaceItem item,
+    required Restaurant restaurant,
+    required RestaurantBranch branch,
+    required MenuItemCardLayout layout,
+  }) {
+    return MenuItemCard(
+      key: ValueKey('${layout.name}-${item.type.name}-${item.id}'),
+      item: item,
+      layout: layout,
+      onTap: () => showMenuItemSheet(
+        context: context,
+        item: item,
+        restaurant: restaurant,
+        branch: branch,
+      ),
+      onAdd: item.isAvailable && branch.canOrder
+          ? () => addMarketplaceItemToCart(
+              context: context,
+              ref: ref,
+              item: item,
+              restaurant: restaurant,
+              branch: branch,
+            )
+          : null,
+    );
   }
 }
 
@@ -280,7 +345,7 @@ class _RestaurantHero extends StatelessWidget {
     final strings = AppLocalizations.of(context);
     return SliverAppBar(
       pinned: true,
-      expandedHeight: 176,
+      expandedHeight: 224,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       actions: [
         IconButton.filledTonal(
@@ -299,9 +364,18 @@ class _RestaurantHero extends StatelessWidget {
             NetworkImageView(
               imageUrl: restaurant.coverImageUrl ?? restaurant.logoUrl,
             ),
-            DecoratedBox(
+            const DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.14),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x26000000),
+                    Colors.transparent,
+                    Color(0x5C000000),
+                  ],
+                  stops: [0, 0.52, 1],
+                ),
               ),
             ),
           ],
@@ -326,95 +400,214 @@ class _RestaurantSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final cuisines = restaurant.cuisines.map((item) => item.name).join(' · ');
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.pagePadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (restaurant.logoUrl != null) ...[
-                SizedBox.square(
-                  dimension: 54,
-                  child: NetworkImageView(
-                    imageUrl: restaurant.logoUrl,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+    return Transform.translate(
+      offset: const Offset(0, -18),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: .55),
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A3A2116),
+              blurRadius: 28,
+              offset: Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (restaurant.logoUrl != null) ...[
+                  SizedBox.square(
+                    dimension: 54,
+                    child: NetworkImageView(
+                      imageUrl: restaurant.logoUrl,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        restaurant.name,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (cuisines.isNotEmpty || restaurant.slogan != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          cuisines.isNotEmpty ? cuisines : restaurant.slogan!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                RestaurantStatusBadge(status: branch.status),
               ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: 8,
+              runSpacing: 7,
+              children: [
+                if (restaurant.rating.average != null)
+                  AppBadge(
+                    icon: Icons.star_rounded,
+                    label: restaurant.rating.average!.toStringAsFixed(1),
+                    tone: AppBadgeTone.warning,
+                  ),
+                AppBadge(
+                  icon: Icons.delivery_dining_outlined,
+                  label: branch.delivery.baseFee == 0
+                      ? strings.freeDelivery
+                      : '${strings.deliveryFee}: ${CurrencyFormatter.format(branch.delivery.baseFee)}',
+                ),
+                if (branch.delivery.minimumOrder > 0)
+                  AppBadge(
+                    icon: Icons.shopping_bag_outlined,
+                    label:
+                        '${strings.minimumOrder}: ${CurrencyFormatter.format(branch.delivery.minimumOrder)}',
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onSelectBranch,
+                icon: const Icon(Icons.storefront_outlined, size: 18),
+                label: Row(
                   children: [
-                    Text(
-                      restaurant.name,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    if (cuisines.isNotEmpty || restaurant.slogan != null) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        cuisines.isNotEmpty ? cuisines : restaurant.slogan!,
-                        style: Theme.of(context).textTheme.bodySmall,
+                    Expanded(
+                      child: Text(
+                        '${branch.name}${branch.address == null ? '' : ' · ${branch.address}'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.start,
                       ),
-                    ],
+                    ),
+                    const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
                   ],
                 ),
               ),
-              RestaurantStatusBadge(status: branch.status),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: 8,
-            runSpacing: 7,
-            children: [
-              if (restaurant.rating.average != null)
-                AppBadge(
-                  icon: Icons.star_rounded,
-                  label: restaurant.rating.average!.toStringAsFixed(1),
-                  tone: AppBadgeTone.warning,
-                ),
-              AppBadge(
-                icon: Icons.delivery_dining_outlined,
-                label: branch.delivery.baseFee == 0
-                    ? strings.freeDelivery
-                    : '${strings.deliveryFee}: ${CurrencyFormatter.format(branch.delivery.baseFee)}',
-              ),
-              if (branch.delivery.minimumOrder > 0)
-                AppBadge(
-                  icon: Icons.shopping_bag_outlined,
-                  label:
-                      '${strings.minimumOrder}: ${CurrencyFormatter.format(branch.delivery.minimumOrder)}',
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: onSelectBranch,
-              icon: const Icon(Icons.storefront_outlined, size: 18),
-              label: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${branch.name}${branch.address == null ? '' : ' · ${branch.address}'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.start,
-                    ),
-                  ),
-                  const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                ],
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+class _MenuViewToolbar extends StatelessWidget {
+  const _MenuViewToolbar({
+    required this.itemCount,
+    required this.layout,
+    required this.onChanged,
+  });
+
+  final int itemCount;
+  final _MenuLayout layout;
+  final ValueChanged<_MenuLayout> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(strings.menu, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 2),
+              Text(
+                strings.itemCount(itemCount),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: .65),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _MenuViewButton(
+                icon: Icons.view_agenda_outlined,
+                selectedIcon: Icons.view_agenda_rounded,
+                tooltip: strings.listView,
+                selected: layout == _MenuLayout.list,
+                onTap: () => onChanged(_MenuLayout.list),
+              ),
+              const SizedBox(width: 3),
+              _MenuViewButton(
+                icon: Icons.grid_view_outlined,
+                selectedIcon: Icons.grid_view_rounded,
+                tooltip: strings.cardView,
+                selected: layout == _MenuLayout.grid,
+                onTap: () => onChanged(_MenuLayout.grid),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuViewButton extends StatelessWidget {
+  const _MenuViewButton({
+    required this.icon,
+    required this.selectedIcon,
+    required this.tooltip,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String tooltip;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    onPressed: onTap,
+    tooltip: tooltip,
+    isSelected: selected,
+    selectedIcon: Icon(selectedIcon),
+    icon: Icon(icon),
+    style: IconButton.styleFrom(
+      minimumSize: const Size.square(40),
+      maximumSize: const Size.square(40),
+      backgroundColor: selected
+          ? Theme.of(context).colorScheme.surface
+          : Colors.transparent,
+      foregroundColor: selected
+          ? Theme.of(context).colorScheme.primary
+          : Theme.of(context).colorScheme.onSurfaceVariant,
+      shadowColor: const Color(0x1F3A2116),
+      elevation: selected ? 1 : 0,
+    ),
+  );
 }
 
 class _CategoryHeaderDelegate extends SliverPersistentHeaderDelegate {

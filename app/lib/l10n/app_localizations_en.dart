@@ -157,6 +157,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menu => 'Menu';
 
   @override
+  String get listView => 'List view';
+
+  @override
+  String get cardView => 'Card view';
+
+  @override
   String get selectBranch => 'Select branch';
 
   @override

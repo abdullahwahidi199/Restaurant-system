@@ -522,6 +522,7 @@ class DiscoveryMenuItemSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source="restaurant.name")
     restaurant_slug = serializers.CharField(source="restaurant.slug")
     is_available = serializers.SerializerMethodField()
+    order_count = serializers.SerializerMethodField()
 
     class Meta:
         model = MenuItem
@@ -544,6 +545,7 @@ class DiscoveryMenuItemSerializer(serializers.ModelSerializer):
             "restaurant_slug",
             "branch_id",
             "is_available",
+            "order_count",
         ]
 
     def get_type(self, obj):
@@ -551,6 +553,9 @@ class DiscoveryMenuItemSerializer(serializers.ModelSerializer):
 
     def get_is_available(self, obj):
         return bool(obj.is_available and obj.is_manually_available)
+
+    def get_order_count(self, obj):
+        return int(getattr(obj, "_discovery_order_count", 0) or 0)
 
 
 class DiscoveryPlatterSerializer(serializers.ModelSerializer):
@@ -567,6 +572,7 @@ class DiscoveryPlatterSerializer(serializers.ModelSerializer):
     restaurant_name = serializers.CharField(source="restaurant.name")
     restaurant_slug = serializers.CharField(source="restaurant.slug")
     is_available = serializers.SerializerMethodField()
+    order_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Platter
@@ -589,6 +595,7 @@ class DiscoveryPlatterSerializer(serializers.ModelSerializer):
             "restaurant_slug",
             "branch_id",
             "is_available",
+            "order_count",
         ]
 
     def get_type(self, obj):
@@ -597,9 +604,13 @@ class DiscoveryPlatterSerializer(serializers.ModelSerializer):
     def get_is_available(self, obj):
         return bool(obj.is_available and obj.is_manually_available)
 
+    def get_order_count(self, obj):
+        return int(getattr(obj, "_discovery_order_count", 0) or 0)
+
 
 def _discovery_dish_sort_key(dish):
     return (
+        -int(getattr(dish, "_discovery_order_count", 0) or 0),
         not bool(dish.image),
         dish.display_order,
         dish.name.casefold(),

@@ -104,15 +104,22 @@ class _StateLayout extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    iconColor.withValues(alpha: 0.16),
+                    iconColor.withValues(alpha: 0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(icon, color: iconColor, size: 24),
+              child: Icon(icon, color: iconColor, size: 27),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
