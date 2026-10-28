@@ -6,7 +6,7 @@ import unicodedata
 from collections import Counter
 from pathlib import Path
 
-FIELD_WEIGHTS = {"heading": 12.0, "title": 7.0, "module": 6.0, "description": 4.0, "keywords": 6.0, "capability": 9.0, "content": 1.5}
+FIELD_WEIGHTS = {"heading": 12.0, "title": 7.0, "module": 6.0, "description": 4.0, "keywords": 6.0, "capability": 9.0, "content": 3.0}
 TYPE_WEIGHTS = {"operator_guide": 1.35, "workflow": 1.25, "form_reference": 1.25, "troubleshooting": 1.2, "role_guide": 1.0, "navigation": .85, "interface_reference": .65, "backend_reference": .55}
 STOPWORDS = frozenset("a an the how do does did i we you my to for of in on at is are can could would should please me someone it this that and or with what which from be as about".split())
 
@@ -40,6 +40,9 @@ class Aliases:
         for group in self.phrases:
             if any(phrase in normalize(query) for phrase in group):
                 phrases.extend(group)
+                for phrase in group:
+                    for term in terms(phrase):
+                        weights.setdefault(term, .4)
         return weights, original, list(dict.fromkeys(phrases))
 
 

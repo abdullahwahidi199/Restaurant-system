@@ -45,12 +45,16 @@ def parse_completion(data):
         message = choice["message"]
         if message["role"] != "assistant" or message.get("reasoning_content"):
             raise ValueError
-        text = message.get("content") or ""
-        if not isinstance(text, str) or len(text) > 32000:
+        raw_text = message.get("content")
+        if raw_text is not None and not isinstance(raw_text, str):
+            raise ValueError
+        text = raw_text if raw_text is not None else ""
+        if len(text) > 32000:
             raise ValueError
         text.encode("utf-8")
         calls = []
-        raw_calls = message.get("tool_calls") or []
+        raw_calls = message.get("tool_calls")
+        raw_calls = [] if raw_calls is None else raw_calls
         if not isinstance(raw_calls, list) or len(raw_calls) > 16:
             raise ValueError
         for call in raw_calls:
@@ -113,9 +117,9 @@ class DeepSeekProvider:
                     for chunk in response.iter_bytes():
                         if time.monotonic() > deadline:
                             raise AssistantError("provider_timeout", "The AI provider timed out. Please try again.", 504)
-                        raw.extend(chunk)
-                        if len(raw) > MAX_RESPONSE_BYTES:
+                        if len(raw) + len(chunk) > MAX_RESPONSE_BYTES:
                             raise AssistantError("provider_invalid_response", "The AI provider response exceeded the supported limit.", 502)
+                        raw.extend(chunk)
                     try:
                         data = json.loads(raw)
                     except (ValueError, UnicodeError, RecursionError):

@@ -1,5 +1,6 @@
 """Read-only section discovery with authorization before ranking or previews."""
 import re
+import threading
 from collections import Counter, defaultdict
 
 from .access import can_read_document
@@ -22,15 +23,31 @@ class SearchEngine:
             for capability in module["capabilities"]:
                 capabilities[capability["section_id"]].append(capability["label"])
         self.records = {}
-        for sid, section in self.sections.items():
-            doc = self.documents[section["document_id"]]
-            self.records[sid] = prepare({
-                "heading": section["heading"], "title": doc["title"],
-                "module": " ".join((doc["module"], module_names.get(doc["module"], ""))),
-                "description": doc["description"], "keywords": " ".join(doc["keywords"]),
-                "capability": " ".join(capabilities[sid]), "content": section["content"],
-            })
-            self.records[sid]["heading_only"] = not re.sub(r"^#{1,6}\s.*$", "", section["content"], flags=re.MULTILINE).strip()
+        self._prepare_lock = threading.RLock()
+        self._capability_labels = capabilities
+        self._module_names = module_names
+
+    def _prepare_visible(self, visible):
+        # Prepare each authorized section once, on demand. Ordinary workers no
+        # longer tokenize every internal/unmounted/QA section at first question.
+        # The cache is bounded by immutable section IDs, not arbitrary queries.
+        with self._prepare_lock:
+            for sid in visible:
+                if sid in self.records:
+                    continue
+                self.records[sid] = self._prepare_record(sid)
+
+    def _prepare_record(self, sid):
+        section = self.sections[sid]
+        doc = self.documents[section["document_id"]]
+        record = prepare({
+            "heading": section["heading"], "title": doc["title"],
+            "module": " ".join((doc["module"], self._module_names.get(doc["module"], ""))),
+            "description": doc["description"], "keywords": " ".join(doc["keywords"]),
+            "capability": " ".join(self._capability_labels[sid]), "content": section["content"],
+        })
+        record["heading_only"] = not re.sub(r"^#{1,6}\s.*$", "", section["content"], flags=re.MULTILINE).strip()
+        return record
 
     def authorized(self, principal):
         return {did for did, doc in self.documents.items() if can_read_document(principal, doc)}
@@ -73,7 +90,7 @@ class SearchEngine:
         compact = [{key: m[key] for key in ("module", "name", "description")} for m in overview]
         context = next((m for m in overview if m["module"] == module), None)
         response = {"query": query, "mode": mode, "available_modules": compact, "module_context": context, "results": [], "result_count": 0,
-                    "ranking_method": "weighted_length_normalized_tfidf_v1 (raw relevance units, not confidence)", "next_offset": None}
+                    "ranking_method": "weighted_length_normalized_tfidf_v2 (raw relevance units, not confidence)", "next_offset": None}
         visible = [sid for sid, section in self.sections.items() if section["document_id"] in allowed]
         if mode == "browse":
             if not module:
@@ -88,6 +105,7 @@ class SearchEngine:
             response["ranking_method"] = "browse: capabilities, operator guidance, document ID, section order"
             response["next_offset"] = offset + len(selected) if offset + len(selected) < len(candidates) else None
         else:
+            self._prepare_visible(visible)
             weights, _, phrases = self.aliases.query(query, topics)
             if not weights:
                 response["explanation"] = "No searchable terms. Try a feature, action, or module name, or use browse mode."
@@ -113,6 +131,12 @@ class SearchEngine:
                 if score <= 0:
                     continue
                 factor = TYPE_WEIGHTS.get(doc["document_type"], .7)
+                # Inherited module metadata locates the document; actual local
+                # text must distinguish which of its procedures answers a query.
+                local = set(record["counts"]["heading"]) | set(record["counts"]["content"]) | set(record["counts"]["capability"])
+                matched = {term for term in weights if term in record["terms"]}
+                local_coverage = sum(weights[t] * idf[t] for t in matched if t in local) / max(1, sum(weights[t] * idf[t] for t in matched))
+                factor *= .45 + .55 * local_coverage
                 if validation:
                     factor *= {"backend_reference": 2.4, "form_reference": 1.3, "troubleshooting": 1.3}.get(doc["document_type"], 1)
                 if record["heading_only"]:
@@ -133,7 +157,12 @@ class SearchEngine:
             # Near-tied modules provide clarification candidates for ambiguous queries.
             specific_domain = self.distinctive_module_terms.intersection(weights)
             if candidates and not module and not specific_domain:
-                seen_modules = set()
+                # Diversity must not displace the highest-scoring result when
+                # that result belongs to navigation/troubleshooting/workflows.
+                best = candidates[0]
+                selected.append(best)
+                per_doc[self.sections[best]["document_id"]] += 1
+                seen_modules = {self.sections[best]["module"]}
                 business_modules = {m["module"] for m in self.modules}
                 for sid in candidates:
                     if scored[sid] < scored[candidates[0]] * .45 or len(selected) >= min(limit, 5):
@@ -147,7 +176,7 @@ class SearchEngine:
                 if len(selected) >= limit:
                     break
                 did = self.sections[sid]["document_id"]
-                if sid not in selected and per_doc[did] < 2:
+                if sid not in selected and per_doc[did] < 3:
                     selected.append(sid)
                     per_doc[did] += 1
             response["results"] = [self.result(sid, scored[sid], i + 1) for i, sid in enumerate(selected)]

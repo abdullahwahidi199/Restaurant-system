@@ -28,5 +28,10 @@ def is_live_data_request(question):
     # Narrow, conservative routing for clear live-record requests. Other questions
     # still receive the documentation-only system boundary and no business tools.
     text = question.casefold()
+    # Explicit current quantities/counts need live records, not a documentation
+    # citation. Keep ordinary "how do I ..." procedures outside these additions.
+    procedural = re.match(r"^\s*how\s+(?:do|can|should|would)\s+(?:i|we)\b", text)
+    if not procedural and re.search(r"\b(?:what|show|tell|give)\b.{0,45}\bcurrent\b.{0,35}\b(?:stock|inventory|cash|balance|sales|revenue)\b|\bhow many\b.{0,65}\b(?:orders|invoices|payments|items)\b.{0,45}\b(?:today|currently|right now)\b", text):
+        return True
     return bool(re.search(r"\b(show|open|retrieve|lookup|look up)\s+(invoice|order|payroll|payment)\s*#?\s*\d+|\b(today|right now|currently|actual|live)\b.{0,65}\b(sales|sold|cash|balance|unpaid|revenue)\b|\b(sales|sold|cash|balance|suppliers)\b.{0,65}\b(today|right now|currently|actual|unpaid)\b", text)
                 or re.search(r"(فروش|نقد|خرڅلاو).{0,30}(امروز|نن|همین حال)|(امروز|نن).{0,30}(فروش|نقد|خرڅلاو)", text))

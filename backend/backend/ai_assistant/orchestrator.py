@@ -228,6 +228,13 @@ class Orchestrator:
                                 raise AssistantError(exc.code, exc.message, 403 if exc.code in {"access_denied", "authentication_required", "branch_required", "restaurant_unavailable"} else 503) from None
                             result = exc.as_result()
                             event["error_code"] = exc.code
+                            if exc.code in {"discovery_expired", "discovery_invalid", "discovery_stale"}:
+                                # A forced fetch cannot renew discovery. Return to a
+                                # bounded search rather than repeatedly forcing the
+                                # model to reuse an invalid token.
+                                tokens.clear()
+                                relevant_pairs.clear()
+                                force_fetch, state = False, "SEARCH_REQUIRED"
                         except AssistantError as exc:
                             if exc.code in {"documentation_changed", "context_changed", "evidence_limit", "evidence_inconsistent"}:
                                 raise
