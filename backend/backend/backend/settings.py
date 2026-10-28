@@ -29,6 +29,30 @@ KNOWLEDGE_INDEX_ROOT = Path(os.environ.get(
     "KNOWLEDGE_INDEX_ROOT", KNOWLEDGE_DOCUMENTATION_ROOT.parent / ".generated",
 ))
 
+# Documentation assistant: credentials remain server-side; no startup provider call.
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
+AI_ASSISTANT_PROVIDER = os.environ.get("AI_ASSISTANT_PROVIDER", "deepseek")
+AI_ASSISTANT_THROTTLE_RATE = os.environ.get("AI_ASSISTANT_THROTTLE_RATE", "10/min")
+AI_ASSISTANT_LIMITS = {
+    "history_messages": int(os.environ.get("AI_HISTORY_MESSAGES", "12")),
+    "input_characters": int(os.environ.get("AI_INPUT_CHARACTERS", "4000")),
+    "request_bytes": int(os.environ.get("AI_REQUEST_BYTES", "32768")),
+    "model_requests": int(os.environ.get("AI_MODEL_REQUESTS", "6")),
+    "tool_calls": int(os.environ.get("AI_TOOL_CALLS", "12")),
+    "fetched_sections": int(os.environ.get("AI_FETCHED_SECTIONS", "8")),
+    "tool_result_bytes": int(os.environ.get("AI_TOOL_RESULT_BYTES", "64000")),
+    "total_tool_bytes": int(os.environ.get("AI_TOTAL_TOOL_BYTES", "180000")),
+    "evidence_characters": int(os.environ.get("AI_EVIDENCE_CHARACTERS", "48000")),
+    "context_bytes": int(os.environ.get("AI_CONTEXT_BYTES", "240000")),
+    "output_tokens": int(os.environ.get("AI_OUTPUT_TOKENS", "1800")),
+    "output_characters": int(os.environ.get("AI_OUTPUT_CHARACTERS", "16000")),
+    "provider_timeout": int(os.environ.get("AI_PROVIDER_TIMEOUT", "20")),
+    "turn_seconds": int(os.environ.get("AI_TURN_SECONDS", "90")),
+    "tool_argument_bytes": int(os.environ.get("AI_TOOL_ARGUMENT_BYTES", "32000")),
+}
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -79,6 +103,7 @@ INSTALLED_APPS = [
     'expenses',
     'audit',
     'knowledge.apps.KnowledgeConfig',
+    'ai_assistant.apps.AiAssistantConfig',
     'otp',
     'inventory',
     'contractors',
