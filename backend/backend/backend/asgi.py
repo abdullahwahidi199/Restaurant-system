@@ -8,6 +8,7 @@ django_asgi_app = get_asgi_application()
 
 import orders.routing
 import customers.routing
+import users.routing
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
@@ -16,6 +17,7 @@ application = ProtocolTypeRouter({
             [
                 *orders.routing.websocket_urlpatterns,
                 *customers.routing.websocket_urlpatterns,
+                *users.routing.websocket_urlpatterns,
             ]
         )
     )),

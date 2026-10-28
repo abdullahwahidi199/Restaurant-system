@@ -8,6 +8,7 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from decimal import Decimal
 from menu.models import Station
+import uuid
 
 
 class Shift(models.Model):
@@ -227,6 +228,88 @@ class Staff(models.Model):
             )
 
             super().save(update_fields=['image'])
+
+
+class AuthSession(models.Model):
+    """A revocable authentication session; live presence remains in Redis."""
+
+    END_LOGOUT = "logout"
+    END_REVOKED = "revoked"
+    END_EXPIRED = "expired"
+    END_REASONS = [
+        (END_LOGOUT, "Logout"),
+        (END_REVOKED, "Administrator revocation"),
+        (END_EXPIRED, "Expired"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="auth_sessions",
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name="auth_sessions",
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        related_name="auth_sessions",
+        null=True,
+        blank=True,
+    )
+    role = models.CharField(max_length=50, blank=True)
+    refresh_jti = models.CharField(max_length=255, blank=True)
+    browser = models.CharField(max_length=80, blank=True)
+    operating_system = models.CharField(max_length=80, blank=True)
+    device_label = models.CharField(max_length=160, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=512, blank=True)
+    started_at = models.DateTimeField(default=timezone.now)
+    refresh_expires_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.CharField(max_length=20, choices=END_REASONS, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="revoked_auth_sessions",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-started_at"]
+        permissions = [
+            ("monitor_user_activity", "Can monitor user activity and sessions"),
+            ("revoke_user_sessions", "Can revoke user sessions"),
+        ]
+        indexes = [
+            models.Index(fields=["restaurant", "started_at"], name="authsess_rest_start_idx"),
+            models.Index(fields=["restaurant", "branch"], name="authsess_rest_branch_idx"),
+            models.Index(fields=["user", "refresh_expires_at"], name="authsess_user_exp_idx"),
+            models.Index(fields=["restaurant", "ended_at", "refresh_expires_at"], name="authsess_valid_idx"),
+        ]
+
+    @property
+    def is_valid(self):
+        return (
+            self.ended_at is None
+            and self.revoked_at is None
+            and self.refresh_expires_at > timezone.now()
+        )
+
+    @property
+    def lifecycle_status(self):
+        if self.revoked_at:
+            return self.END_REVOKED
+        if self.end_reason == self.END_LOGOUT:
+            return self.END_LOGOUT
+        if self.refresh_expires_at <= timezone.now():
+            return self.END_EXPIRED
+        return "valid"
 
     
 class Attendance(models.Model):

@@ -126,6 +126,7 @@ import OperationsManagerLayout from "./component/OperationsManager/OperationsMan
 import LegalPage from "./pages/PremiumLegalPage";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import AppDomainGuard from "./routing/AppDomainGuard";
+import ActivityDashboard from "./modules/activity/ActivityDashboard";
 
 function App() {
   const { t: autoT } = useAutoTranslation();
@@ -278,6 +279,7 @@ function App() {
           />
           <Route path="reports" element={<ReportsMainPage />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
+          <Route path="activity" element={<ActivityDashboard />} />
           <Route path="reservations" element={<ReservationsMainPage />} />
           <Route path="procurement" element={<ProcurementDashboardPage />} />
           <Route
@@ -347,6 +349,7 @@ function App() {
             }
           />
           <Route path="discount-requests" element={<DiscountRequestMain />} />
+          <Route path="activity" element={<ActivityDashboard />} />
         </Route>
         <Route
           path="manager/new-order"

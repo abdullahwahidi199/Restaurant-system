@@ -19,6 +19,9 @@ class AuditAction(models.TextChoices):
     EXPORT = "EXPORT", "Export"
     LOGIN_SUCCESS = "LOGIN_SUCCESS", "Login Success"
     LOGIN_FAILED = "LOGIN_FAILED", "Login Failed"
+    LOGOUT = "LOGOUT", "Logout"
+    SESSION_REVOKED = "SESSION_REVOKED", "Session Revoked"
+    SESSION_EXPIRED = "SESSION_EXPIRED", "Session Expired"
     MIGRATION = "MIGRATION", "Migration"
 
 

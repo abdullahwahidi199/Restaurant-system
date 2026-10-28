@@ -902,6 +902,17 @@ def active_branch_view(request):
         is_active=True,
     )
     set_active_branch(request.user, branch)
+    session_id = getattr(request, "auth_session_id", None)
+    if session_id:
+        # Branch changes are meaningful session events, unlike heartbeats, so
+        # persisting this once keeps later revocation scopes authoritative.
+        from users.models import AuthSession
+
+        AuthSession.objects.filter(
+            id=session_id,
+            user=request.user,
+            restaurant=staff.restaurant,
+        ).exclude(branch=branch).update(branch=branch)
     return branch_context_response(request, active_branch=branch)
 
 

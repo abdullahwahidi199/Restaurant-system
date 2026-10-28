@@ -2,6 +2,7 @@ import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
 import instance from "./axiosInstance";
 import { API_BASE_URL } from "../config/runtimeConfig";
+import { startPresenceRuntime, stopPresenceRuntime } from "../hooks/presenceRuntime";
 
 export const AuthContext = createContext();
 
@@ -89,6 +90,9 @@ export function AuthProvider({ children }) {
       requires_branch_selection: data.requires_branch_selection,
       stations: data.stations || [],
       station_names: data.station_names || [],
+      session_id: data.session_id,
+      can_monitor_activity: Boolean(data.can_monitor_activity),
+      can_revoke_sessions: Boolean(data.can_revoke_sessions),
       staff_profile: {
         id: data.staff_id,
         role: data.role,
@@ -105,6 +109,16 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    const access = auth?.tokens?.access;
+    const refresh = auth?.tokens?.refresh;
+    if (access) {
+      axios.post(
+        `${API_BASE_URL}/users/activity/logout/`,
+        { refresh },
+        { headers: { Authorization: `Bearer ${access}` } },
+      ).catch(() => {});
+    }
+    stopPresenceRuntime();
     localStorage.removeItem("authTokens");
     localStorage.removeItem("user");
     localStorage.removeItem("branches");
@@ -114,6 +128,14 @@ export function AuthProvider({ children }) {
     setRequiresBranchSelection(false);
     setAuth({ tokens: null, user: null });
   };
+
+  useEffect(() => {
+    if (!auth?.tokens?.access || auth?.user?.role === "Customer" || auth?.user?.role === "SuperAdmin") {
+      stopPresenceRuntime();
+      return undefined;
+    }
+    return startPresenceRuntime(auth.tokens.access);
+  }, [auth?.tokens?.access, auth?.user?.role]);
 
   const updateTokens = (tokens) => {
     localStorage.setItem("authTokens", JSON.stringify(tokens));

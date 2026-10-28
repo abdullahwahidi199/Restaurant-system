@@ -14,7 +14,17 @@ from .views import (
     login_rate_limit_config_view,
 )
 from .views import MyTokenObtainPairView,create_admin,debug_users
-from rest_framework_simplejwt.views import TokenRefreshView
+from .session_tokens import SessionTokenRefreshView
+from .session_views import (
+    activity_history,
+    activity_overview,
+    activity_sessions,
+    activity_socket_ticket,
+    heartbeat,
+    logout_session,
+    revoke_session,
+    revoke_user_sessions,
+)
 router = DefaultRouter()
 # router.register(r'staff', StaffViewSet, basename='staff')
 # router.register(r'shift',ShifViewSet,basename="shift")
@@ -37,7 +47,15 @@ urlpatterns = [
     path('deliveryBoys/',DeliveryBoyListView),
     path('payrolls/<int:id>/',PayrollDetailsView.as_view()),
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/', SessionTokenRefreshView.as_view(), name='token_refresh'),
+    path('activity/heartbeat/', heartbeat, name='activity-heartbeat'),
+    path('activity/overview/', activity_overview, name='activity-overview'),
+    path('activity/sessions/', activity_sessions, name='activity-sessions'),
+    path('activity/history/', activity_history, name='activity-history'),
+    path('activity/socket-ticket/', activity_socket_ticket, name='activity-socket-ticket'),
+    path('activity/sessions/<uuid:session_id>/revoke/', revoke_session, name='activity-revoke-session'),
+    path('activity/users/<int:user_id>/revoke/', revoke_user_sessions, name='activity-revoke-user'),
+    path('activity/logout/', logout_session, name='activity-logout'),
     path('security/login-rate-limit/', login_rate_limit_config_view, name='login-rate-limit-config'),
     path('attendance/recent/',recent_month_attendance),
     path('create-admin/', create_admin),

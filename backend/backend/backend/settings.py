@@ -141,6 +141,17 @@ CHANNEL_LAYERS = {
     },
 }
 
+# User-presence state is ephemeral and shares the existing Redis/cache service.
+# Session validity is deliberately longer lived than online/idle presence.
+PRESENCE_HEARTBEAT_INTERVAL_SECONDS = int(os.environ.get("PRESENCE_HEARTBEAT_INTERVAL_SECONDS", "30"))
+PRESENCE_ONLINE_THRESHOLD_SECONDS = int(os.environ.get("PRESENCE_ONLINE_THRESHOLD_SECONDS", "90"))
+PRESENCE_IDLE_THRESHOLD_SECONDS = int(os.environ.get("PRESENCE_IDLE_THRESHOLD_SECONDS", "300"))
+PRESENCE_RETENTION_SECONDS = int(os.environ.get("PRESENCE_RETENTION_SECONDS", "86400"))
+SESSION_VALIDATION_CACHE_SECONDS = int(os.environ.get("SESSION_VALIDATION_CACHE_SECONDS", "60"))
+SESSION_REQUIRE_SID_FOR_STAFF = os.environ.get("SESSION_REQUIRE_SID_FOR_STAFF", "False").strip().lower() in {
+    "1", "true", "yes", "on",
+}
+
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -202,7 +213,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.SessionJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

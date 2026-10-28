@@ -69,6 +69,40 @@ class IsRestaurantAdmin(HasStaffRole):
     allowed_roles = ["Admin", "BranchAdmin"]
 
 
+class CanMonitorUserActivity(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        staff = getattr(user, "staff_profile", None)
+        return bool(
+            staff
+            and (
+                staff.role in {"Admin", "BranchAdmin"}
+                or user.has_perm("users.monitor_user_activity")
+            )
+        )
+
+
+class CanRevokeUserSessions(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        staff = getattr(user, "staff_profile", None)
+        return bool(
+            staff
+            and (
+                staff.role == "Admin"
+                or user.has_perm("users.revoke_user_sessions")
+            )
+        )
+
+
 class IsCashier(HasStaffRole):
     allowed_roles = ["Cashier"]
 

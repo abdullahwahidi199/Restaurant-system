@@ -22,6 +22,7 @@ from datetime import date, timedelta
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import HasStaffRole, IsSuperAdmin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
@@ -63,6 +64,7 @@ from audit.services import (
     record_instance_update,
     snapshot_instance,
 )
+from .session_tokens import create_staff_auth_session
 
 
 BRANCH_ADMIN_RESTRICTED_USER_ROLES = ALL_BRANCH_ACCESS_ROLES | {"BranchAdmin"}
@@ -1033,6 +1035,16 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = self.user
         try:
             staff = user.staff_profile
+            refresh = RefreshToken(data["refresh"])
+            auth_session = create_staff_auth_session(
+                self.context.get("request"),
+                user,
+                refresh,
+            )
+            if auth_session:
+                data["refresh"] = str(refresh)
+                data["access"] = str(refresh.access_token)
+                data["session_id"] = str(auth_session.id)
             data['role'] = staff.role
             data['staff_id'] = staff.id
             data['name'] = staff.name
@@ -1047,6 +1059,14 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             data['requires_branch_selection'] = branches.count() > 1
             data['stations'] = [s.id for s in staff.stations.all()]
             data['station_names'] = [s.name for s in staff.stations.all()]
+            data['can_monitor_activity'] = (
+                staff.role in {"Admin", "BranchAdmin"}
+                or user.has_perm("users.monitor_user_activity")
+            )
+            data['can_revoke_sessions'] = (
+                staff.role == "Admin"
+                or user.has_perm("users.revoke_user_sessions")
+            )
         except Staff.DoesNotExist:
             data['role'] = 'Customer'
             data['is_demo'] = False
@@ -1054,6 +1074,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             data['active_branch'] = None
             data['branches'] = []
             data['requires_branch_selection'] = False
+            data['can_monitor_activity'] = False
+            data['can_revoke_sessions'] = False
         return data
 
 class MyTokenObtainPairView(TokenObtainPairView):
@@ -1122,6 +1144,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
                     "severity": "INFO",
                     "role": staff.role,
                     "active_branch": staff.active_branch.name if staff.active_branch_id else None,
+                    "session_id": response.data.get("session_id"),
                 },
             )
         return response

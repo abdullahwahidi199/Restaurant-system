@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Users,
@@ -8,8 +8,10 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  MonitorCheck,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { AuthContext } from "../../api/authforRBC";
 export default function ManagerNavbar({
   collapsed = false,
   mobileOpen = false,
@@ -17,6 +19,7 @@ export default function ManagerNavbar({
   onCloseMobile,
 }) {
   const { t, i18n } = useTranslation();
+  const { auth } = useContext(AuthContext);
   const isRTL = i18n.language === "fa" || i18n.language === "ps";
 
   const navItems = [
@@ -45,6 +48,7 @@ export default function ManagerNavbar({
       label: t("legacy.discount_requests_ff7e6c6c"),
       icon: Clock,
     },
+    ...(auth?.user?.can_monitor_activity ? [{ to: "/manager/activity", label: "User activity", icon: MonitorCheck }] : []),
   ];
   return (
     <>

@@ -18,6 +18,7 @@ import {
   ReceiptText,
   Settings,
   ShieldCheck,
+  MonitorCheck,
   ShoppingCart,
   Star,
   Table2,
@@ -364,6 +365,12 @@ export function getAdminNavigationGroups(t, role) {
       icon: Settings,
       children: [
         {
+          id: "activity",
+          to: `${adminBase}/activity`,
+          label: "User activity",
+          icon: MonitorCheck,
+        },
+        {
           id: "branches",
           to: `${adminBase}/branches`,
           label: i18n.t("landing.marketplace.owner.items.branches"),
@@ -489,6 +496,7 @@ const navigationSearchKeywords = {
   branches: ["branch", "location", "administration"],
   feedbacks: ["feedback", "reviews", "ratings"],
   settings: ["settings", "preferences", "theme", "language", "restaurant"],
+  activity: ["activity", "online users", "sessions", "devices", "security"],
 };
 
 export function getSearchableNavigationItems(groups) {
