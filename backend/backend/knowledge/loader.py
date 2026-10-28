@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from .markdown import digest
+from .markdown import canonical_json, digest
 from .scanner import safe_relative
 from .schemas import SCHEMA_VERSION
 
@@ -84,6 +84,19 @@ class KnowledgeIndex:
         self._capabilities = capability_map
 
     @property
+    def version(self):
+        return self._manifest["build_hash"]
+
+    def iter_documents(self):
+        """Enumerate the catalog without exposing mutable snapshot internals."""
+        for record in self._documents.values():
+            yield copy.deepcopy(record)
+
+    def iter_sections(self):
+        for record in self._sections.values():
+            yield copy.deepcopy(record)
+
+    @property
     def manifest(self):
         return copy.deepcopy(self._manifest)
 
@@ -132,6 +145,10 @@ def load_index(output_root, *, require_complete=True):
             if len(raw) != info["bytes"] or digest(raw) != info["sha256"]:
                 raise IndexError("Artifact checksum mismatch; rebuild the index.")
             blobs[name] = raw.decode("utf-8")
+        base = {key: value for key, value in manifest.items() if key not in {"build_hash", "generation"}}
+        base["artifacts"] = {name: {key: info[key] for key in ("sha256", "bytes")} for name, info in manifest["artifacts"].items()}
+        if digest(canonical_json(base)) != manifest["build_hash"]:
+            raise IndexError("Manifest build checksum mismatch; rebuild the index.")
         catalog = json.loads(blobs["documents.json"])
         capabilities = json.loads(blobs["capability_map.json"])
         if catalog["schema_version"] != SCHEMA_VERSION or capabilities["schema_version"] != SCHEMA_VERSION:

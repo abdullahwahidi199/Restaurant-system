@@ -2,6 +2,8 @@
 
 `knowledge` is a Django app without models, migrations, URLs, startup indexing, or model-provider dependencies. It builds the existing operator Markdown into a private, deterministic catalog. Normal builds read only the configured documentation tree and this package's `capabilities.json`; `source_references` are metadata, never instructions to read application files. PyYAML and Mistune are already project dependencies.
 
+The [Knowledge Gateway](GATEWAY.md) adds authorized lexical search, browsing and signed search-before-fetch tools on top of this index. This document describes the indexing/storage layer.
+
 ## Regenerate and validate
 
 From `Restaurant-system/backend/backend` in PowerShell, using the existing virtual environment:
