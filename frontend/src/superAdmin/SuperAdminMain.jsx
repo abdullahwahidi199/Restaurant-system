@@ -75,7 +75,7 @@ export default function SuperAdminMain() {
       getRestaurants(); // Refresh list
     } catch (err) {
       console.error("Failed to save restaurant:", err.response?.data || err);
-      alert("Error saving restaurant. Check console for details.");
+      throw err;
     }
   };
 

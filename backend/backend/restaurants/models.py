@@ -367,7 +367,10 @@ class Branch(models.Model):
 
     def clean(self):
         super().clean()
-        if not self.pk:
+        # A restaurant is bootstrapped with one main branch before its
+        # subscription is configured. Subscription limits apply to every
+        # additional branch created after that bootstrap step.
+        if not self.pk and not self.is_main_branch:
             subscription = getattr(self.restaurant, "subscription", None)
 
             if not subscription:
@@ -384,8 +387,8 @@ class Branch(models.Model):
 
             if current >= subscription.max_branches:
                 raise ValidationError(
-                    f"This subscription allows a maximum of, please contact the system owner to upgrade the subscription."
-                    f"{subscription.max_branches} branches."
+                    f"This subscription allows a maximum of {subscription.max_branches} "
+                    "branches. Please contact the system owner to upgrade the subscription."
                 )
         if self.is_main_branch:
             if not self.is_active:

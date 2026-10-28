@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import NotFound
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Avg, Count, Exists, OuterRef, Prefetch, Q, Sum
 from django.utils import timezone
 from menu.models import Category, MenuItem, Platter
@@ -118,16 +119,18 @@ def restaurant_list_create(request):
     elif request.method == 'POST':
         serializer = RestaurantSerializer(data=request.data)
         if serializer.is_valid():
-            restaurant = serializer.save()
-            record_instance_create(
-                request=request,
-                instance=restaurant,
-                module=AuditModule.RESTAURANT,
-                fields=RESTAURANT_AUDIT_FIELDS,
-                description=f"{actor_name(request)} created restaurant {restaurant.name}.",
-                severity="CRITICAL",
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            with transaction.atomic():
+                restaurant = serializer.save()
+                record_instance_create(
+                    request=request,
+                    instance=restaurant,
+                    module=AuditModule.RESTAURANT,
+                    fields=RESTAURANT_AUDIT_FIELDS,
+                    description=f"{actor_name(request)} created restaurant {restaurant.name}.",
+                    severity="CRITICAL",
+                )
+                response_data = serializer.data
+            return Response(response_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # GET (Retrieve), PUT/PATCH (Update), DELETE using RetrieveUpdateDestroyAPIView

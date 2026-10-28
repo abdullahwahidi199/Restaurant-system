@@ -1,4 +1,7 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from rest_framework import serializers
 from menu.models import MenuItem, Platter
@@ -207,10 +210,18 @@ class BranchDataMigrationLogSerializer(serializers.ModelSerializer):
 class RestaurantSerializer(serializers.ModelSerializer):
 
     # admin creation fields (write-only)
-    admin_name = serializers.CharField(write_only=True)
+    admin_name = serializers.CharField(
+        write_only=True,
+        max_length=150,
+        validators=[UnicodeUsernameValidator()],
+    )
     admin_email = serializers.EmailField(write_only=True)
     admin_phone = serializers.CharField(write_only=True)
-    admin_password = serializers.CharField(write_only=True, required=False)
+    admin_password = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+    )
 
     subscription = SubscriptionSerializer(read_only=True)
     qr_code = serializers.ImageField(read_only=True)
@@ -263,6 +274,38 @@ class RestaurantSerializer(serializers.ModelSerializer):
     def get_public_url(self, obj):
         return obj.get_public_url()
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if self.instance is not None:
+            return attrs
+
+        admin_name = attrs.get("admin_name", "").strip()
+        admin_email = attrs.get("admin_email", "").strip()
+        admin_phone = attrs.get("admin_phone", "").strip()
+
+        errors = {}
+        if User.objects.filter(username__iexact=admin_name).exists():
+            errors["admin_name"] = (
+                "An account with this administrator username already exists. "
+                "Choose a different username."
+            )
+        if Staff.objects.filter(email__iexact=admin_email).exists():
+            errors["admin_email"] = (
+                "A staff account with this administrator email already exists."
+            )
+        if Staff.objects.filter(phone=admin_phone).exists():
+            errors["admin_phone"] = (
+                "A staff account with this administrator phone number already exists."
+            )
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        attrs["admin_name"] = admin_name
+        attrs["admin_email"] = admin_email
+        attrs["admin_phone"] = admin_phone
+        return attrs
+
     def create(self, validated_data):
         admin_name = validated_data.pop("admin_name")
         admin_email = validated_data.pop("admin_email")
@@ -273,38 +316,54 @@ class RestaurantSerializer(serializers.ModelSerializer):
         validated_data.pop("ingredient_mode", None)
         validated_data.pop("recipe_mode", None)
         validated_data.pop("pricing_mode", None)
-        restaurant = Restaurant.objects.create(
-            **validated_data,
-            menu_mode="separate",
-            ingredient_mode="separate",
-            recipe_mode="separate",
-            pricing_mode="branch",
-        )
-        main_branch = get_main_branch(restaurant)
+        try:
+            with transaction.atomic():
+                restaurant = Restaurant.objects.create(
+                    **validated_data,
+                    menu_mode="separate",
+                    ingredient_mode="separate",
+                    recipe_mode="separate",
+                    pricing_mode="branch",
+                )
+                main_branch = get_main_branch(restaurant)
 
-        if not admin_password:
-            admin_password = "12345678"
+                if not admin_password:
+                    admin_password = "12345678"
 
-        user = User.objects.create_user(
-            username=admin_name,
-            email=admin_email,
-            password=admin_password
-        )
+                user = User.objects.create_user(
+                    username=admin_name,
+                    email=admin_email,
+                    password=admin_password,
+                )
 
-        staff = Staff.objects.create(
-            user=user,
-            name=admin_name,
-            email=admin_email,
-            phone=admin_phone,
-            role="Admin",
-            restaurant=restaurant
-        )
-        staff.branches.add(main_branch)
-        staff.active_branch = main_branch
-        staff.save(update_fields=["active_branch"])
-        sync_all_branch_access_staff(restaurant)
+                staff = Staff.objects.create(
+                    user=user,
+                    name=admin_name,
+                    email=admin_email,
+                    phone=admin_phone,
+                    role="Admin",
+                    restaurant=restaurant,
+                )
+                staff.branches.add(main_branch)
+                staff.active_branch = main_branch
+                staff.save(update_fields=["active_branch"])
+                sync_all_branch_access_staff(restaurant)
 
-        return restaurant
+                return restaurant
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        "The restaurant and administrator could not be created because "
+                        "one of the account details is already in use. Refresh the page "
+                        "and choose a different administrator username, email, or phone."
+                    ]
+                }
+            ) from exc
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                {"non_field_errors": list(exc.messages)}
+            ) from exc
     
     def update(self, instance, validated_data):
         # 🔥 Remove admin fields if present (don't update them)

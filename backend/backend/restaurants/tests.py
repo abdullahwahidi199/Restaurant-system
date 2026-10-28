@@ -2,16 +2,95 @@ import shutil
 import tempfile
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
+from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
+from rest_framework.test import APIClient
 
 from inventory.models import Ingredient, MenuItemIngredient, StockMovement
 from menu.models import Category, MenuItem, Platter, PlatterItem
 from restaurants.data_migration import run_branch_data_migration
 from restaurants.models import Branch, BranchDataMigrationLog, Restaurant, Subscription
+from users.models import Staff
 
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp()
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+class RestaurantCreationTests(TestCase):
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="platform-admin",
+            email="platform@example.com",
+            password="test-password",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.superuser)
+
+    def payload(self, **overrides):
+        data = {
+            "name": "Atomic Restaurant",
+            "email": "atomic@example.com",
+            "phone": "0700000900",
+            "address": "Atomic address",
+            "is_active": True,
+            "admin_name": "atomic-admin",
+            "admin_email": "atomic-admin@example.com",
+            "admin_phone": "0700000901",
+            "admin_password": "secure-test-password",
+        }
+        data.update(overrides)
+        return data
+
+    def test_duplicate_admin_username_returns_field_error_without_writes(self):
+        response = self.client.post(
+            "/api/restaurant/restaurants/",
+            self.payload(admin_name=self.superuser.username),
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertIn("admin_name", response.data)
+        self.assertIn("already exists", str(response.data["admin_name"]))
+        self.assertFalse(Restaurant.objects.filter(name="Atomic Restaurant").exists())
+        self.assertFalse(Staff.objects.filter(email="atomic-admin@example.com").exists())
+
+    def test_unexpected_failure_rolls_back_restaurant_user_branch_and_staff(self):
+        with patch(
+            "restaurants.views.record_instance_create",
+            side_effect=RuntimeError("audit unavailable"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self.client.post(
+                    "/api/restaurant/restaurants/",
+                    self.payload(),
+                    format="multipart",
+                )
+
+        self.assertFalse(Restaurant.objects.filter(name="Atomic Restaurant").exists())
+        self.assertFalse(Branch.objects.filter(restaurant__name="Atomic Restaurant").exists())
+        self.assertFalse(User.objects.filter(username="atomic-admin").exists())
+        self.assertFalse(Staff.objects.filter(email="atomic-admin@example.com").exists())
+
+    def test_success_creates_restaurant_main_branch_user_and_admin_staff(self):
+        response = self.client.post(
+            "/api/restaurant/restaurants/",
+            self.payload(),
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        restaurant = Restaurant.objects.get(name="Atomic Restaurant")
+        user = User.objects.get(username="atomic-admin")
+        staff = Staff.objects.get(user=user)
+        main_branch = restaurant.branches.get(is_main_branch=True)
+
+        self.assertEqual(staff.restaurant, restaurant)
+        self.assertEqual(staff.role, "Admin")
+        self.assertEqual(staff.active_branch, main_branch)
+        self.assertTrue(staff.branches.filter(id=main_branch.id).exists())
 
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
