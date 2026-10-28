@@ -20,6 +20,15 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Offline documentation build inputs/outputs; never served through static/media.
+KNOWLEDGE_DOCUMENTATION_ROOT = Path(os.environ.get(
+    "KNOWLEDGE_DOCUMENTATION_ROOT",
+    BASE_DIR.parent.parent / "docs" / "ai_knowledge" / "03_operator_guides",
+))
+KNOWLEDGE_INDEX_ROOT = Path(os.environ.get(
+    "KNOWLEDGE_INDEX_ROOT", KNOWLEDGE_DOCUMENTATION_ROOT.parent / ".generated",
+))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -69,6 +78,7 @@ INSTALLED_APPS = [
     'restaurants',
     'expenses',
     'audit',
+    'knowledge.apps.KnowledgeConfig',
     'otp',
     'inventory',
     'contractors',
