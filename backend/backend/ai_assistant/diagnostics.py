@@ -11,6 +11,7 @@ class AssistantLogFormatter(logging.Formatter):
                   "termination_reason", "orchestration_state", "state_before", "model_call_ordinal", "finish_reason",
                   "tool_call_count", "assistant_content_length", "tool_choice", "decision", "decision_reason",
                   "provider_duration_ms", "context_duration_ms", "search_duration_ms", "fetch_duration_ms",
-                  "validation_duration_ms", "request_context_bytes", "complete_evidence_count")
+                  "validation_duration_ms", "request_context_bytes", "complete_evidence_count", "retrieval_mode",
+                  "automatic_fetch_attempts", "search_payload_bytes", "ranked_search_bytes", "fetched_evidence_bytes")
         return json.dumps({"event": record.getMessage(), "level": record.levelname,
                            **{key: getattr(record, key) for key in fields if hasattr(record, key)}}, ensure_ascii=True)

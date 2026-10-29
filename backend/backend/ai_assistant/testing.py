@@ -37,6 +37,8 @@ class DemoProvider(ScriptedProvider):
     """Deterministic, visibly mock excerpt, exercising the actual tool loop."""
     def __init__(self, question):
         def fetch(request):
+            if any(result.get('evidence_available') for result in tool_results(request)):
+                return answer(request)
             searched = next(result for result in reversed(tool_results(request)) if result.get("results"))
             selected = searched["results"][0]
             return Completion(tool_calls=(call("fetch_documentation", {"search_token": searched["search_token"], "sections": [{key: selected[key] for key in ("document_id", "section_id")}], "max_characters": 12000}, "call_fetch"),), finish_reason="tool_calls")

@@ -43,6 +43,13 @@ DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.co
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 AI_ASSISTANT_PROVIDER = os.environ.get("AI_ASSISTANT_PROVIDER", "deepseek")
 AI_ASSISTANT_THROTTLE_RATE = os.environ.get("AI_ASSISTANT_THROTTLE_RATE", "10/min")
+AI_RETRIEVAL_MODE = os.environ.get("AI_RETRIEVAL_MODE", "legacy")
+AI_AUTO_FETCH_LIMITS = {
+    "max_sections": int(os.environ.get("AI_AUTO_FETCH_MAX_SECTIONS", "3")),
+    "evidence_bytes": int(os.environ.get("AI_AUTO_FETCH_EVIDENCE_BYTES", "18000")),
+    "search_bytes": int(os.environ.get("AI_SEARCH_RESULT_BYTES", "12000")),
+    "max_documents": int(os.environ.get("AI_AUTO_FETCH_MAX_DOCUMENTS", "2")),
+}
 AI_AUDIT_RETENTION_DAYS = int(os.environ.get("AI_AUDIT_RETENTION_DAYS", "90"))
 AI_AUDIT_ACCESS_RETENTION_DAYS = int(os.environ.get("AI_AUDIT_ACCESS_RETENTION_DAYS", "365"))
 AI_AUDIT_MAX_EVENT_BYTES = 1_000_000

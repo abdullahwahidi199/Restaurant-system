@@ -1,0 +1,170 @@
+[
+  {
+    "id": "CLEAR-001",
+    "question": "What are employees in Pakhlai?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_employees_staff"
+    ],
+    "expected_sections": [
+      "operator_modules_employees_staff::page_and_authority_d22224303ddf7652ea618c70476e6c20909218aff0692537315286230aedbbb1"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_employees_staff",
+        "section_id": "operator_modules_employees_staff::page_and_authority_d22224303ddf7652ea618c70476e6c20909218aff0692537315286230aedbbb1",
+        "heading": "Page and authority",
+        "contains": "Admin/BranchAdmin **HR → Staff** `/admin/dashboard/staff`. Staff table provides search/filter, add, detail, edit and delete controls as rendered. OperationsManager can list staff through API for attendance; FinanceManager can read/update records through payroll salary profiles. Neither gets an unrestricted Staff route in React. Only Admin/BranchAdmin may create staff through `staffApi`."
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-002",
+    "question": "How do I create an employee?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_employees_staff"
+    ],
+    "expected_sections": [
+      "operator_modules_employees_staff::create_form_field_reference_124c1e8c98bb0289ed393cf0b8cfafe6bfb4c4822f6091fead16cee75b912222"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_employees_staff",
+        "section_id": "operator_modules_employees_staff::create_form_field_reference_124c1e8c98bb0289ed393cf0b8cfafe6bfb4c4822f6091fead16cee75b912222",
+        "heading": "Create form field reference",
+        "contains": "| Field | Requirement/default | Constraints and meaning |\n|---|---|---|\n| Full Name | Required, empty | Staff display name; model length constraints in users fields reference. |\n| Email | Required | Browser email input; backend email field. |\n| Phone | Required | Text; backend field length/uniqueness rules apply. |\n| Hire Date | Optional | Date; defaults model date when omitted. |\n| Profile Image | Optional | File upload; existing image preserved when no new file on edit. |\n| Role | Required | Dropdown of implemented Staff roles; determines portal/access. |\n| Kitchen Stations | Conditional on Kitchen_manager | Toggle station chips; submitted as repeated station IDs. No assignment currently means broad kitchen queue, not zero visibility. |\n| Shift | Optional | Dropdown from current branch; backend rejects another branch’s shift. |\n| Status | Default Active | Staff employment status choices; affects active payroll eligibility. Do not equate display status with managed-session revocation. |\n| Custom Role | Conditional/optional | Text for custom role display; permission classes differ in whether they consider it. |\n| Vehicle Number | Delivery role condition | Identifies driver vehicle for assignment display. |\n| Salary Type | Default monthly | monthly/weekly/daily/hourly; used by payroll generation. |\n| Base Salary | Blank→0 in submit | Decimal payroll_base_salary. |\n| Payment Day | Default1; blank→1 | Number; use model constraints. Does not schedule an automatic transfer. |\n| Allowances / Deductions / Overtime Rate | Blank→0 | Decimal profile inputs used when generating payroll. |\n| Payroll Notes | Optional | Text. |\n| Payroll Active | Checkbox true | Determines payroll eligibility. |\n| Username | Optional | Account login identifier; serializer may generate when absent. Check username uniqueness. |\n| Password | Optional in UI/serializer | Enter an approved initial password for a login-capable role; eye control reveals/hides. Generated/default credential literals are deliberately not copied into this knowledge base. |"
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-003",
+    "question": "How do I record employee attendance?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_employees_attendance_shifts"
+    ],
+    "expected_sections": [
+      "operator_modules_employees_attendance_shifts::attendance_820c84d035476853b48a1947abb6575d1927c622dbac91a12e371998a75bfea4"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_employees_attendance_shifts",
+        "section_id": "operator_modules_employees_attendance_shifts::attendance_820c84d035476853b48a1947abb6575d1927c622dbac91a12e371998a75bfea4",
+        "heading": "Attendance",
+        "contains": "1. Open Attendance and confirm the displayed date and active branch. The mounted screen works with **today**; it has no freeform historical attendance date field.\n2. Select the shift card/tab. It loads assigned staff and recent attendance. Existing records for that shift/date prefill statuses.\n3. For every employee choose **Present**, **Absent**, or **Leave**. Unset staff default to Present when saving; check every row before submit.\n4. Use the page’s save-attendance button. It is disabled while saving/loading or with no staff. The payload contains every visible staff member, selected shift and today’s date.\n5. Backend update_or_create uses staff+shift+date+branch, so repeat saving updates that date’s records rather than intentionally adding another attendance row. It writes audit evidence. UI shows **✅ Attendance saved successfully!** or **❌ Failed to save attendance.**"
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-004",
+    "question": "How do I create a contractor invoice?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_contractors_services"
+    ],
+    "expected_sections": [
+      "operator_modules_contractors_services::create_invoice_fields_and_submission_aaf106262575bf7432f658cdd737162b5b13aa48c7d8d1701c3196e5f32b8d9e"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_contractors_services",
+        "section_id": "operator_modules_contractors_services::create_invoice_fields_and_submission_aaf106262575bf7432f658cdd737162b5b13aa48c7d8d1701c3196e5f32b8d9e",
+        "heading": "Create invoice: fields and submission",
+        "contains": "Select **Create Invoice**/new service invoice. Select active **Contractor** (required), optional matching **Service Contract**, **Invoice Number** where rendered (blank can use server numbering), **Invoice Date** (today), optional **Due Date**, **Description**, initial **Status** (approved default, draft alternative), **Amount Paid Initially**, **Payment Method**, **Payment Reference**, and service lines."
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-005",
+    "question": "How do I record a contractor payment?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_contractors_services"
+    ],
+    "expected_sections": [
+      "operator_modules_contractors_services::record_a_contractor_payment_and_outstanding_balance_1bb20a246fb2a1d32444cd0038fc1219ece9f3b9daae21f031a52452a0681c39"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_contractors_services",
+        "section_id": "operator_modules_contractors_services::record_a_contractor_payment_and_outstanding_balance_1bb20a246fb2a1d32444cd0038fc1219ece9f3b9daae21f031a52452a0681c39",
+        "heading": "Record a contractor payment and outstanding balance",
+        "contains": "**Record Payment** opens contractor/invoice selection, **Payment Date** today, **Amount** default remaining when opened from invoice, **Payment Method** cash, optional **Reference Number**/**Notes**. Methods: Cash, Bank Transfer, Mobile Money, Card, Other; selecting one records how money was paid and does not move funds."
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-006",
+    "question": "How do I record a supplier payment?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_procurement_payments_attachments"
+    ],
+    "expected_sections": [
+      "operator_modules_procurement_payments_attachments::record_a_partial_or_full_supplier_payment_fd0c72f09015e56b290d2f86b3733ceb3119f334344a5bfdb8e94377b55880e4"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_procurement_payments_attachments",
+        "section_id": "operator_modules_procurement_payments_attachments::record_a_partial_or_full_supplier_payment_fd0c72f09015e56b290d2f86b3733ceb3119f334344a5bfdb8e94377b55880e4",
+        "heading": "Record a partial or full supplier payment",
+        "contains": "1. Find a non-draft invoice with remaining balance and supplier. **Record Payment** opens the payment modal; from the invoice it preselects supplier/invoice and defaults amount to remaining balance.\n2. Select **Supplier** and **Purchase Invoice** if not prefilled. The UI filters invoice options by supplier and positive balance; a stale option can still be rejected by server.\n3. Enter **Payment Date** (today), **Amount** (required), **Payment Method** (cash default), optional **Reference Number** and **Notes**.\n4. Verify actual payment has occurred, then **Record Payment** once. **Cancel** closes without creating payment. While saving, submission is disabled.\n5. Server locks invoice and checks same restaurant/supplier, active branch, non-draft status, positive amount and amount≤remaining. It creates SupplierPayment; model callbacks refresh invoice paid amount/status. Partial payment leaves balance; full payment settles it. UI closes modal, refreshes invoices/payments/profile and can open the paid invoice. Notice **Supplier payment recorded.**"
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-007",
+    "question": "How do I create a reservation?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_reservations_reservations"
+    ],
+    "expected_sections": [
+      "operator_modules_reservations_reservations::create_form_e855562103353d852398bb728a0674fc086fe9bcfb125d6cd10bd6fe945ba5f9"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_reservations_reservations",
+        "section_id": "operator_modules_reservations_reservations::create_form_e855562103353d852398bb728a0674fc086fe9bcfb125d6cd10bd6fe945ba5f9",
+        "heading": "Create form",
+        "contains": "| Exact label / field | Requirement/default | Type and validation |\n|---|---|---|\n| Table * | Required, empty | Dropdown from current branch. Selecting table chooses free if permitted, otherwise fee, and clamps guests to capacity. |\n| Customer Name | Required, empty | Text; frontend trims; backend max120. Match this name or phone during dine-in order creation to link the reservation. |\n| Phone | Optional, empty | Text, backend max20, blank allowed. |\n| Number of Guests | Default1 | Number; cannot exceed table.capacity; frontend max changes with table. Backend positive integer field. |\n| Start Time * | Required, empty | datetime-local; frontend and backend reject past creates. Frontend derives reservation_date from its date portion; server checks consistency. |\n| Reservation Date | Automatically synchronized/hidden in create | Date; API requires or derives it from start_time. It must agree with start-time date. |\n| Duration (min) | Default60 | Number; custom frontend minimum30 and backend **Duration must be at least 30 minutes.** when duration is nonzero. |\n| Reservation Type | Default free | Dropdown free/fee/prepaid; free only when table allows it. Fee and prepaid have rounded-hour charge. |\n| Paid Amount | Shown for prepaid; default0 | Decimal(10,2). Switching away from prepaid resets it to0. Do not infer automatic card processing; this records an amount already collected. No comprehensive paid≤charge or nonnegative custom validation is defined in the serializer. |\n| Notes | Optional, empty | Text area for special requests. |\n| Estimated price / end time | Read-only preview | End=start+duration. Charged hours=ceiling(duration/60). Backend amount is0 for free, hourly total otherwise. |"
+      }
+    ]
+  },
+  {
+    "id": "CLEAR-008",
+    "question": "How do I create a menu item?",
+    "language": "en",
+    "principal": "Admin",
+    "expected_behavior": "retrieve_and_answer",
+    "expected_documents": [
+      "operator_modules_menu_menu"
+    ],
+    "expected_sections": [
+      "operator_modules_menu_menu::create_a_menu_item_403f5d9563f076c5a7f07e2ad9d7ec8ef2160b7ff1c6c7f035b33e41c7e205d0"
+    ],
+    "source_checks": [
+      {
+        "document_id": "operator_modules_menu_menu",
+        "section_id": "operator_modules_menu_menu::create_a_menu_item_403f5d9563f076c5a7f07e2ad9d7ec8ef2160b7ff1c6c7f035b33e41c7e205d0",
+        "heading": "Create a menu item",
+        "contains": "| Field/control | Required/default | Type/validation and meaning |\n|---|---|---|\n| Item Name | Yes, empty | English text. Model maximum and uniqueness rules are in menu field reference. |\n| Description | Optional, empty | Customer-facing text, separate from order preparation instructions. |\n| Dari Name / Pashto Name | Optional | Text used by localized menu displays. |\n| Dari Description / Pashto Description | Optional | Localized description. |\n| Category | Required selection/context | The add modal is disabled without selected category. Prepare/select a category first. |\n| Station | Optional selection | Routes preparation work; omitted station uses default kitchen representation where applicable. |\n| Price | Required number | Decimal currency amount. Check the true price; UI numeric constraints are in AddItemModal reference. |\n| Image / remove image icon | Optional file | File selection/preview; remove clears chosen image state. Stored via multipart handling. |\n| Daily production / availability controls | Defaults depend on create/detail form | Production mode consumes prepared portions rather than raw ingredients per standalone order. Manual availability is separate from calculated stock availability. |\n| Recipe ingredient | Optional row until configured; needed for stock-derived availability | Select branch ingredient, set **Quantity** per single portion. **Add Ingredient** adds a local row; × removes a row before submitting. |"
+      }
+    ]
+  }
+]
