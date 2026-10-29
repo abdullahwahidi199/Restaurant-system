@@ -2,8 +2,9 @@ import { useEffect, useRef } from "react";
 import { ArrowUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { INPUT_LIMIT, characterCount } from "../text";
+import ModelSelectors from "./ModelSelectors";
 
-export default function ChatComposer({ draft, setDraft, send, disabled }) {
+export default function ChatComposer({ draft, setDraft, send, disabled, selection }) {
   const { t } = useTranslation(undefined, { keyPrefix: "aiChat" });
   const input = useRef(null);
   const count = characterCount(draft);
@@ -13,6 +14,7 @@ export default function ChatComposer({ draft, setDraft, send, disabled }) {
     element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
   }, [draft]);
   return <form className="composer" onSubmit={(event) => { event.preventDefault(); send(); }}>
+    <ModelSelectors selection={selection} />
     <div className="composer-inner"><textarea ref={input} rows={1} value={draft} dir="auto"
       aria-label={t("messageInput")} placeholder={t("placeholder")} aria-describedby="ai-composer-help"
       onChange={(event) => setDraft(event.target.value)} disabled={disabled}

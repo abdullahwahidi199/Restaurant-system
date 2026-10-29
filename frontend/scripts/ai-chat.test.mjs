@@ -8,12 +8,18 @@ import { browserSession, input, click, site, artifacts } from "./ai-chat-browser
 
 const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const requestId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+// The user's standalone reference can change independently of this repository.
+// Protect the current input from mutation instead of pinning an obsolete copy.
+const referenceTemplateHash = createHash("sha256").update(readFileSync("../../ai_chat_interface.html")).digest("hex");
 const reference = { document_id: "operator_orders", section_id: "operator_orders__create", document_title: "Orders", heading: "Create an order",
   verification_status: "source_verified", index_version: "version", content_hash: "hash", path: "C:/private/hidden.md", url: "file:///secret" };
 const message = (id, content, extra = {}) => ({ id, role: "assistant", content, kind: "answer", state: "complete", sources: [reference], stale_sources: false,
   created_at: "2026-10-29T08:00:00+04:30", ...extra });
 const reply = (id = A, content = "Open **Orders** and use `Add Order`.", mid = 2) => ({ conversation_id: id, request_id: requestId, message: message(mid, content) });
 const conversations = { results: [{ id: A, title: "Conversation A" }, { id: B, title: "Conversation B" }], next_page: null };
+const modelOptions = { models: [{ value: "deepseek-flash", label: "DeepSeek Flash" }, { value: "deepseek-v4-pro", label: "DeepSeek V4 Pro" }],
+  reasoning_efforts: [{ value: "none", label: "Off" }, { value: "low", label: "Low" }, { value: "high", label: "High" }, { value: "max", label: "Max" }],
+  defaults: { model: "deepseek-flash", reasoning_effort: "none" } };
 
 test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 180000 }, async (t) => {
   const browser = await browserSession();
@@ -35,6 +41,7 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
       if (custom?.network) { await browser.send("Fetch.failRequest", { requestId: entry.id, errorReason: "ConnectionFailed" }); return; }
       if (custom) { await browser.fulfill(entry.id, custom.body, custom.status || 200); return; }
       if (entry.path === "/api/restaurant/me/") await browser.fulfill(entry.id, { is_active: true, subscription: { is_valid: true } });
+      else if (entry.path === "/api/assistant/model-options/") await browser.fulfill(entry.id, modelOptions);
       else if (entry.path === "/api/assistant/conversations/") await browser.fulfill(entry.id, conversations);
       else if (entry.path.endsWith("/messages/")) {
         const id = entry.path.includes(A) ? A : B;
@@ -45,15 +52,18 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
     } catch (error) { if (!/Invalid InterceptionId|Invalid interceptionId/.test(error.message)) failures.push(error.message); }
   });
   await browser.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
-  const reset = async ({ handler = () => null, language = "en", reduced = false } = {}) => {
+  const reset = async ({ handler = () => null, language = "en", reduced = false, preservePreferences = false } = {}) => {
     route = handler; requests.length = 0; held.length = 0; autoChat = true;
     await browser.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: reduced ? "reduce" : "no-preference" }] });
+    const clearPreference = preservePreferences ? null : await browser.send("Page.addScriptToEvaluateOnNewDocument", { source: "try { localStorage.removeItem('pakhlai.ai.model.1.1'); } catch {}" });
     await browser.navigate("/tests/ai-chat.html");
+    if (clearPreference) await browser.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: clearPreference.identifier });
     await browser.waitFor("Boolean(document.querySelector('.composer textarea'))");
     await browser.evaluate(`document.querySelector('.language-control select').value=${JSON.stringify(language)};document.querySelector('.language-control select').dispatchEvent(new Event('change',{bubbles:true}))`);
     await browser.waitFor(`document.querySelector('.pakhlai-ai').lang===${JSON.stringify(language)}`);
+    await browser.waitFor("Boolean(document.querySelector('.model-controls')) || document.querySelector('.model-options-status')?.dataset.state==='unavailable'");
   };
-  const submit = async (text) => { await input(browser, text); await click(browser, ".send-btn"); };
+  const submit = async (text) => { await input(browser, text); await browser.waitFor("!document.querySelector('.send-btn').disabled"); await click(browser, ".send-btn"); };
   const skip = async () => { await browser.waitFor("Boolean(document.querySelector('.message-row.assistant'))"); await click(browser, ".skip-animation"); await browser.waitFor("!document.querySelector('.typewriter-cursor')"); };
   const open = async (index) => {
     await click(browser, ".chat-card-header-right button:first-child");
@@ -64,6 +74,61 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
   };
   try {
     await browser.viewport(1280, 900);
+    const choose = async (index, value) => {
+      await browser.evaluate(`(() => { const el=document.querySelectorAll('.model-controls select')[${index}];el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+      await browser.waitFor(`document.querySelectorAll('.model-controls select')[${index}].value===${JSON.stringify(value)}`);
+    };
+    await t.test("model and thinking selectors render all backend choices without generating requests", async () => {
+      await reset();
+      assert.deepEqual(await browser.evaluate("Array.from(document.querySelectorAll('.model-controls select'),e=>e.getAttribute('aria-label'))"), ["Model", "Thinking"]);
+      assert.deepEqual(await browser.evaluate("Array.from(document.querySelectorAll('.model-controls select')[0].options,o=>o.value)"), ["deepseek-flash", "deepseek-v4-pro"]);
+      assert.deepEqual(await browser.evaluate("Array.from(document.querySelectorAll('.model-controls select')[1].options,o=>o.value)"), ["none", "low", "high", "max"]);
+      const before = requests.length;
+      await choose(0, "deepseek-v4-pro");
+      for (const effort of ["low", "high", "max", "none"]) await choose(1, effort);
+      assert.equal(requests.length, before);
+      assert.equal(requests.filter(r=>r.method==="POST").length, 0);
+      await browser.screenshot("model-selectors-desktop");
+    });
+    await t.test("each turn snapshots its settings and switching affects the next message only", async () => {
+      await reset({ handler: entry=>entry.method==="POST" ? {hold:true} : null });
+      await choose(0, "deepseek-v4-pro"); await choose(1, "max");
+      await submit("Selected model question");
+      while (!held.length) await delay(20);
+      const first = held.shift();
+      assert.equal(first.data.model, "deepseek-v4-pro"); assert.equal(first.data.reasoning_effort, "max");
+      await choose(0, "deepseek-flash"); await choose(1, "low");
+      assert.equal(requests.filter(r=>r.method==="POST").length, 1);
+      await browser.fulfill(first.id, reply()); await skip();
+      route=()=>null;
+      await submit("Next model question"); await skip();
+      const next=requests.filter(r=>r.method==="POST").at(-1).data;
+      assert.equal(next.model,"deepseek-flash"); assert.equal(next.reasoning_effort,"low"); assert.equal(next.conversation_id,A);
+    });
+    await t.test("preferences persist per account and unsupported saved choices use backend defaults", async () => {
+      await reset(); await choose(0,"deepseek-v4-pro"); await choose(1,"high");
+      assert.deepEqual(await browser.evaluate("JSON.parse(localStorage.getItem('pakhlai.ai.model.1.1'))"), {model:"deepseek-v4-pro",reasoning_effort:"high"});
+      await reset({preservePreferences:true});
+      assert.equal(await browser.evaluate("document.querySelectorAll('.model-controls select')[0].value"),"deepseek-v4-pro");
+      assert.equal(await browser.evaluate("document.querySelectorAll('.model-controls select')[1].value"),"high");
+      await browser.evaluate("localStorage.setItem('pakhlai.ai.model.1.1',JSON.stringify({model:'retired',reasoning_effort:'ultra'}))");
+      await reset({preservePreferences:true,handler:entry=>entry.path.endsWith('/model-options/') ? {body:{...modelOptions,defaults:{model:'deepseek-v4-pro',reasoning_effort:'low'}}} : null});
+      assert.equal(await browser.evaluate("document.querySelectorAll('.model-controls select')[0].value"),"deepseek-v4-pro");
+      assert.equal(await browser.evaluate("document.querySelectorAll('.model-controls select')[1].value"),"low");
+      assert.equal(requests.filter(r=>r.method==="POST").length,0);
+    });
+    await t.test("unavailable options preserve the old request contract using server defaults", async () => {
+      await reset({handler:entry=>entry.path.endsWith('/model-options/') ? {status:503,body:{error:{code:'configuration_invalid'}}} : null});
+      assert.equal(await browser.evaluate("document.querySelectorAll('.model-controls select').length"),0);
+      await submit("Use server defaults"); await skip();
+      assert.deepEqual(requests.find(r=>r.method==="POST").data,{message:"Use server defaults"});
+    });
+    await t.test("compact selectors remain on screen in mobile RTL layouts", async () => {
+      await browser.viewport(390,844); await reset({language:"fa"});
+      assert.equal(await browser.evaluate("Array.from(document.querySelectorAll('.model-controls select')).every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth})"),true);
+      assert.equal(await browser.evaluate("Array.from(document.querySelectorAll('.model-controls select')).every(e=>e.dir==='ltr')"),true);
+      await browser.screenshot("model-selectors-mobile-rtl"); await browser.viewport(1280,900);
+    });
     await t.test("immediate question, thinking until full HTTP result, duplicate guard, sources and follow-up", async () => {
       await reset({ handler: (entry) => entry.method === "POST" ? { hold: true } : null });
       await submit("How do I add an order?");
@@ -78,7 +143,7 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
       const post = held.shift();
       assert.equal(post.headers.Authorization, "Bearer synthetic-test-access");
       assert.equal(post.headers["X-Branch-ID"], "1");
-      assert.deepEqual(post.data, { message: "How do I add an order?" });
+      assert.deepEqual(post.data, { message: "How do I add an order?", model: "deepseek-flash", reasoning_effort: "none" });
       await browser.fulfill(post.id, reply());
       await browser.waitFor("!document.querySelector('.thinking-row') && Boolean(document.querySelector('.typewriter-cursor'))");
       assert.equal(await browser.evaluate("Boolean(document.querySelector('.message-sources'))"), false);
@@ -356,7 +421,7 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
     assert.deepEqual(failures, [], "All requests use registered endpoints; no third-party model call");
     assert.deepEqual(browser.errors, [], "No uncaught React/browser errors");
     const template = readFileSync("../../ai_chat_interface.html");
-    assert.equal(createHash("sha256").update(template).digest("hex"), "8fc449b6c7e08fe850ed3b7257de9d8cb548c3a4209dcaa2ced44a8063030e7b");
+    assert.equal(createHash("sha256").update(template).digest("hex"), referenceTemplateHash);
     writeFileSync(join(artifacts, "browser-results.json"), JSON.stringify({ template_sha256: createHash("sha256").update(template).digest("hex"), browser_errors: browser.errors, unexpected_requests: failures,
       note: "Local HTTP interception only. No Django database or DeepSeek call. Each subtest is reported by node:test." }, null, 2));
   } finally { await browser.close(); }

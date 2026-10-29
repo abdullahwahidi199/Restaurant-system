@@ -45,9 +45,22 @@ export function errorCategory(error) {
 }
 
 export const aiChatApi = {
-  async send(message, conversationId, language, signal) {
+  async modelOptions(signal) {
+    const { data } = await instance.get("/assistant/model-options/", { signal, timeout: 20000, preserveAuthFailure: true });
+    const valid = (options, limit) => Array.isArray(options) && options.length > 0 && options.length <= limit
+      && options.every((option) => option && typeof option.value === "string" && /^[a-z0-9-]{1,64}$/.test(option.value)
+        && typeof option.label === "string" && option.label.length <= 100)
+      && new Set(options.map((option) => option.value)).size === options.length;
+    if (!data || !valid(data.models, 16) || !valid(data.reasoning_efforts, 8) || !data.defaults
+      || !data.models.some((option) => option.value === data.defaults.model)
+      || !data.reasoning_efforts.some((option) => option.value === data.defaults.reasoning_effort)) invalid();
+    return { models: data.models.map(({ value, label }) => ({ value, label })), reasoning_efforts: data.reasoning_efforts.map(({ value, label }) => ({ value, label })),
+      defaults: { model: data.defaults.model, reasoning_effort: data.defaults.reasoning_effort } };
+  },
+  async send(message, conversationId, language, signal, configuration = null) {
     if (conversationId !== null && !isConversationId(conversationId)) invalid();
-    const response = await instance.post("/assistant/chat/", { message, ...(conversationId ? { conversation_id: conversationId } : {}) },
+    const response = await instance.post("/assistant/chat/", { message, ...(conversationId ? { conversation_id: conversationId } : {}),
+      ...(configuration ? { model: configuration.model, reasoning_effort: configuration.reasoning_effort } : {}) },
       { signal, timeout: CHAT_TIMEOUT_MS, preserveAuthFailure: true, headers: { "Accept-Language": language } });
     const data = response.data;
     if (!data || !isConversationId(data.conversation_id) || !isConversationId(data.request_id)

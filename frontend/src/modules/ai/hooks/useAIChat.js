@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { aiChatApi, errorCategory, isConversationId } from "../services/aiChatApi";
 import { characterCount, INPUT_LIMIT } from "../text";
+import useModelSelection from "./useModelSelection";
 
 const unique = (items) => [...new Map(items.map((item) => [item.id, item])).values()];
 const initialView = () => ({ conversationId: null, title: "", messages: [], draft: "", error: null, failedQuestion: "", sending: false,
   loading: false, animatingId: null, historyNext: null, historyIncomplete: false });
 
-export default function useAIChat(language) {
+export default function useAIChat(language, preferenceOwner) {
+  const selection = useModelSelection(preferenceOwner);
+  const getModelConfiguration = selection.getModelConfiguration;
   const [view, setView] = useState(initialView);
   const [list, setList] = useState({ conversations: [], listNext: null, listLoading: false, listError: null });
   const current = useRef(view);
@@ -90,6 +93,7 @@ export default function useAIChat(language) {
 
   const send = useCallback(async () => {
     const state = current.current;
+    const configuration = getModelConfiguration(); // Snapshot this turn before any async work.
     const question = draftRef.current.trim();
     if (lock.current || state.animatingId || state.historyNext !== null || state.historyIncomplete || !question) return;
     if (characterCount(question) > INPUT_LIMIT) { setView((value) => ({ ...value, error: "validation" })); return; }
@@ -132,7 +136,7 @@ export default function useAIChat(language) {
     setView((value) => ({ ...value, draft: "", error: null, failedQuestion: "", sending: true, title: value.title || Array.from(question).slice(0, 100).join(""),
       messages: [...value.messages, { id: localId, role: "user", content: question, state: "pending", created_at: new Date().toISOString(), sources: [] }] }));
     try {
-      const response = await aiChatApi.send(question, state.conversationId, language, controller.signal);
+      const response = await aiChatApi.send(question, state.conversationId, language, controller.signal, configuration);
       if (!alive.current || stamp !== epoch.current || controller.signal.aborted) return;
       setView((value) => ({ ...value, conversationId: response.conversationId, sending: false, animatingId: response.message.id,
         messages: [...value.messages.map((item) => item.id === localId ? { ...item, state: "complete" } : item), response.message] }));
@@ -149,6 +153,6 @@ export default function useAIChat(language) {
       requests.current.delete(controller);
       if (stamp === epoch.current) lock.current = false;
     }
-  }, [language, makeRequest]);
-  return { ...view, ...list, setDraft, startNew, send, loadConversations, openConversation, reloadConversation, loadMoreMessages, finishAnimation };
+  }, [language, makeRequest, getModelConfiguration]);
+  return { ...view, ...list, selection, setDraft, startNew, send, loadConversations, openConversation, reloadConversation, loadMoreMessages, finishAnimation };
 }

@@ -7,6 +7,7 @@ const turn={id,request_id:id,conversation_id:id,user:{id:1,username:"Synthetic o
   question_preview:"Synthetic invoice question",question:{content:"Original synthetic question"},started_at:"2026-10-29T08:00:00Z",duration_ms:2500,
   model_calls:4,completed_model_calls:4,tool_calls:3,completed_tool_calls:3,usage:{prompt_tokens:120,completion_tokens:30,total_tokens:150},usage_complete:true,
   final_answer:{content:"Use **Create Invoice**.",sources:[]},stage_durations:{provider_duration_ms:2000},conversation_totals:{turns:2}};
+turn.model_configuration={requested_model:"deepseek-v4-pro",requested_reasoning_effort:"max",model:"deepseek-v4-pro",reasoning_effort:"max",thinking:{type:"enabled"}};
 const events=[{sequence:1,event_type:"user_message",status:"completed"},{sequence:2,event_type:"model_request",status:"started",model_ordinal:1},
   {sequence:3,event_type:"tool_result",tool_name:"search_documentation",status:"ok",model_ordinal:1},{sequence:4,event_type:"tool_result",tool_name:"fetch_documentation",status:"ok",model_ordinal:2}]
   .map(e=>({...e,id:e.sequence,started_at:turn.started_at,duration_ms:12,payload_bytes:300}));
@@ -51,6 +52,7 @@ test("SuperAdmin AI audit interface — mocked HTTP, zero provider calls",{timeo
     });
     await t.test("detail preserves real event order and expands ordered model context",async()=>{
       await reset();await open();
+      assert.equal(await browser.evaluate("document.body.textContent.includes('Requested: deepseek-v4-pro') && document.body.textContent.includes('Used: deepseek-v4-pro') && document.body.textContent.includes('Thinking: max')"),true);
       assert.deepEqual(await browser.evaluate("Array.from(document.querySelectorAll('[aria-label=\"Execution timeline\"] > li button strong'),e=>e.textContent)"),['user message','model request','tool result','tool result']);
       await browser.evaluate("document.querySelectorAll('[aria-label=\"Execution timeline\"] > li button')[1].click()");
       await browser.waitFor("document.body.textContent.includes('ACTUAL_ORDER_SECOND')");

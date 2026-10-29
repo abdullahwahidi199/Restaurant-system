@@ -38,6 +38,10 @@ function Metrics({ turn }) {
       ["Cache miss tokens", number(turn.usage?.prompt_cache_miss_tokens)], ["Estimated cost", "Unavailable"]].map(([label, value]) =>
       <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-semibold text-gray-900">{value}</dd></div>)}
     {!turn.usage_complete && <p className="col-span-full text-amber-800">Usage is partial or was not reported by the provider.</p>}
+    {turn.model_configuration && <div className="col-span-full text-xs text-gray-600"><dt>Model settings</dt><dd>
+      Requested: {turn.model_configuration.requested_model ?? "Server default"} · Thinking: {turn.model_configuration.requested_reasoning_effort ?? "Server default"}<br />
+      {turn.model_calls ? <>Used: {turn.model_configuration.model} · Thinking: {turn.model_configuration.reasoning_effort}</> : "No model request (local response)"}
+    </dd></div>}
   </dl>;
 }
 

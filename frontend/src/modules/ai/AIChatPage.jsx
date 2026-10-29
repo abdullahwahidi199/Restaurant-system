@@ -10,9 +10,10 @@ import ChatWorkspace from "./ChatWorkspace";
 
 function ChatSession({ homePath }) {
   const { i18n } = useTranslation();
-  const { logout } = useContext(AuthContext);
+  const { logout, auth } = useContext(AuthContext);
   const navigate = useNavigate();
-  const chat = useAIChat((i18n.resolvedLanguage || "en").split("-")[0]);
+  const owner = auth.user?.staff_id ?? auth.user?.id;
+  const chat = useAIChat((i18n.resolvedLanguage || "en").split("-")[0], owner ? `${auth.user?.restaurant_id ?? "platform"}.${owner}` : null);
   return <ChatWorkspace chat={chat} homePath={homePath} onLogout={() => { logout(); navigate(getStaffLoginPath(), { replace: true }); }} />;
 }
 

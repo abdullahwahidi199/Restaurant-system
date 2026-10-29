@@ -77,7 +77,8 @@ export default function ChatWorkspace({ chat, homePath, onLogout }) {
           </div></div>}
         </div>
         <ChatComposer draft={chat.draft} setDraft={chat.setDraft} send={chat.send}
-          disabled={chat.sending || chat.loading || !!chat.animatingId || chat.historyNext !== null || chat.historyIncomplete} />
+          selection={chat.selection}
+          disabled={chat.sending || chat.loading || !!chat.animatingId || chat.historyNext !== null || chat.historyIncomplete || chat.selection?.optionsLoading} />
       </main>
       {(chat.error === "authentication" || chat.listError === "authentication") && <Link className="history-new" to={getStaffLoginPath()}>{t("signIn")}</Link>}
     </div><ConversationHistory open={historyOpen} onClose={closeHistory} chat={chat} />
