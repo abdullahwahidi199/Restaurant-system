@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import instance from "../api/axiosInstance"; // Adjust path as needed
 import RestaurantCard from "./RestaurantCard";
 import RestaurantModal from "./RestaurantModal";
@@ -246,6 +247,7 @@ export default function SuperAdminMain() {
             {autoT("legacy.super_admin_dashboard_0bb62d40")}
           </h1>
           <div className="flex flex-wrap items-center gap-2">
+            <Link to="/super-admin/ai-audit" className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700">AI Conversation Audit</Link>
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-1">
               <button
                 type="button"

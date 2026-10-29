@@ -78,6 +78,7 @@ import TakeAwayForm from "./component/Cashier/components/TakeAwayOrderForm";
 import OrderAddModal from "./component/waiter/OrderAddModal";
 import ReportsMainPage from "./component/Admin/Reports/ReportsMainPage";
 import SuperAdminMain from "./superAdmin/SuperAdminMain";
+import AIConversationAudit from "./superAdmin/AIConversationAudit";
 import SystemLanding from "./SystemLanding";
 import AboutPage from "./pages/PremiumAboutPage";
 import FounderPage from "./pages/PremiumFounderPage";
@@ -188,6 +189,7 @@ function App() {
             </RequireAuth>
           }
         ></Route>
+        <Route path="super-admin/ai-audit" element={<RequireAuth allowedRoles={["SuperAdmin"]}><AIConversationAudit /></RequireAuth>} />
         <Route
           path="admin/dashboard"
           element={

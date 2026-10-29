@@ -1,5 +1,7 @@
 # Pakhlai documentation assistant backend
 
+The SuperAdmin-only execution audit, privacy/retention policy, API and operating commands are documented in [AUDITING.md](AUDITING.md).
+
 The assistant uses the existing [Knowledge Gateway](../knowledge/GATEWAY.md) to teach documented operation. It does not query live sales/invoices, execute SQL, perform business actions, or add a React UI. Only chat conversations/messages are persisted. HTTP responses are non-streaming.
 
 ## Components

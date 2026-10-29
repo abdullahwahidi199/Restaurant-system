@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import RequestDataTooBig
-from django.db import DatabaseError
+from django.db import DatabaseError, transaction
+from django.utils.decorators import method_decorator
 from django.utils.translation import get_language_from_request
 from rest_framework import status
 from rest_framework.parsers import JSONParser
@@ -54,6 +55,7 @@ class AssistantView(APIView):
         return super().handle_exception(exc)
 
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class ChatView(AssistantView):
     def post(self, request):
         limit = Limits.configured().request_bytes

@@ -43,6 +43,12 @@ DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.co
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 AI_ASSISTANT_PROVIDER = os.environ.get("AI_ASSISTANT_PROVIDER", "deepseek")
 AI_ASSISTANT_THROTTLE_RATE = os.environ.get("AI_ASSISTANT_THROTTLE_RATE", "10/min")
+AI_AUDIT_RETENTION_DAYS = int(os.environ.get("AI_AUDIT_RETENTION_DAYS", "90"))
+AI_AUDIT_ACCESS_RETENTION_DAYS = int(os.environ.get("AI_AUDIT_ACCESS_RETENTION_DAYS", "365"))
+AI_AUDIT_MAX_EVENT_BYTES = 1_000_000
+# Optional dedicated key(s), newest first; otherwise derive from Django's
+# signing secret/fallbacks with a separate audit-specific derivation domain.
+AI_AUDIT_ENCRYPTION_KEYS = [k for k in os.environ.get("AI_AUDIT_ENCRYPTION_KEYS", "").split(",") if k]
 AI_ASSISTANT_LIMITS = {
     "history_messages": int(os.environ.get("AI_HISTORY_MESSAGES", "12")),
     "input_characters": int(os.environ.get("AI_INPUT_CHARACTERS", "4000")),

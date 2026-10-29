@@ -10,6 +10,7 @@ import httpx
 from django.conf import settings
 
 from .errors import AssistantError
+from .auditing import current
 
 logger = logging.getLogger("ai_assistant")
 MAX_RESPONSE_BYTES = 256_000
@@ -77,7 +78,7 @@ def parse_completion(data):
         if finish not in {"stop", "tool_calls"} or (finish == "tool_calls") != bool(calls) or (not calls and not text.strip()):
             raise ValueError
         usage = data.get("usage", {})
-        usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens"} and isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10**9} if isinstance(usage, dict) else {}
+        usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens", "prompt_cache_miss_tokens"} and isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10**9} if isinstance(usage, dict) else {}
         return Completion(text, tuple(calls), finish, usage)
     except (KeyError, TypeError, ValueError, AttributeError):
         error = AssistantError("provider_invalid_response", "The AI provider returned an unusable response. Please try again.", 502)
@@ -111,6 +112,8 @@ class DeepSeekProvider:
         http_status, exception_category = None, None
         deadline = started + min(timeout, limits.provider_timeout)
         try:
+            if current():
+                current().model_request(payload)
             with httpx.Client(transport=self.transport, timeout=min(timeout, limits.provider_timeout), follow_redirects=False, trust_env=False) as client:
                 with client.stream("POST", base.rstrip("/") + "/chat/completions", headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, json=payload) as response:
                     http_status = response.status_code
@@ -137,6 +140,8 @@ class DeepSeekProvider:
                         data = json.loads(raw)
                     except (ValueError, UnicodeError, RecursionError):
                         raise AssistantError("provider_invalid_response", "The AI provider returned an unusable response.", 502) from None
+                    if current():
+                        current().model_response(data, http_status=response.status_code)
                     result = parse_completion(data)
                     # The provider receives the credential only as an HTTP header.
                     # Do not forward it if a malformed/malicious provider echoes
