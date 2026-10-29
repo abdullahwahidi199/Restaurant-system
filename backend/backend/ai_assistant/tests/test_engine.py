@@ -42,6 +42,16 @@ class EngineTests(SimpleTestCase):
             section = self.index.get_section(source["section_id"])
             self.assertEqual(source["content_hash"], digest(section["content"]))
 
+    def test_required_fields_followup_reuses_recent_complete_authorized_evidence(self):
+        first, _ = self.run_turn([search(), fetch_latest, answer_latest])
+        citations = [{key: source[key] for key in ("document_id", "section_id")} for source in first.sources]
+        result, provider = self.run_turn([final("Use the required fields in the cited invoice form.", citations)], question="What fields are required?",
+            history=[{"role": "assistant", "content": first.content, "kind": "answer", "sources": first.sources}])
+        self.assertEqual(result.kind, "answer")
+        self.assertEqual(len(provider.requests), 1)
+        self.assertEqual(result.metrics["searches"], 0)
+        self.assertTrue(result.sources)
+
     def test_multi_step_workflow_multiple_sections(self):
         result, _ = self.run_turn([search(), lambda request: fetch_latest(request, count=3), answer_latest], question="How do I create, approve, and pay a contractor invoice?")
         self.assertGreaterEqual(len(result.sources), 2)

@@ -58,10 +58,11 @@ class ProviderTests(SimpleTestCase):
         self.assertNotIn("mock-key", str(caught.exception))
 
     def test_provider_auth_rate_timeout_and_service_failures_are_safe(self):
-        for status, code in [(401, "provider_authentication"), (403, "provider_authentication"), (429, "provider_rate_limited"), (500, "provider_unavailable"), (400, "provider_request_failed"), (302, "provider_request_failed")]:
+        for status, code in [(401, "provider_authentication"), (402, "provider_balance"), (403, "provider_authentication"), (429, "provider_rate_limited"), (500, "provider_unavailable"), (400, "provider_request_failed"), (302, "provider_request_failed")]:
             with self.subTest(status=status), self.assertRaises(AssistantError) as caught:
                 self.invoke(lambda request: httpx.Response(status, text="PRIVATE PROVIDER BODY mock-key-not-a-real-secret"))
             self.assertEqual(caught.exception.code, code)
+            self.assertEqual(caught.exception.provider_http_status, status)
             self.assertNotIn("PRIVATE", str(caught.exception))
         def timeout(request):
             raise httpx.ReadTimeout("private endpoint details", request=request)

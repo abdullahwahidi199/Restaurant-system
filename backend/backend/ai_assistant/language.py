@@ -21,7 +21,12 @@ TEXT = {
 
 
 def is_social(question):
-    return unicodedata.normalize("NFC", question).casefold().strip(" .!?؟\n\t") in SOCIAL
+    text = unicodedata.normalize("NFC", question).casefold().strip(" .!?؟\n\t")
+    if text in SOCIAL:
+        return True
+    # Match the whole message: a greeting prefixed to a factual question must
+    # still take the normal authenticated search/fetch path.
+    return bool(re.fullmatch(r"(?:(?:hello|hi|hey)[,!.\s]+)?how are you(?: doing)?(?: today)?", text))
 
 
 def is_live_data_request(question):

@@ -57,18 +57,21 @@ class Orchestrator:
         self.provider, self.gateway = provider, gateway
         self.limits = limits or Limits.configured()
         self.observer = observer or (lambda event: None)
+        self.diagnostics = {"knowledge_index_status": "not_loaded"}
 
     def _context(self, user, binding=None, version=None):
         principal = self.gateway.principal_resolver(user)
         if binding and principal.binding != binding:
             raise AssistantError("context_changed", "Your authorized context changed. Start a new conversation in the current branch.", 409)
+        self.diagnostics["failure_stage"] = "knowledge_index_loading"
         index = self.gateway.repository.get()
+        self.diagnostics["knowledge_index_status"] = "valid"
         if version and index.version != version:
             raise AssistantError("documentation_changed", "Documentation changed while answering. Please try again.", 409)
         return principal, index
 
     def _restore(self, history, evidence, index, principal, question):
-        if len(question) > 320 or not FOLLOW_UP.search(question.strip()):
+        if len(question) > 320 or not (FOLLOW_UP.search(question.strip()) or re.fullmatch(r"what fields are required\??", question.strip(), re.I)):
             return []
         wanted = set(terms(question)) - GENERIC_ACTIONS
         restored = []
@@ -80,7 +83,7 @@ class Orchestrator:
                 if not validated:
                     continue
                 section, reference = validated
-                if not wanted.intersection(terms(section["content"] + " " + section["heading"])):
+                if wanted and not wanted.intersection(terms(section["content"] + " " + section["heading"])):
                     continue
                 if len(evidence.records) >= self.limits.fetched_sections or evidence.received_characters + len(section["content"]) > self.limits.evidence_characters:
                     continue
@@ -111,6 +114,7 @@ class Orchestrator:
         started = time.monotonic()
         language = question_language(question, preferred_language)
         metrics = {"model_requests": 0, "tool_calls": 0, "searches": 0, "fetches": 0, "termination": "started"}
+        self.metrics = metrics
         state, outcome = "SEARCH_REQUIRED", "failed"
         try:
             principal = self.gateway.principal_resolver(user)
@@ -123,6 +127,7 @@ class Orchestrator:
                 return TurnResult(TEXT[language]["live"], "limitation")
             principal, index = self._context(user, binding)
             version = index.version
+            self.diagnostics["failure_stage"] = "capability_map_loading"
             overview = self.gateway.execute(name="search_documentation", arguments={"mode": "browse"}, user=user)
             evidence = Evidence(self.limits)
             restored = self._restore(history, evidence, index, principal, question)
@@ -158,8 +163,10 @@ class Orchestrator:
                 else:
                     choice = "auto"
                 metrics["model_requests"] += 1
+                self.diagnostics["failure_stage"] = "deepseek_connectivity"
                 completion = self.provider.complete(messages=messages, tools=get_tool_definitions(), tool_choice=choice, limits=self.limits, timeout=remaining, request_id=request_id)
                 self._context(user, binding, version)
+                self.diagnostics["failure_stage"] = "provider_function_calling"
                 if time.monotonic() - started > self.limits.turn_seconds:
                     raise AssistantError("turn_timeout", "The assistant took too long. Please try again.", 504)
                 for key, value in completion.usage.items():
@@ -178,6 +185,7 @@ class Orchestrator:
                         tool_started = time.monotonic()
                         event = {"tool": call.name if call.name in {"search_documentation", "fetch_documentation"} else "unregistered", "status": "error", "documents": [], "sections": []}
                         try:
+                            self.diagnostics.update(failure_stage="documentation_search" if call.name == "search_documentation" else "documentation_fetch", tool=event["tool"])
                             if len(call.arguments.encode("utf-8")) > self.limits.tool_argument_bytes:
                                 raise AssistantError("invalid_tool_arguments", "Tool arguments exceeded the supported size.", 422)
                             arguments = decode_object(call.arguments)
@@ -249,6 +257,7 @@ class Orchestrator:
                         return TurnResult(TEXT[language]["clarification"] + " " + ", ".join(payment_choices) + "?", "clarification", index_version=version, usage=usage, metrics=metrics)
                     continue
                 try:
+                    self.diagnostics["failure_stage"] = "orchestration"
                     answer = decode_object(completion.text)
                     if set(answer) != {"kind", "content", "citations"} or not isinstance(answer["kind"], str) or answer["kind"] not in {"answer", "clarification", "limitation"} or not isinstance(answer["citations"], list) or not isinstance(answer["content"], str) or not answer["content"].strip() or len(answer["content"]) > self.limits.output_characters:
                         raise AssistantError("answer_invalid", "The AI answer format could not be verified.", 502)
@@ -285,6 +294,8 @@ class Orchestrator:
             raise
         except GatewayError as exc:
             outcome = exc.code
+            if exc.code == "index_unavailable":
+                self.diagnostics["knowledge_index_status"] = "unavailable"
             raise AssistantError(exc.code, exc.message, 503 if exc.code in {"index_unavailable", "authorization_unavailable"} else 403) from None
         finally:
             metrics["termination"] = outcome

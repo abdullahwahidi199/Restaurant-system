@@ -6,7 +6,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from knowledge.indexer import build_index
-from knowledge.storage import publish_index
+from knowledge.loader import load_index
+from knowledge.storage import make_manifest, publish_index, serialize_artifacts
 
 
 class Command(BaseCommand):
@@ -18,10 +19,13 @@ class Command(BaseCommand):
         parser.add_argument("--source", help="Documentation root override (trusted deployment path).")
         parser.add_argument("--output", help="Private generated-index storage override.")
         parser.add_argument("--check", action="store_true", help="Validate the full build without creating or replacing any index files.")
+        parser.add_argument("--validate-published", action="store_true", help="With --check, also verify the readable published snapshot matches current sources.")
         parser.add_argument("--allow-partial", action="store_true", help="Explicitly publish valid documents despite errors; default loader refuses this incomplete index.")
         parser.add_argument("--verbose-diagnostics", action="store_true", help="Print each diagnostic using logical relative paths.")
 
     def handle(self, *args, **options):
+        if options.get("validate_published") and not options["check"]:
+            raise CommandError("--validate-published requires --check.")
         source = Path(options["source"] or settings.KNOWLEDGE_DOCUMENTATION_ROOT).resolve()
         output = Path(options["output"] or settings.KNOWLEDGE_INDEX_ROOT).resolve()
         if source == output or source.is_relative_to(output):
@@ -42,6 +46,11 @@ class Command(BaseCommand):
             if options["check"]:
                 if result.errors:
                     raise CommandError("Validation found errors; no index files were written.")
+                if options.get("validate_published"):
+                    current = load_index(output)
+                    expected = make_manifest(result, serialize_artifacts(result))
+                    if current.version != expected["build_hash"]:
+                        raise CommandError("Published index is stale; run build_knowledge_index.")
                 self.stdout.write(self.style.SUCCESS("Check passed; no index files were written."))
                 return
             manifest = publish_index(result, output, allow_partial=options["allow_partial"])

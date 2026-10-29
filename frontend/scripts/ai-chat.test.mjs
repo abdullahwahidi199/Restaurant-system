@@ -200,6 +200,36 @@ test("Pakhlai React AI chat — actual browser, mocked HTTP only", { timeout: 18
       assert.equal(await browser.evaluate("Boolean(document.querySelector('.thinking-row'))"), false);
       assert.equal(requests.filter((entry) => entry.method === "POST").length, 1);
     });
+    await t.test("retry reconciles a saved failed turn before posting again", async () => {
+      let posts = 0;
+      await reset({ reduced: true, handler: (entry) => {
+        if (entry.path.endsWith("/messages/")) return { body: { conversation_id: A, results: [message(301, "Retry after failure", { role: "user", kind: "question", state: "failed", sources: [] })], next_page: null } };
+        if (entry.method === "POST") return ++posts === 1 ? { status: 503, body: { error: { code: "index_unavailable" }, conversation_id: A } } : { body: reply(A, "Recovered response", 302) };
+        return null;
+      } });
+      await submit("Retry after failure"); await browser.waitFor("Boolean(document.querySelector('.system-banner'))");
+      await click(browser, ".send-btn"); await browser.waitFor("Boolean(document.querySelector('.message-sources'))");
+      assert.deepEqual(requests.filter((entry) => entry.method === "POST" || entry.path.endsWith("/messages/")).map((entry) => entry.method), ["POST", "GET", "POST"]);
+      assert.equal(await browser.evaluate("document.querySelectorAll('.message-row').length"), 3);
+    });
+    await t.test("retry recovers a completed backend response without duplicate POST", async () => {
+      await reset({ reduced: true, handler: (entry) => {
+        if (entry.path.endsWith("/messages/")) return { body: { conversation_id: A, results: [message(401, "Response was lost", { role: "user", kind: "question", sources: [] }), message(402, "Saved complete response")], next_page: null } };
+        if (entry.method === "POST") return { status: 503, body: { error: { code: "assistant_unavailable" }, conversation_id: A } };
+        return null;
+      } });
+      await submit("Response was lost"); await browser.waitFor("Boolean(document.querySelector('.system-banner'))");
+      await click(browser, ".send-btn"); await browser.waitFor("!document.querySelector('.system-banner') && document.querySelector('textarea').value===''");
+      assert.equal(requests.filter((entry) => entry.method === "POST").length, 1);
+      assert.equal(await browser.evaluate("document.querySelectorAll('.message-row').length"), 2);
+      assert.equal(await browser.evaluate("document.querySelector('.ai-markdown').textContent"), "Saved complete response");
+    });
+    await t.test("failed retry reconciliation blocks duplicate submission until history reload", async () => {
+      await reset({ handler: (entry) => entry.method === "POST" || entry.path.endsWith("/messages/") ? { status: 503, body: { error: { code: "assistant_unavailable" }, conversation_id: A } } : null });
+      await submit("Keep safely"); await browser.waitFor("Boolean(document.querySelector('.system-banner'))");
+      await click(browser, ".send-btn"); await browser.waitFor("document.querySelector('textarea').disabled");
+      assert.equal(requests.filter((entry) => entry.method === "POST").length, 1);
+    });
     await t.test("network failure and malformed complete response preserve question", async () => {
       for (const response of [{ network: true }, { body: { conversation_id: A, message: { content: "bad" } } }]) {
         await reset({ handler: (entry) => entry.method === "POST" ? response : null });

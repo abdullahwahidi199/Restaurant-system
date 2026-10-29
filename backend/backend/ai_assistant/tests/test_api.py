@@ -11,6 +11,7 @@ from django.core.cache import cache
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
+from knowledge.errors import GatewayError
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
@@ -81,6 +82,28 @@ class AssistantAPITests(TestCase):
         history = self.client.get(f"/api/assistant/conversations/{conversation.pk}/messages/")
         self.assertEqual([item["role"] for item in history.data["results"]], ["user", "assistant"])
         self.assertFalse(history.data["results"][1]["stale_sources"])
+
+    def test_original_greeting_works_with_unavailable_index_and_no_provider_calls(self):
+        provider = ScriptedProvider([])
+        with patch.object(get_gateway().repository, "get", side_effect=GatewayError("index_unavailable", "Index unavailable")) as load:
+            for question in ("hello how are you", "Hello, how are you?"):
+                response = self.post(question, provider=provider)
+                self.assertEqual(response.status_code, 200, response.data)
+                self.assertEqual(response.data["message"]["kind"], "greeting")
+                self.assertEqual(response.data["message"]["sources"], [])
+            load.assert_not_called()
+        self.assertEqual(provider.requests, [])
+
+    def test_greeting_prefix_does_not_bypass_factual_grounding_or_hide_index_failure(self):
+        with patch.object(get_gateway().repository, "get", side_effect=GatewayError("index_unavailable", "Index unavailable")), self.assertLogs("ai_assistant", level="WARNING") as logs:
+            response = self.post("Hello, how do I create a contractor invoice?")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data["error"]["code"], "index_unavailable")
+        record = logs.records[-1]
+        self.assertEqual(record.failure_stage, "knowledge_index_loading")
+        self.assertEqual(record.knowledge_index_status, "unavailable")
+        self.assertEqual(record.model_requests, 0)
+        self.assertNotIn("contractor invoice", str(logs.output))
 
     def test_empty_long_numeric_and_unknown_identity_payload_fields_rejected(self):
         for data in ({"message": ""}, {"message": "  "}, {"message": "x" * 4001}, {"message": 42}, {"message": "hello", "role": "Admin"}, {"message": "hello", "branch_id": self.other_branch.pk}, {"message": "hello", "language": "ps"}, {"message": "hello", "conversation_id": "invalid"}):

@@ -90,18 +90,19 @@ def parse_frontmatter(text):
     return meta, "".join(lines[closing + 1:])
 
 
-def scan_documents(root):
+def discover_sources(root):
+    """Share the exact eligibility rules between indexing and freshness checks."""
     root = Path(root).resolve()
     if not root.is_dir():
         raise ValueError("Documentation root is missing or is not a directory; configure KNOWLEDGE_DOCUMENTATION_ROOT or --source.")
-    result = ScanResult()
+    excluded = []
     candidates = []
     for directory, dirs, files in os.walk(root, followlinks=False):
         for name in sorted(dirs[:]):
             item = Path(directory) / name
             if name.startswith(".") or name in IGNORED_DIRS or item.is_symlink():
                 dirs.remove(name)
-                result.excluded.append({"path": item.relative_to(root).as_posix(), "reason": "generated, unrelated, hidden or symlink directory"})
+                excluded.append({"path": item.relative_to(root).as_posix(), "reason": "generated, unrelated, hidden or symlink directory"})
         dirs.sort()
         for name in sorted(files):
             if Path(name).suffix.lower() != ".md":
@@ -109,9 +110,17 @@ def scan_documents(root):
             item = Path(directory) / name
             relative = item.relative_to(root).as_posix()
             if name.startswith((".", "~")) or re.search(r"(?:\.tmp|\.bak|\.generated)\.md$", name, re.I) or item.is_symlink():
-                result.excluded.append({"path": relative, "reason": "temporary, generated or symlink Markdown"})
+                excluded.append({"path": relative, "reason": "temporary, generated or symlink Markdown"})
                 continue
             candidates.append((relative, item))
+    return sorted(candidates), excluded
+
+
+def scan_documents(root):
+    root = Path(root).resolve()
+    candidates, excluded = discover_sources(root)
+    result = ScanResult()
+    result.excluded = excluded
     result.scanned = len(candidates)
     if not candidates:
         raise ValueError("No source Markdown documents found; refusing to build an empty index.")

@@ -11,6 +11,7 @@ From `Restaurant-system/backend/backend` in PowerShell, using the existing virtu
 ```powershell
 & venv/Scripts/python.exe manage.py build_knowledge_index --check
 & venv/Scripts/python.exe manage.py build_knowledge_index
+& venv/Scripts/python.exe manage.py build_knowledge_index --check --validate-published
 & venv/Scripts/python.exe -m unittest discover -s knowledge/tests -v
 ```
 
@@ -110,3 +111,13 @@ text = section["content"]
 These are exact dictionary lookups and enumeration, not search or AI-callable tools. Unknown IDs return `None`; ID text never enters a filesystem path. Returned values are defensive copies. The loader verifies the manifest, artifact checksums/counts, relative paths, section ownership/hierarchy/reconstruction and capability references. It rejects missing, malformed, unsupported or incomplete snapshots with `knowledge.loader.IndexError` (a `ValueError`). `load_index(..., require_complete=False)` is reserved for explicit diagnostic inspection. Do not silently fall back to raw arbitrary file paths on lookup failure.
 
 Tests use `unittest` and temporary local storage, not database test setup, network requests or API keys. The repository integration test reconstructs every source document and checks all existing categories. It skips only when the documentation tree is absent from a packaged deployment. See the [indexing report](../../../docs/ai_knowledge/knowledge_indexing_report.md) for the measured repository build.
+
+## Deployment permissions and freshness
+
+Build the index as an explicit deployment step after installing/updating the Markdown and capability curation; do not build at startup or per chat request. Run `build_knowledge_index --check --validate-published` under the **Django runtime account** after publication. This read-only check validates source metadata, checksums, IDs, capability references and the current published build hash. Plain `--check` validates only build inputs and can run before publication.
+
+Django loads `backend/backend/.env` by absolute path, with process environment taking precedence. Relative knowledge-path overrides are resolved against the directory containing `manage.py`, independent of the working directory.
+
+Windows directory permissions survive an atomic rename. Python `tempfile.mkdtemp` creates an owner-only protected ACL, so it must not become a published generation used by another account. Publication now creates an unpredictable exclusive staging directory that inherits the private generation-storage parent's deployment ACL. Keep that parent private and grant the intended runtime identity read/traverse access. On Linux, the deployment's directory permissions, group and umask determine access.
+
+For an existing Windows generation created by the previous indexer, enable inheritance on that **verified generation path only** (for example `icacls <generation-path> /inheritance:e /T /C`), after checking that its storage parent's ACL grants the intended runtime account access. Do not broaden permissions on `.env` or the repository as part of this repair. Then run the published check under the runtime account. An unchanged rebuild may reuse the same immutable generation and therefore cannot itself repair that old ACL.

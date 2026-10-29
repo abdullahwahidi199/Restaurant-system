@@ -99,16 +99,20 @@ class DeepSeekProvider:
         payload = {"model": model, "messages": messages, "tools": [{"type": "function", "function": definition} for definition in tools],
                    "tool_choice": choice, "thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}, "max_tokens": limits.output_tokens, "stream": False}
         started, outcome = time.monotonic(), "provider_failure"
+        http_status, exception_category = None, None
         deadline = started + min(timeout, limits.provider_timeout)
         try:
             with httpx.Client(transport=self.transport, timeout=min(timeout, limits.provider_timeout), follow_redirects=False, trust_env=False) as client:
                 with client.stream("POST", base.rstrip("/") + "/chat/completions", headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, json=payload) as response:
+                    http_status = response.status_code
                     if time.monotonic() > deadline:
                         raise AssistantError("provider_timeout", "The AI provider timed out. Please try again.", 504)
                     if response.status_code in {401, 403}:
                         raise AssistantError("provider_authentication", "The AI provider could not authenticate. Ask an administrator to check provider configuration.")
                     if response.status_code == 429:
                         raise AssistantError("provider_rate_limited", "The AI provider is busy. Please try again later.", 429)
+                    if response.status_code == 402:
+                        raise AssistantError("provider_balance", "The AI provider account has insufficient balance. Ask an administrator to check billing.")
                     if response.status_code >= 500:
                         raise AssistantError("provider_unavailable", "The AI provider is temporarily unavailable. Please try again later.")
                     if response.status_code != 200:
@@ -137,13 +141,19 @@ class DeepSeekProvider:
                             raise AssistantError("provider_invalid_response", "The AI provider returned protected configuration material.", 502)
                     outcome = "ok"
                     return result
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as exc:
+            exception_category = type(exc).__name__
             outcome = "provider_timeout"
             raise AssistantError("provider_timeout", "The AI provider timed out. Please try again.", 504) from None
-        except httpx.HTTPError:
+        except httpx.HTTPError as exc:
+            exception_category = type(exc).__name__
             raise AssistantError("provider_unavailable", "The AI provider connection is temporarily unavailable.") from None
         except AssistantError as exc:
+            exception_category = type(exc).__name__
+            exc.provider_http_status = http_status
             outcome = exc.code
             raise
         finally:
-            logger.info("assistant_provider", extra={"request_id": request_id, "provider_status": outcome, "duration_ms": round((time.monotonic() - started) * 1000)})
+            logger.info("assistant_provider", extra={"request_id": request_id, "provider_status": outcome, "provider_http_status": http_status,
+                        "exception_category": exception_category, "failure_stage": "deepseek_connectivity",
+                        "duration_ms": round((time.monotonic() - started) * 1000)})

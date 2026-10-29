@@ -21,10 +21,13 @@ class KnowledgeGateway:
     def __init__(self, *, index_root=None, repository=None, principal_resolver=None):
         # Dependency injection is a trusted Python testing seam, never tool args.
         if repository is None:
+            source_root = None
             if index_root is None:
                 from django.conf import settings
                 index_root = settings.KNOWLEDGE_INDEX_ROOT
-            repository = IndexRepository(index_root)
+                if settings.KNOWLEDGE_DOCUMENTATION_ROOT.is_dir():
+                    source_root = settings.KNOWLEDGE_DOCUMENTATION_ROOT
+            repository = IndexRepository(index_root, source_root=source_root)
         self.repository = repository
         self.principal_resolver = principal_resolver or resolve_principal
         self._engine = None

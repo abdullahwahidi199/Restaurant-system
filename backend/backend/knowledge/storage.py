@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 
 from .loader import IndexError, validate_records
@@ -58,7 +59,12 @@ def publish_index(result, output_root, *, allow_partial=False):
         raise IndexError("Generation storage must not be a symlink.")
     generations.mkdir(exist_ok=True)
     generation = root / manifest["generation"]
-    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=root))
+    # Windows mkdtemp uses an owner-only DACL (mode 0700). Renaming that
+    # directory preserves the DACL and locks out a different Django account.
+    # Inherit the private storage parent's deployment ACL instead. The random
+    # name and exclusive mkdir still prevent collisions/pre-created staging.
+    staging = generations / (".staging-" + uuid.uuid4().hex)
+    staging.mkdir(mode=0o777)
     temp_manifest = None
     try:
         for name, raw in artifacts.items():

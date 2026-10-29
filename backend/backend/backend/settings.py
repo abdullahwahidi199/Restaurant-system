@@ -12,20 +12,28 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-from pathlib import Path
 import dj_database_url
 from corsheaders.defaults import default_headers
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# All entry points (manage.py, WSGI and ASGI) use the same private file.
+# Deployment-provided environment variables retain precedence.
+load_dotenv(BASE_DIR / ".env", override=False)
+
+
+def backend_path(value):
+    path = Path(value)
+    return (path if path.is_absolute() else BASE_DIR / path).resolve()
 
 # Offline documentation build inputs/outputs; never served through static/media.
-KNOWLEDGE_DOCUMENTATION_ROOT = Path(os.environ.get(
+KNOWLEDGE_DOCUMENTATION_ROOT = backend_path(os.environ.get(
     "KNOWLEDGE_DOCUMENTATION_ROOT",
     BASE_DIR.parent.parent / "docs" / "ai_knowledge" / "03_operator_guides",
 ))
-KNOWLEDGE_INDEX_ROOT = Path(os.environ.get(
+KNOWLEDGE_INDEX_ROOT = backend_path(os.environ.get(
     "KNOWLEDGE_INDEX_ROOT", KNOWLEDGE_DOCUMENTATION_ROOT.parent / ".generated",
 ))
 
@@ -51,6 +59,14 @@ AI_ASSISTANT_LIMITS = {
     "provider_timeout": int(os.environ.get("AI_PROVIDER_TIMEOUT", "20")),
     "turn_seconds": int(os.environ.get("AI_TURN_SECONDS", "90")),
     "tool_argument_bytes": int(os.environ.get("AI_TOOL_ARGUMENT_BYTES", "32000")),
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"assistant_json": {"()": "ai_assistant.diagnostics.AssistantLogFormatter"}},
+    "handlers": {"assistant_console": {"class": "logging.StreamHandler", "formatter": "assistant_json"}},
+    "loggers": {"ai_assistant": {"handlers": ["assistant_console"], "level": "INFO", "propagate": False}},
 }
 
 

@@ -1,5 +1,6 @@
 import io
 import json
+import os
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -16,6 +17,38 @@ from knowledge.tool_definitions import get_tool_definitions
 
 
 class GatewayInfrastructureTests(WorkspaceTest):
+    def test_source_freshness_touch_change_add_delete_and_rebuild(self):
+        path = self.write()
+        publish_index(self.build(), self.output)
+        repository = IndexRepository(self.output, source_root=self.source, curation_path=self.curation)
+        first = repository.get()
+        os.utime(path, None)
+        self.assertIs(repository.get(), first)
+        original = path.read_bytes()
+        path.write_bytes(original + b"\nChanged instruction.\n")
+        with self.assertRaises(GatewayError):
+            repository.get()
+        publish_index(self.build(), self.output)
+        second = repository.get()
+        self.assertNotEqual(first.version, second.version)
+        added = self.write("additional.md", document_id="additional")
+        with self.assertRaises(GatewayError):
+            repository.get()
+        added.unlink()
+        self.assertIs(repository.get(), second)
+        path.unlink()
+        with self.assertRaises(GatewayError):
+            repository.get()
+
+    def test_curation_drift_is_detected_after_cache_load(self):
+        self.write()
+        publish_index(self.build(), self.output)
+        repository = IndexRepository(self.output, source_root=self.source, curation_path=self.curation)
+        repository.get()
+        self.curation.write_bytes(self.curation.read_bytes() + b"\n")
+        with self.assertRaises(GatewayError):
+            repository.get()
+
     def gateway(self):
         return KnowledgeGateway(index_root=self.output, principal_resolver=lambda user: identity())
 

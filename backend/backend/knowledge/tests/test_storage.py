@@ -1,6 +1,8 @@
 import io
 import json
 import os
+import subprocess
+from unittest import skipUnless
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,6 +15,16 @@ from knowledge.tests.helpers import WorkspaceTest
 
 
 class StorageTests(WorkspaceTest):
+    @skipUnless(os.name == "nt", "Windows ACL regression")
+    def test_published_generation_inherits_storage_acl(self):
+        self.write()
+        manifest = publish_index(self.build(), self.output)
+        generation = self.output / manifest["generation"]
+        quoted = str(generation).replace("'", "''")
+        protected = subprocess.check_output(["powershell", "-NoProfile", "-Command",
+            f"(Get-Acl -LiteralPath '{quoted}').AreAccessRulesProtected"], text=True).strip()
+        self.assertEqual(protected, "False", "Published generations must inherit the deployment ACL, not mkdtemp's owner-only ACL")
+
     def test_roundtrip_exact_id_lookups_and_immutable_return_values(self):
         self.write(body="# Services\n\n## Fields\nنام — پښتو\n")
         result = self.build()
@@ -52,7 +64,7 @@ class StorageTests(WorkspaceTest):
                 publish_index(self.build(), self.output)
         self.assertEqual((self.output / "manifest.json").read_bytes(), previous_bytes)
         self.assertEqual(load_index(self.output).manifest["build_hash"], previous["build_hash"])
-        self.assertFalse(list(self.output.glob(".staging-*")))
+        self.assertFalse(list((self.output / "generations").glob(".staging-*")))
         self.assertFalse(list(self.output.glob(".manifest-*")))
 
     def test_errors_preserve_index_partial_requires_explicit_opt_in(self):
@@ -108,3 +120,16 @@ class StorageTests(WorkspaceTest):
         index = load_index(self.output)
         self.assertEqual(len(index.documents_for_module("contractors")), 1)
         self.assertEqual(len(index.documents_for_module("contractors", include_supporting=True)), 2)
+
+    def test_published_check_detects_stale_snapshot_without_writing(self):
+        path = self.write()
+        publish_index(self.build(), self.output)
+        command = Command(stdout=io.StringIO())
+        options = dict(source=str(self.source), output=str(self.output), check=True, validate_published=True, allow_partial=False, verbose_diagnostics=False)
+        before = (self.output / "manifest.json").read_bytes()
+        with patch("knowledge.management.commands.build_knowledge_index.build_index", side_effect=lambda source: self.build()):
+            command.handle(**options)
+            path.write_bytes(path.read_bytes() + b"\nNew instruction.\n")
+            with self.assertRaisesRegex(CommandError, "stale"):
+                command.handle(**options)
+        self.assertEqual(before, (self.output / "manifest.json").read_bytes())

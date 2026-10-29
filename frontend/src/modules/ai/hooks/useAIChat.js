@@ -96,6 +96,37 @@ export default function useAIChat(language) {
     lock.current = true; // synchronous guard protects click+Enter before React commits
     const stamp = epoch.current;
     const controller = makeRequest();
+    if (state.failedQuestion === question && state.conversationId) {
+      // A timed-out POST can have completed on Django. Reconcile persisted
+      // history before sending it again; a genuine failed turn may be retried.
+      try {
+        const saved = [];
+        let page = 0;
+        do {
+          const history = await aiChatApi.messages(state.conversationId, page, controller.signal);
+          saved.push(...history.results);
+          page = history.nextPage;
+        } while (page !== null);
+        if (!alive.current || stamp !== epoch.current || controller.signal.aborted) return;
+        const lastUser = saved.findLastIndex((item) => item.role === "user");
+        const completed = saved[lastUser]?.content === question && saved[lastUser]?.state === "complete"
+          && saved.slice(lastUser + 1).some((item) => item.role === "assistant" && !state.messages.some((prior) => prior.id === item.id));
+        setView((value) => ({ ...value, messages: saved.map((item) => ({ ...item, historical: true })), historyNext: null, historyIncomplete: false }));
+        if (completed) {
+          draftRef.current = "";
+          setView((value) => ({ ...value, draft: "", error: null, failedQuestion: "" }));
+          requests.current.delete(controller); lock.current = false;
+          return;
+        }
+      } catch (error) {
+        if (alive.current && stamp === epoch.current && !controller.signal.aborted) {
+          setView((value) => ({ ...value, error: errorCategory(error), historyIncomplete: true }));
+        }
+        requests.current.delete(controller);
+        if (stamp === epoch.current) lock.current = false;
+        return;
+      }
+    }
     const localId = `local-${crypto.randomUUID()}`;
     draftRef.current = "";
     setView((value) => ({ ...value, draft: "", error: null, failedQuestion: "", sending: true, title: value.title || Array.from(question).slice(0, 100).join(""),

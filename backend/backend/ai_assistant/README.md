@@ -30,7 +30,7 @@ AI_ASSISTANT_THROTTLE_RATE=10/min
 
 `DEEPSEEK_API_KEY` is required only for live generation. The configurable base URL must be HTTPS without embedded credentials, query or fragment; it is trusted deployment configuration, never a chat/model argument. A `/v1` prefix may be included when needed; the adapter appends `/chat/completions`. The only implemented provider is DeepSeek; other provider settings fail clearly. No SDK, framework, embeddings or search server is added.
 
-The adapter sends `thinking: {type: disabled}` explicitly, wraps function schemas in the API's function envelope, preserves assistant tool calls and matching tool-message IDs, and requests JSON final output. Named tool selection is used for initial search and retrieval recovery. Thinking mode is intentionally unsupported in this version; unexpected reasoning output is rejected. Enabling it later requires the provider/history contract to support its distinct reasoning requirements without exposing/persisting reasoning. These choices were checked against [Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/), [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/) and [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/). No live provider request was made during implementation.
+The adapter sends `thinking: {type: disabled}` explicitly, wraps function schemas in the API's function envelope, preserves assistant tool calls and matching tool-message IDs, and requests JSON final output. Named tool selection is used for initial search and retrieval recovery. Thinking mode is intentionally unsupported in this version; unexpected reasoning output is rejected. Enabling it later requires the provider/history contract to support its distinct reasoning requirements without exposing/persisting reasoning. These choices were checked against [Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/), [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/) and [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/). The original implementation used mocks; subsequent paid HTTP/browser verification is recorded in the integration repair report linked below.
 
 From `Restaurant-system/backend/backend`, apply the new conversation schema and make the private documentation snapshot available:
 
@@ -132,3 +132,19 @@ python manage.py test_ai_assistant --mock --user-id <existing-authorized-account
 The separately invoked future smoke-test path is `--live` with the same account/question arguments and an environment key. It is never selected automatically and was **not executed** during implementation. Automated tests use predetermined model calls or HTTPX `MockTransport`; no real key/network is needed. See the [execution report](../../../docs/ai_knowledge/ai_assistant_report.md) for actual commands, counts, coverage and remaining limits.
 
 For repeatable section-level quality, security and resource evaluation, use `python manage.py evaluate_ai_assistant --all`. The [Task 5 evaluation report](../../../docs/ai_knowledge/evaluation/evaluation_report.md) links the frozen 96-question dataset, preserved baseline, final JSON, complete miss analysis and optional human live-review checklist. It distinguishes raw multilingual lexical recall from scripted orchestration and real-model answer quality.
+
+## Live verification and safe diagnostics
+
+Django reads its private `.env` beside `manage.py` for management commands, ASGI and WSGI; externally supplied variables take precedence. Restart the development server after `.env` changes. Never put the provider key into frontend variables or commit the private file.
+
+The explicitly opt-in command below uses an existing account's JWT, the actual `/api/assistant/chat/` view, persistence, gateway and DeepSeek adapter. It sends static operator documentation to DeepSeek and incurs provider charges. Routine tests never invoke it. It has a total cap of ten model-call attempts, includes attempts made during tool-calling rounds, and stops rather than retrying external provider failures. Lower `--max-requests` to respect a smaller test allowance; use `--prior-requests` to include attempts already made in the same test session. Some scenarios will be marked not run when the budget is exhausted.
+
+```powershell
+& venv/Scripts/python.exe manage.py smoke_ai_assistant --live --user-id <authorized-account-id> --max-requests 10
+```
+
+The `ai_assistant` logger writes allowlisted JSON fields: request/conversation identifiers, failure stage, exception category, safe error code, provider HTTP status, tool, index status and timing/counters. It omits prompts, question/answer text, raw provider bodies, credentials and discovery/authentication tokens. `knowledge_index_failed` includes the configured index path and numeric OS errors for deployment diagnosis. Client errors remain concise; stack traces are never placed in chat responses.
+
+Ordinary greetings, including ?hello how are you?, retain the local conversational response and require neither index reads nor provider calls. Greetings prefixed to a factual question still require search/fetch. ?What fields are required?? can reuse the immediately previous complete, authorized, hash-validated evidence; otherwise normal retrieval applies.
+
+See the [real integration repair report](../../../docs/ai_knowledge/ai_chat_503_integration_report.md) for the Windows permission root cause, live HTTP/browser results and remaining test-budget limits.
