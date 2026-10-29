@@ -99,7 +99,7 @@ class EngineTests(SimpleTestCase):
     def test_missing_feature_tries_broader_search_and_returns_limitation(self):
         question = "qzxyvbnmlkjhgfdsa"
         result, provider = self.run_turn([search(question), search(question, "search_2"), final("Unsupported invented instructions", kind="limitation")], question=question)
-        self.assertEqual(provider.requests[1]["tool_choice"], "search_documentation")
+        self.assertEqual(provider.requests[1]["tool_choice"], "auto")
         self.assertEqual(result.kind, "limitation")
         self.assertNotIn("invented", result.content)
         self.assertEqual(result.sources, [])

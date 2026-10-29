@@ -123,7 +123,7 @@ class ConversationService:
             with audit_scope(trace):
                 result = engine.run(user=user, question=question, history=history, preferred_language=preferred_language, request_id=str(request_id), configuration=configuration)
             trace.event("answer_generated", {"kind":result.kind, "content":result.content, "sources":result.sources, "index_version":result.index_version,
-                "evidence_origins":trace.evidence_origins})
+                "evidence_origins":trace.evidence_origins, **({'application_status': result.application_status} if result.application_status else {})})
             current = principal_for(user, self.gateway)
             if current.binding != principal.binding:
                 raise AssistantError("context_changed", "Your authorized context changed. Start a new conversation.", 409)
@@ -143,10 +143,12 @@ class ConversationService:
                                                sources=result.sources, index_version=result.index_version)
                 Message.objects.filter(pk=question_record.pk).update(state="complete")
                 duration = round((time.perf_counter()-persistence_started)*1000,3)
-                trace.event("answer_persisted", {"message_id":reply.pk, "kind":reply.kind, "sources":reply.sources}, duration_ms=duration)
+                trace.event("answer_persisted", {"message_id":reply.pk, "kind":reply.kind, "sources":reply.sources,
+                    **({'application_status': result.application_status} if result.application_status else {})}, duration_ms=duration)
                 trace.finish("completed", metrics={**result.metrics, "persistence_duration_ms":duration}, assistant=reply)
             logger.info("assistant_conversation", extra={"conversation_id": str(conversation.pk), "request_id": str(request_id), "termination_reason": result.kind})
-            return {"conversation_id": str(conversation.pk), "request_id": str(request_id), "message": serialize_message(reply, principal=current, index=verified_index)}
+            return {"conversation_id": str(conversation.pk), "request_id": str(request_id), "message": serialize_message(reply, principal=current, index=verified_index),
+                    **({'application_status': result.application_status} if result.application_status else {})}
         except Exception as exc:
             Message.objects.filter(pk=question_record.pk, state="pending").update(state="failed", error_code=exc.code if isinstance(exc, (AssistantError, GatewayError)) else "assistant_unavailable")
             error = exc if isinstance(exc, AssistantError) else AssistantError(exc.code, exc.message) if isinstance(exc, GatewayError) else AssistantError("assistant_unavailable", "The assistant could not complete the request. Please try again.")

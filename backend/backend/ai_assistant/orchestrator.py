@@ -39,6 +39,10 @@ class TurnResult:
     index_version: str = ""
     usage: dict = field(default_factory=dict)
     metrics: dict = field(default_factory=dict)
+    application_status: str = ""
+
+
+LIMITATION_STATUSES = frozenset({'out_of_scope', 'documentation_not_found', 'insufficient_evidence'})
 
 
 def decode_object(raw):
@@ -71,20 +75,37 @@ def decode_answer(raw, limits):
         answer = decode_object(raw)
     except AssistantError:
         raise invalid_answer("final_json_invalid") from None
-    if set(answer) != {"kind", "content", "citations"}:
-        raise invalid_answer("final_fields_invalid")
+    non_factual = isinstance(answer.get('kind'), str) and answer['kind'] in {'limitation', 'clarification'}
+    def reject(reason):
+        error = invalid_answer(reason)
+        error.non_factual_response = non_factual
+        raise error
+    # A refusal/clarification makes no factual claim and is replaced with safe
+    # backend text. Missing/null citations are harmless only on that path.
+    # Factual answers retain the exact existing schema and citation validation.
+    if non_factual and answer.get('citations') is None:
+        answer['citations'] = []
+    expected = {'kind', 'content', 'citations'}
+    if answer.get('kind') == 'limitation' and 'application_status' in answer:
+        expected.add('application_status')
+        if not isinstance(answer['application_status'], str) or answer['application_status'] not in LIMITATION_STATUSES:
+            reject('final_application_status_invalid')
+    if set(answer) != expected:
+        reject("final_fields_invalid")
     if not isinstance(answer["kind"], str) or answer["kind"] not in {"answer", "clarification", "limitation"}:
-        raise invalid_answer("final_kind_invalid")
+        reject("final_kind_invalid")
     if not isinstance(answer["citations"], list):
-        raise invalid_answer("final_citations_invalid")
+        reject("final_citations_invalid")
+    if non_factual and answer['citations']:
+        reject('non_factual_citations_not_empty')
     if not isinstance(answer["content"], str) or not answer["content"].strip():
-        raise invalid_answer("final_content_empty")
+        reject("final_content_empty")
     if len(answer["content"]) > limits.output_characters:
-        raise invalid_answer("final_content_too_long")
+        reject("final_content_too_long")
     try:
         answer["content"].encode("utf-8")
     except UnicodeError:
-        raise invalid_answer("final_content_unicode") from None
+        reject("final_content_unicode")
     return answer
 
 
@@ -97,6 +118,8 @@ def final_repair(reason, evidence):
         "final_fields_invalid": "Use exactly the top-level keys kind, content, citations.",
         "final_kind_invalid": 'Set kind to exactly one of "answer", "clarification", "limitation"; never a pipe-separated list.',
         "final_citations_invalid": "citations must be an array of document_id/section_id objects.",
+        "non_factual_citations_not_empty": "A clarification or limitation must have citations=[]. Never attach invented references to a refusal.",
+        "final_application_status_invalid": "For a limitation, application_status may be out_of_scope, documentation_not_found, or insufficient_evidence.",
         "final_content_empty": "content must be a nonempty explanation string.",
         "final_content_too_long": "Shorten content to the supported output length.",
         "final_content_unicode": "Return valid Unicode text.",
@@ -109,9 +132,10 @@ def final_repair(reason, evidence):
     }
     instruction = corrections.get(reason, "Search for relevant documentation and fetch complete sections before making factual claims.")
     readiness = ("Complete evidence is available. Answer now if it supports the question; another search/fetch is needed only for missing support."
-                 if complete else "Complete evidence is still required; use search/fetch to obtain it.")
+                 if complete else "Complete evidence is still required for a factual answer; use search/fetch for missing support, or return a limitation if no supported answer is available.")
     return {"role": "system", "content": f"Final response rejected: {reason}. {instruction} {readiness}\n"
             + 'Required shape: {"kind":"answer", "content":"explanation", "citations":[{"document_id":"...", "section_id":"..."}]}.'
+            + '\nFor an unsupported question use {"kind":"limitation","content":"brief explanation","citations":[],"application_status":"out_of_scope"}; use documentation_not_found or insufficient_evidence when appropriate. Do not fetch unrelated sections merely to justify a limitation.'
             + "\nComplete authorized citation candidates (choose only relevant ones): " + canonical_json(complete)}
 
 
@@ -239,7 +263,7 @@ class Orchestrator:
         started = time.monotonic()
         profile_started = time.perf_counter()
         language = question_language(question, preferred_language)
-        metrics = {"model_requests": 0, "tool_calls": 0, "searches": 0, "fetches": 0, "termination": "started",
+        metrics = {"model_requests": 0, "tool_calls": 0, "searches": 0, "fetches": 0, "ranked_searches": 0, "ranked_candidate_sections": 0, "termination": "started",
                    **{key: 0 for key in ("provider_duration_ms", "context_duration_ms", "search_duration_ms", "fetch_duration_ms", "validation_duration_ms")}}
         self.metrics = metrics
         configuration = configuration or ModelConfiguration.resolve()
@@ -255,8 +279,9 @@ class Orchestrator:
                 return TurnResult(TEXT[language]["social"], "greeting")
             if is_live_data_request(question):
                 emit("context_prepared", {"mode":"local_live_data_limitation", "language":language, "provider_requested":False})
-                outcome = "live_data_unavailable"
-                return TurnResult(TEXT[language]["live"], "limitation")
+                state, outcome = 'NO_ANSWER_AVAILABLE', "live_data_unavailable"
+                metrics['application_status'] = 'live_data_unavailable'
+                return TurnResult(TEXT[language]["live"], "limitation", metrics=metrics, application_status='live_data_unavailable')
             principal, index = self._context(user, binding)
             version = index.version
             self.diagnostics["failure_stage"] = "capability_map_loading"
@@ -310,7 +335,7 @@ class Orchestrator:
                     context_bytes = len(canonical_json(messages).encode("utf-8"))
                     if context_bytes > self.limits.context_bytes:
                         raise AssistantError("context_limit", "This question needs too much context. Please start a narrower conversation.", 422)
-                    if state == "SEARCH_REQUIRED" or (metrics["searches"] == 1 and not tokens and not restored):
+                    if state == "SEARCH_REQUIRED":
                         choice = "search_documentation"
                     elif force_fetch:
                         choice = "fetch_documentation"
@@ -363,6 +388,7 @@ class Orchestrator:
                             tool_started = time.perf_counter()
                             gateway_duration = None
                             pending_evidence = None
+                            ranked_candidate_count = None
                             tool_wall = timezone.now()
                             if current():
                                 current().turn.tool_calls += 1
@@ -414,6 +440,8 @@ class Orchestrator:
                                     raise AssistantError("search_required", "Search in this turn before fetching new documentation.", 422)
                                 if call.name == "search_documentation":
                                     metrics["searches"] += 1
+                                    if result.get('mode') == 'search':
+                                        ranked_candidate_count = len(result['results'])
                                     metrics['ranked_search_bytes'] += len(canonical_json(result).encode('utf-8'))
                                     state = "SEARCH_COMPLETE" if not any(evidence.complete(key) for key in evidence.records) else "EVIDENCE_AVAILABLE"
                                     if result.get("search_token"):
@@ -473,6 +501,9 @@ class Orchestrator:
                                 if size > min(self.limits.tool_result_bytes, search_limit) or total_tool_bytes + size > self.limits.total_tool_bytes:
                                     raise AssistantError("tool_result_limit", "Request fewer sections or a smaller documentation page.", 422)
                                 total_tool_bytes += size
+                                if ranked_candidate_count is not None:
+                                    metrics['ranked_searches'] += 1
+                                    metrics['ranked_candidate_sections'] += ranked_candidate_count
                                 if call.name == 'search_documentation':
                                     metrics['search_payload_bytes'] += size
                                 if pending_evidence is not None:
@@ -528,10 +559,22 @@ class Orchestrator:
                         if any(token in answer["content"] for token in tokens | allocated_handles) or SYSTEM_INSTRUCTIONS.splitlines()[0] in answer["content"] or '"search_token":' in answer["content"]:
                             raise invalid_answer("protected_material")
                         if answer["kind"] != "answer":
-                            if not metrics["searches"] and not restored:
+                            if not metrics['ranked_searches'] and not restored:
                                 raise AssistantError("search_required", "Search documentation before answering.", 422)
-                            if answer["kind"] == "limitation" and metrics["searches"] < 2 and not tokens and not restored:
-                                raise AssistantError("search_required", "Try one broader documentation search before concluding that evidence is unavailable.", 422)
+                            if answer['kind'] == 'limitation':
+                                status = answer.get('application_status') or ('documentation_not_found' if not metrics['ranked_candidate_sections'] and not restored else 'insufficient_evidence')
+                                metrics['application_status'] = status
+                                raw_final = decode_object(completion.text)
+                                emit('no_answer_available', {'application_status': status,
+                                    'classification_origin': 'model' if answer.get('application_status') else 'retrieval_observations',
+                                    'ranked_searches': metrics['ranked_searches'], 'ranked_candidate_sections': metrics['ranked_candidate_sections'],
+                                    'complete_evidence_count': sum(bool(evidence.complete(key)) for key in evidence.records),
+                                    'previous_state': state, 'citations_normalized': raw_final.get('citations') is None},
+                                    model_ordinal=metrics['model_requests'])
+                                model_event.update(decision='accepted', decision_reason='handled_' + status)
+                                state, outcome = 'NO_ANSWER_AVAILABLE', status
+                                return TurnResult(TEXT[language][status], 'limitation', index_version=version, usage=usage,
+                                                  metrics=metrics, application_status=status)
                             choices = list(dict.fromkeys(r["module"] for r in last_candidates))[:5]
                             text = TEXT[language][answer["kind"]]
                             if answer["kind"] == "clarification" and choices:
@@ -565,7 +608,7 @@ class Orchestrator:
                             # answer text as history or persist this private field.
                             messages.append({'role': 'assistant', 'content': 'The application rejected this response; follow its validation feedback.',
                                              'reasoning_content': completion.reasoning_content})
-                        force_fetch = bool(tokens) and not any(evidence.complete(key) for key in evidence.records)
+                        force_fetch = bool(tokens) and not any(evidence.complete(key) for key in evidence.records) and not getattr(exc, 'non_factual_response', False)
                         repair = final_repair(reason, evidence)
                         if configuration.thinking and repair_position is not None:
                             messages.pop(repair_position)
