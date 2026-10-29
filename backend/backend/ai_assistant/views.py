@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from knowledge.errors import GatewayError
 
 from .config import Limits
+from .model_configuration import model_options
 from .errors import AssistantError
 from .models import Conversation
 from .serializers import ChatInput
@@ -67,8 +68,17 @@ class ChatView(AssistantView):
         data = ChatInput(data=request.data)
         data.is_valid(raise_exception=True)
         language = get_language_from_request(request).split("-")[0]
-        result = ConversationService().reply(user=request.user, question=data.validated_data["message"], conversation_id=data.validated_data.get("conversation_id"), preferred_language=language)
+        result = ConversationService().reply(user=request.user, question=data.validated_data["message"], conversation_id=data.validated_data.get("conversation_id"), preferred_language=language,
+                                             model=data.validated_data.get("model"), reasoning_effort=data.validated_data.get("reasoning_effort"))
         return Response(result, status=status.HTTP_200_OK)
+
+
+class ModelOptions(AssistantView):
+    def get(self, request):
+        principal_for(request.user, get_gateway())
+        response = Response(model_options())
+        response['Cache-Control'] = 'no-store, private'
+        return response
 
 
 class ConversationList(AssistantView):

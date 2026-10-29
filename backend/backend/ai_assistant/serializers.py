@@ -1,15 +1,18 @@
 from rest_framework import serializers
 
 from .config import Limits
+from .model_configuration import MODELS, EFFORTS
 
 
 class ChatInput(serializers.Serializer):
     conversation_id = serializers.UUIDField(required=False, allow_null=True)
     message = serializers.CharField(trim_whitespace=False, allow_blank=False)
+    model = serializers.ChoiceField(choices=MODELS, required=False)
+    reasoning_effort = serializers.ChoiceField(choices=EFFORTS, required=False)
 
     def to_internal_value(self, data):
         if not isinstance(data, dict) or set(data) - set(self.fields):
-            raise serializers.ValidationError({"non_field_errors": ["Only message and conversation_id are accepted."]})
+            raise serializers.ValidationError({"non_field_errors": ["Only message, conversation_id, model and reasoning_effort are accepted."]})
         if not isinstance(data.get("message"), str):
             raise serializers.ValidationError({"message": ["Message must be a string."]})
         return super().to_internal_value(data)

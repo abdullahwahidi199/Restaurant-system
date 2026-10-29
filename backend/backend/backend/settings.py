@@ -41,6 +41,7 @@ KNOWLEDGE_INDEX_ROOT = backend_path(os.environ.get(
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
+DEEPSEEK_REASONING_EFFORT = os.environ.get("DEEPSEEK_REASONING_EFFORT", "none")
 AI_ASSISTANT_PROVIDER = os.environ.get("AI_ASSISTANT_PROVIDER", "deepseek")
 AI_ASSISTANT_THROTTLE_RATE = os.environ.get("AI_ASSISTANT_THROTTLE_RATE", "10/min")
 AI_RETRIEVAL_MODE = os.environ.get("AI_RETRIEVAL_MODE", "legacy")

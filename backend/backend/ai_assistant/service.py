@@ -21,6 +21,7 @@ from .language import question_language
 from .audit_payloads import redact
 from .orchestrator import Orchestrator
 from .provider import DeepSeekProvider
+from .model_configuration import ModelConfiguration
 
 logger = logging.getLogger("ai_assistant")
 
@@ -71,7 +72,8 @@ class ConversationService:
         self.limits = limits or Limits.configured()
         self.observer = observer
 
-    def _reserve(self, user, principal, question, conversation_id, request_id, preferred_language="en"):
+    def _reserve(self, user, principal, question, conversation_id, request_id, preferred_language="en", configuration=None, requested=None):
+        configuration = configuration or ModelConfiguration.resolve()
         now = timezone.now()
         with transaction.atomic():
             if conversation_id:
@@ -92,14 +94,15 @@ class ConversationService:
             turn = TurnAudit.objects.create(request_id=request_id, conversation=conversation, conversation_identifier=conversation.pk,
                 user_message=question_record, user=user, restaurant_id=principal.restaurant_id or None, branch_id=principal.branch_id or None,
                 language=question_language(question, preferred_language), started_at=now,
-                provider=redact(str(getattr(settings,"AI_ASSISTANT_PROVIDER","deepseek")))[:40], model=redact(str(getattr(settings,"DEEPSEEK_MODEL","")))[:100])
+                provider=redact(str(getattr(settings,"AI_ASSISTANT_PROVIDER","deepseek")))[:40], model=configuration.model)
             trace = Trace(turn)
             event = trace.event("user_message", {"message_id":question_record.pk, "content":question_record.content, "language":turn.language,
-                "user_id":user.pk, "username":user.username, "restaurant_id":turn.restaurant_id, "branch_id":turn.branch_id})
+                "user_id":user.pk, "username":user.username, "restaurant_id":turn.restaurant_id, "branch_id":turn.branch_id,
+                "model_configuration": {**configuration.public(), **(requested or {})}})
             TurnAudit.objects.filter(pk=turn.pk).update(question_payload=event.payload)
         return conversation, question_record, trace
 
-    def reply(self, *, user, question, conversation_id=None, preferred_language="en"):
+    def reply(self, *, user, question, conversation_id=None, preferred_language="en", model=None, reasoning_effort=None):
         if not isinstance(question, str) or not question.strip() or len(question) > self.limits.input_characters:
             raise AssistantError("invalid_message", "Enter a nonempty message within the configured length limit.", 400)
         try:
@@ -108,7 +111,9 @@ class ConversationService:
             raise AssistantError("invalid_message", "Message must contain valid Unicode text.", 400) from None
         request_id = uuid.uuid4()
         principal = principal_for(user, self.gateway)
-        conversation, question_record, trace = self._reserve(user, principal, question, conversation_id, request_id, preferred_language)
+        configuration = ModelConfiguration.resolve(model, reasoning_effort)
+        conversation, question_record, trace = self._reserve(user, principal, question, conversation_id, request_id, preferred_language, configuration,
+            {"requested_model": model, "requested_reasoning_effort": reasoning_effort})
         started, stage, engine = time.monotonic(), "conversation_history", None
         try:
             prior = list(conversation.messages.filter(state="complete").order_by("-created_at", "-id")[:self.limits.history_messages])
@@ -116,7 +121,7 @@ class ConversationService:
             stage = "provider_configuration"
             engine = Orchestrator(self.provider or get_provider(), self.gateway, self.limits, self.observer)
             with audit_scope(trace):
-                result = engine.run(user=user, question=question, history=history, preferred_language=preferred_language, request_id=str(request_id))
+                result = engine.run(user=user, question=question, history=history, preferred_language=preferred_language, request_id=str(request_id), configuration=configuration)
             trace.event("answer_generated", {"kind":result.kind, "content":result.content, "sources":result.sources, "index_version":result.index_version,
                 "evidence_origins":trace.evidence_origins})
             current = principal_for(user, self.gateway)

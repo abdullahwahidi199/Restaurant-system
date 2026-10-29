@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import ChatView, ConversationList, ConversationMessages
+from .views import ChatView, ConversationList, ConversationMessages, ModelOptions
 from .audit_views import AuditTurns, AuditTurnDetail, AuditEvents, AuditEventDetail, AuditConversations, AuditConversationMessages
 
 app_name = "ai_assistant"
@@ -12,6 +12,7 @@ urlpatterns = [
     path("audit/conversations/", AuditConversations.as_view(), name="audit-conversations"),
     path("audit/conversations/<uuid:conversation_id>/messages/", AuditConversationMessages.as_view(), name="audit-conversation-messages"),
     path("chat/", ChatView.as_view(), name="chat"),
+    path("model-options/", ModelOptions.as_view(), name="model-options"),
     path("conversations/", ConversationList.as_view(), name="conversations"),
     path("conversations/<uuid:conversation_id>/messages/", ConversationMessages.as_view(), name="messages"),
 ]

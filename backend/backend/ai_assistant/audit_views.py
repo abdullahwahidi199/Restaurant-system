@@ -66,6 +66,7 @@ def summary(turn):
         "user":{"id":question.get("user_id",turn.user_id), "username":question.get("username", "Deleted user")},
         "restaurant_id":question.get("restaurant_id",turn.restaurant_id), "branch_id":question.get("branch_id",turn.branch_id), "language":turn.language,
         "question_preview":question.get("content","")[:180], "status":turn.status, "model":turn.model, "provider":turn.provider,
+        "model_configuration":question.get('model_configuration'),
         "started_at":turn.started_at, "finished_at":turn.finished_at, "duration_ms":turn.duration_ms,
         "model_calls":turn.model_calls, "completed_model_calls":turn.completed_model_calls,
         "tool_calls":turn.tool_calls, "completed_tool_calls":turn.completed_tool_calls,

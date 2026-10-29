@@ -11,6 +11,7 @@ from django.conf import settings
 
 from .errors import AssistantError
 from .auditing import current
+from .model_configuration import ModelConfiguration
 
 logger = logging.getLogger("ai_assistant")
 MAX_RESPONSE_BYTES = 256_000
@@ -29,15 +30,18 @@ class Completion:
     tool_calls: tuple[ToolCall, ...] = ()
     finish_reason: str = "stop"
     usage: dict = field(default_factory=dict)
+    reasoning_content: str | None = field(default=None, repr=False, compare=False)
 
-    def message(self):
+    def message(self, *, include_reasoning=False):
         result = {"role": "assistant", "content": self.text or None}
         if self.tool_calls:
             result["tool_calls"] = [{"id": call.id, "type": "function", "function": {"name": call.name, "arguments": call.arguments}} for call in self.tool_calls]
+        if include_reasoning and self.reasoning_content is not None:
+            result['reasoning_content'] = self.reasoning_content
         return result
 
 
-def parse_completion(data):
+def parse_completion(data, *, thinking=False):
     summary = {"finish_reason": None, "tool_call_count": 0, "assistant_content_length": 0}
     try:
         choices = data["choices"]
@@ -51,7 +55,10 @@ def parse_completion(data):
         summary["finish_reason"] = finish if isinstance(finish, str) and finish in {"stop", "tool_calls", "length", "content_filter", "insufficient_system_resource"} else "unrecognized"
         summary["assistant_content_length"] = len(message["content"]) if isinstance(message.get("content"), str) else 0
         summary["tool_call_count"] = len(message["tool_calls"]) if isinstance(message.get("tool_calls"), list) else 0
-        if message["role"] != "assistant" or message.get("reasoning_content"):
+        if message["role"] != "assistant" or (not thinking and message.get("reasoning_content")):
+            raise ValueError
+        reasoning = message.get('reasoning_content') if thinking else None
+        if thinking and (not isinstance(reasoning, str) or len(reasoning.encode('utf-8')) > MAX_RESPONSE_BYTES):
             raise ValueError
         raw_text = message.get("content")
         if raw_text is not None and not isinstance(raw_text, str):
@@ -79,7 +86,7 @@ def parse_completion(data):
             raise ValueError
         usage = data.get("usage", {})
         usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens", "prompt_cache_miss_tokens"} and isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10**9} if isinstance(usage, dict) else {}
-        return Completion(text, tuple(calls), finish, usage)
+        return Completion(text, tuple(calls), finish, usage, reasoning)
     except (KeyError, TypeError, ValueError, AttributeError):
         error = AssistantError("provider_invalid_response", "The AI provider returned an unusable response. Please try again.", 502)
         error.completion_summary = summary
@@ -90,10 +97,13 @@ class DeepSeekProvider:
     def __init__(self, *, transport=None):
         self.transport = transport  # Explicit test seam, never supplied by HTTP/model args.
 
-    def complete(self, *, messages, tools, tool_choice, limits, timeout, request_id):
+    def complete(self, *, messages, tools, tool_choice, limits, timeout, request_id, configuration=None):
         key = getattr(settings, "DEEPSEEK_API_KEY", "")
         base = getattr(settings, "DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-        model = getattr(settings, "DEEPSEEK_MODEL", "deepseek-flash")
+        configuration = configuration or ModelConfiguration.resolve()
+        # Validate direct Python callers too; HTTP validation is not the only boundary.
+        configuration = ModelConfiguration.resolve(configuration.model, configuration.reasoning_effort)
+        model = configuration.model
         if not isinstance(key, str) or not key.strip():
             raise AssistantError("provider_not_configured", "The AI assistant is not configured. Ask an administrator to configure its provider.")
         try:
@@ -105,9 +115,13 @@ class DeepSeekProvider:
             url.port  # Validate malformed/non-numeric ports before constructing HTTP headers.
         except (ValueError, TypeError):
             raise AssistantError("configuration_invalid", "The AI provider endpoint or model is not configured correctly.") from None
+        if configuration.thinking and tool_choice not in {'auto', 'none'}:
+            tool_choice = 'auto'
         choice = tool_choice if tool_choice in {"auto", "none", "required"} else {"type": "function", "function": {"name": tool_choice}}
         payload = {"model": model, "messages": messages, "tools": [{"type": "function", "function": definition} for definition in tools],
-                   "tool_choice": choice, "thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}, "max_tokens": limits.output_tokens, "stream": False}
+                   "tool_choice": choice, "thinking": configuration.public()['thinking'], "response_format": {"type": "json_object"}, "max_tokens": limits.output_tokens, "stream": False}
+        if configuration.thinking:
+            payload['reasoning_effort'] = configuration.reasoning_effort
         started, outcome = time.monotonic(), "provider_failure"
         http_status, exception_category = None, None
         deadline = started + min(timeout, limits.provider_timeout)
@@ -142,11 +156,11 @@ class DeepSeekProvider:
                         raise AssistantError("provider_invalid_response", "The AI provider returned an unusable response.", 502) from None
                     if current():
                         current().model_response(data, http_status=response.status_code)
-                    result = parse_completion(data)
+                    result = parse_completion(data, thinking=configuration.thinking)
                     # The provider receives the credential only as an HTTP header.
                     # Do not forward it if a malformed/malicious provider echoes
                     # it in content or tool arguments, including JSON escapes.
-                    for text in (result.text, *(call.arguments for call in result.tool_calls)):
+                    for text in (result.text, result.reasoning_content or '', *(call.arguments for call in result.tool_calls)):
                         try:
                             decoded = json.dumps(json.loads(text), ensure_ascii=False)
                         except (ValueError, TypeError, RecursionError):
