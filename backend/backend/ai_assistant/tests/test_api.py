@@ -132,6 +132,28 @@ class AssistantAPITests(TestCase):
         self.assertEqual(Message.objects.count(), 4)
         self.assertEqual(len(provider.requests), 1)
 
+    def test_post_fetch_final_schema_repair_persists_only_verified_answer(self):
+        from ai_assistant.provider import Completion
+        invalid = Completion('{"kind":"answer|clarification|limitation","content":"UNVERIFIED_TEXT","citations":[]}')
+        provider = ScriptedProvider([search(), fetch_latest, invalid, answer_latest])
+        response = self.post(provider=provider)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(provider.requests), 4)
+        self.assertTrue(response.data["message"]["sources"])
+        self.assertFalse(Message.objects.filter(content__contains="UNVERIFIED_TEXT").exists())
+
+    def test_repeated_post_fetch_rejection_is_controlled_and_releases_lease(self):
+        invalid = final("No citations supplied")
+        provider = ScriptedProvider([search(), fetch_latest, invalid, invalid])
+        response = self.post(provider=provider)
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.data["error"]["code"], "answer_repair_stalled")
+        self.assertEqual(len(provider.requests), 4)
+        conversation = Conversation.objects.get(pk=response.data["conversation_id"])
+        self.assertIsNone(conversation.active_request)
+        self.assertEqual(conversation.messages.count(), 1)
+        self.assertEqual(conversation.messages.get().state, "failed")
+
     def test_other_user_and_wrong_branch_or_restaurant_context_cannot_access_conversation(self):
         first = self.post()
         conversation_id = first.data["conversation_id"]

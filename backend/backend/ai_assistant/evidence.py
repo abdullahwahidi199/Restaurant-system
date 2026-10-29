@@ -29,6 +29,7 @@ class Evidence:
         self.limits = limits
         self.records = {}
         self.received_characters = 0
+        self._citation_aliases = {}
 
     def add(self, section, reference=None):
         key = section["document_id"], section["section_id"]
@@ -58,16 +59,42 @@ class Evidence:
         record = self.records.get(key)
         return bool(record and record["content"] and re.sub(r"^#{1,6}\s.*$", "", record["content"], flags=re.MULTILINE).strip())
 
+    def citation_candidates(self):
+        """Stable short references to complete evidence, never new permission."""
+        by_key = {key: alias for alias, key in self._citation_aliases.items()}
+        result = []
+        for key in self.records:
+            if not self.complete(key) or not self.records[key]["reference"]:
+                continue
+            if key not in by_key:
+                alias = "evidence_" + str(len(self._citation_aliases) + 1)
+                self._citation_aliases[alias] = key
+                by_key[key] = alias
+            result.append({"document_id": key[0], "section_id": by_key[key]})
+        return result
+
     def selected_references(self, citations):
         if not isinstance(citations, list) or not citations or len(citations) > self.limits.fetched_sections:
-            raise AssistantError("evidence_required", "The answer needs verified documentation references.", 422)
+            error = AssistantError("evidence_required", "The answer needs verified documentation references.", 422)
+            error.diagnostic_reason = "citations_missing_or_over_limit"
+            raise error
         selected, seen = [], set()
         for citation in citations:
             if not isinstance(citation, dict) or set(citation) != {"document_id", "section_id"} or not all(isinstance(v, str) for v in citation.values()):
-                raise AssistantError("sources_invalid", "The answer contained an invalid documentation reference.", 502)
+                error = AssistantError("sources_invalid", "The answer contained an invalid documentation reference.", 502)
+                error.diagnostic_reason = "citation_schema_invalid"
+                raise error
             key = citation["document_id"], citation["section_id"]
+            if citation["section_id"] in self._citation_aliases:
+                key = self._citation_aliases[citation["section_id"]]
+                if citation["document_id"] != key[0]:
+                    error = AssistantError("sources_invalid", "The answer contained an invalid documentation reference.", 502)
+                    error.diagnostic_reason = "citation_document_mismatch"
+                    raise error
             if not self.complete(key) or not self.records[key]["reference"]:
-                raise AssistantError("evidence_required", "The answer needs complete, relevant fetched documentation.", 422)
+                error = AssistantError("evidence_required", "The answer needs complete, relevant fetched documentation.", 422)
+                error.diagnostic_reason = "citation_incomplete" if key in self.records else "citation_not_fetched"
+                raise error
             if key not in seen:
                 selected.append(self.records[key]["reference"])
                 seen.add(key)

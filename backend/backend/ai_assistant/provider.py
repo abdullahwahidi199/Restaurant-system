@@ -37,12 +37,19 @@ class Completion:
 
 
 def parse_completion(data):
+    summary = {"finish_reason": None, "tool_call_count": 0, "assistant_content_length": 0}
     try:
         choices = data["choices"]
         if len(choices) != 1:
             raise ValueError
         choice = choices[0]
         message = choice["message"]
+        # Capture shape only, including unusable/empty completions. Never retain
+        # reasoning, content, tool arguments or arbitrary provider strings here.
+        finish = choice.get("finish_reason")
+        summary["finish_reason"] = finish if isinstance(finish, str) and finish in {"stop", "tool_calls", "length", "content_filter", "insufficient_system_resource"} else "unrecognized"
+        summary["assistant_content_length"] = len(message["content"]) if isinstance(message.get("content"), str) else 0
+        summary["tool_call_count"] = len(message["tool_calls"]) if isinstance(message.get("tool_calls"), list) else 0
         if message["role"] != "assistant" or message.get("reasoning_content"):
             raise ValueError
         raw_text = message.get("content")
@@ -73,7 +80,9 @@ def parse_completion(data):
         usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens"} and isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10**9} if isinstance(usage, dict) else {}
         return Completion(text, tuple(calls), finish, usage)
     except (KeyError, TypeError, ValueError, AttributeError):
-        raise AssistantError("provider_invalid_response", "The AI provider returned an unusable response. Please try again.", 502) from None
+        error = AssistantError("provider_invalid_response", "The AI provider returned an unusable response. Please try again.", 502)
+        error.completion_summary = summary
+        raise error from None
 
 
 class DeepSeekProvider:
