@@ -15,6 +15,7 @@ test("staff route detection accepts nested management routes", () => {
   assert.equal(isStaffManagementPath("/admin/dashboard/orders"), true);
   assert.equal(isStaffManagementPath("/cashier/takeaway"), true);
   assert.equal(isStaffManagementPath("/select-branch"), true);
+  assert.equal(isStaffManagementPath("/assistant"), true);
   assert.equal(isStaffManagementPath("/menu/restaurant"), false);
   assert.equal(isStaffManagementPath("/profile"), false);
 });

@@ -60,7 +60,9 @@ instance.interceptors.response.use(
         // no refresh token: logout
         localStorage.removeItem("authTokens");
         localStorage.removeItem("user");
-        window.location.href = getStaffLoginPath();
+        // Chat can keep a failed question visible and offer explicit sign-in.
+        // Token removal/refresh behavior is unchanged; other pages still redirect.
+        if (!originalRequest.preserveAuthFailure) window.location.href = getStaffLoginPath();
         return Promise.reject(err);
       }
 
@@ -93,7 +95,7 @@ instance.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem("authTokens");
         localStorage.removeItem("user");
-        window.location.href = getStaffLoginPath();
+        if (!originalRequest.preserveAuthFailure) window.location.href = getStaffLoginPath();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

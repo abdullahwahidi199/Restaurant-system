@@ -16,6 +16,7 @@ const STAFF_ROUTE_PREFIXES = Object.freeze([
   ...new Set(Object.values(STAFF_HOME_ROUTES)),
   "/select-branch",
   "/subscription-inactive",
+  "/assistant",
 ]);
 
 export function getStaffHomePath(role, fallback = "/") {

@@ -5,6 +5,9 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import en from "./locals/en.json";
 import fa from "./locals/fa.json";
 import ps from "./locals/ps.json";
+import aiEn from "./locals/ai/en.json";
+import aiFa from "./locals/ai/fa.json";
+import aiPs from "./locals/ai/ps.json";
 import landingEn from "./locals/landing/en.json";
 import landingFa from "./locals/landing/fa.json";
 import landingPs from "./locals/landing/ps.json";
@@ -37,9 +40,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: withTranslations(en, landingEn, legacyEn) },
-      fa: { translation: withTranslations(fa, landingFa, legacyFa) },
-      ps: { translation: withTranslations(ps, landingPs, legacyPs) },
+      en: { translation: withTranslations({ ...en, aiChat: aiEn }, landingEn, legacyEn) },
+      fa: { translation: withTranslations({ ...fa, aiChat: aiFa }, landingFa, legacyFa) },
+      ps: { translation: withTranslations({ ...ps, aiChat: aiPs }, landingPs, legacyPs) },
     },
     supportedLngs: supportedLanguages,
     load: "languageOnly",

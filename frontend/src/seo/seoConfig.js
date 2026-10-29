@@ -175,6 +175,7 @@ export const getPageSeo = (pathname) => {
     normalizedPath.startsWith("/admin") ||
     normalizedPath.startsWith("/manager") ||
     normalizedPath.startsWith("/kitchen") ||
+    normalizedPath === "/assistant" ||
     normalizedPath.startsWith("/cashier") ||
     normalizedPath.startsWith("/call-operator") ||
     normalizedPath.startsWith("/super-admin")

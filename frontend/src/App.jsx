@@ -127,6 +127,8 @@ import LegalPage from "./pages/PremiumLegalPage";
 import { useTranslation as useAutoTranslation } from "react-i18next";
 import AppDomainGuard from "./routing/AppDomainGuard";
 import ActivityDashboard from "./modules/activity/ActivityDashboard";
+import AIChatPage from "./modules/ai/AIChatPage";
+import { AI_CHAT_ROLES } from "./modules/ai/access";
 
 function App() {
   const { t: autoT } = useAutoTranslation();
@@ -165,6 +167,11 @@ function App() {
         <Route path="orders" element={<Orders />} />
 
         <Route path="staff-login" element={<StaffLogin />} />
+        <Route path="assistant" element={
+          <RequireAuth allowedRoles={AI_CHAT_ROLES} showPortalLogout={false}>
+            <RequireActiveRestaurant><AIChatPage /></RequireActiveRestaurant>
+          </RequireAuth>
+        } />
         <Route
           path="select-branch"
           element={

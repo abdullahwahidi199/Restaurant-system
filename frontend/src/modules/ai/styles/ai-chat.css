@@ -1,0 +1,861 @@
+/* Converted from the unchanged root ai_chat_interface.html. Every rule is scoped. */
+/* Integration additions follow the original rules at the end of this file. */
+
+    /* ============================================================
+       DESIGN SYSTEM — 8px spacing, Inter, neutral palette,
+       single primary accent, subtle borders & shadows
+       ============================================================ */
+    .pakhlai-ai {
+      /* Spacing scale (8px system) */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 24px;
+      --space-6: 32px;
+      --space-7: 40px;
+
+      /* Colors — neutral, high contrast, one accent */
+      --color-bg: #f8f9fb;
+      --color-surface: #ffffff;
+      --color-border: #e5e7eb;
+      --color-border-subtle: #f0f1f3;
+      --color-text-primary: #111827;
+      --color-text-secondary: #4b5563;
+      --color-text-muted: #9ca3af;
+      --color-accent: #6366f1;
+      --color-accent-hover: #4f46e5;
+      --color-accent-soft: #eef2ff;
+      --color-accent-text: #4338ca;
+      --color-success: #059669;
+      --color-warning: #d97706;
+      --color-danger: #dc2626;
+      --color-user-bubble: #6366f1;
+      --color-user-bubble-text: #ffffff;
+      --color-assistant-bubble: #f9fafb;
+      --color-assistant-bubble-border: #e5e7eb;
+
+      /* Borders & radius */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --border-width: 1px;
+
+      /* Shadows */
+      --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+      /* Typography */
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --text-page-title: 26px;
+      --text-section: 19px;
+      --text-card-title: 16px;
+      --text-body: 14px;
+      --text-label: 13px;
+      --text-caption: 12px;
+      --line-height: 1.5;
+
+      /* Transitions */
+      --transition-fast: 150ms ease;
+      --transition-base: 200ms ease;
+    }
+
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    .pakhlai-ai *,
+.pakhlai-ai *::before,
+.pakhlai-ai *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    .pakhlai-ai {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .pakhlai-ai {
+      font-family: var(--font-family);
+      font-size: var(--text-body);
+      line-height: var(--line-height);
+      color: var(--color-text-primary);
+      background-color: var(--color-bg);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ============================================================
+       APP SHELL — full-height chat page, no sidebars
+       ============================================================ */
+    .pakhlai-ai .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: var(--space-5) var(--space-5) var(--space-4);
+      gap: var(--space-4);
+    }
+
+    /* ============================================================
+       HEADER
+       ============================================================ */
+    .pakhlai-ai .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      padding-bottom: var(--space-4);
+      border-bottom: var(--border-width) solid var(--color-border);
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .pakhlai-ai .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--color-accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .page-title-group h1 {
+      font-size: var(--text-page-title);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--color-text-primary);
+    }
+
+    .pakhlai-ai .page-title-group p {
+      font-size: var(--text-label);
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    .pakhlai-ai .header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .pakhlai-ai .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-radius: 999px;
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      font-size: var(--text-caption);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+
+    .pakhlai-ai .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-warning);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       CHAT CARD
+       ============================================================ */
+    .pakhlai-ai .chat-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .pakhlai-ai .chat-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: var(--border-width) solid var(--color-border-subtle);
+      flex-shrink: 0;
+      gap: var(--space-3);
+    }
+
+    .pakhlai-ai .chat-card-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      min-width: 0;
+    }
+
+    .pakhlai-ai .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--color-accent-soft);
+      color: var(--color-accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .chat-title {
+      font-size: var(--text-card-title);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pakhlai-ai .chat-subtitle {
+      font-size: var(--text-caption);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .pakhlai-ai .chat-card-header-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .pakhlai-ai .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: var(--border-width) solid transparent;
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .icon-btn:hover {
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+    }
+
+    .pakhlai-ai .icon-btn:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    /* ============================================================
+       MESSAGES SCROLL AREA
+       ============================================================ */
+    .pakhlai-ai .messages-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      scroll-behavior: smooth;
+      min-height: 0;
+    }
+
+    .pakhlai-ai .messages-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .pakhlai-ai .messages-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .pakhlai-ai .messages-scroll::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 3px;
+    }
+    .pakhlai-ai .messages-scroll::-webkit-scrollbar-thumb:hover {
+      background: #d1d5db;
+    }
+
+    /* ---------- welcome / empty state ---------- */
+    .pakhlai-ai .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex: 1;
+      padding: var(--space-6) var(--space-4);
+      max-width: 620px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .pakhlai-ai .welcome-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-md);
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: var(--space-4);
+      border: var(--border-width) solid var(--color-border);
+    }
+
+    .pakhlai-ai .welcome h2 {
+      font-size: var(--text-section);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: var(--space-2);
+      color: var(--color-text-primary);
+    }
+
+    .pakhlai-ai .welcome p {
+      font-size: var(--text-body);
+      color: var(--color-text-secondary);
+      max-width: 420px;
+      margin-bottom: var(--space-5);
+      line-height: 1.6;
+    }
+
+    .pakhlai-ai .suggestion-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-2);
+      width: 100%;
+      max-width: 520px;
+      text-align: left;
+    }
+
+    .pakhlai-ai .suggestion-card {
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      cursor: pointer;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+      text-align: left;
+      font-family: inherit;
+      font-size: var(--text-label);
+      color: var(--color-text-secondary);
+      line-height: 1.45;
+    }
+
+    .pakhlai-ai .suggestion-card:hover {
+      border-color: var(--color-accent);
+      background: var(--color-accent-soft);
+      color: var(--color-text-primary);
+      box-shadow: var(--shadow-card);
+    }
+
+    .pakhlai-ai .suggestion-card:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    .pakhlai-ai .suggestion-card i {
+      color: var(--color-accent);
+      font-size: 14px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    /* ---------- message rows ---------- */
+    .pakhlai-ai .message-row {
+      display: flex;
+      gap: var(--space-3);
+      max-width: 100%;
+      animation: ai-messageIn 250ms ease both;
+    }
+
+    @keyframes ai-messageIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pakhlai-ai .message-row.user {
+      flex-direction: row-reverse;
+    }
+
+    .pakhlai-ai .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      border: var(--border-width) solid var(--color-border);
+    }
+
+    .pakhlai-ai .message-row.assistant .message-avatar {
+      background: var(--color-accent-soft);
+      color: var(--color-accent-text);
+      border-color: transparent;
+    }
+
+    .pakhlai-ai .message-row.user .message-avatar {
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
+    }
+
+    .pakhlai-ai .message-body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      min-width: 0;
+      max-width: 78%;
+    }
+
+    .pakhlai-ai .message-row.user .message-body {
+      align-items: flex-end;
+    }
+
+    .pakhlai-ai .message-bubble {
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      font-size: var(--text-body);
+      line-height: var(--line-height);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .pakhlai-ai .message-row.assistant .message-bubble {
+      background: var(--color-assistant-bubble);
+      border: var(--border-width) solid var(--color-assistant-bubble-border);
+      color: var(--color-text-primary);
+      border-top-left-radius: var(--space-1);
+    }
+
+    .pakhlai-ai .message-row.user .message-bubble {
+      background: var(--color-user-bubble);
+      color: var(--color-user-bubble-text);
+      border-top-right-radius: var(--space-1);
+    }
+
+    .pakhlai-ai .message-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-caption);
+      color: var(--color-text-muted);
+      padding: 0 var(--space-1);
+    }
+
+    .pakhlai-ai .message-row.user .message-meta {
+      flex-direction: row-reverse;
+    }
+
+    .pakhlai-ai .copy-btn {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      font-family: inherit;
+      font-size: var(--text-caption);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: var(--space-1);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .pakhlai-ai .copy-btn:hover {
+      background: var(--color-bg);
+      color: var(--color-accent);
+    }
+
+    .pakhlai-ai .copy-btn:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    /* ---------- AI thinking animation ---------- */
+    .pakhlai-ai .thinking-row {
+      display: flex;
+      gap: var(--space-3);
+      max-width: 100%;
+      animation: ai-messageIn 250ms ease both;
+    }
+
+    .pakhlai-ai .thinking-bubble {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-assistant-bubble);
+      border: var(--border-width) solid var(--color-assistant-bubble-border);
+      border-radius: var(--radius-md);
+      border-top-left-radius: var(--space-1);
+      min-width: 180px;
+    }
+
+    .pakhlai-ai .thinking-dots {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .thinking-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      display: inline-block;
+      animation: ai-dotPulse 1.4s ease-in-out infinite;
+    }
+
+    .pakhlai-ai .thinking-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .pakhlai-ai .thinking-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes ai-dotPulse {
+      0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .pakhlai-ai .thinking-label {
+      font-size: var(--text-label);
+      color: var(--color-text-secondary);
+    }
+
+    .pakhlai-ai .thinking-label .phase {
+      font-weight: 500;
+      color: var(--color-accent);
+    }
+
+    /* ---------- typewriter cursor ---------- */
+    .pakhlai-ai .typewriter-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--color-accent);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: ai-blink 0.8s step-end infinite;
+    }
+
+    @keyframes ai-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ---------- system banner ---------- */
+    .pakhlai-ai .system-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: #fffbeb;
+      border: var(--border-width) solid #fde68a;
+      border-radius: var(--radius-sm);
+      color: #92400e;
+      font-size: var(--text-label);
+      line-height: 1.5;
+      animation: ai-messageIn 250ms ease both;
+    }
+
+    .pakhlai-ai .system-banner i {
+      color: var(--color-warning);
+      font-size: 15px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .system-banner strong {
+      font-weight: 600;
+    }
+
+    /* ============================================================
+       COMPOSER
+       ============================================================ */
+    .pakhlai-ai .composer {
+      padding: var(--space-4) var(--space-5);
+      border-top: var(--border-width) solid var(--color-border-subtle);
+      flex-shrink: 0;
+      background: var(--color-surface);
+    }
+
+    .pakhlai-ai .composer-inner {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-2);
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .pakhlai-ai .composer-inner:focus-within {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-soft);
+    }
+
+    .pakhlai-ai .composer textarea {
+      flex: 1;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-family: inherit;
+      font-size: var(--text-body);
+      line-height: var(--line-height);
+      color: var(--color-text-primary);
+      padding: var(--space-2) 0;
+      min-height: 24px;
+      max-height: 160px;
+      outline: none;
+    }
+
+    .pakhlai-ai .composer textarea::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .pakhlai-ai .composer-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding-bottom: var(--space-1);
+    }
+
+    .pakhlai-ai .composer-hint {
+      font-size: var(--text-caption);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      padding-right: var(--space-1);
+    }
+
+    .pakhlai-ai .send-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--color-accent);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .pakhlai-ai .send-btn:hover:not(:disabled) {
+      background: var(--color-accent-hover);
+    }
+
+    .pakhlai-ai .send-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .pakhlai-ai .send-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .pakhlai-ai .send-btn:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 768px) {
+      .pakhlai-ai .app-shell {
+        padding: var(--space-3);
+        gap: var(--space-3);
+      }
+
+      .pakhlai-ai .page-header {
+        padding-bottom: var(--space-3);
+      }
+
+      .pakhlai-ai .page-title-group h1 {
+        font-size: 22px;
+      }
+
+      .pakhlai-ai .brand-mark {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+      }
+
+      .pakhlai-ai .messages-scroll {
+        padding: var(--space-4);
+        gap: var(--space-4);
+      }
+
+      .pakhlai-ai .composer {
+        padding: var(--space-3) var(--space-4);
+      }
+
+      .pakhlai-ai .composer-hint {
+        display: none;
+      }
+
+      .pakhlai-ai .suggestion-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pakhlai-ai .message-body {
+        max-width: 85%;
+      }
+
+      .pakhlai-ai .chat-card-header {
+        padding: var(--space-3) var(--space-4);
+      }
+
+      .pakhlai-ai .status-pill {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .pakhlai-ai .page-header-left {
+        gap: var(--space-2);
+      }
+
+      .pakhlai-ai .page-title-group h1 {
+        font-size: 20px;
+      }
+
+      .pakhlai-ai .page-title-group p {
+        display: none;
+      }
+
+      .pakhlai-ai .welcome h2 {
+        font-size: 17px;
+      }
+    }
+
+    .pakhlai-ai .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  
+
+/* Minimal integration: dynamic viewport, history drawer, Markdown and RTL. */
+.pakhlai-ai { height: 100dvh; width: 100%; position: relative; isolation: isolate; }
+.pakhlai-ai .app-shell { height: 100%; }
+/* Reveal updates are already coalesced per frame. Queued smooth scrolls would
+   compete with a reader scrolling upward during a long answer. */
+.pakhlai-ai .messages-scroll { scroll-behavior: auto; overflow-anchor: none; }
+.pakhlai-ai button, .pakhlai-ai select { font: inherit; }
+.pakhlai-ai a.icon-btn { text-decoration: none; }
+.pakhlai-ai button:disabled { cursor: not-allowed; opacity: .5; }
+.pakhlai-ai svg { flex-shrink: 0; }
+.pakhlai-ai .chat-heading { min-width: 0; }
+.pakhlai-ai .language-control { display: flex; align-items: center; gap: 4px; color: var(--color-text-secondary); }
+.pakhlai-ai .language-control select { border: 0; background: transparent; color: inherit; max-width: 115px; padding: 4px; font-size: 12px; }
+.pakhlai-ai .suggestion-card { text-align: start; }
+.pakhlai-ai .suggestion-card svg { color: var(--color-accent); margin-top: 2px; }
+.pakhlai-ai .message-bubble { text-align: start; }
+.pakhlai-ai .message-row.historical { animation: none; }
+.pakhlai-ai .message-row.assistant .message-bubble { white-space: normal; }
+.pakhlai-ai .ai-markdown { overflow-wrap: anywhere; }
+.pakhlai-ai .ai-markdown p + p, .pakhlai-ai .ai-markdown ul, .pakhlai-ai .ai-markdown ol,
+.pakhlai-ai .ai-markdown pre, .pakhlai-ai .ai-markdown table { margin-block: 8px; }
+.pakhlai-ai .ai-markdown li > p { margin: 0; }
+.pakhlai-ai .ai-markdown ul { padding-inline-start: 22px; list-style: disc; }
+.pakhlai-ai .ai-markdown ol { padding-inline-start: 22px; list-style: decimal; }
+.pakhlai-ai .ai-markdown li { margin-block: 3px; }
+.pakhlai-ai .ai-markdown h1, .pakhlai-ai .ai-markdown h2, .pakhlai-ai .ai-markdown h3 { font-size: 16px; font-weight: 600; margin-block: 10px 4px; }
+.pakhlai-ai .ai-markdown strong { font-weight: 600; }
+.pakhlai-ai .ai-markdown code { background: #f0f1f3; border-radius: 4px; padding: 1px 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; unicode-bidi: isolate; }
+.pakhlai-ai .ai-markdown pre { overflow-x: auto; background: #f0f1f3; padding: 12px; border-radius: 8px; direction: ltr; text-align: left; }
+.pakhlai-ai .ai-markdown pre code { padding: 0; white-space: pre; }
+.pakhlai-ai .ai-markdown a { color: var(--color-accent-text); text-decoration: underline; }
+.pakhlai-ai .markdown-table { overflow-x: auto; max-width: 100%; }
+.pakhlai-ai .ai-markdown table { border-collapse: collapse; font-size: 13px; }
+.pakhlai-ai .ai-markdown th, .pakhlai-ai .ai-markdown td { border: 1px solid var(--color-border); padding: 6px 10px; text-align: start; }
+.pakhlai-ai .ai-markdown th { background: var(--color-bg); font-weight: 600; }
+.pakhlai-ai .ai-markdown blockquote { border-inline-start: 3px solid var(--color-border); padding-inline-start: 12px; color: var(--color-text-secondary); }
+.pakhlai-ai .skip-animation { margin-block-start: 8px; color: var(--color-accent-text); }
+.pakhlai-ai .message-sources { font-size: 12px; color: var(--color-text-secondary); padding: 8px 4px 0; }
+.pakhlai-ai .message-sources strong { display: flex; align-items: center; gap: 4px; font-weight: 500; }
+.pakhlai-ai .message-sources ul { padding-inline-start: 16px; list-style: disc; margin-block-start: 4px; }
+.pakhlai-ai .composer textarea { min-width: 0; }
+.pakhlai-ai .composer-help { display: flex; justify-content: space-between; gap: 8px; color: var(--color-text-muted); font-size: 11px; padding-block-start: 6px; }
+.pakhlai-ai .input-invalid { color: var(--color-danger); }
+.pakhlai-ai .history-backdrop { position: absolute; inset: 0; background: #11182740; z-index: 50; display: flex; }
+.pakhlai-ai .history-panel { width: min(340px, 90%); background: var(--color-surface); border-inline-end: 1px solid var(--color-border); box-shadow: var(--shadow-dropdown); display: flex; flex-direction: column; padding: 20px; }
+.pakhlai-ai .history-panel header, .pakhlai-ai .history-panel h2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pakhlai-ai .history-panel h2 { font-size: 16px; font-weight: 600; }
+.pakhlai-ai .history-new { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--color-accent-soft); color: var(--color-accent-text); border: 1px solid var(--color-border); border-radius: 8px; padding: 10px; margin-block: 12px; cursor: pointer; }
+.pakhlai-ai .history-items { overflow-y: auto; min-height: 0; }
+.pakhlai-ai .history-item { display: block; width: 100%; text-align: start; border: 1px solid transparent; border-radius: 8px; background: transparent; padding: 12px; color: var(--color-text-secondary); cursor: pointer; overflow-wrap: anywhere; }
+.pakhlai-ai .history-item.selected, .pakhlai-ai .history-item:hover { background: var(--color-accent-soft); color: var(--color-accent-text); }
+.pakhlai-ai .history-error { color: var(--color-danger); font-size: 13px; margin-block: 12px; }
+.pakhlai-ai [dir=auto] { unicode-bidi: plaintext; }
+.pakhlai-ai[dir=rtl] .message-row.assistant .message-bubble, .pakhlai-ai[dir=rtl] .thinking-bubble { border-top-left-radius: var(--radius-md); border-top-right-radius: var(--space-1); }
+.pakhlai-ai[dir=rtl] .message-row.user .message-bubble { border-top-right-radius: var(--radius-md); border-top-left-radius: var(--space-1); }
+.pakhlai-ai[dir=rtl] .page-header-left > a svg { transform: rotate(180deg); }
+@media (max-width: 480px) {
+  .pakhlai-ai .page-header { gap: 4px; }
+  .pakhlai-ai .page-header-left { min-width: 0; flex: 1; }
+  .pakhlai-ai .brand-mark { width: 30px; height: 30px; }
+  .pakhlai-ai .page-title-group h1 { font-size: 17px; }
+  .pakhlai-ai .language-control svg { display: none; }
+  .pakhlai-ai .language-control select { max-width: 72px; }
+  .pakhlai-ai .message-body { max-width: calc(100% - 44px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pakhlai-ai *, .pakhlai-ai *::before, .pakhlai-ai *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

@@ -12,7 +12,7 @@ const rolesWithHeaderLogout = new Set([
   "OperationsManager",
 ]);
 
-export default function RequireAuth({ children, allowedRoles = [] }) {
+export default function RequireAuth({ children, allowedRoles = [], showPortalLogout = true }) {
   const { auth } = useContext(AuthContext);
   const location = useLocation();
   // console.log(auth);
@@ -42,7 +42,7 @@ export default function RequireAuth({ children, allowedRoles = [] }) {
   return (
     <>
       {children}
-      {!rolesWithHeaderLogout.has(role) && <PortalLogoutButton />}
+      {showPortalLogout && !rolesWithHeaderLogout.has(role) && <PortalLogoutButton />}
     </>
   );
 }
