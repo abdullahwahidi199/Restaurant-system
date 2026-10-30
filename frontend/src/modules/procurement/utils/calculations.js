@@ -1,4 +1,4 @@
-import { todayISO } from "../../shared/erp/formatters";
+import { todayISO } from "../../shared/erp/formatters.js";
 
 export const displayUnit = (unit) => {
   if (unit === "g") return "kg";

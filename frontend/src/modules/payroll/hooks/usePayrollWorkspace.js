@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   approvePayroll,
@@ -7,10 +7,10 @@ import {
   generatePayroll,
   getPayroll,
   getPayrollDashboard,
-  getPayrollPayments,
-  getPayrolls,
+  getAllPayrollPayments,
+  getAllPayrolls,
   getPayrollStaff,
-  getSalaryAdvances,
+  getAllSalaryAdvances,
   getStaffPayrollHistory,
   updateStaffSalaryProfile,
 } from "../services/payrollApi";
@@ -48,6 +48,13 @@ export default function usePayrollWorkspace({
   const [paymentForm, setPaymentForm] = useState(blankPayment);
   const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const moduleRequestRef = useRef(0);
+  const payrollRequestRef = useRef(0);
+  const paymentRequestRef = useRef(0);
+  const advanceRequestRef = useRef(0);
+  const previousRecordFiltersRef = useRef({ search: "", status: "", period_type: "" });
+  const previousPaymentSearchRef = useRef("");
+  const previousAdvanceSearchRef = useRef("");
 
   const staffOptions = useMemo(
     () =>
@@ -86,45 +93,72 @@ export default function usePayrollWorkspace({
   }, []);
 
   const loadPayrollList = useCallback(async () => {
-    const res = await getPayrolls({
-      page_size: 100,
-      search: recordFilters.search || undefined,
-      status: recordFilters.status || undefined,
-      period_type: recordFilters.period_type || undefined,
-    });
-    setPayrolls(listFrom(res.data));
-  }, [recordFilters.period_type, recordFilters.search, recordFilters.status]);
+    const request = ++payrollRequestRef.current;
+    try {
+      const allPayrolls = await getAllPayrolls({
+        search: recordFilters.search || undefined,
+        status: recordFilters.status || undefined,
+        period_type: recordFilters.period_type || undefined,
+      });
+      if (request === payrollRequestRef.current) setPayrolls(allPayrolls);
+    } catch (err) {
+      if (request === payrollRequestRef.current) {
+        handleApiError(err, "Failed to refresh payroll records.");
+      }
+    }
+  }, [handleApiError, recordFilters.period_type, recordFilters.search, recordFilters.status]);
 
   const loadPayments = useCallback(async () => {
-    const res = await getPayrollPayments({ page_size: 100, search: paymentSearch || undefined });
-    setPayments(listFrom(res.data));
-  }, [paymentSearch]);
+    const request = ++paymentRequestRef.current;
+    try {
+      const allPayments = await getAllPayrollPayments({ search: paymentSearch || undefined });
+      if (request === paymentRequestRef.current) setPayments(allPayments);
+    } catch (err) {
+      if (request === paymentRequestRef.current) {
+        handleApiError(err, "Failed to refresh payroll payments.");
+      }
+    }
+  }, [handleApiError, paymentSearch]);
 
   const loadAdvances = useCallback(async () => {
-    const res = await getSalaryAdvances({ page_size: 100, search: advanceSearch || undefined });
-    setAdvances(listFrom(res.data));
-  }, [advanceSearch]);
+    const request = ++advanceRequestRef.current;
+    try {
+      const allAdvances = await getAllSalaryAdvances({ search: advanceSearch || undefined });
+      if (request === advanceRequestRef.current) setAdvances(allAdvances);
+    } catch (err) {
+      if (request === advanceRequestRef.current) {
+        handleApiError(err, "Failed to refresh salary advances.");
+      }
+    }
+  }, [advanceSearch, handleApiError]);
 
   const loadModule = useCallback(async () => {
+    const moduleRequest = ++moduleRequestRef.current;
+    const payrollRequest = ++payrollRequestRef.current;
+    const paymentRequest = ++paymentRequestRef.current;
+    const advanceRequest = ++advanceRequestRef.current;
     setLoading(true);
     setError("");
     try {
-      const [dashboardRes, staffRes, payrollRes, paymentRes, advanceRes] = await Promise.all([
+      const [dashboardRes, staffRes, allPayrolls, allPayments, allAdvances] = await Promise.all([
         getPayrollDashboard(),
         getPayrollStaff(),
-        getPayrolls({ page_size: 100 }),
-        getPayrollPayments({ page_size: 100 }),
-        getSalaryAdvances({ page_size: 100 }),
+        getAllPayrolls(),
+        getAllPayrollPayments(),
+        getAllSalaryAdvances(),
       ]);
+      if (moduleRequest !== moduleRequestRef.current) return;
       setDashboard(dashboardRes.data);
       setStaff(Array.isArray(staffRes.data) ? staffRes.data : listFrom(staffRes.data));
-      setPayrolls(listFrom(payrollRes.data));
-      setPayments(listFrom(paymentRes.data));
-      setAdvances(listFrom(advanceRes.data));
+      if (payrollRequest === payrollRequestRef.current) setPayrolls(allPayrolls);
+      if (paymentRequest === paymentRequestRef.current) setPayments(allPayments);
+      if (advanceRequest === advanceRequestRef.current) setAdvances(allAdvances);
     } catch (err) {
-      handleApiError(err, "Failed to load payroll module.");
+      if (moduleRequest === moduleRequestRef.current) {
+        handleApiError(err, "Failed to load payroll module.");
+      }
     } finally {
-      setLoading(false);
+      if (moduleRequest === moduleRequestRef.current) setLoading(false);
     }
   }, [handleApiError]);
 
@@ -147,7 +181,15 @@ export default function usePayrollWorkspace({
   }, [handleApiError]);
 
   useEffect(() => setActiveTab(initialView), [initialView]);
-  useEffect(() => void loadModule(), [loadModule]);
+  useEffect(() => {
+    void loadModule();
+    return () => {
+      moduleRequestRef.current += 1;
+      payrollRequestRef.current += 1;
+      paymentRequestRef.current += 1;
+      advanceRequestRef.current += 1;
+    };
+  }, [loadModule]);
   useEffect(() => {
     if (!openPayrollId) return;
     setActiveTab("records");
@@ -159,17 +201,35 @@ export default function usePayrollWorkspace({
     void loadEmployeeHistory(openStaffId);
   }, [openStaffId, loadEmployeeHistory]);
   useEffect(() => {
+    const previous = previousRecordFiltersRef.current;
+    if (
+      previous.search === recordFilters.search &&
+      previous.status === recordFilters.status &&
+      previous.period_type === recordFilters.period_type
+    ) return;
+    previousRecordFiltersRef.current = {
+      search: recordFilters.search,
+      status: recordFilters.status,
+      period_type: recordFilters.period_type,
+    };
+    payrollRequestRef.current += 1;
     const delay = setTimeout(() => void loadPayrollList(), 350);
     return () => clearTimeout(delay);
-  }, [loadPayrollList]);
+  }, [loadPayrollList, recordFilters.period_type, recordFilters.search, recordFilters.status]);
   useEffect(() => {
+    if (previousPaymentSearchRef.current === paymentSearch) return;
+    previousPaymentSearchRef.current = paymentSearch;
+    paymentRequestRef.current += 1;
     const delay = setTimeout(() => void loadPayments(), 350);
     return () => clearTimeout(delay);
-  }, [loadPayments]);
+  }, [loadPayments, paymentSearch]);
   useEffect(() => {
+    if (previousAdvanceSearchRef.current === advanceSearch) return;
+    previousAdvanceSearchRef.current = advanceSearch;
+    advanceRequestRef.current += 1;
     const delay = setTimeout(() => void loadAdvances(), 350);
     return () => clearTimeout(delay);
-  }, [loadAdvances]);
+  }, [advanceSearch, loadAdvances]);
   useEffect(() => {
     const staffMember = employeeHistory?.staff;
     if (!staffMember) return;

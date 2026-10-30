@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   approveContractorInvoice,
@@ -10,12 +10,12 @@ import {
   deleteContractorInvoiceAttachment,
   getContractorInvoice,
   getContractorInvoiceAttachmentBlob,
-  getContractorInvoices,
+  getAllContractorInvoices,
   getContractorLedger,
-  getContractorPayments,
+  getAllContractorPayments,
   getContractorSummary,
-  getContractors,
-  getServiceContracts,
+  getAllContractors,
+  getAllServiceContracts,
   updateContractor,
   uploadContractorInvoiceAttachments,
 } from "../services/contractorApi";
@@ -27,7 +27,7 @@ import {
   blankPayment,
 } from "../constants";
 import { getPayableInvoices, getTopContractors } from "../utils/calculations";
-import { listFrom, todayISO } from "../../shared/erp/formatters";
+import { todayISO } from "../../shared/erp/formatters";
 
 export default function useContractorWorkspace({
   initialView = "dashboard",
@@ -60,6 +60,14 @@ export default function useContractorWorkspace({
   const [paymentForm, setPaymentForm] = useState(blankPayment);
   const [attachmentPreview, setAttachmentPreview] = useState(null);
   const [invoiceForm, setInvoiceForm] = useState(blankInvoiceForm);
+  const moduleRequestRef = useRef(0);
+  const contractorRequestRef = useRef(0);
+  const contractRequestRef = useRef(0);
+  const invoiceRequestRef = useRef(0);
+  const paymentRequestRef = useRef(0);
+  const previousContractFiltersRef = useRef({ search: "", status: "" });
+  const previousInvoiceFiltersRef = useRef({ search: "", status: "", contractor: "" });
+  const previousPaymentSearchRef = useRef("");
 
   const contractorOptions = useMemo(
     () => contractors.map((contractor) => ({ value: contractor.id, label: contractor.name })),
@@ -90,54 +98,88 @@ export default function useContractorWorkspace({
   }, []);
 
   const loadContractors = useCallback(async () => {
-    const res = await getContractors({ page_size: 100 });
-    setContractors(listFrom(res.data));
-  }, []);
+    const request = ++contractorRequestRef.current;
+    try {
+      const allContractors = await getAllContractors();
+      if (request === contractorRequestRef.current) setContractors(allContractors);
+    } catch (err) {
+      if (request === contractorRequestRef.current) {
+        handleApiError(err, "Failed to refresh contractors.");
+      }
+    }
+  }, [handleApiError]);
 
   const loadContracts = useCallback(async () => {
-    const res = await getServiceContracts({
-      page_size: 100,
-      search: contractFilters.search || undefined,
-      status: contractFilters.status || undefined,
-    });
-    setContracts(listFrom(res.data));
-  }, [contractFilters.search, contractFilters.status]);
+    const request = ++contractRequestRef.current;
+    try {
+      const allContracts = await getAllServiceContracts({
+        search: contractFilters.search || undefined,
+        status: contractFilters.status || undefined,
+      });
+      if (request === contractRequestRef.current) setContracts(allContracts);
+    } catch (err) {
+      if (request === contractRequestRef.current) {
+        handleApiError(err, "Failed to refresh service contracts.");
+      }
+    }
+  }, [contractFilters.search, contractFilters.status, handleApiError]);
 
   const loadInvoices = useCallback(async () => {
-    const res = await getContractorInvoices({
-      page_size: 100,
-      search: invoiceFilters.search || undefined,
-      status: invoiceFilters.status || undefined,
-      contractor: invoiceFilters.contractor || undefined,
-    });
-    setInvoices(listFrom(res.data));
-  }, [invoiceFilters.contractor, invoiceFilters.search, invoiceFilters.status]);
+    const request = ++invoiceRequestRef.current;
+    try {
+      const allInvoices = await getAllContractorInvoices({
+        search: invoiceFilters.search || undefined,
+        status: invoiceFilters.status || undefined,
+        contractor: invoiceFilters.contractor || undefined,
+      });
+      if (request === invoiceRequestRef.current) setInvoices(allInvoices);
+    } catch (err) {
+      if (request === invoiceRequestRef.current) {
+        handleApiError(err, "Failed to refresh service invoices.");
+      }
+    }
+  }, [handleApiError, invoiceFilters.contractor, invoiceFilters.search, invoiceFilters.status]);
 
   const loadPayments = useCallback(async () => {
-    const res = await getContractorPayments({ page_size: 100, search: paymentSearch || undefined });
-    setPayments(listFrom(res.data));
-  }, [paymentSearch]);
+    const request = ++paymentRequestRef.current;
+    try {
+      const allPayments = await getAllContractorPayments({ search: paymentSearch || undefined });
+      if (request === paymentRequestRef.current) setPayments(allPayments);
+    } catch (err) {
+      if (request === paymentRequestRef.current) {
+        handleApiError(err, "Failed to refresh contractor payments.");
+      }
+    }
+  }, [handleApiError, paymentSearch]);
 
   const loadContractorModule = useCallback(async () => {
+    const moduleRequest = ++moduleRequestRef.current;
+    const contractorRequest = ++contractorRequestRef.current;
+    const contractRequest = ++contractRequestRef.current;
+    const invoiceRequest = ++invoiceRequestRef.current;
+    const paymentRequest = ++paymentRequestRef.current;
     setLoading(true);
     setError("");
     try {
-      const [summaryRes, contractorRes, contractRes, invoiceRes, paymentRes] = await Promise.all([
+      const [summaryRes, allContractors, allContracts, allInvoices, allPayments] = await Promise.all([
         getContractorSummary(),
-        getContractors({ page_size: 100 }),
-        getServiceContracts({ page_size: 100 }),
-        getContractorInvoices({ page_size: 100 }),
-        getContractorPayments({ page_size: 100 }),
+        getAllContractors(),
+        getAllServiceContracts(),
+        getAllContractorInvoices(),
+        getAllContractorPayments(),
       ]);
+      if (moduleRequest !== moduleRequestRef.current) return;
       setSummary(summaryRes.data);
-      setContractors(listFrom(contractorRes.data));
-      setContracts(listFrom(contractRes.data));
-      setInvoices(listFrom(invoiceRes.data));
-      setPayments(listFrom(paymentRes.data));
+      if (contractorRequest === contractorRequestRef.current) setContractors(allContractors);
+      if (contractRequest === contractRequestRef.current) setContracts(allContracts);
+      if (invoiceRequest === invoiceRequestRef.current) setInvoices(allInvoices);
+      if (paymentRequest === paymentRequestRef.current) setPayments(allPayments);
     } catch (err) {
-      handleApiError(err, "Failed to load contractor module.");
+      if (moduleRequest === moduleRequestRef.current) {
+        handleApiError(err, "Failed to load contractor module.");
+      }
     } finally {
-      setLoading(false);
+      if (moduleRequest === moduleRequestRef.current) setLoading(false);
     }
   }, [handleApiError]);
 
@@ -160,7 +202,16 @@ export default function useContractorWorkspace({
   }, [handleApiError]);
 
   useEffect(() => setActiveTab(initialView), [initialView]);
-  useEffect(() => void loadContractorModule(), [loadContractorModule]);
+  useEffect(() => {
+    void loadContractorModule();
+    return () => {
+      moduleRequestRef.current += 1;
+      contractorRequestRef.current += 1;
+      contractRequestRef.current += 1;
+      invoiceRequestRef.current += 1;
+      paymentRequestRef.current += 1;
+    };
+  }, [loadContractorModule]);
   useEffect(() => {
     if (!openInvoiceId) return;
     setActiveTab("invoices");
@@ -172,17 +223,36 @@ export default function useContractorWorkspace({
     void loadContractorProfile(openContractorId);
   }, [openContractorId, loadContractorProfile]);
   useEffect(() => {
+    const previous = previousInvoiceFiltersRef.current;
+    if (
+      previous.search === invoiceFilters.search &&
+      previous.status === invoiceFilters.status &&
+      previous.contractor === invoiceFilters.contractor
+    ) return;
+    previousInvoiceFiltersRef.current = {
+      search: invoiceFilters.search,
+      status: invoiceFilters.status,
+      contractor: invoiceFilters.contractor,
+    };
+    invoiceRequestRef.current += 1;
     const delay = setTimeout(() => void loadInvoices(), 350);
     return () => clearTimeout(delay);
-  }, [loadInvoices]);
+  }, [invoiceFilters.contractor, invoiceFilters.search, invoiceFilters.status, loadInvoices]);
   useEffect(() => {
+    const previous = previousContractFiltersRef.current;
+    if (previous.search === contractFilters.search && previous.status === contractFilters.status) return;
+    previousContractFiltersRef.current = { search: contractFilters.search, status: contractFilters.status };
+    contractRequestRef.current += 1;
     const delay = setTimeout(() => void loadContracts(), 350);
     return () => clearTimeout(delay);
-  }, [loadContracts]);
+  }, [contractFilters.search, contractFilters.status, loadContracts]);
   useEffect(() => {
+    if (previousPaymentSearchRef.current === paymentSearch) return;
+    previousPaymentSearchRef.current = paymentSearch;
+    paymentRequestRef.current += 1;
     const delay = setTimeout(() => void loadPayments(), 350);
     return () => clearTimeout(delay);
-  }, [loadPayments]);
+  }, [loadPayments, paymentSearch]);
 
   const reloadMoneyData = async () => {
     await Promise.all([loadSummary(), loadContractors(), loadInvoices(), loadPayments(), loadContracts()]);

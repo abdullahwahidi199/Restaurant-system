@@ -1,10 +1,14 @@
 import instance from "./axiosInstance";
+import { fetchAllPages } from "../modules/shared/erp/pagination.js";
 
 export const getContractorSummary = () =>
   instance.get("/contractors/summary/");
 
 export const getContractors = (params) =>
   instance.get("/contractors/contractors/", { params });
+
+export const getAllContractors = (params) =>
+  fetchAllPages(getContractors, params);
 
 export const createContractor = (data) =>
   instance.post("/contractors/contractors/", data);
@@ -21,6 +25,9 @@ export const getContractorLedger = (id) =>
 export const getServiceContracts = (params) =>
   instance.get("/contractors/contracts/", { params });
 
+export const getAllServiceContracts = (params) =>
+  fetchAllPages(getServiceContracts, params);
+
 export const createServiceContract = (data) =>
   instance.post("/contractors/contracts/", data);
 
@@ -29,6 +36,9 @@ export const updateServiceContract = (id, data) =>
 
 export const getContractorInvoices = (params) =>
   instance.get("/contractors/invoices/", { params });
+
+export const getAllContractorInvoices = (params) =>
+  fetchAllPages(getContractorInvoices, params);
 
 export const getContractorInvoice = (id) =>
   instance.get(`/contractors/invoices/${id}/`);
@@ -64,6 +74,9 @@ export const deleteContractorInvoiceAttachment = (invoiceId, attachmentId) =>
 
 export const getContractorPayments = (params) =>
   instance.get("/contractors/payments/", { params });
+
+export const getAllContractorPayments = (params) =>
+  fetchAllPages(getContractorPayments, params);
 
 export const createContractorPayment = (data) =>
   instance.post("/contractors/payments/", data);

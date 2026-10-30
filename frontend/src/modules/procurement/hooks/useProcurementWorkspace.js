@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   approvePurchaseInvoice,
   createPurchaseInvoice,
@@ -7,13 +7,13 @@ import {
   deleteSupplier,
   deletePurchaseInvoiceAttachment,
   getProcurementIngredients,
+  getAllPurchaseInvoices,
+  getAllSupplierPayments,
   getPurchaseInvoice,
   getPurchaseInvoiceAttachmentBlob,
-  getPurchaseInvoices,
   getSupplierLedger,
   getSupplierPaymentVoucher,
   getSupplierPaymentVoucherPdf,
-  getSupplierPayments,
   getSuppliers,
   updateSupplier,
   uploadPurchaseInvoiceAttachments,
@@ -55,6 +55,10 @@ export default function useProcurementWorkspace({
   const [attachmentPreview, setAttachmentPreview] = useState(null);
   const [voucherPreview, setVoucherPreview] = useState(null);
   const [invoiceForm, setInvoiceForm] = useState(blankInvoiceForm);
+  const invoiceRequestRef = useRef(0);
+  const paymentRequestRef = useRef(0);
+  const previousInvoiceFiltersRef = useRef({ search: "", status: "" });
+  const previousPaymentSearchRef = useRef("");
 
   const ingredientMap = useMemo(
     () =>
@@ -101,19 +105,21 @@ export default function useProcurementWorkspace({
   }, []);
 
   const loadProcurement = useCallback(async () => {
+    const invoiceRequest = ++invoiceRequestRef.current;
+    const paymentRequest = ++paymentRequestRef.current;
     setLoading(true);
     setError("");
     try {
-      const [ingredientRes, supplierRes, invoiceRes, paymentRes] = await Promise.all([
+      const [ingredientRes, supplierRes, allInvoices, allPayments] = await Promise.all([
         getProcurementIngredients(),
         getSuppliers(),
-        getPurchaseInvoices({ page: 1, page_size: 100 }),
-        getSupplierPayments({ page: 1, page_size: 100 }),
+        getAllPurchaseInvoices(),
+        getAllSupplierPayments(),
       ]);
       setIngredients(listFrom(ingredientRes.data));
       setSuppliers(listFrom(supplierRes.data));
-      setInvoices(listFrom(invoiceRes.data));
-      setPayments(listFrom(paymentRes.data));
+      if (invoiceRequest === invoiceRequestRef.current) setInvoices(allInvoices);
+      if (paymentRequest === paymentRequestRef.current) setPayments(allPayments);
     } catch (err) {
       handleApiError(err, "Failed to load procurement data.");
     } finally {
@@ -122,29 +128,31 @@ export default function useProcurementWorkspace({
   }, [handleApiError]);
 
   const loadInvoices = useCallback(async () => {
+    const request = ++invoiceRequestRef.current;
     try {
-      const res = await getPurchaseInvoices({
-        page: 1,
-        page_size: 100,
+      const allInvoices = await getAllPurchaseInvoices({
         search: invoiceFilters.search || undefined,
         status: invoiceFilters.status || undefined,
       });
-      setInvoices(listFrom(res.data));
+      if (request === invoiceRequestRef.current) setInvoices(allInvoices);
     } catch (err) {
-      handleApiError(err, "Failed to refresh invoices.");
+      if (request === invoiceRequestRef.current) {
+        handleApiError(err, "Failed to refresh invoices.");
+      }
     }
   }, [handleApiError, invoiceFilters.search, invoiceFilters.status]);
 
   const loadPayments = useCallback(async () => {
+    const request = ++paymentRequestRef.current;
     try {
-      const res = await getSupplierPayments({
-        page: 1,
-        page_size: 100,
+      const allPayments = await getAllSupplierPayments({
         search: paymentSearch || undefined,
       });
-      setPayments(listFrom(res.data));
+      if (request === paymentRequestRef.current) setPayments(allPayments);
     } catch (err) {
-      handleApiError(err, "Failed to refresh payments.");
+      if (request === paymentRequestRef.current) {
+        handleApiError(err, "Failed to refresh payments.");
+      }
     }
   }, [handleApiError, paymentSearch]);
 
@@ -167,7 +175,13 @@ export default function useProcurementWorkspace({
   }, [handleApiError]);
 
   useEffect(() => setActiveTab(initialView), [initialView]);
-  useEffect(() => void loadProcurement(), [loadProcurement]);
+  useEffect(() => {
+    void loadProcurement();
+    return () => {
+      invoiceRequestRef.current += 1;
+      paymentRequestRef.current += 1;
+    };
+  }, [loadProcurement]);
   useEffect(() => {
     if (!openInvoiceId) return;
     setActiveTab("invoices");
@@ -179,13 +193,20 @@ export default function useProcurementWorkspace({
     void openLedger({ id: openSupplierId });
   }, [openSupplierId, openLedger]);
   useEffect(() => {
+    const previous = previousInvoiceFiltersRef.current;
+    if (previous.search === invoiceFilters.search && previous.status === invoiceFilters.status) return;
+    previousInvoiceFiltersRef.current = { search: invoiceFilters.search, status: invoiceFilters.status };
+    invoiceRequestRef.current += 1;
     const delay = setTimeout(() => void loadInvoices(), 400);
     return () => clearTimeout(delay);
-  }, [loadInvoices]);
+  }, [invoiceFilters.search, invoiceFilters.status, loadInvoices]);
   useEffect(() => {
+    if (previousPaymentSearchRef.current === paymentSearch) return;
+    previousPaymentSearchRef.current = paymentSearch;
+    paymentRequestRef.current += 1;
     const delay = setTimeout(() => void loadPayments(), 400);
     return () => clearTimeout(delay);
-  }, [loadPayments]);
+  }, [loadPayments, paymentSearch]);
 
   const updateInvoiceField = (field, value) => {
     setInvoiceForm((current) => {

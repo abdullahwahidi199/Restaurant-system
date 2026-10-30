@@ -1,4 +1,5 @@
 import instance from "./axiosInstance";
+import { fetchAllPages } from "../modules/procurement/utils/pagination.js";
 
 export const getProcurementIngredients = () =>
   instance.get("/inventory/ingredients/");
@@ -20,6 +21,9 @@ export const getSupplierLedger = (id) =>
 
 export const getPurchaseInvoices = (params) =>
   instance.get("/procurement/purchase-invoices/", { params });
+
+export const getAllPurchaseInvoices = (params) =>
+  fetchAllPages(getPurchaseInvoices, params);
 
 export const getPurchaseInvoice = (id) =>
   instance.get(`/procurement/purchase-invoices/${id}/`);
@@ -59,6 +63,9 @@ export const deletePurchaseInvoiceAttachment = (invoiceId, attachmentId) =>
 
 export const getSupplierPayments = (params) =>
   instance.get("/procurement/supplier-payments/", { params });
+
+export const getAllSupplierPayments = (params) =>
+  fetchAllPages(getSupplierPayments, params);
 
 export const createSupplierPayment = (data) =>
   instance.post("/procurement/supplier-payments/", data);
