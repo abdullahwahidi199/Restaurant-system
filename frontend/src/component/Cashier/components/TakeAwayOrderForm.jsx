@@ -22,6 +22,7 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "../../Admin/MenuManagement/menuOrdering";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 export default function TakeAwayForm() {
   const { t, i18n } = useTranslation();
@@ -218,8 +219,8 @@ export default function TakeAwayForm() {
       setShowCart(false);
       setFormData({ name: "", phone: "", note: "" });
     } catch (err) {
-      console.error(err);
-      toast.error(t("menu.messages.order_failed"));
+      console.error("Order creation failed:", err.response?.data || err);
+      toast.error(getApiErrorMessage(err, t("menu.messages.order_failed")));
     } finally {
       setSubmitting(false);
     }

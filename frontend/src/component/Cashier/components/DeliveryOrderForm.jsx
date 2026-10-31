@@ -22,6 +22,7 @@ import {
   mergeCategoryEntries,
   sortMenuCategories,
 } from "../../Admin/MenuManagement/menuOrdering";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 export default function DeliveryOrderForm() {
   const { t, i18n } = useTranslation();
@@ -231,26 +232,8 @@ export default function DeliveryOrderForm() {
         distance_km: "",
       });
     } catch (err) {
-      console.error(err);
-
-      const data = err?.response?.data;
-
-      // DRF non_field_errors
-      if (data?.non_field_errors?.length > 0) {
-        toast.error(data.non_field_errors[0]);
-      }
-
-      // DRF field errors
-      else if (typeof data === "object") {
-        const firstError = Object.values(data).flat().find(Boolean);
-
-        toast.error(firstError || t("menu.messages.order_failed"));
-      }
-
-      // fallback
-      else {
-        toast.error(t("menu.messages.order_failed"));
-      }
+      console.error("Order creation failed:", err.response?.data || err);
+      toast.error(getApiErrorMessage(err, t("menu.messages.order_failed")));
     } finally {
       setSubmitting(false);
     }

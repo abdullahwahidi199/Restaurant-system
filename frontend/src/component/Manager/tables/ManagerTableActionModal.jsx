@@ -168,7 +168,7 @@ export default function TableActionModal({ table, onClose, refetchTables }) {
           <p className="text-gray-700 text-sm">{autoT("legacy.capacity_218347e0")} {capacity}</p>
           {note && <p className="text-gray-600 italic text-sm">{autoT("legacy.note_83423c19")} {note}</p>}
 
-          {status === "available" && (
+          {status === "available" && !current_order && (
             <div className="space-y-3">
               <p className="text-gray-700">
                 {autoT("legacy.this_table_is_currently_available_you_can_start_a_new__2966a7f6")}
