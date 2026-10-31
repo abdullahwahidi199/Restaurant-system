@@ -86,7 +86,9 @@ class DocumentTests(SimpleTestCase):
         self.assertNotIn(ADMIN_DOC, ids)
         self.assertIn(DOC, ids)
         self.assertEqual(len(next(domain["tools"] for domain in capability_map["domains"] if domain["id"] == "contractors")), 13)
-        self.assertTrue(all(not domain["tools"] for domain in capability_map["domains"] if domain["id"] not in {"contractors", "finance"}))
+        self.assertTrue(all(not domain["tools"] for domain in capability_map["domains"] if domain["id"] not in {"contractors", "finance", "inventory", "procurement"}))
+        self.assertEqual(len(next(domain["tools"] for domain in capability_map["domains"] if domain["id"] == "inventory")), 18)
+        self.assertEqual(len(next(domain["tools"] for domain in capability_map["domains"] if domain["id"] == "procurement")), 12)
         self.assertEqual(len(next(domain["tools"] for domain in capability_map["domains"] if domain["id"] == "finance")), 5)
         self.assertNotIn("tool_hints", json.dumps(capability_map))
         with self.assertRaises(ValueError):

@@ -9,6 +9,7 @@ class OperationError(ValueError):
         "TOOL_NOT_REGISTERED": "This business tool is not registered.",
         "INVALID_PARAMETERS": "The parameters do not match the operation contract.",
         "RECORD_NOT_AVAILABLE": "The requested record is not available in the authorized scope.",
+        "AMBIGUOUS_RECORD": "Several authorized records match. Use the listing tool and select a record ID.",
         "INVALID_OUTPUT": "The tool returned an invalid result.",
         "EXECUTION_FAILED": "The operation could not be completed.",
         "TIMEOUT": "The operation exceeded its execution deadline.",

@@ -54,7 +54,7 @@ class ContractorToolTests(DatabaseFixture):
         advertised = next(domain["tools"] for domain in capabilities["domains"] if domain["id"] == "contractors")
         self.assertEqual({tool["id"] for tool in advertised}, expected)
         self.assertEqual(advertised, next(domain["tools"] for domain in self.documents.map["domains"] if domain["id"] == "contractors"))
-        self.assertTrue(all(not domain["tools"] for domain in capabilities["domains"] if domain["id"] not in {"contractors", "finance"}))
+        self.assertTrue(all(not domain["tools"] for domain in capabilities["domains"] if domain["id"] not in {"contractors", "finance", "inventory", "procurement"}))
 
     def test_contractor_directory_all_time_current_balances_and_inactive_profiles(self):
         result = self.call("list_contractors")

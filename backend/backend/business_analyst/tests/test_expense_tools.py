@@ -66,14 +66,14 @@ class ExpenseToolTests(DatabaseFixture):
             {"document_ids": list(documents), "tools": calls}, user=user,
             binding=principal_for(user).binding, deadline=time.monotonic() + 60)
 
-    def test_eighteen_registered_and_five_finance_contracts_match_complete_map(self):
-        self.assertEqual(len(definitions()), 18)
+    def test_all_registered_and_five_finance_contracts_match_complete_map(self):
+        self.assertEqual(len(definitions()), 48)
         self.assertEqual(len(expense_definitions()), 5)
         supplied = self.documents.capability_map(self.context.principal, self.registry)
         self.assertEqual(supplied, self.documents.map)
         finance = next(d for d in supplied["domains"] if d["id"] == "finance")
         self.assertEqual({t["id"] for t in finance["tools"]}, {t.id for t in expense_definitions()})
-        self.assertLess(len(json_bytes(supplied)), 100000)
+        self.assertLess(len(json_bytes(supplied)), 240000)
 
     def test_all_time_financial_summary_counts_saved_afn_once(self):
         result = self.call("get_expense_summary")

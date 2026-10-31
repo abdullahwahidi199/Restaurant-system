@@ -8,6 +8,10 @@ from django.contrib.auth import get_user_model
 from ai_assistant.errors import AssistantError
 from contractors.selectors import ContractorQueries, ContractorQueryError, money
 from expenses.selectors import ExpenseQueries, ExpenseQueryError
+from inventory.selectors import (
+    InventoryQueries, InventoryQueryError, authorize_inventory, inventory_operation_views,
+    json_values,
+)
 from .context import principal_for
 from .errors import OperationError
 from .registry import ToolDefinition
@@ -37,12 +41,18 @@ def operation_views(tool_id):
         "list_expense_history": (e.ExpenseHistoryApiView,),
         "get_expense_summary": (e.expensesApi.cls,),
         "get_expense_history_summary": (e.ExpenseHistoryApiView,),
-    }.get(tool_id, ())
+    }.get(tool_id, ()) or inventory_operation_views(tool_id)
 
 
 def authorize_tool(tool_id, context, parameters):
     context.check_deadline()
     principal = context.principal
+    if inventory_operation_views(tool_id):
+        try:
+            authorize_inventory(principal, tool_id)
+            return True
+        except InventoryQueryError:
+            return False
     if not principal.restaurant_id or not principal.branch_id or not principal.staff_id:
         return False
     User = get_user_model()
@@ -73,7 +83,7 @@ def business_tool(handler):
             raise OperationError("PERMISSION_DENIED")
         try:
             return handler(context, parameters)
-        except (ContractorQueryError, ExpenseQueryError) as exc:
+        except (ContractorQueryError, ExpenseQueryError, InventoryQueryError) as exc:
             raise OperationError(exc.code) from None
     return checked
 
@@ -96,6 +106,16 @@ def can_read_business_document(principal, document_id):
         "admin_finance_expense_detail_history": "list_expense_history",
     }
     tool_id = policy.get(document_id)
+    if document_id.startswith("admin_inventory_"):
+        tool_id = {
+            "admin_inventory_ingredients": "list_ingredients",
+            "admin_inventory_low_stock_alerts": "list_low_stock_ingredients",
+            "admin_inventory_stock_movements": "list_stock_movements",
+            "admin_inventory_stock_adjustments": "list_stock_movements",
+            "admin_inventory_stock_transfers": "list_stock_transfers",
+        }.get(document_id, "get_inventory_summary")
+    elif document_id.startswith("admin_procurement_"):
+        tool_id = "get_procurement_summary"
     return bool(tool_id) and authorize_tool(tool_id, ToolContext(principal, time.monotonic() + 5), {})
 
 
@@ -569,8 +589,466 @@ def expense_definitions():
         for handler, description, parameters, output, knowledge_ids in specs)
 
 
+# Inventory and Procurement contracts and thin handlers stay in this unified file.
+# Queries, financial semantics and scope enforcement live in inventory.selectors.
+DECIMAL = {"type": "string", "pattern": r"^-?\d+(?:\.\d+)?$"}
+NULL_DECIMAL = {"type": ["string", "null"], "pattern": r"^-?\d+(?:\.\d+)?$"}
+IP_DATES = {"date": date_filter("One business date; mutually exclusive with range bounds"),
+    "date_from": date_filter("Activity lower bound"), "date_to": date_filter("Activity upper bound")}
+IP_INGREDIENT = {"ingredient_id": identifier("Ingredient ID in the authorized population."),
+    "ingredient_name": {**SEARCH, "description": "Ingredient name substring; detail/profile requires an unambiguous match."}}
+IP_SUPPLIER = {"supplier_id": identifier("Supplier ID in the active branch."),
+    "supplier_name": {**SEARCH, "description": "Supplier name substring; detail/profile requires an unambiguous match."}}
+IP_INVOICE = {"invoice_id": identifier("Purchase invoice ID."),
+    "invoice_number": {**SEARCH, "description": "Stored invoice number substring; details require an unambiguous match."}}
+IP_STATUS = choice(["draft", "unpaid", "partially_paid", "paid"], "Stored invoice status; draft values are not recognized charges.")
+IP_MOVEMENT = choice(["purchase", "order", "adjustment", "waste", "production", "production_adjustment", "transfer_out", "transfer_in"], "Actual recorded stock movement category.")
+IP_STOCK_FILTERS = {**IP_INGREDIENT, "is_active": BOOLEAN,
+    "unit": choice(["kg", "g", "l", "ml", "pcs"], "Original physical stock unit."),
+    "stock_status": choice(["normal", "low_stock", "out_of_stock", "negative", "unknown"], "Current stock status; missing shared branch stock is unknown."),
+    "low_stock": BOOLEAN, "out_of_stock": BOOLEAN}
+IP_PURCHASE_FILTERS = {**IP_INGREDIENT, **IP_SUPPLIER, **IP_INVOICE, **IP_DATES,
+    "status": IP_STATUS, "is_inventory_posted": BOOLEAN}
+IP_PAYMENT_FILTERS = {**IP_SUPPLIER, **IP_INVOICE, **IP_DATES,
+    "payment_method": choice(["cash", "card", "bank_transfer", "mobile_money", "other"], "Recorded payment method.")}
+IP_MOVEMENT_FILTERS = {**IP_INGREDIENT, **IP_DATES, "movement_type": IP_MOVEMENT,
+    "movement_types": {"type": "array", "items": IP_MOVEMENT, "minItems": 1, "maxItems": 8, "uniqueItems": True},
+    "order_id": identifier("Related order ID; timestamps remain movement event times.")}
+IP_TRANSFER_FILTERS = {**IP_INGREDIENT, **IP_DATES,
+    "status": choice(["pending", "approved", "rejected", "cancelled"], "Request status; only approved means completed."),
+    "from_branch_id": identifier("Source endpoint filter within permitted transfer visibility."),
+    "to_branch_id": identifier("Destination endpoint filter within permitted transfer visibility.")}
+IP_GROUPING = {**PAGING,
+    "ranking": choice(["identity", "highest", "lowest"], "Order groups by their first stated metric; quantities rank within original units, not comparable across units."),
+    "group_by": choice(["month", "day"], "Trend interval; omitted means month.")}
+IP_SORTS = {
+    "ingredients": ("name", "-name", "available", "-available", "stock_value", "-stock_value"),
+    "stocks": ("name", "-name", "available", "-available", "stock_value", "-stock_value"),
+    "low_stock": ("name", "-name", "available", "-available"),
+    "recipes": ("id", "-id", "quantity_required", "-quantity_required"),
+    "lines": ("id", "-id", "quantity", "-quantity", "total_price", "-total_price"),
+    "history": ("id", "-id", "quantity", "-quantity", "total_price", "-total_price"),
+    "movements": ("created_at", "-created_at", "change_quantity", "-change_quantity"),
+    "transfers": ("created_at", "-created_at", "quantity", "-quantity"),
+    "logs": ("created_at", "-created_at"),
+    "suppliers": ("name", "-name", "balance", "-balance", "purchases", "-purchases"),
+    "invoices": ("purchase_date", "-purchase_date", "total_amount", "-total_amount", "invoice_number", "-invoice_number"),
+    "payments": ("date", "-date", "amount", "-amount"),
+}
+
+
+def ip_queries(context, p, operation):
+    return InventoryQueries(principal=context.principal, parameters=p, operation=operation)
+
+
+def ip_metadata(p):
+    return {"scope": "trusted_authorized_scope", "currency": "AFN", "timezone": "Asia/Kabul",
+        "period": {"from": p.get("date", p.get("date_from")), "to": p.get("date", p.get("date_to"))},
+        "basis": "Current stock and supplier balances ignore activity dates. Purchase dates filter invoice cohorts/lines; payment dates filter payment rows; movement/transfer/log timestamps use inclusive Kabul days. Omitted dates mean all history. Invoice cohort Paid/Remaining include all payment dates and are not historical balances. Ingredient-filtered invoice financials cover whole matching invoices; ingredient line amounts are separate. Stock value is current quantity x current cost, not historical spending/COGS. Movement categories are separate views, not additional purchases. Quantities retain original units; cross-unit numeric rankings are not physical comparisons. Transfers use creation date and count requests once. Ledgers reconstruct current records, not immutable snapshots."}
+
+
+def ip_result(p, **payload):
+    return json_values({**ip_metadata(p), **payload})
+
+
+def ip_actor(person, restaurant_id):
+    allowed = person and person.restaurant_id == restaurant_id
+    return {"id": person.pk if allowed else None, "name": person.name if allowed else None}
+
+
+def ip_ingredient(row):
+    def value(key):
+        return row.get(key) if isinstance(row, dict) else getattr(row, key)
+    return {"id": value("id"), "name": value("name"), "unit": value("unit"), "is_active": value("is_active"),
+        "definition_branch_id": value("branch_id"), "shared_definition": value("branch_id") is None,
+        "branch_id": value("applicable_branch_id"), "stock_row_id": value("stock_row_id"), "stock_active": value("stock_active"),
+        "available_quantity": value("available"), "minimum_threshold": value("threshold"),
+        "current_unit_cost": value("cost"), "current_stock_value": value("stock_value"), "stock_status": value("stock_status")}
+
+
+def ip_supplier(row):
+    return {"id": row.pk, "branch_id": row.branch_id,
+        **{key: getattr(row, key) for key in ("name", "contact_person", "phone", "email", "address", "notes", "is_active")},
+        "recognized_purchases": row.purchases, "recorded_payments": row.paid, "outstanding_balance": row.balance}
+
+
+def ip_invoice(row):
+    return {"id": row.pk, "invoice_number": row.invoice_number, "reference": row.invoice_number or f"PINV-{row.pk}",
+        "supplier_id": row.supplier_id, "supplier_name": row.supplier.name if row.supplier_id else None,
+        "branch_id": row.branch_id, "purchase_date": row.purchase_date, "due_date": row.due_date,
+        "status": row.status, "recognized": row.status != "draft", "total_amount": row.total_amount,
+        "stored_paid_amount": row.amount_paid, "current_capped_paid": row.effective_paid, "remaining_balance": row.remaining,
+        "is_inventory_posted": row.is_inventory_posted, "notes": row.notes,
+        "created_by": ip_actor(row.created_by, row.restaurant_id), "created_at": row.created_at, "updated_at": row.updated_at}
+
+
+def ip_line(row):
+    movement = row.stock_movement
+    permitted_movement = movement and movement.restaurant_id == row.invoice.restaurant_id and movement.branch_id == row.invoice.branch_id and movement.ingredient_id == row.ingredient_id
+    return {"id": row.pk, "invoice_id": row.invoice_id, "invoice_number": row.invoice.invoice_number,
+        "invoice_status": row.invoice.status, "recognized": row.invoice.status != "draft", "purchase_date": row.invoice.purchase_date,
+        "supplier_id": row.invoice.supplier_id, "supplier_name": row.invoice.supplier.name if row.invoice.supplier_id else None,
+        "ingredient_id": row.ingredient_id, "ingredient_name": row.ingredient.name, "unit": row.ingredient.unit,
+        "quantity": row.quantity, "historical_unit_price": row.unit_price, "line_total": row.total_price,
+        "stock_movement_id": movement.pk if permitted_movement else None}
+
+
+def ip_payment(row):
+    return {"id": row.pk, "supplier_id": row.supplier_id, "supplier_name": row.supplier.name,
+        "invoice_id": row.purchase_invoice_id, "invoice_number": row.purchase_invoice.invoice_number,
+        "date": row.date, "amount": row.amount, "payment_method": row.payment_method,
+        "reference_number": row.reference_number, "notes": row.notes, "created_by": ip_actor(row.created_by, row.restaurant_id)}
+
+
+def ip_movement(row):
+    return {"id": row.pk, "ingredient_id": row.ingredient_id, "ingredient_name": row.ingredient.name,
+        "unit": row.ingredient.unit, "branch_id": row.branch_id, "signed_quantity": row.change_quantity,
+        "movement_type": row.movement_type, "unit_cost": row.unit_cost, "notes": row.note,
+        "order_id": row.related_order_id, "created_by": ip_actor(row.created_by, row.restaurant_id), "created_at": row.created_at}
+
+
+def ip_transfer(row):
+    return {"id": row.pk, "ingredient_id": row.ingredient_id, "ingredient_name": row.ingredient.name,
+        "unit": row.ingredient.unit, "quantity": row.quantity, "status": row.status, "notes": row.notes,
+        "from_branch_id": row.from_branch_id, "from_branch_name": row.from_branch.name,
+        "to_branch_id": row.to_branch_id, "to_branch_name": row.to_branch.name,
+        "created_by": ip_actor(row.created_by, row.restaurant_id), "approved_by": ip_actor(row.approved_by, row.restaurant_id),
+        "created_at": row.created_at, "approved_at": row.approved_at, "updated_at": row.updated_at}
+
+
+def ip_recipe(row):
+    return {"id": row.pk, "ingredient_id": row.ingredient_id, "ingredient_name": row.ingredient.name,
+        "unit": row.ingredient.unit, "menu_item_id": row.menu_item_id, "menu_item_name": row.menu_item.name,
+        "menu_item_available": row.menu_item.is_available, "quantity_required": row.quantity_required}
+
+
+def ip_list(context, p, operation, kind, serializer):
+    q = ip_queries(context, p, operation)
+    order = p.get("sort", IP_SORTS[kind][0])
+    ordering = (order, "id", "applicable_branch_id") if kind == "stocks" else (order, "id")
+    extra = {"excluded_movement_types": q.excluded_movement_types} if kind == "movements" else {}
+    return ip_result(p, **page(q.records(kind), p, serializer, ordering), **extra)
+
+
+@business_tool
+def list_ingredients(context, p):
+    return ip_list(context, p, "list_ingredients", "ingredients", ip_ingredient)
+
+
+@business_tool
+def get_ingredient_details(context, p):
+    row, count = ip_queries(context, p, "get_ingredient_details").ingredient_detail()
+    return ip_result(p, ingredient=ip_ingredient(row), recipe_usage_count=count)
+
+
+@business_tool
+def list_ingredient_stocks(context, p):
+    return ip_list(context, p, "list_ingredient_stocks", "stocks", ip_ingredient)
+
+
+@business_tool
+def list_ingredient_recipe_usages(context, p):
+    return ip_list(context, p, "list_ingredient_recipe_usages", "recipes", ip_recipe)
+
+
+@business_tool
+def list_ingredient_purchase_history(context, p):
+    return ip_list(context, p, "list_ingredient_purchase_history", "history", ip_line)
+
+
+@business_tool
+def list_stock_movements(context, p):
+    return ip_list(context, p, "list_stock_movements", "movements", ip_movement)
+
+
+@business_tool
+def get_stock_movement_details(context, p):
+    q = ip_queries(context, p, "get_stock_movement_details")
+    row = q.one(q.records("movements"), p, "movement_id", "unused")
+    return ip_result(p, movement=ip_movement(row))
+
+
+@business_tool
+def list_low_stock_ingredients(context, p):
+    return ip_list(context, p, "list_low_stock_ingredients", "low_stock", ip_ingredient)
+
+
+@business_tool
+def list_stock_transfers(context, p):
+    return ip_list(context, p, "list_stock_transfers", "transfers", ip_transfer)
+
+
+@business_tool
+def get_stock_transfer_details(context, p):
+    q = ip_queries(context, p, "get_stock_transfer_details")
+    return ip_result(p, transfer=ip_transfer(q.one(q.records("transfers"), p, "transfer_id", "unused")))
+
+
+@business_tool
+def list_stock_transfer_logs(context, p):
+    q = ip_queries(context, p, "list_stock_transfer_logs")
+    def serialize(row):
+        return {"id": row.pk, "transfer_id": row.transfer_id, "action": row.action, "message": row.message,
+            "actor": ip_actor(row.actor, q.restaurant_id), "created_at": row.created_at}
+    return ip_result(p, **page(q.records("logs"), p, serialize, (p.get("sort", "created_at"), "id")))
+
+
+@business_tool
+def list_suppliers(context, p):
+    return ip_list(context, p, "list_suppliers", "suppliers", ip_supplier)
+
+
+@business_tool
+def get_supplier_details(context, p):
+    row, details = ip_queries(context, p, "get_supplier_details").supplier_detail()
+    return ip_result(p, supplier=ip_supplier(row), **details)
+
+
+@business_tool
+def list_purchase_invoices(context, p):
+    return ip_list(context, p, "list_purchase_invoices", "invoices", ip_invoice)
+
+
+@business_tool
+def get_purchase_invoice_details(context, p):
+    q = ip_queries(context, p, "get_purchase_invoice_details")
+    row, related = q.invoice_detail()
+    def attachment(item):
+        return {"id": item.pk, "original_filename": item.original_filename, "content_type": item.content_type,
+            "file_size": item.file_size, "file_type": item.file_type, "uploaded_at": item.uploaded_at,
+            "uploaded_by": ip_actor(item.uploaded_by, q.restaurant_id)}
+    return ip_result(p, invoice=ip_invoice(row),
+        lines=page(related["lines"], p, ip_line, ("id",), page_key="lines_page"),
+        payments=page(related["payments"], p, ip_payment, ("date", "id"), page_key="payments_page"),
+        attachments=page(related["attachments"], p, attachment, ("id",), page_key="attachments_page"))
+
+
+@business_tool
+def list_purchase_invoice_lines(context, p):
+    return ip_list(context, p, "list_purchase_invoice_lines", "lines", ip_line)
+
+
+@business_tool
+def list_supplier_payments(context, p):
+    return ip_list(context, p, "list_supplier_payments", "payments", ip_payment)
+
+
+@business_tool
+def get_supplier_ledger(context, p):
+    row, ledger = ip_queries(context, p, "get_supplier_ledger").ledger()
+    return ip_result(p, supplier=ip_supplier(row), ledger=ledger)
+
+
+@business_tool
+def get_inventory_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_inventory_summary").inventory_summary())
+
+
+@business_tool
+def get_ingredient_summary(context, p):
+    row, summary = ip_queries(context, p, "get_ingredient_summary").ingredient_summary()
+    return ip_result(p, current=ip_ingredient(row), **summary)
+
+
+@business_tool
+def get_low_stock_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_low_stock_summary").inventory_summary(low=True))
+
+
+@business_tool
+def get_stock_movements_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_stock_movements_summary").movement_summary())
+
+
+@business_tool
+def get_consumption_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_consumption_summary").movement_summary(source="consumption"))
+
+
+@business_tool
+def get_waste_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_waste_summary").movement_summary(source="waste"))
+
+
+@business_tool
+def get_stock_transfers_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_stock_transfers_summary").transfers_summary())
+
+
+@business_tool
+def get_suppliers_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_suppliers_summary").suppliers_summary())
+
+
+@business_tool
+def get_supplier_summary(context, p):
+    row, summary = ip_queries(context, p, "get_supplier_summary").supplier_activity(one=True)
+    return ip_result(p, supplier=ip_supplier(row), **summary)
+
+
+@business_tool
+def get_purchase_invoices_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_purchase_invoices_summary").purchase_summary())
+
+
+@business_tool
+def get_supplier_payments_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_supplier_payments_summary").payment_summary())
+
+
+@business_tool
+def get_procurement_summary(context, p):
+    return ip_result(p, **ip_queries(context, p, "get_procurement_summary").procurement_summary())
+
+
+IP_ACTOR = obj({"id": OPTIONAL_ID, "name": OPTIONAL_TEXT})
+IP_INGREDIENT_RECORD = obj({"id": INTEGER, "name": TEXT, "unit": TEXT, "is_active": BOOLEAN,
+    "definition_branch_id": OPTIONAL_ID, "shared_definition": BOOLEAN, "branch_id": INTEGER,
+    "stock_row_id": OPTIONAL_ID, "stock_active": {"type": ["boolean", "null"]}, "available_quantity": NULL_DECIMAL,
+    "minimum_threshold": NULL_DECIMAL, "current_unit_cost": NULL_DECIMAL, "current_stock_value": NULL_DECIMAL, "stock_status": TEXT})
+IP_SUPPLIER_RECORD = obj({"id": INTEGER, "branch_id": INTEGER, **{key: TEXT for key in ("name", "contact_person", "phone", "email", "address", "notes")},
+    "is_active": BOOLEAN, **{key: DECIMAL for key in ("recognized_purchases", "recorded_payments", "outstanding_balance")}})
+IP_INVOICE_RECORD = obj({"id": INTEGER, "invoice_number": TEXT, "reference": TEXT, "supplier_id": OPTIONAL_ID,
+    "supplier_name": OPTIONAL_TEXT, "branch_id": INTEGER, "purchase_date": TEXT, "due_date": OPTIONAL_TEXT,
+    "status": TEXT, "recognized": BOOLEAN, **{key: DECIMAL for key in ("total_amount", "stored_paid_amount", "current_capped_paid", "remaining_balance")},
+    "is_inventory_posted": BOOLEAN, "notes": TEXT, "created_by": IP_ACTOR, "created_at": TEXT, "updated_at": TEXT})
+IP_LINE_RECORD = obj({"id": INTEGER, "invoice_id": INTEGER, "invoice_number": TEXT, "invoice_status": TEXT,
+    "recognized": BOOLEAN, "purchase_date": TEXT, "supplier_id": OPTIONAL_ID, "supplier_name": OPTIONAL_TEXT,
+    "ingredient_id": INTEGER, "ingredient_name": TEXT, "unit": TEXT, "quantity": DECIMAL,
+    "historical_unit_price": DECIMAL, "line_total": DECIMAL, "stock_movement_id": OPTIONAL_ID})
+IP_PAYMENT_RECORD = obj({"id": INTEGER, "supplier_id": INTEGER, "supplier_name": TEXT, "invoice_id": INTEGER,
+    "invoice_number": TEXT, "date": TEXT, "amount": DECIMAL, "payment_method": TEXT, "reference_number": TEXT,
+    "notes": TEXT, "created_by": IP_ACTOR})
+IP_MOVEMENT_RECORD = obj({"id": INTEGER, "ingredient_id": INTEGER, "ingredient_name": TEXT, "unit": TEXT,
+    "branch_id": INTEGER, "signed_quantity": DECIMAL, "movement_type": TEXT, "unit_cost": NULL_DECIMAL,
+    "notes": OPTIONAL_TEXT, "order_id": OPTIONAL_ID, "created_by": IP_ACTOR, "created_at": TEXT})
+IP_TRANSFER_RECORD = obj({"id": INTEGER, "ingredient_id": INTEGER, "ingredient_name": TEXT, "unit": TEXT,
+    "quantity": DECIMAL, "status": TEXT, "notes": TEXT, "from_branch_id": INTEGER, "from_branch_name": TEXT,
+    "to_branch_id": INTEGER, "to_branch_name": TEXT, "created_by": IP_ACTOR, "approved_by": IP_ACTOR,
+    "created_at": TEXT, "approved_at": OPTIONAL_TEXT, "updated_at": TEXT})
+IP_RECIPE_RECORD = obj({"id": INTEGER, "ingredient_id": INTEGER, "ingredient_name": TEXT, "unit": TEXT,
+    "menu_item_id": INTEGER, "menu_item_name": TEXT, "menu_item_available": BOOLEAN, "quantity_required": DECIMAL})
+IP_LOG_RECORD = obj({"id": INTEGER, "transfer_id": INTEGER, "action": TEXT, "message": TEXT, "actor": IP_ACTOR, "created_at": TEXT})
+IP_INVOICE_TOTALS = obj({**{key: INTEGER for key in ("count", "recognized_count", "draft_count", "unpaid_count")},
+    **{key: DECIMAL for key in ("recognized_charges", "draft_face_value", "current_capped_paid", "current_remaining")}})
+IP_CURRENT_SUPPLIERS = obj({**{key: INTEGER for key in ("count", "active", "inactive")},
+    **{key: DECIMAL for key in ("recognized_purchases", "recorded_payments", "sum_supplier_balances", "aggregate_net_first_balance", "recognized_invoice_remaining")}})
+
+
+def ip_group(dimensions, metrics):
+    fields = {key: OPTIONAL_ID if key.endswith("_id") else OPTIONAL_TEXT for key in dimensions}
+    return paged(obj({**fields, "count": INTEGER, **{key: DECIMAL for key in metrics}}))
+
+
+IP_PURCHASE_SUMMARY = {"invoice_cohort": IP_INVOICE_TOTALS,
+    "by_status": array(obj({"status": TEXT, "count": INTEGER, "face_value": DECIMAL})),
+    "by_supplier": ip_group(("supplier_id", "supplier__name"), ("charges",)),
+    "ingredients": ip_group(("ingredient_id", "ingredient__name", "ingredient__unit"), ("quantity", "line_charges")),
+    "trends": ip_group(("period",), ("charges",))}
+IP_PAYMENTS_SUMMARY = {"payment_count": INTEGER, "recorded_payments": DECIMAL,
+    "by_method": array(obj({"payment_method": TEXT, "count": INTEGER, "amount": DECIMAL})),
+    "by_supplier": ip_group(("supplier_id", "supplier__name"), ("amount",)),
+    "by_invoice": ip_group(("purchase_invoice_id", "purchase_invoice__invoice_number"), ("amount",)),
+    "trends": ip_group(("period",), ("amount",))}
+IP_SUPPLIERS_SUMMARY = {"current": IP_CURRENT_SUPPLIERS, "purchases": obj(IP_PURCHASE_SUMMARY),
+    "payments": obj(IP_PAYMENTS_SUMMARY), "supplier_ranking": paged(obj({"id": INTEGER, "name": TEXT,
+        "is_active": BOOLEAN, "purchases": DECIMAL, "paid": DECIMAL, "balance": DECIMAL}))}
+IP_INVENTORY_SUMMARY = {"current": obj({**{key: INTEGER for key in ("ingredient_count", "active", "inactive", "low_stock", "out_of_stock", "negative", "unknown_stock")}, "valuation": DECIMAL, "valuation_complete": BOOLEAN, "valuation_scope": TEXT}),
+    "by_unit_status": array(obj({"unit": TEXT, "stock_status": TEXT, "is_active": BOOLEAN,
+        "count": INTEGER, "quantity": NULL_DECIMAL, "threshold": NULL_DECIMAL, "value": NULL_DECIMAL}))}
+
+
+def ip_movement_output(usage=False):
+    metrics = (["net_recorded_usage"] if usage else []) + ["net_quantity", "increases", "decreases"]
+    return {"movement_count": INTEGER, "excluded_movement_types": array(TEXT),
+        "by_unit": array(obj({"ingredient__unit": TEXT, "count": INTEGER, **{key: DECIMAL for key in metrics}})),
+        "by_type_unit": array(obj({"movement_type": TEXT, "ingredient__unit": TEXT, "count": INTEGER, **{key: DECIMAL for key in metrics}})),
+        "by_ingredient": ip_group(("ingredient_id", "ingredient__name", "ingredient__unit"), metrics),
+        "trends": ip_group(("period", "ingredient__unit", "movement_type"), metrics)}
+
+
+def ip_envelope(fields):
+    return obj({"scope": {"const": "trusted_authorized_scope"}, "currency": {"const": "AFN"},
+        "timezone": {"const": "Asia/Kabul"}, "period": obj({"from": OPTIONAL_TEXT, "to": OPTIONAL_TEXT}), "basis": TEXT, **fields})
+
+
+def inventory_procurement_definitions():
+    inv = "admin_inventory_ingredients"
+    movement = "admin_inventory_stock_movements"
+    transfer = "admin_inventory_dashboard"
+    supplier = "admin_procurement_suppliers"
+    purchase = "admin_procurement_purchase_invoices"
+    payment = "admin_procurement_payments"
+    finance = "admin_procurement_shared_financial_meaning"
+    specs = []
+    def add(handler, description, filters, output, docs, *, domain="inventory", required=()):
+        specs.append(ToolDefinition(id=handler.__name__, description=description, domain=domain,
+            parameters=obj(filters, required=list(required)), output=ip_envelope(output), knowledge_ids=tuple(docs),
+            authorize=partial(authorize_tool, handler.__name__), handler=handler))
+    def record(handler, kind, filters, schema, docs, description, domain="inventory", required=()):
+        output = {**paged(schema)["properties"]}
+        if kind == "movements":
+            output["excluded_movement_types"] = array(TEXT)
+        add(handler, description, {**filters, **PAGING, "sort": choice(IP_SORTS[kind], "Stable ordering with ID tie-breaker.")},
+            output, docs, domain=domain, required=required)
+    record(list_ingredients, "ingredients", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, [inv], "Current ingredient definitions and authorized branch quantities, thresholds, costs and values; no activity dates.")
+    add(get_ingredient_details, "One current ingredient by ID or unambiguous name; current stock, cost, threshold and recipe relationship count.", IP_INGREDIENT,
+        {"ingredient": IP_INGREDIENT_RECORD, "recipe_usage_count": INTEGER}, [inv])
+    record(list_ingredient_stocks, "stocks", {**IP_STOCK_FILTERS,
+        "stock_branch_ids": {"type": "array", "items": identifier("Branch filter; server verifies all branches against existing access."), "minItems": 1, "maxItems": 20, "uniqueItems": True}},
+        IP_INGREDIENT_RECORD, [inv], "Current stock positions; default active branch. Multiple branch filters require existing all-branch access; shared definitions are represented once per branch.")
+    record(list_ingredient_recipe_usages, "recipes", {**IP_INGREDIENT, "menu_item_id": identifier("Related menu item."), "menu_item_name": SEARCH},
+        IP_RECIPE_RECORD, [inv], "Recipe requirements by ingredient or menu item; quantities are per recipe entry, not actual order consumption.")
+    record(list_ingredient_purchase_history, "history", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [inv, purchase], "Historical purchase invoice lines, original prices and supplierless purchases; defaults to non-draft history, explicit status can include drafts.")
+    record(list_stock_movements, "movements", IP_MOVEMENT_FILTERS, IP_MOVEMENT_RECORD, [movement], "All eight signed movement types, event dates and order references; no default 30-day restriction.")
+    add(get_stock_movement_details, "One authorized stock movement and its linked references.", {"movement_id": identifier("Movement ID.")}, {"movement": IP_MOVEMENT_RECORD}, [movement], required=["movement_id"])
+    record(list_low_stock_ingredients, "low_stock", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, ["admin_inventory_low_stock_alerts"], "Current threshold warnings, including zero and legacy negative balances; low_stock selects positive quantities at or below threshold, out_of_stock selects exactly zero. No forecast.")
+    record(list_stock_transfers, "transfers", IP_TRANSFER_FILTERS, IP_TRANSFER_RECORD, [transfer], "Transfer requests visible through an authorized endpoint, filtered by creation dates/status; pending requests have not moved stock.")
+    add(get_stock_transfer_details, "One authorized transfer request with endpoints, actors and timestamps.", {"transfer_id": identifier("Transfer ID.")}, {"transfer": IP_TRANSFER_RECORD}, [transfer], required=["transfer_id"])
+    record(list_stock_transfer_logs, "logs", {"transfer_id": identifier("Authorized parent transfer."), "action": SEARCH, **IP_DATES}, IP_LOG_RECORD, [transfer], "Parent-authorized transfer activity logs by action and Kabul event date.", required=["transfer_id"])
+    record(list_suppliers, "suppliers", {**IP_SUPPLIER, "is_active": BOOLEAN}, IP_SUPPLIER_RECORD, [supplier, finance], "Supplier directory and complete all-history purchases/payments/current floored balances, independent of pagination.", "procurement")
+    add(get_supplier_details, "One supplier by ID or unambiguous name, contact profile and all-history account/record counts.", IP_SUPPLIER,
+        {"supplier": IP_SUPPLIER_RECORD, "invoice_totals": IP_INVOICE_TOTALS, "payment_count": INTEGER}, [supplier, finance], domain="procurement")
+    record(list_purchase_invoices, "invoices", IP_PURCHASE_FILTERS, IP_INVOICE_RECORD, [purchase, finance], "Invoice records by purchase date, supplier, ingredient, status and posting; Paid/Remaining are current all-date values, not period payments.", "procurement")
+    attachment = obj({"id": INTEGER, "original_filename": TEXT, "content_type": TEXT, "file_size": INTEGER, "file_type": TEXT, "uploaded_at": TEXT, "uploaded_by": IP_ACTOR})
+    add(get_purchase_invoice_details, "One invoice by ID or unambiguous stored number, historical lines, separately paginated all-date payments and attachment metadata; no file content or URLs.",
+        {**IP_INVOICE, "page_size": PAGING["page_size"], **{key: PAGING["page"] for key in ("lines_page", "payments_page", "attachments_page")}},
+        {"invoice": IP_INVOICE_RECORD, "lines": paged(IP_LINE_RECORD), "payments": paged(IP_PAYMENT_RECORD), "attachments": paged(attachment)}, [purchase, payment], domain="procurement")
+    record(list_purchase_invoice_lines, "lines", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [purchase], "Individual purchase lines with original four-decimal prices, quantities and rounded charges; draft lines explicitly unrecognized.", "procurement")
+    record(list_supplier_payments, "payments", IP_PAYMENT_FILTERS, IP_PAYMENT_RECORD, [payment], "Individual payment rows using SupplierPayment.date and recorded method, independent of invoice purchase date.", "procurement")
+    add(get_supplier_ledger, "Reconstructed chronological supplier ledger: non-draft charges, payment credits, signed running balances and pre-range opening; current floored debt stays separate.",
+        {**IP_SUPPLIER, **IP_DATES, **PAGING}, {"supplier": IP_SUPPLIER_RECORD, "ledger": obj({**paged(obj({"id": INTEGER, "event_date": TEXT,
+            "entry_type": TEXT, "reference": TEXT, "debit": DECIMAL, "credit": DECIMAL, "signed_change": DECIMAL, "running_balance": DECIMAL}))["properties"],
+            **{key: DECIMAL for key in ("opening_reconstructed", "invoice_debits", "payment_credits", "closing_reconstructed")}})}, [supplier, finance], domain="procurement")
+    add(get_inventory_summary, "Current inventory counts, active/inactive and stock warning statuses, valuation and separate unit totals; unknown shared branch stock remains unknown.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, [inv])
+    add(get_ingredient_summary, "Complete ingredient profile: current branch stock/value and recipe count, separately dated historical purchase lines and signed movements by type, including order/production, corrections, waste and transfers. Purchases and their movements must never be added together.",
+        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING}, {"current": IP_INGREDIENT_RECORD, "recipe_usage_count": INTEGER,
+        "purchase_activity": obj({"line_count": INTEGER, "quantity": DECIMAL, "line_charges": DECIMAL}), "movement_activity": obj(ip_movement_output())}, [inv, movement, purchase])
+    add(get_low_stock_summary, "Current warning counts/values and threshold comparisons by unit/status/activity; zero is out-of-stock, positive <= threshold is low, negative is separately identified. No reorder forecast.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, ["admin_inventory_low_stock_alerts"])
+    add(get_stock_movements_summary, "All-category signed movement counts, positive increases/negative decreases, unit-separated groups and event trends; group pagination never limits totals.", {**IP_MOVEMENT_FILTERS, **IP_GROUPING}, ip_movement_output(), [movement])
+    add(get_consumption_summary, "Order versus production ingredient consumption and signed production adjustments/returns. net_recorded_usage is negative of net signed changes; waste, transfers and manual adjustments are excluded. Rank raw quantities only within matching units; event time is not order completion time.",
+        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING, "source": choice(["order", "production"], "Consumption source; omitted includes both, with distinct categories.")}, ip_movement_output(True), [movement])
+    add(get_waste_summary, "Net recorded waste = negative signed waste changes, preserving positive corrections and original units; gross decreases and increases separate. No historical monetary loss from current costs.",
+        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING}, ip_movement_output(True), [movement])
+    add(get_stock_transfers_summary, "Transfer request counts/statuses and endpoint/ingredient/unit groups; approved completed quantities separated from pending request quantities; creation-date scope, no movement double counting.",
+        {**IP_TRANSFER_FILTERS, **IP_GROUPING}, {"transfer_count": INTEGER, "by_status": array(obj({"status": TEXT, "count": INTEGER})),
+        "quantities": ip_group(("ingredient_id", "ingredient__name", "ingredient__unit", "status", "from_branch_id", "to_branch_id"), ("request_quantity", "approved_quantity", "pending_quantity"))}, [transfer])
+    add(get_suppliers_summary, "Supplier counts, all-history current balances and rankings; separate period purchases/payments and supplierless activity. Exposes per-supplier floored versus aggregate net-first versus per-invoice balances.",
+        {**IP_SUPPLIER, "is_active": BOOLEAN, **IP_DATES, **IP_GROUPING}, {**IP_SUPPLIERS_SUMMARY, "supplierless_activity": IP_INVOICE_TOTALS}, [supplier, finance], domain="procurement")
+    add(get_supplier_summary, "Complete supplier by ID or unambiguous name: contact/current debt and all-history totals, separate period invoice charges/drafts/statuses, ingredient purchases, payment methods and trends.",
+        {**IP_SUPPLIER, **IP_DATES, **IP_GROUPING}, {"supplier": IP_SUPPLIER_RECORD, **IP_SUPPLIERS_SUMMARY}, [supplier, purchase, payment, finance], domain="procurement")
+    add(get_purchase_invoices_summary, "Purchase-date invoice cohorts, statuses/drafts, recognized charges and current all-date settlement; ingredient line analysis remains separate from whole matching invoice balances, without line join multiplication.",
+        {**IP_PURCHASE_FILTERS, **IP_GROUPING}, IP_PURCHASE_SUMMARY, [purchase, finance], domain="procurement")
+    add(get_supplier_payments_summary, "Payment-date row counts/amounts by method, supplier, invoice and chronological trend; counts payments rather than cumulative invoice paid values.",
+        {**IP_PAYMENT_FILTERS, **IP_GROUPING}, IP_PAYMENTS_SUMMARY, [payment, finance], domain="procurement")
+    add(get_procurement_summary, "Procurement overview: period purchases/drafts/invoice counts, payment rows/trends, supplierless activity, and separate all-history current supplier liabilities/counts. Payments are not additional expense; stock valuation is obtained from inventory tools.",
+        {**IP_DATES, **IP_GROUPING}, {"current_supplier_accounts": IP_CURRENT_SUPPLIERS, "purchase_activity": obj(IP_PURCHASE_SUMMARY),
+        "payment_activity": obj(IP_PAYMENTS_SUMMARY), "supplierless_activity": IP_INVOICE_TOTALS, "current_supplierless_invoices": IP_INVOICE_TOTALS}, [purchase, payment, finance], domain="procurement")
+    return tuple(specs)
+
+
 def definitions():
-    return contractor_definitions() + expense_definitions()
+    return contractor_definitions() + expense_definitions() + inventory_procurement_definitions()
 
 
 def register_tools(registry):
