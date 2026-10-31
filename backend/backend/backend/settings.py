@@ -44,6 +44,13 @@ DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 DEEPSEEK_REASONING_EFFORT = os.environ.get("DEEPSEEK_REASONING_EFFORT", "none")
 AI_ASSISTANT_PROVIDER = os.environ.get("AI_ASSISTANT_PROVIDER", "deepseek")
 AI_ASSISTANT_THROTTLE_RATE = os.environ.get("AI_ASSISTANT_THROTTLE_RATE", "10/min")
+# Independent Business Analyst configuration; never changes Mentor retrieval.
+BUSINESS_ANALYST_KNOWLEDGE_ROOT = backend_path(os.environ.get(
+    "BUSINESS_ANALYST_KNOWLEDGE_ROOT",
+    BASE_DIR.parent.parent / "docs" / "ai_knowledge" / "restaurant_admin_knowledge_pack",
+))
+BUSINESS_ANALYST_THROTTLE_RATE = os.environ.get("BUSINESS_ANALYST_THROTTLE_RATE", "10/min")
+BUSINESS_ANALYST_LIMITS = {}
 AI_RETRIEVAL_MODE = os.environ.get("AI_RETRIEVAL_MODE", "legacy")
 AI_AUTO_FETCH_LIMITS = {
     "max_sections": int(os.environ.get("AI_AUTO_FETCH_MAX_SECTIONS", "3")),
@@ -134,6 +141,7 @@ INSTALLED_APPS = [
     'audit',
     'knowledge.apps.KnowledgeConfig',
     'ai_assistant.apps.AiAssistantConfig',
+    'business_analyst.apps.BusinessAnalystConfig',
     'otp',
     'inventory',
     'contractors',
