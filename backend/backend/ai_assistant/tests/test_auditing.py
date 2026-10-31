@@ -162,6 +162,35 @@ class AuditingTests(DatabaseFixture, TestCase):
         for b in AuditBlob.objects.all():
             self.assertNotIn("observable output",b.ciphertext)
 
+    @override_settings(DEEPSEEK_API_KEY="mentor-retry-synthetic-key")
+    def test_mentor_whitespace_retry_reuses_fetched_evidence_and_audits_both_attempts(self):
+        sent = []
+        responses = iter([search(), fetch_latest, Completion(" \n "), answer_latest])
+        def handle(request):
+            body = json.loads(request.content)
+            sent.append(body)
+            completion = next(responses)
+            completion = completion(body) if callable(completion) else completion
+            return httpx.Response(200, json={"choices": [{"message": completion.message(),
+                "finish_reason": completion.finish_reason}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}})
+        provider = DeepSeekProvider(transport=httpx.MockTransport(handle))
+        with patch("ai_assistant.service.get_provider", return_value=provider):
+            response = self.client.post("/api/assistant/chat/", {"message": "How do I create a contractor invoice?"}, format="json")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(len(sent), 4)
+        self.assertEqual(sent[2], sent[3])
+        turn = TurnAudit.objects.get(pk=response.data["request_id"])
+        self.assertEqual((turn.model_calls, turn.completed_model_calls, turn.tool_calls), (4, 4, 2))
+        self.assertEqual(turn.usage, {"prompt_tokens": 40, "completion_tokens": 20, "total_tokens": 60})
+        self.assertTrue(turn.usage_complete)
+        self.assertEqual(turn.conversation.messages.filter(role="user").count(), 1)
+        self.assertEqual(turn.conversation.messages.filter(role="assistant").count(), 1)
+        attempts = list(turn.events.filter(event_type="provider_attempt_finished").select_related("payload"))
+        self.assertEqual([e.model_ordinal for e in attempts], [1, 2, 3, 3])
+        self.assertEqual([e.status for e in attempts], ["completed", "completed", "failed", "completed"])
+        self.assertEqual(read_blob(attempts[2].payload)["response_condition"], "whitespace_only")
+
     def test_failure_events_survive_model_timeout_and_missing_index(self):
         response,_=self.send([AssistantError("provider_timeout","Safe timeout",504)])
         self.assertEqual(response.status_code,504)

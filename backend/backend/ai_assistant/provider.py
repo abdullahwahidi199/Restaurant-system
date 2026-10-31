@@ -43,6 +43,7 @@ class Completion:
 
 def parse_completion(data, *, thinking=False):
     summary = {"finish_reason": None, "tool_call_count": 0, "assistant_content_length": 0}
+    response_condition = None
     try:
         choices = data["choices"]
         if len(choices) != 1:
@@ -82,7 +83,14 @@ def parse_completion(data, *, thinking=False):
         if len({call.id for call in calls}) != len(calls):
             raise ValueError
         finish = choice["finish_reason"]
-        if finish not in {"stop", "tool_calls"} or (finish == "tool_calls") != bool(calls) or (not calls and not text.strip()):
+        if finish not in {"stop", "tool_calls"} or (finish == "tool_calls") != bool(calls):
+            raise ValueError
+        if not calls and not text.strip():
+            # Classify only an otherwise valid, nonempty whitespace response.
+            # Missing content, malformed calls, truncation and reasoning errors
+            # retain their existing failure behavior and must not trigger retry.
+            if text:
+                response_condition = "whitespace_only"
             raise ValueError
         usage = data.get("usage", {})
         usage = {k: v for k, v in usage.items() if k in {"prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens", "prompt_cache_miss_tokens"} and isinstance(v, int) and not isinstance(v, bool) and 0 <= v <= 10**9} if isinstance(usage, dict) else {}
@@ -90,6 +98,7 @@ def parse_completion(data, *, thinking=False):
     except (KeyError, TypeError, ValueError, AttributeError):
         error = AssistantError("provider_invalid_response", "The AI provider returned an unusable response. Please try again.", 502)
         error.completion_summary = summary
+        error.response_condition = response_condition
         raise error from None
 
 
@@ -122,13 +131,41 @@ class DeepSeekProvider:
                    "tool_choice": choice, "thinking": configuration.public()['thinking'], "response_format": {"type": "json_object"}, "max_tokens": limits.output_tokens, "stream": False}
         if configuration.thinking:
             payload['reasoning_effort'] = configuration.reasoning_effort
+        # Retry generation only, with the identical wire payload. The caller's
+        # turn, completed tools, persistence and logical model budget stay put.
+        deadline = time.monotonic() + min(timeout, limits.provider_timeout)
+        for attempt in (1, 2):
+            trace = current()
+            if trace:
+                trace.begin_provider_attempt(attempt)
+            try:
+                result = self._complete_attempt(payload=payload, key=key, base=base,
+                    timeout=max(0.001, deadline - time.monotonic()), deadline=deadline,
+                    request_id=request_id, attempt=attempt)
+            except AssistantError as exc:
+                retry = (attempt == 1 and exc.code == "provider_invalid_response"
+                         and getattr(exc, "response_condition", None) == "whitespace_only"
+                         and time.monotonic() < deadline)
+                if trace:
+                    trace.finish_provider_attempt(error=exc, retry_scheduled=retry)
+                if retry:
+                    continue
+                raise
+            else:
+                if trace:
+                    trace.finish_provider_attempt()
+                return result
+
+    def _complete_attempt(self, *, payload, key, base, timeout, deadline, request_id, attempt):
         started, outcome = time.monotonic(), "provider_failure"
         http_status, exception_category = None, None
-        deadline = started + min(timeout, limits.provider_timeout)
+        response_condition = None
         try:
+            if started >= deadline:
+                raise AssistantError("provider_timeout", "The AI provider timed out. Please try again.", 504)
             if current():
                 current().model_request(payload)
-            with httpx.Client(transport=self.transport, timeout=min(timeout, limits.provider_timeout), follow_redirects=False, trust_env=False) as client:
+            with httpx.Client(transport=self.transport, timeout=timeout, follow_redirects=False, trust_env=False) as client:
                 with client.stream("POST", base.rstrip("/") + "/chat/completions", headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, json=payload) as response:
                     http_status = response.status_code
                     if time.monotonic() > deadline:
@@ -156,7 +193,7 @@ class DeepSeekProvider:
                         raise AssistantError("provider_invalid_response", "The AI provider returned an unusable response.", 502) from None
                     if current():
                         current().model_response(data, http_status=response.status_code)
-                    result = parse_completion(data, thinking=configuration.thinking)
+                    result = parse_completion(data, thinking=payload["thinking"]["type"] == "enabled")
                     # The provider receives the credential only as an HTTP header.
                     # Do not forward it if a malformed/malicious provider echoes
                     # it in content or tool arguments, including JSON escapes.
@@ -180,8 +217,10 @@ class DeepSeekProvider:
             exception_category = type(exc).__name__
             exc.provider_http_status = http_status
             outcome = exc.code
+            response_condition = getattr(exc, "response_condition", None)
             raise
         finally:
             logger.info("assistant_provider", extra={"request_id": request_id, "provider_status": outcome, "provider_http_status": http_status,
                         "exception_category": exception_category, "failure_stage": "deepseek_connectivity",
+                        "provider_attempt": attempt, "response_condition": response_condition,
                         "duration_ms": round((time.monotonic() - started) * 1000)})

@@ -102,12 +102,34 @@ class Trace:
     def begin_model(self, ordinal, contract):
         self.model = {"ordinal":ordinal, "contract":contract, "started_at":timezone.now(), "clock":time.perf_counter(), "request":False, "response":False}
 
+    def begin_provider_attempt(self, attempt):
+        if not self.model:
+            return
+        if attempt > 1:
+            self.model.update(started_at=timezone.now(), clock=time.perf_counter(), request=False, response=False)
+        self.model["provider_attempt"] = attempt
+
+    def finish_provider_attempt(self, *, error=None, retry_scheduled=False):
+        if not self.model:
+            return
+        self.event("provider_attempt_finished", {
+            "provider_attempt": self.model["provider_attempt"],
+            "error_code": getattr(error, "code", None),
+            "error_category": type(error).__name__ if error else None,
+            "response_condition": getattr(error, "response_condition", None),
+            "http_status": getattr(error, "provider_http_status", None) if error else 200,
+            "completion_summary": getattr(error, "completion_summary", None),
+            "retry_scheduled": retry_scheduled,
+        }, status="failed" if error else "completed", started_at=self.model["started_at"],
+            duration_ms=round((time.perf_counter()-self.model["clock"])*1000, 3), model_ordinal=self.model["ordinal"])
+
     def model_request(self, payload, *, boundary="deepseek_http", transmitted=True):
         if not self.model or self.model["request"]:
             return
         self.model["request"] = True
         self.turn.model_calls += 1
-        self.event("model_request", {"capture_boundary":boundary, "transmitted":transmitted, "provider":self.turn.provider, "payload":payload},
+        self.event("model_request", {"capture_boundary":boundary, "transmitted":transmitted, "provider":self.turn.provider, "payload":payload,
+                   "provider_attempt":self.model.get("provider_attempt", 1)},
                    status="started", started_at=self.model["started_at"], model_ordinal=self.model["ordinal"])
 
     def model_response(self, data, *, http_status=200, boundary="deepseek_http"):
@@ -136,7 +158,8 @@ class Trace:
         self.turn.usage_complete = self.turn.usage_complete and all(k in actual for k in ("prompt_tokens","completion_tokens","total_tokens"))
         for key, value in actual.items():
             self.turn.usage[key] = self.turn.usage.get(key,0) + value
-        self.event("model_response", {"capture_boundary":boundary, "http_status":http_status, "response":payload},
+        self.event("model_response", {"capture_boundary":boundary, "http_status":http_status, "response":payload,
+                   "provider_attempt":self.model.get("provider_attempt", 1)},
                    started_at=self.model["started_at"], duration_ms=round((time.perf_counter()-self.model["clock"])*1000,3), model_ordinal=self.model["ordinal"])
         self.model["response"] = True
 
@@ -150,6 +173,7 @@ class Trace:
                 self.model_response({"model":self.turn.model, "choices":[{"message":completion.message(), "finish_reason":completion.finish_reason}], "usage":completion.usage}, boundary="provider_contract")
             else:
                 self.event("model_response", {"error_code":getattr(error,"code","provider_failure"), "error_category":type(error).__name__,
+                    "provider_attempt":self.model.get("provider_attempt", 1),
                     "http_status":getattr(error,"provider_http_status",None)}, status="failed", started_at=self.model["started_at"],
                     duration_ms=round((time.perf_counter()-self.model["clock"])*1000,3), model_ordinal=self.model["ordinal"])
                 self.turn.usage_complete = False

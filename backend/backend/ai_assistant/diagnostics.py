@@ -6,7 +6,7 @@ import logging
 class AssistantLogFormatter(logging.Formatter):
     def format(self, record):
         fields = ("request_id", "conversation_id", "failure_stage", "exception_category", "internal_error_code",
-                  "provider_http_status", "provider_status", "tool", "status", "error_code", "knowledge_index_status",
+                  "provider_http_status", "provider_status", "provider_attempt", "response_condition", "tool", "status", "error_code", "knowledge_index_status",
                   "index_root", "index_reason", "os_errno", "os_winerror", "duration_ms", "model_requests", "tool_calls", "searches", "fetches",
                   "termination_reason", "orchestration_state", "state_before", "model_call_ordinal", "finish_reason",
                   "tool_call_count", "assistant_content_length", "tool_choice", "decision", "decision_reason",

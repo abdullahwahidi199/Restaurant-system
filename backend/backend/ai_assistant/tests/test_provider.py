@@ -1,11 +1,12 @@
 import json
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import httpx
 from django.test import SimpleTestCase, override_settings
 
 from ai_assistant.config import Limits
 from ai_assistant.errors import AssistantError
+from ai_assistant.model_configuration import ModelConfiguration
 from ai_assistant.orchestrator import Orchestrator
 from ai_assistant.provider import DeepSeekProvider, parse_completion
 
@@ -94,6 +95,99 @@ class ProviderTests(SimpleTestCase):
         self.assertEqual(result.message()["tool_calls"][0], call)
         with self.assertRaises(AssistantError):
             parse_completion(payload(content=None, calls=[call, call], finish="tool_calls"))
+
+    def test_whitespace_remains_invalid_and_is_narrowly_classified(self):
+        for content in (" ", "\n \t\r\n", "\u2003"):
+            with self.subTest(content=repr(content)), self.assertRaises(AssistantError) as caught:
+                parse_completion(payload(content=content))
+            self.assertEqual(caught.exception.code, "provider_invalid_response")
+            self.assertEqual(caught.exception.response_condition, "whitespace_only")
+
+    def test_whitespace_retry_preserves_wire_payload_and_configuration(self):
+        for effort in ("none", "high"):
+            with self.subTest(effort=effort):
+                sent = []
+                messages = [{"role": "system", "content": "Return JSON."},
+                    {"role": "assistant", "content": None, "tool_calls": [{"id": "already_done", "type": "function",
+                        "function": {"name": "retrieve_business_context", "arguments": "{}"}}]},
+                    {"role": "tool", "tool_call_id": "already_done", "content": '{"results":["saved evidence"]}'}]
+                def handle(request):
+                    sent.append(json.loads(request.content))
+                    extra = {"reasoning_content": "private reasoning"} if effort != "none" else {}
+                    return httpx.Response(200, json=payload(content=" \n " if len(sent) == 1 else '{"kind":"answer"}', **extra))
+                result = DeepSeekProvider(transport=httpx.MockTransport(handle)).complete(
+                    messages=messages, tools=[], tool_choice="auto", limits=Limits(), timeout=10,
+                    request_id="retry-test", configuration=ModelConfiguration("deepseek-v4-pro", effort))
+                self.assertEqual(result.text, '{"kind":"answer"}')
+                self.assertEqual(len(sent), 2)
+                self.assertEqual(sent[0], sent[1])
+                self.assertEqual(sent[1]["messages"], messages)
+                self.assertEqual(sent[1]["model"], "deepseek-v4-pro")
+                self.assertEqual(sent[1]["thinking"]["type"], "disabled" if effort == "none" else "enabled")
+
+    def test_whitespace_retry_exhaustion_is_two_attempts_and_safe(self):
+        handler = Mock(side_effect=lambda request: httpx.Response(200, json=payload(content=" \n\t")))
+        with self.assertLogs("ai_assistant", level="INFO") as logs, self.assertRaises(AssistantError) as caught:
+            self.invoke(handler)
+        self.assertEqual(handler.call_count, 2)
+        self.assertEqual((caught.exception.code, caught.exception.status), ("provider_invalid_response", 502))
+        self.assertEqual([r.provider_attempt for r in logs.records], [1, 2])
+        self.assertTrue(all(r.response_condition == "whitespace_only" for r in logs.records))
+        self.assertNotIn("mock-key", str(caught.exception))
+
+    def test_other_invalid_responses_are_never_retried(self):
+        malformed = payload(content=" \n")
+        malformed["choices"][0]["message"]["tool_calls"] = [{}]
+        cases = [payload(content=""), payload(content=None), payload(content=" ", finish="length"),
+            payload(content=" ", finish="content_filter"), payload(content=" ", reasoning_content="unexpected"),
+            payload(content=" " * 32001), malformed, {"choices": []}]
+        for data in cases:
+            handler = Mock(side_effect=lambda request: httpx.Response(200, json=data))
+            with self.subTest(data=str(data)[:80]), self.assertRaises(AssistantError):
+                self.invoke(handler)
+            self.assertEqual(handler.call_count, 1)
+
+    def test_blank_content_with_valid_tool_call_is_not_retried(self):
+        call = {"id": "tool_once", "type": "function", "function": {"name": "search_documentation", "arguments": "{}"}}
+        handler = Mock(side_effect=lambda request: httpx.Response(200, json=payload(content=" \n", calls=[call], finish="tool_calls")))
+        result = self.invoke(handler)
+        self.assertEqual(handler.call_count, 1)
+        self.assertEqual(result.tool_calls[0].id, "tool_once")
+
+    def test_regular_answer_is_one_attempt(self):
+        handler = Mock(side_effect=lambda request: httpx.Response(200, json=payload()))
+        self.invoke(handler)
+        self.assertEqual(handler.call_count, 1)
+
+    def test_retry_uses_remaining_timeout_instead_of_resetting_deadline(self):
+        clock, sent, timeouts = [100.0], [], []
+        def handle(request):
+            sent.append(request)
+            timeouts.append(request.extensions["timeout"]["read"])
+            clock[0] += 3
+            return httpx.Response(200, json=payload(content=" " if len(sent) == 1 else "done"))
+        with patch("ai_assistant.provider.time.monotonic", side_effect=lambda: clock[0]):
+            self.invoke(handle)
+        self.assertEqual(timeouts, [10.0, 7.0])
+
+    def test_retry_does_not_extend_deadline_or_retry_new_failure(self):
+        clock, sent = [100.0], []
+        def late(request):
+            sent.append(request)
+            clock[0] += 11
+            return httpx.Response(200, json=payload(content=" "))
+        with patch("ai_assistant.provider.time.monotonic", side_effect=lambda: clock[0]), self.assertRaises(AssistantError) as caught:
+            self.invoke(late)
+        self.assertEqual(caught.exception.code, "provider_timeout")
+        self.assertEqual(len(sent), 1)
+        attempts = []
+        def unavailable(request):
+            attempts.append(request)
+            return httpx.Response(200, json=payload(content=" ")) if len(attempts) == 1 else httpx.Response(500)
+        with self.assertRaises(AssistantError) as caught:
+            self.invoke(unavailable)
+        self.assertEqual(caught.exception.code, "provider_unavailable")
+        self.assertEqual(len(attempts), 2)
 
     def test_real_adapter_orchestrator_gateway_sequence_without_network(self):
         gateway, _, _ = gateway_fixture()
