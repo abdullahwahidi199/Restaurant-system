@@ -72,7 +72,6 @@ export default function useOrdersSocket(onMessage, onReconnect) {
     const connect = () => {
       if (isCleanedUp.current || hasActiveSocket()) return;
 
-      // A visibility-triggered connection supersedes pending backoff.
       clearReconnectTimer();
 
       console.log("🔗 Connecting to WS...");
