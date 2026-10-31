@@ -156,7 +156,9 @@ class BehaviorTests(DatabaseFixture):
             supplied = json.loads(request["messages"][1]["content"].split("\n", 1)[1])
             tools = {tool["id"]: tool for domain in supplied["domains"] for tool in domain["tools"]}
             self.assertEqual(tools[allowed.id]["parameters"], allowed.parameters)
-            self.assertEqual(tools[allowed.id]["output"], allowed.output)
+            self.assertNotIn("output", tools[allowed.id])
+            self.assertIn("returns", tools[allowed.id])
+            self.assertEqual(registry.get(allowed.id).output, allowed.output)
             self.assertEqual(tools[allowed.id]["knowledge_ids"], [DOC])
             self.assertEqual(tools[allowed.id]["selection_hint"], "Test metadata preserved")
             self.assertNotIn("test.unregistered", tools)

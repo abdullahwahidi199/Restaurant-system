@@ -86,6 +86,7 @@ class ToolDefinition:
     handler: Callable
     timeout_seconds: float = 5
     read_only: bool = True
+    returns: str = ""
 
 
 class ToolRegistry:
@@ -99,6 +100,7 @@ class ToolRegistry:
             raise ValueError("The registry is frozen.")
         if (not isinstance(tool, ToolDefinition) or not isinstance(tool.id, str) or not TOOL_ID.fullmatch(tool.id)
                 or tool.id in self._tools or not isinstance(tool.description, str) or not tool.description.strip()
+                or not isinstance(tool.returns, str)
                 or not isinstance(tool.domain, str) or tool.domain not in self.documents.domain_ids or tool.read_only is not True
                 or not callable(tool.authorize) or not callable(tool.handler)
                 or not isinstance(tool.timeout_seconds, (float, int)) or isinstance(tool.timeout_seconds, bool)
@@ -153,8 +155,16 @@ class ToolRegistry:
             raise OperationError("INVALID_OUTPUT") from None
 
     def capabilities(self, domain):
+        """Complete invocation metadata; full output validation stays in get()."""
+        def returns(tool):
+            if tool.returns.strip():
+                return tool.returns
+            # Legacy/future registrations remain discoverable without another
+            # specification fetch. Never fall back to transmitting the schema.
+            fields = ", ".join(tool.output.get("properties", {}))
+            return tool.description + (f" Result fields: {fields}." if fields else " Returns the validated operation result.")
         return [{"id": tool.id, "description": tool.description, "parameters": copy.deepcopy(tool.parameters),
-                 "output": copy.deepcopy(tool.output), "knowledge_ids": list(tool.knowledge_ids)}
+                 "returns": returns(tool), "knowledge_ids": list(tool.knowledge_ids)}
                 for tool in self._tools.values() if tool.domain == domain]
 
 

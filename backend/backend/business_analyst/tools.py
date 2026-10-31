@@ -419,26 +419,34 @@ def contractor_definitions():
                     for key in ("lines_page", "payments_page", "attachments_page", "audit_page")}
     specs = [
         (list_contractors, "List contractor contacts and current all-time balances, including inactive providers; no directory date filter.",
-         listing(CONTRACTOR_FILTERS, CONTRACTOR_SORTS), envelope(paged(CONTRACTOR_RECORD)["properties"]), (profiles, shared)),
+         listing(CONTRACTOR_FILTERS, CONTRACTOR_SORTS), envelope(paged(CONTRACTOR_RECORD)["properties"]), (profiles, shared),
+         "Paginated contractor contacts/status and complete all-history invoiced, paid and floored outstanding balances for each provider; pagination does not limit account totals."),
         (get_contractor_details, "Get full contractor profile, all-time account totals and related record counts; agreement value is not debt.",
          obj({"contractor_id": CONTRACTOR_ID}), envelope({"contractor": CONTRACTOR_RECORD, "contract_count": INTEGER,
-             "invoice_totals": INVOICE_TOTALS, "payment_count": INTEGER}), (profiles, shared)),
+             "invoice_totals": INVOICE_TOTALS, "payment_count": INTEGER}), (profiles, shared),
+         "One contractor profile, current all-history recognized invoice charges/payments/balance, contract count, invoice totals including separate drafts and unpaid counts, and payment count."),
         (list_service_contracts, "List agreements using optional start-date bounds; agreement values differ from all-time linked invoice charges.",
-         listing(CONTRACT_FILTERS, CONTRACT_SORTS), envelope(paged(CONTRACT_RECORD)["properties"]), (agreements, shared)),
+         listing(CONTRACT_FILTERS, CONTRACT_SORTS), envelope(paged(CONTRACT_RECORD)["properties"]), (agreements, shared),
+         "Paginated agreements with dates, status and contractual value, plus current all-history linked invoiced charges; agreement value is not recognized expense or debt."),
         (get_service_contract_details, "Get full agreement and current all-time linked invoice financial totals, regardless of agreement status or dates.",
          obj({"contract_id": identifier("Authorized service contract ID.")}),
-         envelope({"contract": CONTRACT_RECORD, "linked_invoice_totals": INVOICE_TOTALS}), (agreements, invoices)),
+         envelope({"contract": CONTRACT_RECORD, "linked_invoice_totals": INVOICE_TOTALS}), (agreements, invoices),
+         "One agreement and current all-history linked invoice counts, recognized/draft amounts, capped paid, remaining balances and payment totals, independent of agreement dates."),
         (list_service_invoices, "List individual invoices by invoice-date cohort, including drafts; Paid/Remaining are current all-date settlement amounts.",
-         listing(INVOICE_FILTERS, INVOICE_SORTS), envelope(paged(INVOICE_RECORD)["properties"]), (invoices, shared)),
+         listing(INVOICE_FILTERS, INVOICE_SORTS), envelope(paged(INVOICE_RECORD)["properties"]), (invoices, shared),
+         "Paginated invoices with contractor/contract references, invoice/due dates, status, recognized flag, totals and current cumulative paid/remaining; dates select an invoice cohort."),
         (get_service_invoice_details, "Get full invoice fields and independently paginated lines, all-date payments, attachment metadata and authorized audit changes. No file content.",
          obj({"invoice_id": identifier("Authorized invoice ID."), **detail_pages,
               "page_size": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5}}, required=["invoice_id"]),
          envelope({"invoice": INVOICE_RECORD, "lines": paged(LINE_RECORD), "payments": paged(PAYMENT_RECORD),
-                   "attachments": paged(ATTACHMENT_RECORD), "audit_changes": paged(AUDIT_RECORD)}), (invoices, payments)),
+                   "attachments": paged(ATTACHMENT_RECORD), "audit_changes": paged(AUDIT_RECORD)}), (invoices, payments),
+         "Full invoice and independently paginated service lines, all-date payment rows, attachment metadata/authenticated paths and authorized audit changes; no attachment content."),
         (list_service_invoice_lines, "List rounded service-line records across matching invoices or one invoice; dates/status belong to the parent invoice.",
-         listing(LINE_FILTERS, LINE_SORTS), envelope(paged(LINE_RECORD)["properties"]), (invoices, shared)),
+         listing(LINE_FILTERS, LINE_SORTS), envelope(paged(LINE_RECORD)["properties"]), (invoices, shared),
+         "Paginated individual service lines with parent invoice/provider, dates/status, recognized flag, service type, description, quantity, original unit price and rounded line total."),
         (list_contractor_payments, "List individual recorded disbursements by payment date, independent of invoice dates; no implicit month restriction.",
-         listing(PAYMENT_FILTERS, PAYMENT_SORTS), envelope(paged(PAYMENT_RECORD)["properties"]), (payments, shared)),
+         listing(PAYMENT_FILTERS, PAYMENT_SORTS), envelope(paged(PAYMENT_RECORD)["properties"]), (payments, shared),
+         "Paginated individual recorded payments, provider/invoice/contract references, payment dates/methods, amounts and notes; disbursements are not additional invoice expense."),
         (get_contractor_ledger, "Get a paginated contractor ledger: non-draft invoice debits and payment credits, signed running balances; reconstructed from current records, not historical snapshots.",
          obj({"contractor_id": CONTRACTOR_ID, "date_from": date_filter("Transaction date lower bound"),
               "date_to": date_filter("Transaction date upper bound"), **PAGING,
@@ -446,7 +454,8 @@ def contractor_definitions():
          envelope({"contractor_id": INTEGER, **paged(obj({"date": TEXT, "type": TEXT, "id": INTEGER, "label": TEXT,
               "status": TEXT, "debit": AMOUNT, "credit": AMOUNT, "running_balance": AMOUNT}))["properties"],
               "range": obj({"invoice_count": INTEGER, "payment_count": INTEGER, "opening_reconstructed": AMOUNT, "invoice_debits": AMOUNT, "payment_credits": AMOUNT, "closing_reconstructed": AMOUNT}),
-              "current": CURRENT_ACCOUNT}), (profiles, payments, invoices)),
+              "current": CURRENT_ACCOUNT}), (profiles, payments, invoices),
+         "Paginated chronological invoice debits/payment credits with signed running balances; range opening, activity and closing reconstruction, counts, and separate current floored account totals."),
         (get_contractor_summary, "Summarize matching contractor accounts: directory counts; period agreement values/start dates, non-draft invoice charges/invoice dates, payments/payment dates; separate all-time current balances. Aggregate net debt can differ from summed provider or invoice balances.",
          obj({**CONTRACTOR_FILTERS, "date_from": date_filter("Activity lower bound on each model's own business date"),
               "date_to": date_filter("Activity upper bound on each model's own business date")}, required=[]),
@@ -457,22 +466,26 @@ def contractor_definitions():
                        "recognized_charges": AMOUNT, "payment_count": INTEGER, "recorded_payments": AMOUNT, "net_activity": AMOUNT,
                        "invoice_statuses": INVOICE_STATUSES, "contract_statuses": CONTRACT_STATUSES, "payment_methods": PAYMENT_METHODS}),
                    "current": current_summary}),
-         (shared, "admin_contractors_dashboard", profiles, "admin_contractors_payables")),
+         (shared, "admin_contractors_dashboard", profiles, "admin_contractors_payables"),
+         "Directory counts; period agreement values, recognized invoice charges, separate draft values, payment totals and status/method breakdowns; current all-history net-first debt, summed contractor balances and summed invoice balances for reconciliation."),
         (get_service_contracts_summary, "Aggregate filtered agreements by start_date and stored status; sum agreement values separately from all-time current linked invoice charges and settlement.",
          obj(CONTRACT_FILTERS, required=[]), envelope({"count": INTEGER, "agreement_value": AMOUNT,
-              "open_ended_count": INTEGER, "by_status": CONTRACT_STATUSES, "current_linked_invoices": INVOICE_TOTALS}), (agreements, shared)),
+              "open_ended_count": INTEGER, "by_status": CONTRACT_STATUSES, "current_linked_invoices": INVOICE_TOTALS}), (agreements, shared),
+         "Complete filtered agreement count/value, open-ended count and status breakdown, plus all-history current linked invoice charges, drafts, capped paid and remaining; agreement values stay separate."),
         (get_service_invoices_summary, "Aggregate invoice-date cohorts: counts/statuses, draft face value, recognized charges, current all-date Paid/Remaining and top ten service types. No historical or cash snapshot.",
          obj(INVOICE_FILTERS, required=[]), envelope({"totals": INVOICE_TOTALS, "by_status": INVOICE_STATUSES,
               "service_types": obj({"groups": array(obj({"service_type": TEXT, "line_count": INTEGER, "recognized_charges": AMOUNT})),
-                                    "total_groups": INTEGER, "other_charges": AMOUNT})}), (invoices, "admin_contractors_payables", shared)),
+                                    "total_groups": INTEGER, "other_charges": AMOUNT})}), (invoices, "admin_contractors_payables", shared),
+         "Complete invoice-cohort counts/status amounts, draft face values, recognized charges, current all-date capped paid/remaining, linked payment totals, and top service types with remainder charges."),
         (get_contractor_payments_summary, "Aggregate payment-date disbursements, distinct providers/invoices, payment methods and current invoice states; not service expense or reconciled cash.",
          obj(PAYMENT_FILTERS, required=[]), envelope({"count": INTEGER, "recorded_payments": AMOUNT,
               "contractor_count": INTEGER, "invoice_count": INTEGER, "by_method": PAYMENT_METHODS,
-              "by_current_invoice_status": array(obj({"status": TEXT, "count": INTEGER, "amount": AMOUNT}))}), (payments, shared)),
+              "by_current_invoice_status": array(obj({"status": TEXT, "count": INTEGER, "amount": AMOUNT}))}), (payments, shared),
+         "Complete payment-row count/amount, distinct provider/invoice counts, payment-method and current invoice-status breakdowns; period uses payment dates, not invoice dates."),
     ]
     return tuple(ToolDefinition(id=handler.__name__, description=description, domain="contractors", parameters=parameters,
-                                output=output, knowledge_ids=knowledge_ids, authorize=partial(authorize_tool, handler.__name__), handler=handler)
-                 for handler, description, parameters, output, knowledge_ids in specs)
+                                output=output, knowledge_ids=knowledge_ids, authorize=partial(authorize_tool, handler.__name__), handler=handler, returns=returns)
+                 for handler, description, parameters, output, knowledge_ids, returns in specs)
 
 
 EXPENSE_RECORD = obj({"id": INTEGER, "name": TEXT, "amount": AMOUNT, "currency": TEXT,
@@ -564,29 +577,34 @@ def expense_definitions():
                     "total_groups": INTEGER, "other_count": INTEGER, "other_total_afn": AMOUNT})
     specs = [
         (list_expenses, "List current expense records by expense date, original currency and name/search; saved AFN equivalents, bounded pagination; omitted dates mean all-time.",
-         listing(EXPENSE_FILTERS, EXPENSE_SORTS), expense_envelope(paged(EXPENSE_RECORD)["properties"]), (expenses,)),
+         listing(EXPENSE_FILTERS, EXPENSE_SORTS), expense_envelope(paged(EXPENSE_RECORD)["properties"]), (expenses,),
+         "Paginated current expense records with original currency/amount, saved exchange rate and AFN equivalent, business date and description; saved conversions are not recomputed."),
         (get_expense_details, "Get one authorized current expense: original amount/currency, saved exchange rate, AFN equivalent, expense date and description. No reliable history-record link exists.",
          obj({"expense_id": identifier("Authorized current expense record ID; obtain from list_expenses or the user.")}),
-         expense_envelope({"expense": EXPENSE_RECORD}), (expenses, history)),
+         expense_envelope({"expense": EXPENSE_RECORD}), (expenses, history),
+         "One current expense record with original amount/currency, saved exchange rate, AFN equivalent, date and description; no reliable link to expense-history events."),
         (list_expense_history, "List expense creation/update/deletion snapshots and changed fields by recorded event timestamp in business timezone; audit events are not additional spending and have no expense ID link.",
-         listing(HISTORY_FILTERS, HISTORY_SORTS), expense_envelope(paged(EXPENSE_HISTORY_RECORD)["properties"]), (history,)),
+         listing(HISTORY_FILTERS, HISTORY_SORTS), expense_envelope(paged(EXPENSE_HISTORY_RECORD)["properties"]), (history,),
+         "Paginated created/updated/deleted audit snapshots with original and AFN amounts, event timestamps and changed fields; events are not additional spending or reliably linked expense IDs."),
         (get_expense_summary, "Aggregate matching current expenses by expense date: counts, saved AFN totals/statistics, original currency totals, top ten names and latest twelve months with remainder totals. No history sums; USD is included in AFN.",
          obj(EXPENSE_FILTERS, required=[]), expense_envelope({
              "totals": obj({"count": INTEGER, "total_afn": AMOUNT, "average_afn": AMOUNT, "minimum_afn": AMOUNT,
                  "maximum_afn": AMOUNT, "first_expense_date": OPTIONAL_TEXT, "last_expense_date": OPTIONAL_TEXT,
                  "negative_amount_count": INTEGER, "zero_amount_count": INTEGER, "negative_rate_count": INTEGER}),
              "by_currency": array(obj({"currency": TEXT, "count": INTEGER, "original_amount": AMOUNT, "total_afn": AMOUNT})),
-             "by_name": groups("name"), "by_month": groups("month")}), (expenses,)),
+             "by_name": groups("name"), "by_month": groups("month")}), (expenses,),
+         "Complete current-record counts, AFN total/average/min/max and date bounds; original-currency totals, top names and latest months with remainders. USD is already included in AFN; no audit-snapshot sums."),
         (get_expense_history_summary, "Count audit events by action, original currency and latest twelve event months in business timezone, including first/last timestamps and remaining event counts. Never sum snapshots as expenses.",
          obj(HISTORY_FILTERS, required=[]), expense_envelope({"event_count": INTEGER, "first_event_at": OPTIONAL_TEXT,
              "last_event_at": OPTIONAL_TEXT, "by_action": array(obj({"action": TEXT, "event_count": INTEGER})),
              "by_currency": array(obj({"currency": TEXT, "event_count": INTEGER})),
              "by_month": obj({"groups": array(obj({"month": TEXT, "event_count": INTEGER})),
-                              "total_groups": INTEGER, "other_event_count": INTEGER})}), (history,)),
+                              "total_groups": INTEGER, "other_event_count": INTEGER})}), (history,),
+         "Event counts and first/last timestamps, action/currency breakdowns and latest event months with remainder counts; audit snapshots are never summed as expenses."),
     ]
     return tuple(ToolDefinition(id=handler.__name__, description=description, domain="finance", parameters=parameters,
-        output=output, knowledge_ids=knowledge_ids, authorize=partial(authorize_tool, handler.__name__), handler=handler)
-        for handler, description, parameters, output, knowledge_ids in specs)
+        output=output, knowledge_ids=knowledge_ids, authorize=partial(authorize_tool, handler.__name__), handler=handler, returns=returns)
+        for handler, description, parameters, output, knowledge_ids, returns in specs)
 
 
 # Inventory and Procurement contracts and thin handlers stay in this unified file.
@@ -981,69 +999,99 @@ def inventory_procurement_definitions():
     payment = "admin_procurement_payments"
     finance = "admin_procurement_shared_financial_meaning"
     specs = []
-    def add(handler, description, filters, output, docs, *, domain="inventory", required=()):
+    def add(handler, description, filters, output, docs, *, domain="inventory", required=(), returns=""):
         specs.append(ToolDefinition(id=handler.__name__, description=description, domain=domain,
             parameters=obj(filters, required=list(required)), output=ip_envelope(output), knowledge_ids=tuple(docs),
-            authorize=partial(authorize_tool, handler.__name__), handler=handler))
-    def record(handler, kind, filters, schema, docs, description, domain="inventory", required=()):
+            authorize=partial(authorize_tool, handler.__name__), handler=handler, returns=returns))
+    def record(handler, kind, filters, schema, docs, description, domain="inventory", required=(), returns=""):
         output = {**paged(schema)["properties"]}
         if kind == "movements":
             output["excluded_movement_types"] = array(TEXT)
         add(handler, description, {**filters, **PAGING, "sort": choice(IP_SORTS[kind], "Stable ordering with ID tie-breaker.")},
-            output, docs, domain=domain, required=required)
-    record(list_ingredients, "ingredients", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, [inv], "Current ingredient definitions and authorized branch quantities, thresholds, costs and values; no activity dates.")
+            output, docs, domain=domain, required=required, returns=returns)
+    record(list_ingredients, "ingredients", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, [inv], "Current ingredient definitions and authorized branch quantities, thresholds, costs and values; no activity dates.",
+        returns="Paginated definitions/status and current authorized branch quantity, unit, threshold, unit cost, value and warning status; shared definitions use branch stock, missing stock is unknown.")
     add(get_ingredient_details, "One current ingredient by ID or unambiguous name; current stock, cost, threshold and recipe relationship count.", IP_INGREDIENT,
-        {"ingredient": IP_INGREDIENT_RECORD, "recipe_usage_count": INTEGER}, [inv])
+        {"ingredient": IP_INGREDIENT_RECORD, "recipe_usage_count": INTEGER}, [inv],
+        returns="One current ingredient definition, branch stock identifiers, quantity/unit, threshold, cost/value, status and recipe usage count; no historical stock reconstruction.")
     record(list_ingredient_stocks, "stocks", {**IP_STOCK_FILTERS,
         "stock_branch_ids": {"type": "array", "items": identifier("Branch filter; server verifies all branches against existing access."), "minItems": 1, "maxItems": 20, "uniqueItems": True}},
-        IP_INGREDIENT_RECORD, [inv], "Current stock positions; default active branch. Multiple branch filters require existing all-branch access; shared definitions are represented once per branch.")
+        IP_INGREDIENT_RECORD, [inv], "Current stock positions; default active branch. Multiple branch filters require existing all-branch access; shared definitions are represented once per branch.",
+        returns="Paginated current positions per authorized branch with ingredient/unit, quantity, threshold, cost/value and stock status; shared definitions appear once per branch, with unknown missing positions.")
     record(list_ingredient_recipe_usages, "recipes", {**IP_INGREDIENT, "menu_item_id": identifier("Related menu item."), "menu_item_name": SEARCH},
-        IP_RECIPE_RECORD, [inv], "Recipe requirements by ingredient or menu item; quantities are per recipe entry, not actual order consumption.")
-    record(list_ingredient_purchase_history, "history", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [inv, purchase], "Historical purchase invoice lines, original prices and supplierless purchases; defaults to non-draft history, explicit status can include drafts.")
-    record(list_stock_movements, "movements", IP_MOVEMENT_FILTERS, IP_MOVEMENT_RECORD, [movement], "All eight signed movement types, event dates and order references; no default 30-day restriction.")
-    add(get_stock_movement_details, "One authorized stock movement and its linked references.", {"movement_id": identifier("Movement ID.")}, {"movement": IP_MOVEMENT_RECORD}, [movement], required=["movement_id"])
-    record(list_low_stock_ingredients, "low_stock", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, ["admin_inventory_low_stock_alerts"], "Current threshold warnings, including zero and legacy negative balances; low_stock selects positive quantities at or below threshold, out_of_stock selects exactly zero. No forecast.")
-    record(list_stock_transfers, "transfers", IP_TRANSFER_FILTERS, IP_TRANSFER_RECORD, [transfer], "Transfer requests visible through an authorized endpoint, filtered by creation dates/status; pending requests have not moved stock.")
-    add(get_stock_transfer_details, "One authorized transfer request with endpoints, actors and timestamps.", {"transfer_id": identifier("Transfer ID.")}, {"transfer": IP_TRANSFER_RECORD}, [transfer], required=["transfer_id"])
-    record(list_stock_transfer_logs, "logs", {"transfer_id": identifier("Authorized parent transfer."), "action": SEARCH, **IP_DATES}, IP_LOG_RECORD, [transfer], "Parent-authorized transfer activity logs by action and Kabul event date.", required=["transfer_id"])
-    record(list_suppliers, "suppliers", {**IP_SUPPLIER, "is_active": BOOLEAN}, IP_SUPPLIER_RECORD, [supplier, finance], "Supplier directory and complete all-history purchases/payments/current floored balances, independent of pagination.", "procurement")
+        IP_RECIPE_RECORD, [inv], "Recipe requirements by ingredient or menu item; quantities are per recipe entry, not actual order consumption.",
+        returns="Paginated ingredient/menu-item relationships with recipe quantity, stock unit and menu-item availability; requirements are per recipe entry, not actual consumption.")
+    record(list_ingredient_purchase_history, "history", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [inv, purchase], "Historical purchase invoice lines, original prices and supplierless purchases; defaults to non-draft history, explicit status can include drafts.",
+        returns="Paginated historical invoice lines with invoice/date/status, supplier including supplierless, ingredient/unit, purchased quantity, original four-decimal price, line total and movement reference; default excludes drafts.")
+    record(list_stock_movements, "movements", IP_MOVEMENT_FILTERS, IP_MOVEMENT_RECORD, [movement], "All eight signed movement types, event dates and order references; no default 30-day restriction.",
+        returns="Paginated signed movement events with ingredient/unit, category, recorded cost, notes, order, actor and Kabul timestamp; includes all permitted types and explicitly flags excluded transfer categories.")
+    add(get_stock_movement_details, "One authorized stock movement and its linked references.", {"movement_id": identifier("Movement ID.")}, {"movement": IP_MOVEMENT_RECORD}, [movement], required=["movement_id"],
+        returns="One authorized movement with signed quantity/unit, category, recorded unit cost, notes, order/branch references, actor and event timestamp.")
+    record(list_low_stock_ingredients, "low_stock", IP_STOCK_FILTERS, IP_INGREDIENT_RECORD, ["admin_inventory_low_stock_alerts"], "Current threshold warnings, including zero and legacy negative balances; low_stock selects positive quantities at or below threshold, out_of_stock selects exactly zero. No forecast.",
+        returns="Paginated current threshold-warning positions, including zero stock and qualifying legacy negatives; quantities, units, thresholds, cost/value and active status; no forecast or reorder quantity.")
+    record(list_stock_transfers, "transfers", IP_TRANSFER_FILTERS, IP_TRANSFER_RECORD, [transfer], "Transfer requests visible through an authorized endpoint, filtered by creation dates/status; pending requests have not moved stock.",
+        returns="Paginated transfer requests with ingredient/quantity/unit, endpoints, status, creator/approver and creation/approval timestamps; pending requests are not completed stock movements.")
+    add(get_stock_transfer_details, "One authorized transfer request with endpoints, actors and timestamps.", {"transfer_id": identifier("Transfer ID.")}, {"transfer": IP_TRANSFER_RECORD}, [transfer], required=["transfer_id"],
+        returns="One authorized transfer request with ingredient/quantity/unit, source/destination, status, notes, actors and timestamps; no double-counted outgoing/incoming events.")
+    record(list_stock_transfer_logs, "logs", {"transfer_id": identifier("Authorized parent transfer."), "action": SEARCH, **IP_DATES}, IP_LOG_RECORD, [transfer], "Parent-authorized transfer activity logs by action and Kabul event date.", required=["transfer_id"],
+        returns="Paginated authorized parent-transfer audit events with action, message, actor and Kabul timestamp; log date is independent of transfer creation/approval.")
+    record(list_suppliers, "suppliers", {**IP_SUPPLIER, "is_active": BOOLEAN}, IP_SUPPLIER_RECORD, [supplier, finance], "Supplier directory and complete all-history purchases/payments/current floored balances, independent of pagination.", "procurement",
+        returns="Paginated supplier contacts/status and complete all-history recognized purchases, payment rows and current per-supplier floored balance; account totals are independent of pagination.")
     add(get_supplier_details, "One supplier by ID or unambiguous name, contact profile and all-history account/record counts.", IP_SUPPLIER,
-        {"supplier": IP_SUPPLIER_RECORD, "invoice_totals": IP_INVOICE_TOTALS, "payment_count": INTEGER}, [supplier, finance], domain="procurement")
-    record(list_purchase_invoices, "invoices", IP_PURCHASE_FILTERS, IP_INVOICE_RECORD, [purchase, finance], "Invoice records by purchase date, supplier, ingredient, status and posting; Paid/Remaining are current all-date values, not period payments.", "procurement")
+        {"supplier": IP_SUPPLIER_RECORD, "invoice_totals": IP_INVOICE_TOTALS, "payment_count": INTEGER}, [supplier, finance], domain="procurement",
+        returns="One supplier contact/status profile and current all-history purchase/payment/balance totals, invoice counts/financial totals including separate drafts, and payment count.")
+    record(list_purchase_invoices, "invoices", IP_PURCHASE_FILTERS, IP_INVOICE_RECORD, [purchase, finance], "Invoice records by purchase date, supplier, ingredient, status and posting; Paid/Remaining are current all-date values, not period payments.", "procurement",
+        returns="Paginated invoices including supplierless purchases and drafts, purchase/due dates, status/posting, total, stored paid and current all-date capped paid/remaining; not historical settlement snapshots.")
     attachment = obj({"id": INTEGER, "original_filename": TEXT, "content_type": TEXT, "file_size": INTEGER, "file_type": TEXT, "uploaded_at": TEXT, "uploaded_by": IP_ACTOR})
     add(get_purchase_invoice_details, "One invoice by ID or unambiguous stored number, historical lines, separately paginated all-date payments and attachment metadata; no file content or URLs.",
         {**IP_INVOICE, "page_size": PAGING["page_size"], **{key: PAGING["page"] for key in ("lines_page", "payments_page", "attachments_page")}},
-        {"invoice": IP_INVOICE_RECORD, "lines": paged(IP_LINE_RECORD), "payments": paged(IP_PAYMENT_RECORD), "attachments": paged(attachment)}, [purchase, payment], domain="procurement")
-    record(list_purchase_invoice_lines, "lines", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [purchase], "Individual purchase lines with original four-decimal prices, quantities and rounded charges; draft lines explicitly unrecognized.", "procurement")
-    record(list_supplier_payments, "payments", IP_PAYMENT_FILTERS, IP_PAYMENT_RECORD, [payment], "Individual payment rows using SupplierPayment.date and recorded method, independent of invoice purchase date.", "procurement")
+        {"invoice": IP_INVOICE_RECORD, "lines": paged(IP_LINE_RECORD), "payments": paged(IP_PAYMENT_RECORD), "attachments": paged(attachment)}, [purchase, payment], domain="procurement",
+        returns="Full invoice, historical prices/quantities/line totals, current paid/remaining and independently paginated lines, all-date payments and attachment metadata; no file contents or URLs.")
+    record(list_purchase_invoice_lines, "lines", IP_PURCHASE_FILTERS, IP_LINE_RECORD, [purchase], "Individual purchase lines with original four-decimal prices, quantities and rounded charges; draft lines explicitly unrecognized.", "procurement",
+        returns="Paginated individual purchase lines with invoice/date/status/recognized flag, ingredient/unit, quantity, original price, line total, supplier and permitted inventory movement reference.")
+    record(list_supplier_payments, "payments", IP_PAYMENT_FILTERS, IP_PAYMENT_RECORD, [payment], "Individual payment rows using SupplierPayment.date and recorded method, independent of invoice purchase date.", "procurement",
+        returns="Paginated payment rows with supplier/invoice references, payment date, amount/method, reference number, notes and actor; supplierless stored paid need not have payment rows.")
     add(get_supplier_ledger, "Reconstructed chronological supplier ledger: non-draft charges, payment credits, signed running balances and pre-range opening; current floored debt stays separate.",
         {**IP_SUPPLIER, **IP_DATES, **PAGING}, {"supplier": IP_SUPPLIER_RECORD, "ledger": obj({**paged(obj({"id": INTEGER, "event_date": TEXT,
             "entry_type": TEXT, "reference": TEXT, "debit": DECIMAL, "credit": DECIMAL, "signed_change": DECIMAL, "running_balance": DECIMAL}))["properties"],
-            **{key: DECIMAL for key in ("opening_reconstructed", "invoice_debits", "payment_credits", "closing_reconstructed")}})}, [supplier, finance], domain="procurement")
-    add(get_inventory_summary, "Current inventory counts, active/inactive and stock warning statuses, valuation and separate unit totals; unknown shared branch stock remains unknown.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, [inv])
+            **{key: DECIMAL for key in ("opening_reconstructed", "invoice_debits", "payment_credits", "closing_reconstructed")}})}, [supplier, finance], domain="procurement",
+        returns="Paginated chronological non-draft invoice debits/payment credits, signed changes/running balances, pre-range opening and closing reconstruction; separate current supplier profile/floored debt. Not an immutable snapshot.")
+    add(get_inventory_summary, "Current inventory counts, active/inactive and stock warning statuses, valuation and separate unit totals; unknown shared branch stock remains unknown.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, [inv],
+        returns="Current definition/active/inactive and stock-status counts, known-position valuation, completeness/population labels and separate unit/status quantity/threshold/value groups; inactive records included unless filtered.")
     add(get_ingredient_summary, "Complete ingredient profile: current branch stock/value and recipe count, separately dated historical purchase lines and signed movements by type, including order/production, corrections, waste and transfers. Purchases and their movements must never be added together.",
         {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING}, {"current": IP_INGREDIENT_RECORD, "recipe_usage_count": INTEGER,
-        "purchase_activity": obj({"line_count": INTEGER, "quantity": DECIMAL, "line_charges": DECIMAL}), "movement_activity": obj(ip_movement_output())}, [inv, movement, purchase])
-    add(get_low_stock_summary, "Current warning counts/values and threshold comparisons by unit/status/activity; zero is out-of-stock, positive <= threshold is low, negative is separately identified. No reorder forecast.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, ["admin_inventory_low_stock_alerts"])
-    add(get_stock_movements_summary, "All-category signed movement counts, positive increases/negative decreases, unit-separated groups and event trends; group pagination never limits totals.", {**IP_MOVEMENT_FILTERS, **IP_GROUPING}, ip_movement_output(), [movement])
+        "purchase_activity": obj({"line_count": INTEGER, "quantity": DECIMAL, "line_charges": DECIMAL}), "movement_activity": obj(ip_movement_output())}, [inv, movement, purchase],
+        returns="Current ingredient stock/unit/threshold/cost/value/status and recipe count, separate period purchase quantities/line charges, and movement counts/net signed quantities by type, ingredient/unit and trend; flags excluded categories.")
+    add(get_low_stock_summary, "Current warning counts/values and threshold comparisons by unit/status/activity; zero is out-of-stock, positive <= threshold is low, negative is separately identified. No reorder forecast.", IP_STOCK_FILTERS, IP_INVENTORY_SUMMARY, ["admin_inventory_low_stock_alerts"],
+        returns="Current warning counts split into positive low, zero, legacy negative and active/inactive populations, valuation/completeness and unit/status quantity-versus-threshold groups; no purchase forecast.")
+    add(get_stock_movements_summary, "All-category signed movement counts, positive increases/negative decreases, unit-separated groups and event trends; group pagination never limits totals.", {**IP_MOVEMENT_FILTERS, **IP_GROUPING}, ip_movement_output(), [movement],
+        returns="Complete movement count, signed net/increase/decrease quantities by unit and type; paginated ingredient groups/rankings and event trends. Physical units stay separate; excluded categories are explicit.")
     add(get_consumption_summary, "Order versus production ingredient consumption and signed production adjustments/returns. net_recorded_usage is negative of net signed changes; waste, transfers and manual adjustments are excluded. Rank raw quantities only within matching units; event time is not order completion time.",
-        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING, "source": choice(["order", "production"], "Consumption source; omitted includes both, with distinct categories.")}, ip_movement_output(True), [movement])
+        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING, "source": choice(["order", "production"], "Consumption source; omitted includes both, with distinct categories.")}, ip_movement_output(True), [movement],
+        returns="Order/production/production-adjustment counts and net recorded usage (negative of signed changes), increases/returns and decreases by ingredient/unit/type, ranked groups and event trends; excludes waste, manual adjustments and transfers.")
     add(get_waste_summary, "Net recorded waste = negative signed waste changes, preserving positive corrections and original units; gross decreases and increases separate. No historical monetary loss from current costs.",
-        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING}, ip_movement_output(True), [movement])
+        {**IP_INGREDIENT, **IP_DATES, **IP_GROUPING}, ip_movement_output(True), [movement],
+        returns="Waste event count, net recorded waste (negative of signed changes), gross signed decreases and positive corrections, ingredient/unit rankings and trends; no historical monetary-loss estimate.")
     add(get_stock_transfers_summary, "Transfer request counts/statuses and endpoint/ingredient/unit groups; approved completed quantities separated from pending request quantities; creation-date scope, no movement double counting.",
         {**IP_TRANSFER_FILTERS, **IP_GROUPING}, {"transfer_count": INTEGER, "by_status": array(obj({"status": TEXT, "count": INTEGER})),
-        "quantities": ip_group(("ingredient_id", "ingredient__name", "ingredient__unit", "status", "from_branch_id", "to_branch_id"), ("request_quantity", "approved_quantity", "pending_quantity"))}, [transfer])
+        "quantities": ip_group(("ingredient_id", "ingredient__name", "ingredient__unit", "status", "from_branch_id", "to_branch_id"), ("request_quantity", "approved_quantity", "pending_quantity"))}, [transfer],
+        returns="Transfer request counts/statuses and paginated ingredient/unit/endpoint groups with approved completed quantities and separate pending request quantities; filtered by creation date, each transfer counted once.")
     add(get_suppliers_summary, "Supplier counts, all-history current balances and rankings; separate period purchases/payments and supplierless activity. Exposes per-supplier floored versus aggregate net-first versus per-invoice balances.",
-        {**IP_SUPPLIER, "is_active": BOOLEAN, **IP_DATES, **IP_GROUPING}, {**IP_SUPPLIERS_SUMMARY, "supplierless_activity": IP_INVOICE_TOTALS}, [supplier, finance], domain="procurement")
+        {**IP_SUPPLIER, "is_active": BOOLEAN, **IP_DATES, **IP_GROUPING}, {**IP_SUPPLIERS_SUMMARY, "supplierless_activity": IP_INVOICE_TOTALS}, [supplier, finance], domain="procurement",
+        returns="Supplier counts/current all-history purchases/payments, per-supplier floored versus aggregate net-first debt and invoice remaining; supplier rankings, separate period purchase/payment breakdowns/trends and supplierless activity.")
     add(get_supplier_summary, "Complete supplier by ID or unambiguous name: contact/current debt and all-history totals, separate period invoice charges/drafts/statuses, ingredient purchases, payment methods and trends.",
-        {**IP_SUPPLIER, **IP_DATES, **IP_GROUPING}, {"supplier": IP_SUPPLIER_RECORD, **IP_SUPPLIERS_SUMMARY}, [supplier, purchase, payment, finance], domain="procurement")
+        {**IP_SUPPLIER, **IP_DATES, **IP_GROUPING}, {"supplier": IP_SUPPLIER_RECORD, **IP_SUPPLIERS_SUMMARY}, [supplier, purchase, payment, finance], domain="procurement",
+        returns="One supplier profile and current all-history account; separate period invoice/unpaid counts, recognized charges/drafts/statuses, ingredient quantities/values, payments/methods and purchase/payment trends.")
     add(get_purchase_invoices_summary, "Purchase-date invoice cohorts, statuses/drafts, recognized charges and current all-date settlement; ingredient line analysis remains separate from whole matching invoice balances, without line join multiplication.",
-        {**IP_PURCHASE_FILTERS, **IP_GROUPING}, IP_PURCHASE_SUMMARY, [purchase, finance], domain="procurement")
+        {**IP_PURCHASE_FILTERS, **IP_GROUPING}, IP_PURCHASE_SUMMARY, [purchase, finance], domain="procurement",
+        returns="Complete matching invoice-cohort counts/statuses, drafts/recognized charges and current all-date paid/remaining; supplier/trend groups and separately filtered ingredient line quantities/charges. Line amounts are not whole-invoice balances.")
     add(get_supplier_payments_summary, "Payment-date row counts/amounts by method, supplier, invoice and chronological trend; counts payments rather than cumulative invoice paid values.",
-        {**IP_PAYMENT_FILTERS, **IP_GROUPING}, IP_PAYMENTS_SUMMARY, [payment, finance], domain="procurement")
+        {**IP_PAYMENT_FILTERS, **IP_GROUPING}, IP_PAYMENTS_SUMMARY, [payment, finance], domain="procurement",
+        returns="Complete payment-row count/amount, method totals and paginated supplier/invoice groups and payment-date trends; counts individual payments, not cumulative invoice paid values.")
     add(get_procurement_summary, "Procurement overview: period purchases/drafts/invoice counts, payment rows/trends, supplierless activity, and separate all-history current supplier liabilities/counts. Payments are not additional expense; stock valuation is obtained from inventory tools.",
         {**IP_DATES, **IP_GROUPING}, {"current_supplier_accounts": IP_CURRENT_SUPPLIERS, "purchase_activity": obj(IP_PURCHASE_SUMMARY),
-        "payment_activity": obj(IP_PAYMENTS_SUMMARY), "supplierless_activity": IP_INVOICE_TOTALS, "current_supplierless_invoices": IP_INVOICE_TOTALS}, [purchase, payment, finance], domain="procurement")
+        "payment_activity": obj(IP_PAYMENTS_SUMMARY), "supplierless_activity": IP_INVOICE_TOTALS, "current_supplierless_invoices": IP_INVOICE_TOTALS}, [purchase, payment, finance], domain="procurement",
+        returns="Period recognized charges, separate drafts/invoice counts, payment rows/totals and purchase/payment trends with supplier/ingredient groups; separate current all-history supplier accounts/payables and supplierless activity/current invoices. Payments are not extra expense.")
     return tuple(specs)
 
 

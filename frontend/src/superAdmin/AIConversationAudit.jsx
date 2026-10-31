@@ -6,8 +6,8 @@ import SafeMarkdown from "../modules/ai/components/SafeMarkdown";
 import "./ai-audit.css";
 
 const base = "/assistant/audit";
-const inputClass = "rounded-md border border-gray-300 bg-white px-3 py-2 text-sm min-w-0 w-full";
-const buttonClass = "rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-40";
+const inputClass = "ai-audit-input rounded-md border px-3 py-2 text-sm min-w-0 w-full";
+const buttonClass = "ai-audit-button rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-40";
 const pretty = (value) => JSON.stringify(value, null, 2);
 const time = (value) => value ? new Date(value).toLocaleString() : "—";
 const duration = (value) => value === null || value === undefined ? "Unavailable" : `${(value / 1000).toFixed(3)} s`;
@@ -18,10 +18,10 @@ const errorText = (error) => error.response?.status === 403 || error.response?.s
   : "Audit data could not be loaded. Try again.";
 
 function Json({ value }) {
-  return <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md bg-gray-950 p-4 text-xs leading-relaxed text-gray-100">{pretty(value)}</pre>;
+  return <pre className="ai-audit-json max-h-96 overflow-auto whitespace-pre-wrap break-all rounded-md p-4 text-xs leading-relaxed">{pretty(value)}</pre>;
 }
 function Status({ value }) {
-  const color = /failed|error|rejected/.test(value) ? "bg-red-100 text-red-800" : /completed|accepted|ok/.test(value) ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700";
+  const color = /failed|error|rejected/.test(value) ? "ai-audit-status-danger" : /completed|accepted|ok/.test(value) ? "ai-audit-status-success" : "ai-audit-status-neutral";
   return <span className={`rounded-full px-2 py-1 text-xs font-semibold ${color}`}>{value}</span>;
 }
 function Pages({ data, page, setPage }) {
@@ -170,7 +170,7 @@ export default function AIConversationAudit() {
       <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900"><ClipboardList />AI Conversation Audit</h1><p className="mt-1 text-sm text-gray-500">Read-only execution records · Sensitive details are access logged · Cost unavailable</p></div>
       <button className={buttonClass} aria-label="Refresh audit list" onClick={() => {setLoading(true);setRefresh(refresh+1);}}><RefreshCw size={16} /></button></header>
     {selected ? <TurnDetail key={selected} id={selected} close={() => setSelected(null)} /> : legacy ? <LegacyMessages key={legacy.id} conversation={legacy} close={() => setLegacy(null)} openTurn={setSelected} /> : <>
-      <nav className="flex gap-2" aria-label="Audit views">{[["turns","Audited turns"],["conversations","All conversations"]].map(([value,label]) => <button className={`${buttonClass} ${mode===value ? "bg-gray-900 text-white" : ""}`} key={value} onClick={() => {setMode(value);setPage(1);setLoading(true);}}>{label}</button>)}</nav>
+      <nav className="flex gap-2" aria-label="Audit views">{[["turns","Audited turns"],["conversations","All conversations"]].map(([value,label]) => <button className={`${buttonClass} ${mode===value ? "ai-audit-active" : ""}`} key={value} onClick={() => {setMode(value);setPage(1);setLoading(true);}}>{label}</button>)}</nav>
       <form onSubmit={apply} className="grid grid-cols-2 gap-3 rounded-lg border bg-white p-4 md:grid-cols-4" aria-label="Audit filters">
         <label className="text-xs font-medium text-gray-600">Agent<select className={inputClass} value={filters.agent_type || ""} onChange={(e) => setFilters({...filters,agent_type:e.target.value})}>
           <option value="">All agents</option>{options.agents.map((agent) => <option key={agent.value} value={agent.value}>{agent.label}</option>)}
@@ -178,7 +178,7 @@ export default function AIConversationAudit() {
         {[["start_date","From","date"],["end_date","To","date"],["user","User ID","number"],["restaurant","Restaurant ID","number"],["branch","Branch ID","number"],["conversation","Conversation ID","text"],["model","Model","text"],["error_code","Error code","text"],["error_category","Error category","text"]].map(([key,label,type]) => <label key={key} className="text-xs font-medium text-gray-600">{label}<input className={inputClass} type={type} value={filters[key] || ""} onChange={(e) => setFilters({...filters,[key]:e.target.value})} /></label>)}
         <label className="text-xs font-medium text-gray-600">Status<select className={inputClass} value={filters.status || ""} onChange={(e) => setFilters({...filters,status:e.target.value})}><option value="">All statuses</option>{["processing","completed","failed","interrupted"].map(s => <option key={s}>{s}</option>)}</select></label>
         <label className="text-xs font-medium text-gray-600">Tool<select className={inputClass} value={filters.tool || ""} onChange={(e) => setFilters({...filters,tool:e.target.value})}><option value="">All tools</option>{options.tools.map((tool) => <option key={tool}>{tool}</option>)}</select></label>
-        <div className="flex items-end"><button className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Apply filters</button></div>
+        <div className="flex items-end"><button className="ai-audit-primary w-full rounded-md px-4 py-2 text-sm font-semibold">Apply filters</button></div>
       </form>
       {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-red-800">{error}</p>}
       {loading ? <p role="status">Loading audits…</p> : !error && <div className="space-y-4 rounded-lg border bg-white p-4">

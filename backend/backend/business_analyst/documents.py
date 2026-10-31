@@ -115,10 +115,13 @@ class DocumentRepository:
             docs = [{key: item[key] for key in ("id", "title", "description")}
                     for item in domain["documents"] if item["id"] in visible]
             declared = {tool["id"]: tool for tool in domain["tools"]}
-            # Preserve declared selection metadata, but only registered handlers
-            # are callable and their canonical invocation contracts always win.
-            tools = [{**copy.deepcopy(declared.get(tool["id"], {})), **tool}
-                     for tool in registry.capabilities(domain["id"])]
+            # Only the registry supplies invocation/return contracts. In
+            # particular, legacy catalog output schemas must never re-enter the
+            # AI context through the old metadata merge. Retain plain-text hints.
+            tools = []
+            for tool in registry.capabilities(domain["id"]):
+                hint = declared.get(tool["id"], {}).get("selection_hint")
+                tools.append({**({"selection_hint": hint} if isinstance(hint, str) else {}), **tool})
             if docs or tools:
                 domains.append({"id": domain["id"], "description": domain["description"], "documents": docs, "tools": tools})
         return {"schema_version": self.map["schema_version"], "id": self.map["id"], "domains": domains}

@@ -16,11 +16,13 @@ selects known document IDs and registered tools in one `retrieve_business_contex
 call. The executor fetches exact documents and dispatches validated tools; the
 second model call interprets these results. No search/discovery call is needed.
 Additional retrieval is bounded to three rounds and five model requests by default.
-The production registry contains 13 read-only [Contractors tools](CONTRACTORS.md)
-and five [Expenses tools](EXPENSES.md), with Expenses in the Finance domain.
-Other modules remain documentation-only. Business contracts, handlers, operation
+The production registry contains 48 read-only tools: 13 [Contractors tools](CONTRACTORS.md),
+five [Expenses tools](EXPENSES.md) in Finance, and 30
+[Inventory/Procurement tools](INVENTORY_PROCUREMENT.md). Other modules remain
+documentation-only. Business contracts, handlers, operation
 permission bindings and registration live in `tools.py`. Read-only selectors live
-in `contractors/selectors.py` and `expenses/selectors.py` beside their models.
+in `contractors/selectors.py`, `expenses/selectors.py` and `inventory/selectors.py`
+beside their models.
 The Stage 0 orchestration, scopes,
 conversation and audit infrastructure are reused.
 See the [implementation and verification report](../../../docs/ai_knowledge/business_analyst_expenses_refactor_report.md)
@@ -116,15 +118,21 @@ Only reviewed server code can construct `ToolDefinition` and add it to
 `production_registry()`. A definition must provide unique ID, description, domain,
 closed typed JSON parameter schema, output JSON schema, existing knowledge IDs,
 an `authorize(context, parameters)` callback, handler, timeout and `read_only=True`.
+Add a concise `returns` description explaining returned records/aggregates, date
+and balance semantics, and useful groupings. Missing descriptions safely fall back
+to the tool description and output field names without hiding the tool.
 Schemas validate required/optional values, nested objects/arrays, defaults, types,
 enums and numeric/string/array constraints. No remote schema references are allowed.
 Parameter schemas cannot accept authorization scope fields. Registries copy their
 contracts and freeze before execution; IDs never drive Python imports or `eval`.
-For a registered ID, runtime map entries retain declared selection metadata while
-the registry supplies the authoritative description, parameter/output contracts
-and knowledge IDs. An entry in the JSON map alone never registers a handler or
-advertises an unimplemented tool. Complete tool contracts accompany every model
-request, alongside the full visible document catalog, without a registry-fetch call.
+For a registered ID, the registry supplies the authoritative description, complete
+unchanged input schema, concise `returns` text and knowledge IDs. Full output
+schemas remain server-side for validation; complete authorized execution results
+still reach the model. Only plain-text legacy selection hints can be retained from
+the catalog, so old output schemas cannot leak back into model context. A JSON map
+entry alone never registers a handler or advertises an unimplemented tool. Every
+registered tool and the full visible document catalog accompany the initial model
+request without a specification fetch or extra selection call.
 
 Authorization callbacks return exactly `True` to allow an operation. Otherwise the
 executor returns `PERMISSION_DENIED`. A handler can raise `OperationError` for safe
