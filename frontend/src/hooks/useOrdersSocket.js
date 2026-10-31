@@ -91,8 +91,6 @@ export default function useOrdersSocket(onMessage, onReconnect) {
         clearHeartbeat();
         console.log("✅ WS OPEN");
         retryCountRef.current = 0;
-
-        // Heartbeat every 20s
         heartbeatRef.current = setInterval(() => {
           if (
             socketRef.current === socket &&
