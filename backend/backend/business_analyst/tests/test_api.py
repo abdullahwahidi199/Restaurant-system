@@ -1,3 +1,4 @@
+from ai_assistant.audit_payloads import read_blob
 import json
 import uuid
 from datetime import timedelta
@@ -43,7 +44,7 @@ class APITests(DatabaseFixture):
         self.assertEqual(conversation.messages.count(), 2)
         self.assertEqual(response.data["message"]["sources"][0]["document_id"], DOC)
         turn = TurnAudit.objects.get(pk=response.data["request_id"])
-        self.assertEqual((turn.status, turn.model_calls, turn.batches, turn.operations), ("complete", 2, 1, 1))
+        self.assertEqual((turn.status, turn.model_calls, turn.batches, turn.operations), ("completed", 2, 1, 1))
         self.assertIsNotNone(turn.finished_at)
         self.assertEqual(list(turn.events.values_list("sequence", flat=True)), list(range(1, turn.events.count() + 1)))
         listing = self.client.get(URL + "conversations/")
@@ -116,21 +117,24 @@ class APITests(DatabaseFixture):
             self.assertFalse(conversation.messages.filter(role="assistant").exists())
             turn = TurnAudit.objects.get(pk=response.data["request_id"])
             self.assertEqual((turn.status, turn.error_code), ("failed", code))
-            self.assertEqual(turn.events.last().event, "turn_failed")
+            self.assertEqual(turn.events.last().event_type, "turn_completed")
+            self.assertEqual(turn.events.last().status, "failed")
+            self.assertEqual(read_blob(turn.events.get(event_type="error").payload)["error_code"], code)
 
     def test_no_live_provider_fallback_when_credentials_are_missing(self):
         response = self.client.post(URL + "chat/", {"message": "Explain sales"}, format="json")
         self.assertEqual(response.status_code, 503, response.data)
         self.assertEqual(response.data["error"]["code"], "provider_not_configured")
 
-    def test_audit_omits_question_text_tool_content_arguments_and_reasoning(self):
+    def test_audit_encrypts_question_and_evidence_and_never_stores_private_reasoning(self):
         response = self.post(message="PRIVATE_QUESTION_TEXT explain sales")
         self.assertEqual(response.status_code, 200)
-        events = json.dumps(list(AuditEvent.objects.values_list("metadata", flat=True)))
-        self.assertNotIn("PRIVATE_QUESTION_TEXT", events)
-        self.assertNotIn("Sum of non-cancelled", events)
-        self.assertNotIn("reasoning_content", events)
-        self.assertIn("sha256", events)
+        events = list(AuditEvent.objects.select_related("payload"))
+        self.assertTrue(any("PRIVATE_QUESTION_TEXT" in json.dumps(read_blob(event.payload)) for event in events))
+        self.assertTrue(all("PRIVATE_QUESTION_TEXT" not in event.payload.ciphertext for event in events))
+        decoded = json.dumps([read_blob(event.payload) for event in events])
+        self.assertNotIn("reasoning_content", decoded)
+        self.assertIn("sha256", decoded)
 
     def test_final_context_change_never_persists_assistant_answer(self):
         def changed(request):
@@ -148,7 +152,8 @@ class APITests(DatabaseFixture):
         Conversation.objects.filter(pk=identity).update(active_request=stale_request, active_until=timezone.now() + timedelta(minutes=5))
         self.assertEqual(self.post(conversation_id=identity).status_code, 409)
         Message.objects.create(conversation_id=identity, request_id=stale_request, role="user", content="Old interrupted turn", state="pending")
-        TurnAudit.objects.create(request_id=stale_request, conversation_id=identity)
+        TurnAudit.objects.create(request_id=stale_request, conversation_id=identity, agent_type="business_analyst",
+                                 conversation_identifier=identity, started_at=timezone.now(), provider="", model="")
         Conversation.objects.filter(pk=identity).update(active_until=timezone.now() - timedelta(seconds=1))
         response = self.post(conversation_id=identity)
         self.assertEqual(response.status_code, 200, response.data)
@@ -200,7 +205,8 @@ class APITests(DatabaseFixture):
         self.assertEqual(response.status_code, 200, response.data)
         self.assertNotIn("MENTOR_PRIVATE_HISTORY", json.dumps(provider.requests[0]["messages"]))
         self.assertEqual(self.post(conversation_id=str(mentor.pk)).status_code, 404)
-        self.assertEqual(MentorMessage.objects.count(), 1)
+        self.assertIs(MentorMessage, Message)
+        self.assertEqual(MentorMessage.objects.filter(conversation__agent_type="operator_mentor").count(), 1)
         from django.urls import resolve
         from ai_assistant.views import ChatView as MentorChat
         self.assertEqual(resolve("/api/assistant/chat/").func.view_class, MentorChat)

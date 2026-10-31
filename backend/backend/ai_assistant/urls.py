@@ -1,10 +1,11 @@
 from django.urls import path
 
 from .views import ChatView, ConversationList, ConversationMessages, ModelOptions
-from .audit_views import AuditTurns, AuditTurnDetail, AuditEvents, AuditEventDetail, AuditConversations, AuditConversationMessages
+from .audit_views import AuditTurns, AuditTurnDetail, AuditEvents, AuditEventDetail, AuditConversations, AuditConversationMessages, AuditAgents
 
 app_name = "ai_assistant"
 urlpatterns = [
+    path("audit/agents/", AuditAgents.as_view(), name="audit-agents"),
     path("audit/turns/", AuditTurns.as_view(), name="audit-turns"),
     path("audit/turns/<uuid:turn_id>/", AuditTurnDetail.as_view(), name="audit-turn"),
     path("audit/turns/<uuid:turn_id>/events/", AuditEvents.as_view(), name="audit-events"),

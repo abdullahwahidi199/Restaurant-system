@@ -1,6 +1,8 @@
 import json
 import time
 from dataclasses import dataclass
+from django.utils import timezone
+from ai_assistant.auditing import current
 
 from ai_assistant.errors import AssistantError
 from ai_assistant.model_configuration import ModelConfiguration
@@ -29,8 +31,9 @@ class Engine:
         deadline = time.monotonic() + self.limits.turn_seconds
         executor = BatchExecutor(self.documents, self.registry, self.limits, audit=self.audit)
         capability_map = self.documents.capability_map(principal, self.registry)
+        date_context = {"today": timezone.localdate().isoformat(), "timezone": timezone.get_current_timezone_name()}
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT + "\nTrusted server date context: " + json_bytes(date_context).decode("utf-8")},
             {"role": "user", "content": "Business Capability Map (selection metadata):\n" + json_bytes(capability_map).decode("utf-8")},
             *history,
             {"role": "user", "content": question},
@@ -46,10 +49,23 @@ class Engine:
             if len(json_bytes(messages)) > self.limits.context_bytes:
                 raise AssistantError("context_limit", "The question and evidence exceed the context limit. Request fewer documents.", 422)
             self.audit("model_started", {"number": number, "configuration": configuration.public()})
-            completion = self.provider.complete(messages=messages, tools=[BATCH_DEFINITION],
-                                                tool_choice="auto", limits=self.limits,
-                                                timeout=min(remaining, self.limits.provider_timeout),
-                                                request_id=request_id, configuration=configuration)
+            trace = current()
+            contract = {"messages": messages, "tools": [BATCH_DEFINITION], "tool_choice": "auto",
+                        "model": configuration.model, **configuration.public()}
+            if trace:
+                trace.begin_model(number, contract)
+            try:
+                completion = self.provider.complete(messages=messages, tools=[BATCH_DEFINITION],
+                                                    tool_choice="auto", limits=self.limits,
+                                                    timeout=min(remaining, self.limits.provider_timeout),
+                                                    request_id=request_id, configuration=configuration)
+            except BaseException as exc:
+                if trace:
+                    trace.finish_model(error=exc)
+                raise
+            else:
+                if trace:
+                    trace.finish_model(completion)
             self.audit("model_finished", {"number": number, "usage": completion.usage, "tool_calls": len(completion.tool_calls)})
             if time.monotonic() >= deadline:
                 raise AssistantError("turn_timeout", "The Business Analyst turn timed out.", 504)
@@ -62,6 +78,11 @@ class Engine:
                     if call.id in seen_call_ids:
                         raise AssistantError("provider_invalid_response", "The provider reused a tool call identifier.", 502)
                     seen_call_ids.add(call.id)
+                    tool_started = time.perf_counter()
+                    if trace:
+                        trace.turn.tool_calls += 1
+                        trace.event("tool_call", {"arguments": call.arguments}, status="started",
+                                    model_ordinal=number, tool_call_id=call.id, tool_name=call.name)
                     try:
                         if call.name != BATCH_DEFINITION["name"]:
                             raise OperationError("TOOL_NOT_REGISTERED")
@@ -80,6 +101,12 @@ class Engine:
                             evidence[item["evidence_id"]] = self._source(item)
                     self.audit("retrieval_finished", {"call_id": call.id, "results": len(result["results"]),
                                "error_code": result.get("error", {}).get("code")})
+                    if trace:
+                        if not result.get("error"):
+                            trace.turn.completed_tool_calls += 1
+                        trace.event("tool_result", {"result": result}, status="failed" if result.get("error") else "completed",
+                                    duration_ms=round((time.perf_counter() - tool_started) * 1000, 3),
+                                    model_ordinal=number, tool_call_id=call.id, tool_name=call.name)
                     messages.append({"role": "tool", "tool_call_id": call.id, "content": json_bytes(result).decode("utf-8")})
                 continue
             try:

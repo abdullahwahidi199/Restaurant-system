@@ -4,12 +4,16 @@ from dataclasses import dataclass
 
 from django.db import DatabaseError
 from ai_assistant.errors import AssistantError
+from ai_assistant.agents import BUSINESS_ANALYST
+from ai_assistant.persistence import AgentStore
 from knowledge.access import resolve_principal
 from knowledge.errors import GatewayError
 
 from .errors import OperationError
 
 POLICY_VERSION = "business-analyst-stage0-1"
+
+STORE = AgentStore(BUSINESS_ANALYST, ":" + POLICY_VERSION)
 
 
 def principal_for(user):
@@ -47,6 +51,4 @@ class ToolContext:
 
 
 def scope_for(user, principal):
-    return {"user_id": user.pk, "restaurant_id": principal.restaurant_id,
-            "branch_id": principal.branch_id,
-            "authorization_binding": principal.binding + ":" + POLICY_VERSION}
+    return STORE.scope(user, principal)

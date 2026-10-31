@@ -2,28 +2,25 @@
 import logging
 import uuid
 import time
-from datetime import timedelta
 from functools import lru_cache
 
 from django.conf import settings
-from django.db import transaction
-from django.db.models import Q
-from django.utils import timezone
 from knowledge.errors import GatewayError
 from knowledge.gateway import KnowledgeGateway
 
 from .config import Limits
 from .errors import AssistantError
 from .evidence import revalidate_reference
-from .models import Conversation, Message, TurnAudit
-from .auditing import Trace, scope as audit_scope, reconcile_turns
-from .language import question_language
-from .audit_payloads import redact
+from .agents import OPERATOR_MENTOR
+from .persistence import AgentStore
+
+from .auditing import scope as audit_scope
 from .orchestrator import Orchestrator
 from .provider import DeepSeekProvider
 from .model_configuration import ModelConfiguration
 
 logger = logging.getLogger("ai_assistant")
+STORE = AgentStore(OPERATOR_MENTOR)
 
 
 @lru_cache(maxsize=1)
@@ -45,7 +42,7 @@ def principal_for(user, gateway):
 
 
 def scope_for(user, principal):
-    return {"user_id": user.pk, "authorization_binding": principal.binding, "restaurant_id": principal.restaurant_id or None, "branch_id": principal.branch_id or None}
+    return STORE.scope(user, principal)
 
 
 def serialize_message(message, *, principal, index=None):
@@ -60,7 +57,7 @@ def serialize_message(message, *, principal, index=None):
                 break
             sources.append(validated[1])
         stale = stale or not sources
-    return {"id": message.pk, "role": message.role, "content": "This earlier answer is unavailable in the current documentation context. Ask the question again." if stale else message.content,
+    return {"id": message.public_id, "role": message.role, "content": "This earlier answer is unavailable in the current documentation context. Ask the question again." if stale else message.content,
             "kind": message.kind, "state": message.state, "error_code": message.error_code or None, "sources": [] if stale else sources,
             "stale_sources": stale, "created_at": message.created_at.isoformat()}
 
@@ -74,33 +71,9 @@ class ConversationService:
 
     def _reserve(self, user, principal, question, conversation_id, request_id, preferred_language="en", configuration=None, requested=None):
         configuration = configuration or ModelConfiguration.resolve()
-        now = timezone.now()
-        with transaction.atomic():
-            if conversation_id:
-                conversation = Conversation.objects.filter(id=conversation_id, **scope_for(user, principal)).first()
-                if not conversation:
-                    raise AssistantError("conversation_not_found", "The conversation is not available in the current context.", 404)
-            else:
-                conversation = Conversation.objects.create(**scope_for(user, principal), title=question[:100])
-            reconcile_turns(conversation)
-            # Conditional UPDATE claims one turn across workers without holding a DB
-            # transaction open during provider calls (also works on SQLite).
-            claimed = Conversation.objects.filter(pk=conversation.pk).filter(Q(active_request__isnull=True) | Q(active_until__lt=now)).update(
-                active_request=request_id, active_until=now + timedelta(seconds=self.limits.turn_seconds + 3 * self.limits.provider_timeout + 15), updated_at=now)
-            if not claimed:
-                raise AssistantError("conversation_busy", "Another reply is still being generated in this conversation.", 409)
-            conversation.messages.filter(state="pending").update(state="failed", error_code="turn_interrupted")
-            question_record = Message.objects.create(conversation=conversation, request_id=request_id, role="user", kind="question", content=question, state="pending")
-            turn = TurnAudit.objects.create(request_id=request_id, conversation=conversation, conversation_identifier=conversation.pk,
-                user_message=question_record, user=user, restaurant_id=principal.restaurant_id or None, branch_id=principal.branch_id or None,
-                language=question_language(question, preferred_language), started_at=now,
-                provider=redact(str(getattr(settings,"AI_ASSISTANT_PROVIDER","deepseek")))[:40], model=configuration.model)
-            trace = Trace(turn)
-            event = trace.event("user_message", {"message_id":question_record.pk, "content":question_record.content, "language":turn.language,
-                "user_id":user.pk, "username":user.username, "restaurant_id":turn.restaurant_id, "branch_id":turn.branch_id,
-                "model_configuration": {**configuration.public(), **(requested or {})}})
-            TurnAudit.objects.filter(pk=turn.pk).update(question_payload=event.payload)
-        return conversation, question_record, trace
+        return STORE.reserve(user=user, principal=principal, question=question, conversation_id=conversation_id,
+            request_id=request_id, configuration=configuration, limits=self.limits, preferred_language=preferred_language,
+            requested=requested, provider=getattr(settings, "AI_ASSISTANT_PROVIDER", "deepseek"))
 
     def reply(self, *, user, question, conversation_id=None, preferred_language="en", model=None, reasoning_effort=None):
         if not isinstance(question, str) or not question.strip() or len(question) > self.limits.input_characters:
@@ -134,23 +107,15 @@ class ConversationService:
                 if not result.sources or any(not revalidate_reference(source, verified_index, current) for source in result.sources):
                     raise AssistantError("sources_invalid", "The answer's documentation references could not be verified.", 502)
             engine.diagnostics["failure_stage"] = "conversation_persistence"
-            persistence_started = time.perf_counter()
-            with transaction.atomic():
-                owned = Conversation.objects.filter(pk=conversation.pk, active_request=request_id).update(updated_at=timezone.now())
-                if not owned:
-                    raise AssistantError("turn_superseded", "This reply was superseded. Please reload the conversation.", 409)
-                reply = Message.objects.create(conversation=conversation, request_id=request_id, role="assistant", content=result.content, kind=result.kind,
-                                               sources=result.sources, index_version=result.index_version)
-                Message.objects.filter(pk=question_record.pk).update(state="complete")
-                duration = round((time.perf_counter()-persistence_started)*1000,3)
-                trace.event("answer_persisted", {"message_id":reply.pk, "kind":reply.kind, "sources":reply.sources,
-                    **({'application_status': result.application_status} if result.application_status else {})}, duration_ms=duration)
-                trace.finish("completed", metrics={**result.metrics, "persistence_duration_ms":duration}, assistant=reply)
+            reply = STORE.persist_answer(conversation=conversation, request_id=request_id, question_record=question_record,
+                content=result.content, kind=result.kind, sources=result.sources, index_version=result.index_version,
+                trace=trace, metrics=result.metrics,
+                extra={'application_status': result.application_status} if result.application_status else None)
             logger.info("assistant_conversation", extra={"conversation_id": str(conversation.pk), "request_id": str(request_id), "termination_reason": result.kind})
             return {"conversation_id": str(conversation.pk), "request_id": str(request_id), "message": serialize_message(reply, principal=current, index=verified_index),
                     **({'application_status': result.application_status} if result.application_status else {})}
         except Exception as exc:
-            Message.objects.filter(pk=question_record.pk, state="pending").update(state="failed", error_code=exc.code if isinstance(exc, (AssistantError, GatewayError)) else "assistant_unavailable")
+            STORE.fail_question(question_record, exc.code if isinstance(exc, (AssistantError, GatewayError)) else "assistant_unavailable")
             error = exc if isinstance(exc, AssistantError) else AssistantError(exc.code, exc.message) if isinstance(exc, GatewayError) else AssistantError("assistant_unavailable", "The assistant could not complete the request. Please try again.")
             error.conversation_id, error.request_id = str(conversation.pk), str(request_id)
             try:
@@ -165,9 +130,9 @@ class ConversationService:
                            **{k: getattr(engine, "metrics", {}).get(k, 0) for k in ("model_requests", "tool_calls", "searches", "fetches")}})
             raise error from None
         except (KeyboardInterrupt, SystemExit, GeneratorExit) as exc:
-            Message.objects.filter(pk=question_record.pk).update(state="failed", error_code="turn_interrupted")
+            STORE.fail_question(question_record, "turn_interrupted")
             trace.finish("interrupted", error=exc, stage=engine.diagnostics.get("failure_stage",stage) if engine else stage,
                          metrics=getattr(engine,"metrics",{}), interrupted=True)
             raise
         finally:
-            Conversation.objects.filter(pk=conversation.pk, active_request=request_id).update(active_request=None, active_until=None)
+            STORE.release(conversation, request_id)

@@ -17,8 +17,11 @@ ADMIN_ONLY = frozenset({"admin_administration_branches", "admin_administration_b
 
 
 def can_read(principal, document_id):
-    # Reviewed backend visibility, independent of empty frontmatter roles.
-    return principal.role == "Admin" or (principal.role == "BranchAdmin" and document_id not in ADMIN_ONLY)
+    # Admin visibility remains independent of empty frontmatter roles.
+    if principal.role == "Admin" or (principal.role == "BranchAdmin" and document_id not in ADMIN_ONLY):
+        return True
+    from .tools import can_read_business_document
+    return can_read_business_document(principal, document_id)
 
 
 class DocumentRepository:

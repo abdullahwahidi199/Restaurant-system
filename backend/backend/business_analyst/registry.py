@@ -159,5 +159,7 @@ class ToolRegistry:
 
 
 def production_registry(documents):
-    # Stage 0 deliberately registers no business-data tools.
-    return ToolRegistry(documents).freeze()
+    from .tools import register_tools
+    registry = ToolRegistry(documents)
+    register_tools(registry)
+    return registry.freeze()

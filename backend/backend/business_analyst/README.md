@@ -1,9 +1,12 @@
-# Restaurant Business Analyst — Stage 0
+# Restaurant Business Analyst
 
-This app is independent of `ai_assistant` (Operator Mentor). It reuses only the
-DeepSeek transport/completion records, model configuration, safe service exception
-and existing authenticated staff principal resolver. It never uses or rebuilds
-the Mentor knowledge index.
+This agent retains independent prompts, tools, retrieval, API endpoints and access
+rules. It shares the `ai_assistant` persistence models, `AgentStore`, encrypted
+audit implementation, DeepSeek transport, model configuration and trusted staff
+principal resolver. Every conversation and turn has server-selected
+`agent_type: business_analyst`. It never uses or rebuilds the Mentor knowledge index.
+See [unified persistence](../ai_assistant/UNIFIED_PERSISTENCE.md) for migration and
+isolation details.
 
 ## Execution
 
@@ -13,7 +16,15 @@ selects known document IDs and registered tools in one `retrieve_business_contex
 call. The executor fetches exact documents and dispatches validated tools; the
 second model call interprets these results. No search/discovery call is needed.
 Additional retrieval is bounded to three rounds and five model requests by default.
-No production business-data tools are registered in Stage 0.
+The production registry contains 13 read-only [Contractors tools](CONTRACTORS.md)
+and five [Expenses tools](EXPENSES.md), with Expenses in the Finance domain.
+Other modules remain documentation-only. Business contracts, handlers, operation
+permission bindings and registration live in `tools.py`. Read-only selectors live
+in `contractors/selectors.py` and `expenses/selectors.py` beside their models.
+The Stage 0 orchestration, scopes,
+conversation and audit infrastructure are reused.
+See the [implementation and verification report](../../../docs/ai_knowledge/business_analyst_expenses_refactor_report.md)
+for actual database and live model checks, observed call counts and remaining review items.
 
 The catalog contains only `schema_version`, `id` and `domains`; domains contain
 `id`, a short `description`, `documents` and `tools`. Document entries contain
@@ -27,11 +38,17 @@ authority identity. Missing/corrupt files and oversized documents produce safe
 operation errors; documents are never silently truncated. All 78 current Admin
 documents are tested against their original bytes.
 
-Backend document visibility allows active, correctly scoped `Admin` and
-`BranchAdmin` staff. Branch migration and branch administration guides are
-Admin-only. Other roles are denied access to these Admin guides. This conservative
+Most Admin guides allow active, correctly scoped `Admin` and `BranchAdmin` staff.
+Branch migration and branch administration guides are Admin-only. Visibility
 policy lives in `documents.py`; empty YAML `roles` and descriptions grant nothing.
 Reading a definition never authorizes the actions/records discussed in it.
+The eight Contractors guides and two Expenses guides additionally follow their
+corresponding read-operation API permissions for authenticated specialist staff.
+Each tool checks the actual permission classes of every application operation it
+reads, using a freshly validated user/context binding. Permissions are never
+inferred from a combined role allowlist. Both APIs currently permit `Admin`,
+`BranchAdmin`, `FinanceManager`, `OperationsManager` and `InventoryManager` reads.
+Other Admin guides retain the original policy.
 
 ## API
 
@@ -53,7 +70,9 @@ Conditional expiring turn leases serialize replies across workers. Failed turns
 retain a failed user message and safe error code; they do not create an assistant
 answer. Lease recovery marks interrupted turns failed. History is bounded; stale
 document references are redacted. Past tool observations are withheld from replay
-and require fresh retrieval. Mentor conversations use entirely different tables.
+and require fresh retrieval. Authorized saved observations remain visible as
+historical answers. Both agents use the same tables, with strict agent-scoped
+queries in addition to owner, restaurant, branch and authorization bindings.
 
 ## Batch contract
 
@@ -131,11 +150,13 @@ an in-flight query or a blocking filesystem operation. Future handlers must use
 bounded queries and I/O timeouts from `ToolContext.deadline`. Hard cancellation,
 if required for Stage 1, needs an isolated worker and database statement timeouts.
 
-`TurnAudit` and ordered `AuditEvent` records retain trusted conversation scope,
-model configuration/call counts, operation outcomes, durations, sizes and document
-provenance. Raw prompts, provider reasoning, parameters, tool bodies and secrets
-are excluded. Chat content resides only in the scoped conversation message tables.
-There is no public audit endpoint. Retention remains a deployment policy decision.
+The shared `TurnAudit`, immutable `AuditEvent` and encrypted/redacted `AuditBlob`
+records capture scope, model configuration, actual provider usage, request/response
+boundaries, batch/operation outcomes, durations and evidence. Private reasoning,
+credentials and HTTP headers are excluded. Sensitive payloads are encrypted;
+timeline metadata exposes no raw business results. The existing SuperAdmin-only
+audit API covers both agents and access-logs sensitive reads. Its existing
+maintenance command and configured retention policy apply to shared audit data.
 
 ## Configuration and verification
 
@@ -164,7 +185,7 @@ These explicit test settings use an in-memory SQLite database, local-memory cach
 in-memory channels, temporary media and no provider credential. Tests include real
 Admin document bytes, synthetic authorized staff profiles, tool/record scope checks,
 mocked DeepSeek HTTP transport and Mentor endpoint/conversation regression coverage.
-No frontend, embeddings, vector database or Stage 1 data tool is included.
+No frontend, embeddings, vector database or data tools for other modules are included.
 
 On Windows, existing Mentor tests also depend on pinned raw-byte checksums in the
 operator corpus/evaluation dataset. `core.autocrlf=true` can invalidate those

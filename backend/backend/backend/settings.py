@@ -236,14 +236,25 @@ TRUSTED_PROXY_IPS = [
     for ip in os.environ.get("TRUSTED_PROXY_IPS", "").split(",")
     if ip.strip()
 ]
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'rms_db',
+#         'USER':'rms_user',
+#         'PASSWORD':'AbdullahWahidi123',
+#         'HOST':'localhost',
+#         'PORT':'5432'
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rms_db',
-        'USER':'rms_user',
-        'PASSWORD':'AbdullahWahidi123',
-        'HOST':'localhost',
-        'PORT':'5432'
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "pakhlai_local",
+        "USER": "postgres",
+        "PASSWORD": "Greet@123##",
+        "HOST": "127.0.0.1",
+        "PORT": "5432",
     }
 }
 

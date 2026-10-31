@@ -97,7 +97,7 @@ class EngineTests(DatabaseFixture):
         self.assertEqual(caught.exception.code, "unsupported_answer")
 
     def test_live_data_limitation_does_not_invoke_unavailable_production_tools(self):
-        result, provider, events = self.execute_engine([final("Current revenue is unavailable; no business-data tools are registered.", citations=[], kind="limitation")])
+        result, provider, events = self.execute_engine([final("Current revenue is unavailable; no sales tools are registered.", citations=[], kind="limitation")])
         self.assertEqual(result.kind, "limitation")
         self.assertEqual(result.sources, [])
         self.assertEqual(len(provider.requests), 1)

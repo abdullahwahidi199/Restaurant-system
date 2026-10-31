@@ -1,5 +1,6 @@
 """Durable per-turn tracing, isolated from ordinary diagnostic logging."""
 import logging
+import re
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -55,7 +56,8 @@ class Trace:
         prior = next((m for m in reversed(history) if m.get("role")=="assistant" and m.get("sources")),None)
         origins = {}
         if prior and prior.get("request_id"):
-            previous = AuditEvent.objects.filter(turn_id=prior["request_id"],event_type="answer_generated").select_related("payload").first()
+            previous = AuditEvent.objects.filter(turn_id=prior["request_id"], turn__agent_type=self.turn.agent_type,
+                turn__conversation_identifier=self.turn.conversation_identifier, event_type="answer_generated").select_related("payload").first()
             if previous:
                 origins = read_blob(previous.payload).get("evidence_origins",{})
         evidence = []
@@ -70,19 +72,28 @@ class Trace:
 
     def event(self, event_type, payload, *, status="completed", started_at=None, duration_ms=None,
               model_ordinal=None, tool_call_id="", tool_name=""):
+        if event_type == "operation_finished":
+            status = "completed" if payload.get("ok") else "failed"
+            duration_ms = payload.get("duration_ms")
+            tool_name = payload.get("id", "") if payload.get("kind") == "tool" else ""
         try:
             with transaction.atomic():
-                turn = TurnAudit.objects.select_for_update().get(pk=self.turn.pk)
+                turn = TurnAudit.objects.select_for_update().get(pk=self.turn.pk, agent_type=self.turn.agent_type)
+                if event_type == "batch_started":
+                    self.turn.batches += 1
+                elif event_type == "operation_finished":
+                    self.turn.operations += 1
                 blob = put_blob(payload)
                 sequence = turn.next_sequence + 1
                 event = AuditEvent.objects.create(turn=turn, sequence=sequence, event_type=event_type, payload=blob,
                     status=status, started_at=started_at or timezone.now(), finished_at=None if status in {"processing","started"} else timezone.now(),
                     duration_ms=duration_ms, model_ordinal=model_ordinal, tool_call_id=redact(tool_call_id)[:128],
-                    tool_name=tool_name if tool_name in {"search_documentation", "fetch_documentation"} else "")
+                    tool_name=tool_name if isinstance(tool_name, str) and re.fullmatch(r"[a-z][a-z0-9_.]{0,99}", redact(tool_name)) else "")
                 TurnAudit.objects.filter(pk=turn.pk).update(next_sequence=sequence,
                     model_calls=self.turn.model_calls, completed_model_calls=self.turn.completed_model_calls,
                     tool_calls=self.turn.tool_calls, completed_tool_calls=self.turn.completed_tool_calls,
-                    usage=self.turn.usage, usage_complete=self.turn.usage_complete)
+                    usage=self.turn.usage, usage_complete=self.turn.usage_complete,
+                    batches=self.turn.batches, operations=self.turn.operations)
             return event
         except Exception as exc:
             logger.error("assistant_audit_write_failed", extra={"request_id":str(self.turn.pk), "exception_category":type(exc).__name__})

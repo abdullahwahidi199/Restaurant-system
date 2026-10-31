@@ -1,5 +1,10 @@
 # Pakhlai documentation assistant backend
 
+Conversations and audits now use the shared multi-agent foundation described in
+[UNIFIED_PERSISTENCE.md](UNIFIED_PERSISTENCE.md). Existing Operator Mentor records
+are tagged `operator_mentor`; Business Analyst records use `business_analyst` in
+the same tables. The engines, permissions, knowledge and chat endpoints stay separate.
+
 The SuperAdmin-only execution audit, privacy/retention policy, API and operating commands are documented in [AUDITING.md](AUDITING.md).
 
 Configurable automatic fetching, conservative selection, evaluation and configuration-only rollback are documented in [RETRIEVAL.md](RETRIEVAL.md). The default retrieval mode remains `legacy`.
@@ -34,17 +39,17 @@ AI_ASSISTANT_THROTTLE_RATE=10/min
 
 `DEEPSEEK_API_KEY` is required only for live generation. The configurable base URL must be HTTPS without embedded credentials, query or fragment; it is trusted deployment configuration, never a chat/model argument. A `/v1` prefix may be included when needed; the adapter appends `/chat/completions`. The only implemented provider is DeepSeek; other provider settings fail clearly. No SDK, framework, embeddings or search server is added.
 
-The adapter sends `thinking: {type: disabled}` explicitly, wraps function schemas in the API's function envelope, preserves assistant tool calls and matching tool-message IDs, and requests JSON final output. Named tool selection is used for initial search and retrieval recovery. Thinking mode is intentionally unsupported in this version; unexpected reasoning output is rejected. Enabling it later requires the provider/history contract to support its distinct reasoning requirements without exposing/persisting reasoning. These choices were checked against [Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/), [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/) and [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/). The original implementation used mocks; subsequent paid HTTP/browser verification is recorded in the integration repair report linked below.
+The adapter uses the shared per-turn model/thinking configuration, preserves assistant tool calls and matching tool-message IDs, and requests JSON final output. Thinking defaults to disabled; enabled modes retain required reasoning continuity only in memory and exclude private reasoning from audit storage and frontend responses. Named tool selection is used for initial search/retrieval recovery when compatible with the selected thinking mode. Supported choices and validation live in `model_configuration.py`; both agents expose those same choices.
 
 From `Restaurant-system/backend/backend`, apply the new conversation schema and make the private documentation snapshot available:
 
 ```powershell
-python manage.py migrate ai_assistant
+python manage.py migrate
 python manage.py build_knowledge_index --check
 python manage.py build_knowledge_index
 ```
 
-The assistant migration creates only `Conversation` and `Message` tables, their indexes and a per-turn message uniqueness constraint. Implementation tests applied migrations to an isolated test database; the workspace/live database was not migrated. Documentation deployment/mounting follows the existing knowledge README. The gateway/indexer algorithms and operator Markdown are unchanged.
+The current schema is the seven-model shared foundation described in `UNIFIED_PERSISTENCE.md`; the data migration also consolidates existing Business Analyst records. Back up the database and stop writers before upgrading. Migration tests use isolated SQLite/PostgreSQL databases; the configured application database is not migrated automatically. Documentation deployment/mounting follows the existing knowledge README. The gateway/indexer algorithms and operator Markdown are unchanged.
 
 The API uses the existing `users.authentication.SessionJWTAuthentication`, including its managed-session validity/cache policy, and existing backend cache settings. Use the existing shared cache in a multi-worker deployment for meaningful shared request throttling. A throttle-storage failure denies requests safely. HTTPX uses explicit timeouts, no automatic retries, no redirects and no implicit environment proxy configuration.
 

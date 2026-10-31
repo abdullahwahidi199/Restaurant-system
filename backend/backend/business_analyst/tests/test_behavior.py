@@ -1,3 +1,4 @@
+from ai_assistant.audit_payloads import read_blob
 """Real service/retrieval/audit pipeline with explicitly scripted model responses."""
 import json
 import os
@@ -174,7 +175,7 @@ class BehaviorTests(DatabaseFixture):
         second = service.reply(user=self.admin, question="And do headline order counts use that same population?", conversation_id=first["conversation_id"])
         self.assertEqual(first["conversation_id"], second["conversation_id"])
         turns = list(TurnAudit.objects.order_by("started_at"))
-        self.assertEqual([(turn.model_calls, turn.batches, turn.status) for turn in turns], [(2, 1, "complete"), (2, 1, "complete")])
+        self.assertEqual([(turn.model_calls, turn.batches, turn.status) for turn in turns], [(2, 1, "completed"), (2, 1, "completed")])
         self.assertEqual(second["message"]["sources"][0]["document_id"], "admin_dashboard_headline_cards")
         self.assertIn("Explain dashboard revenue.", json.dumps(provider.requests[2]["messages"]))
         for name, part, response in (("followup_initial", provider.requests[:2], first), ("followup_fresh", provider.requests[2:], second)):

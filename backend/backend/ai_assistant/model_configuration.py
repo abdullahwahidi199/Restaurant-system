@@ -42,3 +42,15 @@ def model_options():
     return {"models": [{"value": value, "label": label} for value, label in MODELS],
             "reasoning_efforts": [{"value": value, "label": label} for value, label in EFFORTS],
             "defaults": {"model": defaults.model, "reasoning_effort": defaults.reasoning_effort}}
+
+
+def public_configuration_snapshot(value):
+    """Whitelisted display fields, including historical/retired model names."""
+    if not isinstance(value, dict):
+        return None
+    result = {key: value[key] for key in ("model", "reasoning_effort", "requested_model", "requested_reasoning_effort")
+              if key in value and (value[key] is None or isinstance(value[key], str) and len(value[key]) <= 100)}
+    thinking = value.get("thinking")
+    if isinstance(thinking, dict) and thinking.get("type") in ("enabled", "disabled"):
+        result["thinking"] = {"type": thinking["type"]}
+    return result or None

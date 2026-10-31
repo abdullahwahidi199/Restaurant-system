@@ -8,6 +8,7 @@ class OperationError(ValueError):
         "OUTPUT_TOO_LARGE": "The complete result exceeds the supported size. Request fewer operations.",
         "TOOL_NOT_REGISTERED": "This business tool is not registered.",
         "INVALID_PARAMETERS": "The parameters do not match the operation contract.",
+        "RECORD_NOT_AVAILABLE": "The requested record is not available in the authorized scope.",
         "INVALID_OUTPUT": "The tool returned an invalid result.",
         "EXECUTION_FAILED": "The operation could not be completed.",
         "TIMEOUT": "The operation exceeded its execution deadline.",

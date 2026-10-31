@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import RequestDataTooBig
 from django.db import DatabaseError, transaction
 from django.utils.decorators import method_decorator
+from django.utils.translation import get_language_from_request
 from rest_framework import serializers
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +11,7 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from ai_assistant.errors import AssistantError
-from ai_assistant.model_configuration import EFFORTS, MODELS
+from ai_assistant.model_configuration import EFFORTS, MODELS, model_options
 from .config import Limits
 from .context import principal_for, scope_for
 from .documents import DocumentRepository
@@ -86,6 +87,7 @@ class ChatView(AnalystView):
         data.is_valid(raise_exception=True)
         values = dict(data.validated_data)
         values["question"] = values.pop("message")
+        values["preferred_language"] = get_language_from_request(request).split("-")[0]
         return Response(ConversationService().reply(user=request.user, **values))
 
 
@@ -109,6 +111,12 @@ class ConversationList(AnalystView):
                          "next_page": page + 1 if len(items) > 20 else None})
 
 
+class ModelOptions(AnalystView):
+    def get(self, request):
+        principal_for(request.user)
+        return Response(model_options())
+
+
 class ConversationMessages(AnalystView):
     def get(self, request, conversation_id):
         principal = principal_for(request.user)
@@ -118,6 +126,8 @@ class ConversationMessages(AnalystView):
         page = page_for(request)
         items = list(conversation.messages.all()[page * 40:page * 40 + 41])
         documents, limits = DocumentRepository(), Limits.configured()
+        permissions = {}
         return Response({"conversation_id": str(conversation.pk),
-                         "results": [serialize_message(item, documents, principal, limits) for item in items[:40]],
+                         "results": [serialize_message(item, documents, principal, limits,
+                                                       historical=True, tool_permissions=permissions) for item in items[:40]],
                          "next_page": page + 1 if len(items) > 40 else None})
