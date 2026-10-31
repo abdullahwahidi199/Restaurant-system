@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { aiChatApi } from "../services/aiChatApi";
 import { modelPreferenceKey, resolveModelPreference, validModelPreference } from "../modelPreferences";
 
-export default function useModelSelection(owner) {
+export default function useModelSelection(owner, api = aiChatApi) {
   const [state, setState] = useState({ modelOptions: null, modelConfiguration: null, optionsLoading: true, optionsError: false });
   const current = useRef(state);
   const key = modelPreferenceKey(owner);
@@ -12,7 +12,7 @@ export default function useModelSelection(owner) {
     current.current = pending;
     // ChatSession is remounted whenever account/scope changes. Abort also guards
     // StrictMode and prevents a prior account's options from arriving late.
-    aiChatApi.modelOptions(controller.signal).then((options) => {
+    api.modelOptions(controller.signal).then((options) => {
       if (controller.signal.aborted) return;
       let saved;
       try { saved = key ? JSON.parse(localStorage.getItem(key) || "null") : null; } catch { saved = null; }
@@ -24,7 +24,7 @@ export default function useModelSelection(owner) {
       current.current = next; setState(next);
     });
     return () => controller.abort();
-  }, [key]);
+  }, [key, api]);
 
   const change = useCallback((field, value) => {
     const previous = current.current;

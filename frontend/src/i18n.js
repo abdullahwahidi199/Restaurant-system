@@ -8,6 +8,9 @@ import ps from "./locals/ps.json";
 import aiEn from "./locals/ai/en.json";
 import aiFa from "./locals/ai/fa.json";
 import aiPs from "./locals/ai/ps.json";
+import analystEn from "./locals/business-analyst/en.json";
+import analystFa from "./locals/business-analyst/fa.json";
+import analystPs from "./locals/business-analyst/ps.json";
 import landingEn from "./locals/landing/en.json";
 import landingFa from "./locals/landing/fa.json";
 import landingPs from "./locals/landing/ps.json";
@@ -26,6 +29,7 @@ const withTranslations = (
 });
 
 const supportedLanguages = ["en", "fa", "ps"];
+const analystTranslations = (base, overrides) => ({ ...base, ...overrides, errors: { ...base.errors, ...overrides.errors } });
 
 const syncDocumentLanguage = (language) => {
   if (typeof document === "undefined") return;
@@ -40,9 +44,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: withTranslations({ ...en, aiChat: aiEn }, landingEn, legacyEn) },
-      fa: { translation: withTranslations({ ...fa, aiChat: aiFa }, landingFa, legacyFa) },
-      ps: { translation: withTranslations({ ...ps, aiChat: aiPs }, landingPs, legacyPs) },
+      en: { translation: withTranslations({ ...en, aiChat: aiEn, businessAnalyst: analystTranslations(aiEn, analystEn) }, landingEn, legacyEn) },
+      fa: { translation: withTranslations({ ...fa, aiChat: aiFa, businessAnalyst: analystTranslations(aiFa, analystFa) }, landingFa, legacyFa) },
+      ps: { translation: withTranslations({ ...ps, aiChat: aiPs, businessAnalyst: analystTranslations(aiPs, analystPs) }, landingPs, legacyPs) },
     },
     supportedLngs: supportedLanguages,
     load: "languageOnly",

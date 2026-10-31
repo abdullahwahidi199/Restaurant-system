@@ -12,6 +12,7 @@ const pretty = (value) => JSON.stringify(value, null, 2);
 const time = (value) => value ? new Date(value).toLocaleString() : "—";
 const duration = (value) => value === null || value === undefined ? "Unavailable" : `${(value / 1000).toFixed(3)} s`;
 const number = (value) => value === null || value === undefined ? "Not reported" : value.toLocaleString();
+const agentLabel = (item) => item.agent_label || ({ operator_mentor: "Operator Mentor", business_analyst: "Business Analyst" }[item.agent_type]) || item.agent_type || "Operator Mentor";
 const errorText = (error) => error.response?.status === 403 || error.response?.status === 401
   ? "SuperAdmin authorization is required to view AI audits."
   : "Audit data could not be loaded. Try again.";
@@ -34,10 +35,12 @@ function Metrics({ turn }) {
   return <dl className="grid grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-4">
     {[["Duration", duration(turn.duration_ms)], ["Model calls", `${turn.completed_model_calls} completed / ${turn.model_calls} attempted`],
       ["Tool calls", `${turn.completed_tool_calls} completed / ${turn.tool_calls} attempted`], ["Input tokens", number(turn.usage?.prompt_tokens)],
+      ["Batches", number(turn.batches)], ["Operations", number(turn.operations)],
       ["Output tokens", number(turn.usage?.completion_tokens)], ["Cache hit tokens", number(turn.usage?.prompt_cache_hit_tokens)],
       ["Cache miss tokens", number(turn.usage?.prompt_cache_miss_tokens)], ["Estimated cost", "Unavailable"]].map(([label, value]) =>
       <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-semibold text-gray-900">{value}</dd></div>)}
     {!turn.usage_complete && <p className="col-span-full text-amber-800">Usage is partial or was not reported by the provider.</p>}
+    {turn.legacy_capture && <p className="col-span-full text-amber-800">Imported execution record. Only originally recorded metadata is available; model payloads and tool-start events were not reconstructed.</p>}
     {turn.model_configuration && <div className="col-span-full text-xs text-gray-600"><dt>Model settings</dt><dd>
       Requested: {turn.model_configuration.requested_model ?? "Server default"} · Thinking: {turn.model_configuration.requested_reasoning_effort ?? "Server default"}<br />
       {turn.model_calls ? <>Used: {turn.model_configuration.model} · Thinking: {turn.model_configuration.reasoning_effort}</> : "No model request (local response)"}
@@ -100,11 +103,12 @@ function TurnDetail({ id, close }) {
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
     {!turn && !error && <p role="status">Loading turn…</p>}
     {turn && <>
-      <div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-bold">Turn detail</h2><Status value={turn.status} /></div>
+      <div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-bold">Turn detail</h2><Status value={turn.status} /><span className="text-sm font-medium">{agentLabel(turn)}</span></div>
       <p className="break-all text-xs text-gray-500">Request {turn.request_id} · Conversation {turn.conversation_id}<br />{turn.user.username} (#{turn.user.id}) · Restaurant {turn.restaurant_id ?? "Global"} · Branch {turn.branch_id ?? "Global"} · {turn.model} · {time(turn.started_at)}</p>
       <Metrics turn={turn} />
       <section className="rounded-lg border bg-white p-4"><h3 className="mb-2 font-semibold">Original user prompt</h3><p className="whitespace-pre-wrap break-words">{turn.question?.content}</p></section>
       {turn.final_answer && <section className="rounded-lg border bg-white p-4"><h3 className="mb-2 font-semibold">Generated answer</h3><SafeMarkdown text={turn.final_answer.content} />
+        {turn.final_answer.original_snapshot_unavailable && <p className="mt-2 text-xs text-amber-800">Stored legacy message; an immutable original answer snapshot was not recorded.</p>}
         <details className="mt-3"><summary className="cursor-pointer text-sm">Verified source references</summary><Json value={turn.final_answer.sources} /></details></section>}
       {turn.error_code && <p role="status" className="rounded-lg bg-red-50 p-4 text-sm text-red-800">{turn.failure_stage} · {turn.error_category} · {turn.error_code}</p>}
       <details><summary className="cursor-pointer text-sm font-medium">Stage durations and conversation totals</summary><Json value={{ stage_durations:turn.stage_durations, conversation_totals:turn.conversation_totals }} /></details>
@@ -124,7 +128,7 @@ function TurnDetail({ id, close }) {
   </section>;
 }
 
-function LegacyMessages({ conversation, close }) {
+function LegacyMessages({ conversation, close, openTurn }) {
   const [data,setData] = useState(null); const [page,setPage] = useState(1); const [error,setError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
@@ -133,9 +137,11 @@ function LegacyMessages({ conversation, close }) {
     return () => controller.abort();
   }, [conversation.id,page]);
   return <section className="space-y-4"><button className={buttonClass} onClick={close}>← Back to conversations</button>
-    <h2 className="text-lg font-bold">Conversation messages</h2><p className="text-sm text-gray-500">Execution traces are unavailable for messages sent before audit recording began. No historical model/tool events are reconstructed.</p>
+    <h2 className="text-lg font-bold">Conversation messages · {agentLabel(conversation)}</h2>
+    {data?.results?.some((message) => !message.trace_available) && <p className="text-sm text-gray-500">Some historical messages have no execution trace. Missing model/tool events are not reconstructed.</p>}
     {error && <p role="alert">{error}</p>}{data?.results.map((m) => <article className="rounded border bg-white p-4" key={m.id}>
-      <p className="mb-2 text-xs font-bold uppercase">{m.role} · {m.trace_available ? "Trace recorded" : "Trace unavailable"}</p><SafeMarkdown text={m.content} /></article>)}
+      <p className="mb-2 text-xs font-bold uppercase">{m.role} · {m.trace_available ? "Trace recorded" : "Trace unavailable"}</p><SafeMarkdown text={m.content} />
+      {m.trace_available && <button className={`${buttonClass} mt-3`} onClick={() => openTurn(m.request_id)}>View execution trace</button>}</article>)}
     {data && <Pages data={data} page={page} setPage={setPage} />}</section>;
 }
 
@@ -143,6 +149,15 @@ export default function AIConversationAudit() {
   const [mode,setMode] = useState("turns"); const [filters,setFilters] = useState({}); const [applied,setApplied] = useState({});
   const [page,setPage] = useState(1); const [data,setData] = useState({results:[],count:0}); const [loading,setLoading] = useState(true);
   const [error,setError] = useState(""); const [selected,setSelected] = useState(null); const [legacy,setLegacy] = useState(null); const [refresh,setRefresh] = useState(0);
+  const [options,setOptions] = useState({ agents: [{value:"operator_mentor",label:"Operator Mentor"},{value:"business_analyst",label:"Business Analyst"}],
+    tools: ["search_documentation","fetch_documentation","retrieve_business_context"] });
+  useEffect(() => {
+    const controller = new AbortController();
+    instance.get(`${base}/agents/`, {signal:controller.signal, preserveAuthFailure:true}).then(({data:result}) => {
+      if (Array.isArray(result.agents) && Array.isArray(result.tools)) setOptions(result);
+    }).catch(() => { /* Keep known choices; list/detail endpoints retain their own error state. */ });
+    return () => controller.abort();
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     instance.get(`${base}/${mode}/`, {params:{...applied,page}, signal:controller.signal, preserveAuthFailure:true}).then(({data:result}) => { setData(result); setError(""); })
@@ -154,19 +169,22 @@ export default function AIConversationAudit() {
     <header className="flex flex-wrap items-center justify-between gap-3"><div><Link to="/super-admin" className="mb-2 inline-flex items-center gap-1 text-sm text-gray-600"><ArrowLeft size={14} />SuperAdmin</Link>
       <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900"><ClipboardList />AI Conversation Audit</h1><p className="mt-1 text-sm text-gray-500">Read-only execution records · Sensitive details are access logged · Cost unavailable</p></div>
       <button className={buttonClass} aria-label="Refresh audit list" onClick={() => {setLoading(true);setRefresh(refresh+1);}}><RefreshCw size={16} /></button></header>
-    {selected ? <TurnDetail key={selected} id={selected} close={() => setSelected(null)} /> : legacy ? <LegacyMessages key={legacy.id} conversation={legacy} close={() => setLegacy(null)} /> : <>
+    {selected ? <TurnDetail key={selected} id={selected} close={() => setSelected(null)} /> : legacy ? <LegacyMessages key={legacy.id} conversation={legacy} close={() => setLegacy(null)} openTurn={setSelected} /> : <>
       <nav className="flex gap-2" aria-label="Audit views">{[["turns","Audited turns"],["conversations","All conversations"]].map(([value,label]) => <button className={`${buttonClass} ${mode===value ? "bg-gray-900 text-white" : ""}`} key={value} onClick={() => {setMode(value);setPage(1);setLoading(true);}}>{label}</button>)}</nav>
-      {mode === "turns" && <form onSubmit={apply} className="grid grid-cols-2 gap-3 rounded-lg border bg-white p-4 md:grid-cols-4" aria-label="Audit filters">
-        {[["start_date","From","date"],["end_date","To","date"],["user","User ID","number"],["conversation","Conversation ID","text"],["model","Model","text"],["error_code","Error code","text"],["error_category","Error category","text"]].map(([key,label,type]) => <label key={key} className="text-xs font-medium text-gray-600">{label}<input className={inputClass} type={type} value={filters[key] || ""} onChange={(e) => setFilters({...filters,[key]:e.target.value})} /></label>)}
+      <form onSubmit={apply} className="grid grid-cols-2 gap-3 rounded-lg border bg-white p-4 md:grid-cols-4" aria-label="Audit filters">
+        <label className="text-xs font-medium text-gray-600">Agent<select className={inputClass} value={filters.agent_type || ""} onChange={(e) => setFilters({...filters,agent_type:e.target.value})}>
+          <option value="">All agents</option>{options.agents.map((agent) => <option key={agent.value} value={agent.value}>{agent.label}</option>)}
+        </select></label>
+        {[["start_date","From","date"],["end_date","To","date"],["user","User ID","number"],["restaurant","Restaurant ID","number"],["branch","Branch ID","number"],["conversation","Conversation ID","text"],["model","Model","text"],["error_code","Error code","text"],["error_category","Error category","text"]].map(([key,label,type]) => <label key={key} className="text-xs font-medium text-gray-600">{label}<input className={inputClass} type={type} value={filters[key] || ""} onChange={(e) => setFilters({...filters,[key]:e.target.value})} /></label>)}
         <label className="text-xs font-medium text-gray-600">Status<select className={inputClass} value={filters.status || ""} onChange={(e) => setFilters({...filters,status:e.target.value})}><option value="">All statuses</option>{["processing","completed","failed","interrupted"].map(s => <option key={s}>{s}</option>)}</select></label>
-        <label className="text-xs font-medium text-gray-600">Tool<select className={inputClass} value={filters.tool || ""} onChange={(e) => setFilters({...filters,tool:e.target.value})}><option value="">All tools</option><option>search_documentation</option><option>fetch_documentation</option></select></label>
+        <label className="text-xs font-medium text-gray-600">Tool<select className={inputClass} value={filters.tool || ""} onChange={(e) => setFilters({...filters,tool:e.target.value})}><option value="">All tools</option>{options.tools.map((tool) => <option key={tool}>{tool}</option>)}</select></label>
         <div className="flex items-end"><button className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white">Apply filters</button></div>
-      </form>}
+      </form>
       {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-red-800">{error}</p>}
       {loading ? <p role="status">Loading audits…</p> : !error && <div className="space-y-4 rounded-lg border bg-white p-4">
         {!data.results.length && <p className="py-8 text-center text-gray-500">No audit records match these filters.</p>}
         {data.results.map((item) => <button key={item.id} className="grid w-full gap-3 rounded-lg border border-gray-200 p-4 text-left hover:border-gray-400 md:grid-cols-[1fr_auto]" onClick={() => mode==="turns" ? setSelected(item.id) : setLegacy(item)}>
-          <div className="min-w-0"><p className="break-words font-semibold text-gray-900">{item.question_preview || item.title || "Untitled conversation"}</p>
+          <div className="min-w-0"><p className="mb-1 text-xs font-semibold text-indigo-700">{agentLabel(item)}</p><p className="break-words font-semibold text-gray-900">{item.question_preview || item.title || "Untitled conversation"}</p>
             <p className="mt-1 break-all text-xs text-gray-500">{item.user?.username || item.username} · {time(item.started_at || item.updated_at)}<br />Turn / record: {item.id}{item.conversation_id && <><br />Conversation: {item.conversation_id}</>}</p></div>
           {mode==="turns" ? <div className="text-xs leading-6 text-gray-600"><Status value={item.status} /><p>{item.model} · {item.model_calls} model / {item.tool_calls} tool calls</p><p>{duration(item.duration_ms)} · {number(item.usage?.total_tokens)} tokens</p></div>
             : <span className="text-sm text-gray-500">{item.audited_turns} audited turns · {item.trace_available ? "Traces available" : "Historical trace unavailable"}</span>}

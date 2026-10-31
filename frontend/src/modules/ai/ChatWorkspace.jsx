@@ -10,8 +10,9 @@ import "./styles/ai-chat.css";
 import { getStaffLoginPath } from "../../config/appEnvironment";
 
 // Pure template conversion. The controller is supplied by the API hook in stage B.
-export default function ChatWorkspace({ chat, homePath, onLogout }) {
-  const { t, i18n } = useTranslation(undefined, { keyPrefix: "aiChat" });
+export default function ChatWorkspace({ chat, homePath, onLogout, translationKeyPrefix = "aiChat", sidebar = false,
+  suggestionKeys = ["order", "payment", "reservation", "permissions"] }) {
+  const { t, i18n } = useTranslation(undefined, { keyPrefix: translationKeyPrefix });
   const [historyOpen, setHistoryOpen] = useState(false);
   const scroll = useRef(null);
   const frame = useRef(null);
@@ -31,9 +32,7 @@ export default function ChatWorkspace({ chat, homePath, onLogout }) {
   useEffect(() => () => { cancelAnimationFrame(frame.current); frame.current = null; }, []);
   const finishAnimation = chat.finishAnimation;
   const welcome = !chat.messages.length && !chat.loading;
-  const suggestions = ["order", "payment", "reservation", "permissions"];
-  return <section className="pakhlai-ai" dir={i18n.dir()} lang={i18n.resolvedLanguage}>
-    <div className="app-shell">
+  const workspace = <div className="app-shell">
       <header className="page-header"><div className="page-header-left">
         <Link className="icon-btn" to={homePath} aria-label={t("back")} title={t("back")}><ArrowLeft size={18} /></Link>
         <div className="brand-mark" aria-hidden="true">PK</div>
@@ -54,7 +53,7 @@ export default function ChatWorkspace({ chat, homePath, onLogout }) {
             <div className="chat-subtitle">{t(chat.conversationId ? "saved" : "startHint")}</div>
           </div>
         </div><div className="chat-card-header-right">
-          <button className="icon-btn" onClick={() => { chat.loadConversations?.(); setHistoryOpen(true); }} aria-label={t("history")} title={t("history")}><History size={17} /></button>
+          <button className="icon-btn history-toggle" onClick={() => { chat.loadConversations?.(); setHistoryOpen(true); }} aria-label={t("history")} title={t("history")}><History size={17} /></button>
           <button className="icon-btn" onClick={chat.startNew} aria-label={t("newConversation")} title={t("newConversation")}><Plus size={18} /></button>
         </div></div>
         <div className="messages-scroll" ref={scroll} aria-label={t("messages")} onScroll={() => {
@@ -64,7 +63,7 @@ export default function ChatWorkspace({ chat, homePath, onLogout }) {
           {chat.loading && <p role="status">{t("loading")}</p>}
           {welcome && <div className="welcome"><div className="welcome-icon" aria-hidden="true"><Sparkles size={26} /></div>
             <h2>{t("welcome")}</h2><p>{t("welcomeHelp")}</p><div className="suggestion-grid">
-              {suggestions.map((key) => <button className="suggestion-card" key={key} onClick={() => chat.setDraft(t(`suggestions.${key}`))}>
+              {suggestionKeys.map((key) => <button className="suggestion-card" key={key} onClick={() => chat.setDraft(t(`suggestions.${key}`))}>
                 <BookOpen size={15} aria-hidden="true" /><span>{t(`suggestions.${key}`)}</span></button>)}
             </div></div>}
           {chat.messages.map((message) => <ChatMessage key={message.id} message={message} animate={chat.animatingId === message.id}
@@ -77,10 +76,14 @@ export default function ChatWorkspace({ chat, homePath, onLogout }) {
           </div></div>}
         </div>
         <ChatComposer draft={chat.draft} setDraft={chat.setDraft} send={chat.send}
+          translationKeyPrefix={translationKeyPrefix}
           selection={chat.selection}
           disabled={chat.sending || chat.loading || !!chat.animatingId || chat.historyNext !== null || chat.historyIncomplete || chat.selection?.optionsLoading} />
       </main>
       {(chat.error === "authentication" || chat.listError === "authentication") && <Link className="history-new" to={getStaffLoginPath()}>{t("signIn")}</Link>}
-    </div><ConversationHistory open={historyOpen} onClose={closeHistory} chat={chat} />
+    </div>;
+  return <section className={`pakhlai-ai${sidebar ? " business-analyst" : ""}`} dir={i18n.dir()} lang={i18n.resolvedLanguage}>
+    {sidebar ? <div className="analyst-layout"><ConversationHistory open inline onClose={closeHistory} chat={chat} />{workspace}</div> : workspace}
+    <ConversationHistory open={historyOpen} onClose={closeHistory} chat={chat} />
   </section>;
 }

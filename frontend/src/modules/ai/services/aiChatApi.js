@@ -44,9 +44,10 @@ export function errorCategory(error) {
   return status ? "unavailable" : "network";
 }
 
-export const aiChatApi = {
+export function createChatApi({ basePath = "/assistant", messageReader = readMessage } = {}) {
+  return {
   async modelOptions(signal) {
-    const { data } = await instance.get("/assistant/model-options/", { signal, timeout: 20000, preserveAuthFailure: true });
+    const { data } = await instance.get(`${basePath}/model-options/`, { signal, timeout: 20000, preserveAuthFailure: true });
     const valid = (options, limit) => Array.isArray(options) && options.length > 0 && options.length <= limit
       && options.every((option) => option && typeof option.value === "string" && /^[a-z0-9-]{1,64}$/.test(option.value)
         && typeof option.label === "string" && option.label.length <= 100)
@@ -59,18 +60,18 @@ export const aiChatApi = {
   },
   async send(message, conversationId, language, signal, configuration = null) {
     if (conversationId !== null && !isConversationId(conversationId)) invalid();
-    const response = await instance.post("/assistant/chat/", { message, ...(conversationId ? { conversation_id: conversationId } : {}),
+    const response = await instance.post(`${basePath}/chat/`, { message, ...(conversationId ? { conversation_id: conversationId } : {}),
       ...(configuration ? { model: configuration.model, reasoning_effort: configuration.reasoning_effort } : {}) },
       { signal, timeout: CHAT_TIMEOUT_MS, preserveAuthFailure: true, headers: { "Accept-Language": language } });
     const data = response.data;
     if (!data || !isConversationId(data.conversation_id) || !isConversationId(data.request_id)
         || (conversationId && data.conversation_id !== conversationId)) invalid();
-    const reply = readMessage(data.message);
+    const reply = messageReader(data.message);
     if (reply.role !== "assistant" || reply.state !== "complete") invalid();
     return { conversationId: data.conversation_id, message: reply };
   },
   async conversations(page = 0, signal) {
-    const response = await instance.get("/assistant/conversations/", { params: { page: pageNumber(page) }, signal, timeout: 20000, preserveAuthFailure: true });
+    const response = await instance.get(`${basePath}/conversations/`, { params: { page: pageNumber(page) }, signal, timeout: 20000, preserveAuthFailure: true });
     const data = response.data;
     if (!data || !Array.isArray(data.results) || data.results.length > 20) invalid();
     return { results: data.results.map((item) => {
@@ -80,9 +81,12 @@ export const aiChatApi = {
   },
   async messages(id, page = 0, signal) {
     if (!isConversationId(id)) invalid();
-    const response = await instance.get(`/assistant/conversations/${id}/messages/`, { params: { page: pageNumber(page) }, signal, timeout: 20000, preserveAuthFailure: true });
+    const response = await instance.get(`${basePath}/conversations/${id}/messages/`, { params: { page: pageNumber(page) }, signal, timeout: 20000, preserveAuthFailure: true });
     const data = response.data;
     if (!data || data.conversation_id !== id || !Array.isArray(data.results) || data.results.length > 40) invalid();
-    return { results: data.results.map(readMessage), nextPage: nextPage(data.next_page) };
+    return { results: data.results.map(messageReader), nextPage: nextPage(data.next_page) };
   },
-};
+  };
+}
+
+export const aiChatApi = createChatApi();

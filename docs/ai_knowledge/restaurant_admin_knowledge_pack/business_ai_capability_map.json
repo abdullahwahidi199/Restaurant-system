@@ -296,7 +296,3245 @@
           "description": "Service debt, open invoice counts, filtered balances, and agreement value distinctions."
         }
       ],
-      "tools": []
+      "tools": [
+        {
+          "id": "list_contractors",
+          "description": "List contractor contacts and current all-time balances, including inactive providers; no directory date filter.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "is_active": {
+                "type": "boolean"
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Name, contact person, phone or email substring."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "name",
+                  "-name",
+                  "created_at",
+                  "-created_at",
+                  "balance",
+                  "-balance"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "contact_person": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "address": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "is_active": {
+                      "type": "boolean"
+                    },
+                    "total_invoiced": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "total_paid": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "outstanding_balance": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "created_at",
+                    "updated_at",
+                    "name",
+                    "contact_person",
+                    "phone",
+                    "email",
+                    "address",
+                    "notes",
+                    "is_active",
+                    "total_invoiced",
+                    "total_paid",
+                    "outstanding_balance"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_profiles",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_contractor_details",
+          "description": "Get full contractor profile, all-time account totals and related record counts; agreement value is not debt.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              }
+            },
+            "required": [
+              "contractor_id"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "contractor": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "contact_person": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "boolean"
+                  },
+                  "total_invoiced": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "total_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "outstanding_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "created_at",
+                  "updated_at",
+                  "name",
+                  "contact_person",
+                  "phone",
+                  "email",
+                  "address",
+                  "notes",
+                  "is_active",
+                  "total_invoiced",
+                  "total_paid",
+                  "outstanding_balance"
+                ]
+              },
+              "contract_count": {
+                "type": "integer"
+              },
+              "invoice_totals": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "face_value_including_drafts": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "draft_count": {
+                    "type": "integer"
+                  },
+                  "draft_face_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "recognized_count": {
+                    "type": "integer"
+                  },
+                  "recognized_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_capped_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_remaining": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "open_count": {
+                    "type": "integer"
+                  },
+                  "all_date_linked_payments": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "count",
+                  "face_value_including_drafts",
+                  "draft_count",
+                  "draft_face_value",
+                  "recognized_count",
+                  "recognized_charges",
+                  "current_capped_paid",
+                  "current_remaining",
+                  "open_count",
+                  "all_date_linked_payments"
+                ]
+              },
+              "payment_count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "contractor",
+              "contract_count",
+              "invoice_totals",
+              "payment_count"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_profiles",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "list_service_contracts",
+          "description": "List agreements using optional start-date bounds; agreement values differ from all-time linked invoice charges.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "active",
+                  "completed",
+                  "cancelled",
+                  "expired"
+                ],
+                "description": "Stored contract state; end dates do not automatically expire agreements."
+              },
+              "open_ended": {
+                "type": "boolean",
+                "description": "True: no end date; false: an end date is stored."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Title, contractor name or notes substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Contract start_date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Contract start_date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "start_date",
+                  "-start_date",
+                  "end_date",
+                  "-end_date",
+                  "title",
+                  "-title",
+                  "contract_value",
+                  "-contract_value"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "contractor_id": {
+                      "type": "integer"
+                    },
+                    "contractor_name": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "start_date": {
+                      "type": "string"
+                    },
+                    "end_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "agreement_value": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "created_by_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "created_by_name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "current_linked_invoiced": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "created_at",
+                    "updated_at",
+                    "contractor_id",
+                    "contractor_name",
+                    "title",
+                    "start_date",
+                    "end_date",
+                    "agreement_value",
+                    "status",
+                    "notes",
+                    "created_by_id",
+                    "created_by_name",
+                    "current_linked_invoiced"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_contracts",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_service_contract_details",
+          "description": "Get full agreement and current all-time linked invoice financial totals, regardless of agreement status or dates.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Authorized service contract ID."
+              }
+            },
+            "required": [
+              "contract_id"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "contract": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "type": "string"
+                  },
+                  "contractor_id": {
+                    "type": "integer"
+                  },
+                  "contractor_name": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "start_date": {
+                    "type": "string"
+                  },
+                  "end_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "agreement_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "created_by_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "created_by_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "current_linked_invoiced": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "created_at",
+                  "updated_at",
+                  "contractor_id",
+                  "contractor_name",
+                  "title",
+                  "start_date",
+                  "end_date",
+                  "agreement_value",
+                  "status",
+                  "notes",
+                  "created_by_id",
+                  "created_by_name",
+                  "current_linked_invoiced"
+                ]
+              },
+              "linked_invoice_totals": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "face_value_including_drafts": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "draft_count": {
+                    "type": "integer"
+                  },
+                  "draft_face_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "recognized_count": {
+                    "type": "integer"
+                  },
+                  "recognized_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_capped_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_remaining": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "open_count": {
+                    "type": "integer"
+                  },
+                  "all_date_linked_payments": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "count",
+                  "face_value_including_drafts",
+                  "draft_count",
+                  "draft_face_value",
+                  "recognized_count",
+                  "recognized_charges",
+                  "current_capped_paid",
+                  "current_remaining",
+                  "open_count",
+                  "all_date_linked_payments"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "contract",
+              "linked_invoice_totals"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_contracts",
+            "admin_contractors_service_invoices"
+          ]
+        },
+        {
+          "id": "list_service_invoices",
+          "description": "List individual invoices by invoice-date cohort, including drafts; Paid/Remaining are current all-date settlement amounts.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized service contract."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "approved",
+                  "partially_paid",
+                  "paid"
+                ],
+                "description": "Current invoice settlement state; drafts are excluded from recognized charges/payables."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Stored invoice number, contractor, contract title, description or service-line text. Generated CINV labels are display references."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "due_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Additional due_date lower bound; invoices without due dates are excluded; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "due_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Additional due_date upper bound; invoices without due dates are excluded; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "invoice_date",
+                  "-invoice_date",
+                  "due_date",
+                  "-due_date",
+                  "total_amount",
+                  "-total_amount",
+                  "invoice_number",
+                  "-invoice_number"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "contractor_id": {
+                      "type": "integer"
+                    },
+                    "contractor_name": {
+                      "type": "string"
+                    },
+                    "contract_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "contract_title": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stored_invoice_number": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "invoice_date": {
+                      "type": "string"
+                    },
+                    "due_date": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "recognized": {
+                      "type": "boolean"
+                    },
+                    "total_amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "amount_paid": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "remaining_balance": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "created_by_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "created_by_name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "created_at",
+                    "updated_at",
+                    "contractor_id",
+                    "contractor_name",
+                    "contract_id",
+                    "contract_title",
+                    "stored_invoice_number",
+                    "reference",
+                    "invoice_date",
+                    "due_date",
+                    "description",
+                    "status",
+                    "recognized",
+                    "total_amount",
+                    "amount_paid",
+                    "remaining_balance",
+                    "created_by_id",
+                    "created_by_name"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_invoices",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_service_invoice_details",
+          "description": "Get full invoice fields and independently paginated lines, all-date payments, attachment metadata and authorized audit changes. No file content.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "invoice_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Authorized invoice ID."
+              },
+              "lines_page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "payments_page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "attachments_page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "audit_page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "default": 5
+              }
+            },
+            "required": [
+              "invoice_id"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "invoice": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "created_at": {
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "type": "string"
+                  },
+                  "contractor_id": {
+                    "type": "integer"
+                  },
+                  "contractor_name": {
+                    "type": "string"
+                  },
+                  "contract_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "contract_title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "stored_invoice_number": {
+                    "type": "string"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "invoice_date": {
+                    "type": "string"
+                  },
+                  "due_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "recognized": {
+                    "type": "boolean"
+                  },
+                  "total_amount": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "amount_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "remaining_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "created_by_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "created_by_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "created_at",
+                  "updated_at",
+                  "contractor_id",
+                  "contractor_name",
+                  "contract_id",
+                  "contract_title",
+                  "stored_invoice_number",
+                  "reference",
+                  "invoice_date",
+                  "due_date",
+                  "description",
+                  "status",
+                  "recognized",
+                  "total_amount",
+                  "amount_paid",
+                  "remaining_balance",
+                  "created_by_id",
+                  "created_by_name"
+                ]
+              },
+              "lines": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "invoice_id": {
+                          "type": "integer"
+                        },
+                        "invoice_reference": {
+                          "type": "string"
+                        },
+                        "invoice_date": {
+                          "type": "string"
+                        },
+                        "contractor_id": {
+                          "type": "integer"
+                        },
+                        "contractor_name": {
+                          "type": "string"
+                        },
+                        "invoice_status": {
+                          "type": "string"
+                        },
+                        "recognized": {
+                          "type": "boolean"
+                        },
+                        "service_type": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        },
+                        "unit_price": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        },
+                        "total_price": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "invoice_id",
+                        "invoice_reference",
+                        "invoice_date",
+                        "contractor_id",
+                        "contractor_name",
+                        "invoice_status",
+                        "recognized",
+                        "service_type",
+                        "description",
+                        "quantity",
+                        "unit_price",
+                        "total_price"
+                      ]
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "page_size": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "has_more": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "page_size",
+                      "total",
+                      "has_more"
+                    ]
+                  }
+                },
+                "required": [
+                  "results",
+                  "pagination"
+                ]
+              },
+              "payments": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "updated_at": {
+                          "type": "string"
+                        },
+                        "contractor_id": {
+                          "type": "integer"
+                        },
+                        "contractor_name": {
+                          "type": "string"
+                        },
+                        "invoice_id": {
+                          "type": "integer"
+                        },
+                        "invoice_reference": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        },
+                        "payment_method": {
+                          "type": "string"
+                        },
+                        "reference_number": {
+                          "type": "string"
+                        },
+                        "notes": {
+                          "type": "string"
+                        },
+                        "created_by_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "created_by_name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "created_at",
+                        "updated_at",
+                        "contractor_id",
+                        "contractor_name",
+                        "invoice_id",
+                        "invoice_reference",
+                        "date",
+                        "amount",
+                        "payment_method",
+                        "reference_number",
+                        "notes",
+                        "created_by_id",
+                        "created_by_name"
+                      ]
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "page_size": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "has_more": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "page_size",
+                      "total",
+                      "has_more"
+                    ]
+                  }
+                },
+                "required": [
+                  "results",
+                  "pagination"
+                ]
+              },
+              "attachments": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "original_filename": {
+                          "type": "string"
+                        },
+                        "content_type": {
+                          "type": "string"
+                        },
+                        "file_size": {
+                          "type": "integer"
+                        },
+                        "file_type": {
+                          "type": "string"
+                        },
+                        "uploaded_at": {
+                          "type": "string"
+                        },
+                        "uploaded_by_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "uploaded_by_name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "authenticated_download_path": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "original_filename",
+                        "content_type",
+                        "file_size",
+                        "file_type",
+                        "uploaded_at",
+                        "uploaded_by_id",
+                        "uploaded_by_name",
+                        "authenticated_download_path"
+                      ]
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "page_size": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "has_more": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "page_size",
+                      "total",
+                      "has_more"
+                    ]
+                  }
+                },
+                "required": [
+                  "results",
+                  "pagination"
+                ]
+              },
+              "audit_changes": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "action": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "old_values": {
+                          "type": "object"
+                        },
+                        "new_values": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "action",
+                        "created_at",
+                        "description",
+                        "old_values",
+                        "new_values"
+                      ]
+                    }
+                  },
+                  "pagination": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "page": {
+                        "type": "integer"
+                      },
+                      "page_size": {
+                        "type": "integer"
+                      },
+                      "total": {
+                        "type": "integer"
+                      },
+                      "has_more": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "page",
+                      "page_size",
+                      "total",
+                      "has_more"
+                    ]
+                  }
+                },
+                "required": [
+                  "results",
+                  "pagination"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "invoice",
+              "lines",
+              "payments",
+              "attachments",
+              "audit_changes"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_invoices",
+            "admin_contractors_payments"
+          ]
+        },
+        {
+          "id": "list_service_invoice_lines",
+          "description": "List rounded service-line records across matching invoices or one invoice; dates/status belong to the parent invoice.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized service contract."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "approved",
+                  "partially_paid",
+                  "paid"
+                ],
+                "description": "Current invoice settlement state; drafts are excluded from recognized charges/payables."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "invoice_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized invoice; omit to list across matching invoices."
+              },
+              "service_type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "description": "Case-insensitive exact service type."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Line service type or description substring."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "id",
+                  "-id",
+                  "service_type",
+                  "-service_type",
+                  "quantity",
+                  "-quantity",
+                  "total_price",
+                  "-total_price",
+                  "invoice_date",
+                  "-invoice_date"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "invoice_id": {
+                      "type": "integer"
+                    },
+                    "invoice_reference": {
+                      "type": "string"
+                    },
+                    "invoice_date": {
+                      "type": "string"
+                    },
+                    "contractor_id": {
+                      "type": "integer"
+                    },
+                    "contractor_name": {
+                      "type": "string"
+                    },
+                    "invoice_status": {
+                      "type": "string"
+                    },
+                    "recognized": {
+                      "type": "boolean"
+                    },
+                    "service_type": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "quantity": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "unit_price": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "total_price": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoice_id",
+                    "invoice_reference",
+                    "invoice_date",
+                    "contractor_id",
+                    "contractor_name",
+                    "invoice_status",
+                    "recognized",
+                    "service_type",
+                    "description",
+                    "quantity",
+                    "unit_price",
+                    "total_price"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_invoices",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "list_contractor_payments",
+          "description": "List individual recorded disbursements by payment date, independent of invoice dates; no implicit month restriction.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "invoice_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized invoice."
+              },
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Payments linked through invoices to one authorized contract."
+              },
+              "invoice_status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "approved",
+                  "partially_paid",
+                  "paid"
+                ],
+                "description": "Current invoice settlement state; drafts are excluded from recognized charges/payables."
+              },
+              "payment_method": {
+                "type": "string",
+                "enum": [
+                  "cash",
+                  "card",
+                  "bank_transfer",
+                  "mobile_money",
+                  "cheque",
+                  "other"
+                ],
+                "description": "Recorded payment method, not independently verified bank settlement."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Contractor name, stored invoice number, reference or notes substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Payment date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Payment date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "date",
+                  "-date",
+                  "amount",
+                  "-amount",
+                  "created_at",
+                  "-created_at"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "type": "string"
+                    },
+                    "contractor_id": {
+                      "type": "integer"
+                    },
+                    "contractor_name": {
+                      "type": "string"
+                    },
+                    "invoice_id": {
+                      "type": "integer"
+                    },
+                    "invoice_reference": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "payment_method": {
+                      "type": "string"
+                    },
+                    "reference_number": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "created_by_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "created_by_name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "created_at",
+                    "updated_at",
+                    "contractor_id",
+                    "contractor_name",
+                    "invoice_id",
+                    "invoice_reference",
+                    "date",
+                    "amount",
+                    "payment_method",
+                    "reference_number",
+                    "notes",
+                    "created_by_id",
+                    "created_by_name"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_payments",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_contractor_ledger",
+          "description": "Get a paginated contractor ledger: non-draft invoice debits and payment credits, signed running balances; reconstructed from current records, not historical snapshots.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Transaction date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Transaction date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "order": {
+                "type": "string",
+                "enum": [
+                  "ascending",
+                  "descending"
+                ],
+                "default": "ascending"
+              }
+            },
+            "required": [
+              "contractor_id"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "contractor_id": {
+                "type": "integer"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "debit": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "credit": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "running_balance": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "type",
+                    "id",
+                    "label",
+                    "status",
+                    "debit",
+                    "credit",
+                    "running_balance"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              },
+              "range": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "invoice_count": {
+                    "type": "integer"
+                  },
+                  "payment_count": {
+                    "type": "integer"
+                  },
+                  "opening_reconstructed": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "invoice_debits": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "payment_credits": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "closing_reconstructed": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "invoice_count",
+                  "payment_count",
+                  "opening_reconstructed",
+                  "invoice_debits",
+                  "payment_credits",
+                  "closing_reconstructed"
+                ]
+              },
+              "current": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "total_invoiced": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "total_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "outstanding_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "total_invoiced",
+                  "total_paid",
+                  "outstanding_balance"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "contractor_id",
+              "results",
+              "pagination",
+              "range",
+              "current"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_profiles",
+            "admin_contractors_payments",
+            "admin_contractors_service_invoices"
+          ]
+        },
+        {
+          "id": "get_contractor_summary",
+          "description": "Summarize matching contractor accounts: directory counts; period agreement values/start dates, non-draft invoice charges/invoice dates, payments/payment dates; separate all-time current balances. Aggregate net debt can differ from summed provider or invoice balances.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "is_active": {
+                "type": "boolean"
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Name, contact person, phone or email substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Activity lower bound on each model's own business date; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Activity upper bound on each model's own business date; YYYY-MM-DD, inclusive, omitted means unbounded."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "contractors": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "active": {
+                    "type": "integer"
+                  },
+                  "inactive": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "count",
+                  "active",
+                  "inactive"
+                ]
+              },
+              "activity": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "contract_count": {
+                    "type": "integer"
+                  },
+                  "agreement_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "invoice_count_including_drafts": {
+                    "type": "integer"
+                  },
+                  "recognized_invoice_count": {
+                    "type": "integer"
+                  },
+                  "draft_invoice_count": {
+                    "type": "integer"
+                  },
+                  "draft_face_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "recognized_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "payment_count": {
+                    "type": "integer"
+                  },
+                  "recorded_payments": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "net_activity": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "invoice_statuses": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "status": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "face_value": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "count",
+                        "face_value"
+                      ]
+                    }
+                  },
+                  "contract_statuses": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "status": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "agreement_value": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "count",
+                        "agreement_value"
+                      ]
+                    }
+                  },
+                  "payment_methods": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "payment_method": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "amount": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "payment_method",
+                        "count",
+                        "amount"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "contract_count",
+                  "agreement_value",
+                  "invoice_count_including_drafts",
+                  "recognized_invoice_count",
+                  "draft_invoice_count",
+                  "draft_face_value",
+                  "recognized_charges",
+                  "payment_count",
+                  "recorded_payments",
+                  "net_activity",
+                  "invoice_statuses",
+                  "contract_statuses",
+                  "payment_methods"
+                ]
+              },
+              "current": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "total_invoiced": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "total_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "outstanding_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "sum_contractor_balances": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "positive_balance_contractors": {
+                    "type": "integer"
+                  },
+                  "recognized_invoice_balances": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "total_invoiced",
+                  "total_paid",
+                  "outstanding_balance",
+                  "sum_contractor_balances",
+                  "positive_balance_contractors",
+                  "recognized_invoice_balances"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "contractors",
+              "activity",
+              "current"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_shared_financial_meaning",
+            "admin_contractors_dashboard",
+            "admin_contractors_profiles",
+            "admin_contractors_payables"
+          ]
+        },
+        {
+          "id": "get_service_contracts_summary",
+          "description": "Aggregate filtered agreements by start_date and stored status; sum agreement values separately from all-time current linked invoice charges and settlement.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "active",
+                  "completed",
+                  "cancelled",
+                  "expired"
+                ],
+                "description": "Stored contract state; end dates do not automatically expire agreements."
+              },
+              "open_ended": {
+                "type": "boolean",
+                "description": "True: no end date; false: an end date is stored."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Title, contractor name or notes substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Contract start_date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Contract start_date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "agreement_value": {
+                "type": "string",
+                "pattern": "^-?\\d+\\.\\d{2}$"
+              },
+              "open_ended_count": {
+                "type": "integer"
+              },
+              "by_status": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "agreement_value": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "count",
+                    "agreement_value"
+                  ]
+                }
+              },
+              "current_linked_invoices": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "face_value_including_drafts": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "draft_count": {
+                    "type": "integer"
+                  },
+                  "draft_face_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "recognized_count": {
+                    "type": "integer"
+                  },
+                  "recognized_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_capped_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_remaining": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "open_count": {
+                    "type": "integer"
+                  },
+                  "all_date_linked_payments": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "count",
+                  "face_value_including_drafts",
+                  "draft_count",
+                  "draft_face_value",
+                  "recognized_count",
+                  "recognized_charges",
+                  "current_capped_paid",
+                  "current_remaining",
+                  "open_count",
+                  "all_date_linked_payments"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "count",
+              "agreement_value",
+              "open_ended_count",
+              "by_status",
+              "current_linked_invoices"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_contracts",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_service_invoices_summary",
+          "description": "Aggregate invoice-date cohorts: counts/statuses, draft face value, recognized charges, current all-date Paid/Remaining and top ten service types. No historical or cash snapshot.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized service contract."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "approved",
+                  "partially_paid",
+                  "paid"
+                ],
+                "description": "Current invoice settlement state; drafts are excluded from recognized charges/payables."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Stored invoice number, contractor, contract title, description or service-line text. Generated CINV labels are display references."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Invoice invoice_date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "due_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Additional due_date lower bound; invoices without due dates are excluded; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "due_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Additional due_date upper bound; invoices without due dates are excluded; YYYY-MM-DD, inclusive, omitted means unbounded."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "totals": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "face_value_including_drafts": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "draft_count": {
+                    "type": "integer"
+                  },
+                  "draft_face_value": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "recognized_count": {
+                    "type": "integer"
+                  },
+                  "recognized_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_capped_paid": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "current_remaining": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "open_count": {
+                    "type": "integer"
+                  },
+                  "all_date_linked_payments": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "count",
+                  "face_value_including_drafts",
+                  "draft_count",
+                  "draft_face_value",
+                  "recognized_count",
+                  "recognized_charges",
+                  "current_capped_paid",
+                  "current_remaining",
+                  "open_count",
+                  "all_date_linked_payments"
+                ]
+              },
+              "by_status": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "face_value": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "count",
+                    "face_value"
+                  ]
+                }
+              },
+              "service_types": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "service_type": {
+                          "type": "string"
+                        },
+                        "line_count": {
+                          "type": "integer"
+                        },
+                        "recognized_charges": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "service_type",
+                        "line_count",
+                        "recognized_charges"
+                      ]
+                    }
+                  },
+                  "total_groups": {
+                    "type": "integer"
+                  },
+                  "other_charges": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "groups",
+                  "total_groups",
+                  "other_charges"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "totals",
+              "by_status",
+              "service_types"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_service_invoices",
+            "admin_contractors_payables",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        },
+        {
+          "id": "get_contractor_payments_summary",
+          "description": "Aggregate payment-date disbursements, distinct providers/invoices, payment methods and current invoice states; not service expense or reconciled cash.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "contractor_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized contractor; omit for all contractors in the trusted active branch."
+              },
+              "invoice_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "One authorized invoice."
+              },
+              "contract_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Payments linked through invoices to one authorized contract."
+              },
+              "invoice_status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "approved",
+                  "partially_paid",
+                  "paid"
+                ],
+                "description": "Current invoice settlement state; drafts are excluded from recognized charges/payables."
+              },
+              "payment_method": {
+                "type": "string",
+                "enum": [
+                  "cash",
+                  "card",
+                  "bank_transfer",
+                  "mobile_money",
+                  "cheque",
+                  "other"
+                ],
+                "description": "Recorded payment method, not independently verified bank settlement."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Contractor name, stored invoice number, reference or notes substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Payment date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Payment date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "balance_basis": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "recorded_payments": {
+                "type": "string",
+                "pattern": "^-?\\d+\\.\\d{2}$"
+              },
+              "contractor_count": {
+                "type": "integer"
+              },
+              "invoice_count": {
+                "type": "integer"
+              },
+              "by_method": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "payment_method": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "payment_method",
+                    "count",
+                    "amount"
+                  ]
+                }
+              },
+              "by_current_invoice_status": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "count",
+                    "amount"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "scope",
+              "currency",
+              "date_basis",
+              "period",
+              "balance_basis",
+              "count",
+              "recorded_payments",
+              "contractor_count",
+              "invoice_count",
+              "by_method",
+              "by_current_invoice_status"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_contractors_payments",
+            "admin_contractors_shared_financial_meaning"
+          ]
+        }
+      ]
     },
     {
       "id": "finance",
@@ -383,7 +3621,1014 @@
           "description": "Product detail measures, sales shares, trends, category charts, insights, and PDF filters."
         }
       ],
-      "tools": []
+      "tools": [
+        {
+          "id": "list_expenses",
+          "description": "List current expense records by expense date, original currency and name/search; saved AFN equivalents, bounded pagination; omitted dates mean all-time.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "AFN",
+                  "USD"
+                ],
+                "description": "Original recorded currency; all AFN totals include saved conversions."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Case-insensitive exact expense name; not a category or unique record identifier."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Expense name or description substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Expense date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Expense date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "date",
+                  "-date",
+                  "name",
+                  "-name",
+                  "amount",
+                  "-amount",
+                  "amount_afn",
+                  "-amount_afn",
+                  "id",
+                  "-id"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "reporting_currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "financial_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "exchange_rate": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "amount_afn": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "date": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "amount",
+                    "currency",
+                    "exchange_rate",
+                    "amount_afn",
+                    "date",
+                    "description"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "reporting_currency",
+              "date_basis",
+              "timezone",
+              "period",
+              "financial_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_finance_expenses"
+          ]
+        },
+        {
+          "id": "get_expense_details",
+          "description": "Get one authorized current expense: original amount/currency, saved exchange rate, AFN equivalent, expense date and description. No reliable history-record link exists.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expense_id": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Authorized current expense record ID; obtain from list_expenses or the user."
+              }
+            },
+            "required": [
+              "expense_id"
+            ]
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "reporting_currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "financial_basis": {
+                "type": "string"
+              },
+              "expense": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "exchange_rate": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "amount_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "amount",
+                  "currency",
+                  "exchange_rate",
+                  "amount_afn",
+                  "date",
+                  "description"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "reporting_currency",
+              "date_basis",
+              "timezone",
+              "period",
+              "financial_basis",
+              "expense"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_finance_expenses",
+            "admin_finance_expense_detail_history"
+          ]
+        },
+        {
+          "id": "list_expense_history",
+          "description": "List expense creation/update/deletion snapshots and changed fields by recorded event timestamp in business timezone; audit events are not additional spending and have no expense ID link.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "AFN",
+                  "USD"
+                ],
+                "description": "Original recorded currency; all AFN totals include saved conversions."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Case-insensitive exact expense name; not a category or unique record identifier."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Expense name or description substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Event date_time lower calendar-day bound in the server business timezone; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Event date_time upper calendar-day bound in the server business timezone; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "created",
+                  "updated",
+                  "deleted"
+                ],
+                "description": "Recorded audit event action, not an expense status."
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+                "default": 1
+              },
+              "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "default": 15
+              },
+              "sort": {
+                "type": "string",
+                "enum": [
+                  "date_time",
+                  "-date_time",
+                  "name",
+                  "-name",
+                  "amount",
+                  "-amount",
+                  "amount_afn",
+                  "-amount_afn",
+                  "action",
+                  "-action",
+                  "id",
+                  "-id"
+                ],
+                "description": "Whitelisted ordering; a stable ID resolves ties."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "reporting_currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "financial_basis": {
+                "type": "string"
+              },
+              "results": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "exchange_rate": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "amount_afn": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "date_time": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "changed_fields": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "amount",
+                    "currency",
+                    "exchange_rate",
+                    "amount_afn",
+                    "date_time",
+                    "description",
+                    "action",
+                    "changed_fields"
+                  ]
+                }
+              },
+              "pagination": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "page_size": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "has_more": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "page",
+                  "page_size",
+                  "total",
+                  "has_more"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "reporting_currency",
+              "date_basis",
+              "timezone",
+              "period",
+              "financial_basis",
+              "results",
+              "pagination"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_finance_expense_detail_history"
+          ]
+        },
+        {
+          "id": "get_expense_summary",
+          "description": "Aggregate matching current expenses by expense date: counts, saved AFN totals/statistics, original currency totals, top ten names and latest twelve months with remainder totals. No history sums; USD is included in AFN.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "AFN",
+                  "USD"
+                ],
+                "description": "Original recorded currency; all AFN totals include saved conversions."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Case-insensitive exact expense name; not a category or unique record identifier."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Expense name or description substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Expense date lower bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Expense date upper bound; YYYY-MM-DD, inclusive, omitted means unbounded."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "reporting_currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "financial_basis": {
+                "type": "string"
+              },
+              "totals": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "total_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "average_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "minimum_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "maximum_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  },
+                  "first_expense_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "last_expense_date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "negative_amount_count": {
+                    "type": "integer"
+                  },
+                  "zero_amount_count": {
+                    "type": "integer"
+                  },
+                  "negative_rate_count": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "count",
+                  "total_afn",
+                  "average_afn",
+                  "minimum_afn",
+                  "maximum_afn",
+                  "first_expense_date",
+                  "last_expense_date",
+                  "negative_amount_count",
+                  "zero_amount_count",
+                  "negative_rate_count"
+                ]
+              },
+              "by_currency": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "currency": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "original_amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    },
+                    "total_afn": {
+                      "type": "string",
+                      "pattern": "^-?\\d+\\.\\d{2}$"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "count",
+                    "original_amount",
+                    "total_afn"
+                  ]
+                }
+              },
+              "by_name": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "total_afn": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "count",
+                        "total_afn"
+                      ]
+                    }
+                  },
+                  "total_groups": {
+                    "type": "integer"
+                  },
+                  "other_count": {
+                    "type": "integer"
+                  },
+                  "other_total_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "groups",
+                  "total_groups",
+                  "other_count",
+                  "other_total_afn"
+                ]
+              },
+              "by_month": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "month": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "total_afn": {
+                          "type": "string",
+                          "pattern": "^-?\\d+\\.\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "count",
+                        "total_afn"
+                      ]
+                    }
+                  },
+                  "total_groups": {
+                    "type": "integer"
+                  },
+                  "other_count": {
+                    "type": "integer"
+                  },
+                  "other_total_afn": {
+                    "type": "string",
+                    "pattern": "^-?\\d+\\.\\d{2}$"
+                  }
+                },
+                "required": [
+                  "groups",
+                  "total_groups",
+                  "other_count",
+                  "other_total_afn"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "reporting_currency",
+              "date_basis",
+              "timezone",
+              "period",
+              "financial_basis",
+              "totals",
+              "by_currency",
+              "by_name",
+              "by_month"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_finance_expenses"
+          ]
+        },
+        {
+          "id": "get_expense_history_summary",
+          "description": "Count audit events by action, original currency and latest twelve event months in business timezone, including first/last timestamps and remaining event counts. Never sum snapshots as expenses.",
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "AFN",
+                  "USD"
+                ],
+                "description": "Original recorded currency; all AFN totals include saved conversions."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Case-insensitive exact expense name; not a category or unique record identifier."
+              },
+              "search": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Expense name or description substring."
+              },
+              "date_from": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Event date_time lower calendar-day bound in the server business timezone; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "date_to": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Event date_time upper calendar-day bound in the server business timezone; YYYY-MM-DD, inclusive, omitted means unbounded."
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "created",
+                  "updated",
+                  "deleted"
+                ],
+                "description": "Recorded audit event action, not an expense status."
+              }
+            },
+            "required": []
+          },
+          "output": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scope": {
+                "const": "trusted_active_branch"
+              },
+              "reporting_currency": {
+                "const": "AFN"
+              },
+              "date_basis": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "period": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "to": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ]
+              },
+              "financial_basis": {
+                "type": "string"
+              },
+              "event_count": {
+                "type": "integer"
+              },
+              "first_event_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_event_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "by_action": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "type": "string"
+                    },
+                    "event_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "event_count"
+                  ]
+                }
+              },
+              "by_currency": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "currency": {
+                      "type": "string"
+                    },
+                    "event_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "event_count"
+                  ]
+                }
+              },
+              "by_month": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "groups": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "month": {
+                          "type": "string"
+                        },
+                        "event_count": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "month",
+                        "event_count"
+                      ]
+                    }
+                  },
+                  "total_groups": {
+                    "type": "integer"
+                  },
+                  "other_event_count": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "groups",
+                  "total_groups",
+                  "other_event_count"
+                ]
+              }
+            },
+            "required": [
+              "scope",
+              "reporting_currency",
+              "date_basis",
+              "timezone",
+              "period",
+              "financial_basis",
+              "event_count",
+              "first_event_at",
+              "last_event_at",
+              "by_action",
+              "by_currency",
+              "by_month"
+            ]
+          },
+          "knowledge_ids": [
+            "admin_finance_expense_detail_history"
+          ]
+        }
+      ]
     },
     {
       "id": "administration",

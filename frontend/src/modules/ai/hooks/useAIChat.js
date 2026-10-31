@@ -7,8 +7,8 @@ const unique = (items) => [...new Map(items.map((item) => [item.id, item])).valu
 const initialView = () => ({ conversationId: null, title: "", messages: [], draft: "", error: null, failedQuestion: "", sending: false,
   loading: false, animatingId: null, historyNext: null, historyIncomplete: false });
 
-export default function useAIChat(language, preferenceOwner) {
-  const selection = useModelSelection(preferenceOwner);
+export default function useAIChat(language, preferenceOwner, api = aiChatApi) {
+  const selection = useModelSelection(preferenceOwner, api);
   const getModelConfiguration = selection.getModelConfiguration;
   const [view, setView] = useState(initialView);
   const [list, setList] = useState({ conversations: [], listNext: null, listLoading: false, listError: null });
@@ -39,13 +39,13 @@ export default function useAIChat(language, preferenceOwner) {
     const controller = new AbortController(); listRequest.current = controller;
     setList((state) => ({ ...state, listLoading: true, listError: null }));
     try {
-      const result = await aiChatApi.conversations(page, controller.signal);
+      const result = await api.conversations(page, controller.signal);
       if (!alive.current || controller.signal.aborted) return;
       setList((state) => ({ conversations: unique(page ? [...state.conversations, ...result.results] : result.results), listNext: result.nextPage, listLoading: false, listError: null }));
     } catch (error) {
       if (alive.current && !controller.signal.aborted) setList((state) => ({ ...state, listLoading: false, listError: errorCategory(error) }));
     }
-  }, []);
+  }, [api]);
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   const setDraft = useCallback((draft) => {
@@ -63,7 +63,7 @@ export default function useAIChat(language, preferenceOwner) {
     const controller = makeRequest(); lock.current = true;
     setView((state) => ({ ...state, loading: true, error: null }));
     try {
-      const result = await aiChatApi.messages(id, page, controller.signal);
+      const result = await api.messages(id, page, controller.signal);
       if (!alive.current || stamp !== epoch.current || controller.signal.aborted) return;
       setView((state) => ({ ...state, messages: unique([...(reset ? [] : state.messages), ...result.results.map((item) => ({ ...item, historical: true }))]),
         historyNext: result.nextPage, historyIncomplete: false, loading: false, error: null, failedQuestion: "" }));
@@ -73,7 +73,7 @@ export default function useAIChat(language, preferenceOwner) {
       requests.current.delete(controller);
       if (stamp === epoch.current) lock.current = false;
     }
-  }, [makeRequest]);
+  }, [makeRequest, api]);
 
   const openConversation = useCallback((id) => {
     if (!isConversationId(id)) return;
@@ -107,7 +107,7 @@ export default function useAIChat(language, preferenceOwner) {
         const saved = [];
         let page = 0;
         do {
-          const history = await aiChatApi.messages(state.conversationId, page, controller.signal);
+          const history = await api.messages(state.conversationId, page, controller.signal);
           saved.push(...history.results);
           page = history.nextPage;
         } while (page !== null);
@@ -136,7 +136,7 @@ export default function useAIChat(language, preferenceOwner) {
     setView((value) => ({ ...value, draft: "", error: null, failedQuestion: "", sending: true, title: value.title || Array.from(question).slice(0, 100).join(""),
       messages: [...value.messages, { id: localId, role: "user", content: question, state: "pending", created_at: new Date().toISOString(), sources: [] }] }));
     try {
-      const response = await aiChatApi.send(question, state.conversationId, language, controller.signal, configuration);
+      const response = await api.send(question, state.conversationId, language, controller.signal, configuration);
       if (!alive.current || stamp !== epoch.current || controller.signal.aborted) return;
       setView((value) => ({ ...value, conversationId: response.conversationId, sending: false, animatingId: response.message.id,
         messages: [...value.messages.map((item) => item.id === localId ? { ...item, state: "complete" } : item), response.message] }));
@@ -153,6 +153,6 @@ export default function useAIChat(language, preferenceOwner) {
       requests.current.delete(controller);
       if (stamp === epoch.current) lock.current = false;
     }
-  }, [language, makeRequest, getModelConfiguration]);
+  }, [language, makeRequest, getModelConfiguration, api]);
   return { ...view, ...list, selection, setDraft, startNew, send, loadConversations, openConversation, reloadConversation, loadMoreMessages, finishAnimation };
 }

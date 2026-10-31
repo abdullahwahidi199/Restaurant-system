@@ -1,5 +1,12 @@
 # Restaurant Business Analyst — Stage 0 technical report
 
+Current extension: 13 read-only Contractors tools and five Expenses tools are
+implemented directly on `main`, consolidated in `business_analyst/tools.py` with
+selectors in their owning Django applications and per-operation API permissions.
+See the [Expenses refactor and verification report](business_analyst_expenses_refactor_report.md)
+for current contracts, financial meanings, permissions, mocked/live results and
+review items. The Stage 0 and map-refactor notes below describe the earlier foundation.
+
 Latest review: the capability map was compacted without changing the 78 verified
 documents. The runtime map is 65.85% smaller; all 59 Business Analyst tests and eight
 live scenarios pass. A denial-citation repair defect was fixed without weakening

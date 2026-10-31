@@ -30,6 +30,8 @@ const ChatMessage = memo(function ChatMessage({ message, animate, onComplete, on
         ? <TypewriterText text={message.content} onComplete={onComplete} onProgress={onProgress} />
         : <SafeMarkdown text={message.content} />}</div>
       {!animate && <MessageSources sources={message.sources} />}
+      {message.historical_observation && <p className="observation-note" role="note">{t("historicalObservation", {
+        defaultValue: "Past observation. Ask again for current figures." })}</p>}
       <div className="message-meta"><time dateTime={message.created_at}>{time}</time>
         <button className="copy-btn" onClick={copy} aria-label={t("copy")}>
           {copyState === "copied" ? <Check size={12} /> : <Copy size={12} />}<span>{t(copyState || "copy")}</span>

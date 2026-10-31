@@ -130,6 +130,8 @@ import AppDomainGuard from "./routing/AppDomainGuard";
 import ActivityDashboard from "./modules/activity/ActivityDashboard";
 import AIChatPage from "./modules/ai/AIChatPage";
 import { AI_CHAT_ROLES } from "./modules/ai/access";
+import BusinessAnalystPage from "./modules/business-analyst/BusinessAnalystPage";
+import { BUSINESS_ANALYST_ROLES } from "./modules/business-analyst/access";
 
 function App() {
   const { t: autoT } = useAutoTranslation();
@@ -171,6 +173,11 @@ function App() {
         <Route path="assistant" element={
           <RequireAuth allowedRoles={AI_CHAT_ROLES} showPortalLogout={false}>
             <RequireActiveRestaurant><AIChatPage /></RequireActiveRestaurant>
+          </RequireAuth>
+        } />
+        <Route path="business-analyst" element={
+          <RequireAuth allowedRoles={BUSINESS_ANALYST_ROLES} showPortalLogout={false}>
+            <RequireActiveRestaurant><BusinessAnalystPage /></RequireActiveRestaurant>
           </RequireAuth>
         } />
         <Route

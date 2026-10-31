@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { INPUT_LIMIT, characterCount } from "../text";
 import ModelSelectors from "./ModelSelectors";
 
-export default function ChatComposer({ draft, setDraft, send, disabled, selection }) {
-  const { t } = useTranslation(undefined, { keyPrefix: "aiChat" });
+export default function ChatComposer({ draft, setDraft, send, disabled, selection, translationKeyPrefix = "aiChat" }) {
+  const { t } = useTranslation(undefined, { keyPrefix: translationKeyPrefix });
   const input = useRef(null);
   const count = characterCount(draft);
   useEffect(() => {
